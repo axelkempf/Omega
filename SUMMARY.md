@@ -1,4 +1,4 @@
-# Kempf Capital Algorithmus – Executive Summary
+# Omega – Executive Summary
 
 Diese Datei fasst das Repository strukturiert und objektiv zusammen. Sie beschreibt Komponenten, Datenflüsse, Kernlogik, öffentliche Schnittstellen und Konfigurationen, ohne Bewertung.
 

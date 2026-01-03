@@ -2,7 +2,7 @@
 
 ## Executive Summary
 
-Dieses Dokument beschreibt den vollständigen Migrationsplan für die Kempf Capital Algorithmus Codebase von Python 3.10 auf Python 3.12. Die Migration bietet Performance-Verbesserungen, neue Sprachfeatures und verbesserte Typ-Unterstützung.
+Dieses Dokument beschreibt den vollständigen Migrationsplan für die Omega Codebase von Python 3.10 auf Python 3.12. Die Migration bietet Performance-Verbesserungen, neue Sprachfeatures und verbesserte Typ-Unterstützung.
 
 **Aktueller Stand:**
 - Python Version: ≥3.10 (pyproject.toml: `requires-python = ">=3.10"`)
@@ -195,7 +195,7 @@ analysis = [
 # pyproject.toml
 
 [project]
-name = "kempf-capital-algorithmus"
+name = "omega"
 version = "1.2.0"  # Version Bump für Breaking Change
 - requires-python = ">=3.10"
 + requires-python = ">=3.12"

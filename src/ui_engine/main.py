@@ -46,7 +46,9 @@ async def lifespan(app: FastAPI):
     print("🛑 Lifespan Ende")
 
 
-app = FastAPI(title="...", version="1.0", lifespan=lifespan)
+from hf_engine.infra.config.branding import APP_DISPLAY_NAME, APP_VERSION
+
+app = FastAPI(title=APP_DISPLAY_NAME, version=APP_VERSION, lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,

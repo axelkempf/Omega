@@ -35,7 +35,7 @@ Ordner-für-Ordner-Übersicht der Codebasis (ohne `results`-Ordner und ohne Aufl
 - `src/`
   - `backtest_engine/`
   - `hf_engine/`
-  - `kempf_capital_algorithmus.egg-info/`
+  - `omega.egg-info/` *(build artifact from pyproject.toml name)*
   - `strategies/`
   - `ui_engine/`
   - `watchdog/`
@@ -408,7 +408,7 @@ Ordner-für-Ordner-Übersicht der Codebasis (ohne `results`-Ordner und ohne Aufl
 ### Weitere `src`-Verzeichnisse
 
 - `src/engine_launcher.py`
-- `src/kempf_capital_algorithmus.egg-info/`
+- `src/omega.egg-info/` *(build artifact from current distribution name)*
   - `dependency_links.txt`
   - `PKG-INFO`
   - `requires.txt`

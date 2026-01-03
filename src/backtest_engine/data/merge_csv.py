@@ -69,10 +69,13 @@ if __name__ == "__main__":
         ("D1", "GBPUSD_Candlestick_1_D_ASK_*.csv", "GBPUSD_D1_ASK.csv"),
     ]
 
-    base_raw = "D:/Axel/Kempf-Capital/Algorithmus/data/raw/GBPUSD/"
-    base_out = "D:/Axel/Kempf-Capital/Algorithmus/data/csv/GBPUSD/"
+    # Use relative paths or config-driven paths instead of hardcoded absolute paths
+    from hf_engine.infra.config.paths import DATA_DIR
+    
+    base_raw = DATA_DIR / "raw" / "GBPUSD"
+    base_out = DATA_DIR / "csv" / "GBPUSD"
 
     for tf, pattern, out_file in patterns:
-        input_files = sorted(glob.glob(os.path.join(base_raw, tf, pattern)))
-        output_file = os.path.join(base_out, out_file)
+        input_files = sorted(glob.glob(os.path.join(str(base_raw), tf, pattern)))
+        output_file = os.path.join(str(base_out), out_file)
         merge_csv_files(input_files, output_file)

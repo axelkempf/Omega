@@ -1,6 +1,6 @@
-# Kempf Capital Algorithmus
+# Omega
 
-[![CI](https://github.com/axelkempf/kempf_capital_algorithmus/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/axelkempf/kempf_capital_algorithmus/actions/workflows/ci.yml)
+[![CI](https://github.com/axelkempf/Omega/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/axelkempf/Omega/actions/workflows/ci.yml)
 ![Python](https://img.shields.io/badge/python-%3E%3D3.12-blue)
 ![Version](https://img.shields.io/badge/version-1.2.0-blue)
 
