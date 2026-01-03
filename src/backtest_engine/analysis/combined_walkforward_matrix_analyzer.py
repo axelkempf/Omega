@@ -1794,7 +1794,9 @@ def _final_combo_id_from_selection(selection: Dict[str, Dict[str, Any]]) -> str:
     import hashlib
 
     # SHA1 nur für nicht-kryptografische ID-Generierung verwendet
-    digest = hashlib.sha1(base.encode("utf-8"), usedforsecurity=False).hexdigest()[:16]  # nosec B324
+    digest = hashlib.sha1(base.encode("utf-8"), usedforsecurity=False).hexdigest()[
+        :16
+    ]  # nosec B324
     return f"final_{digest}"
 
 
@@ -3073,7 +3075,9 @@ def monte_carlo_portfolio_search(
         import hashlib
 
         # SHA1 nur für nicht-kryptografische ID-Generierung verwendet
-        digest = hashlib.sha1(base.encode("utf-8"), usedforsecurity=False).hexdigest()[:16]  # nosec B324
+        digest = hashlib.sha1(base.encode("utf-8"), usedforsecurity=False).hexdigest()[
+            :16
+        ]  # nosec B324
         final_ids.append(f"final_{digest}")
 
     df.insert(0, "final_combo_pair_id", final_ids)
