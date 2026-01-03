@@ -76,7 +76,7 @@ Dieses Dokument beschreibt den systematischen Vorbereitungsplan zur sicheren, in
 | Task-ID | Beschreibung | Abhängigkeiten | Aufwand | Akzeptanzkriterien |
 |---------|--------------|----------------|---------|-------------------|
 | **P0-01** | Performance-Baseline für Migrations-Kandidaten erstellen | - | M | Benchmark-Results für alle Kandidaten-Module dokumentiert; Laufzeiten, Memory-Usage, CPU-Profile |
-| **P0-02** | Aktuelle Type Coverage analysieren und dokumentieren | - | S | `tools/type_coverage.py` Output + Analyse der Module mit `ignore_errors=true` in `pyproject.toml` |
+| **P0-02** | Aktuelle Type Coverage analysieren und dokumentieren | - | S | `tools/type_coverage.py` Output + Analyse der Module mit `ignore_errors=true` in `pyproject.toml` (Baseline: `reports/type_coverage/README.md`) |
 | **P0-03** | ADR-Verzeichnisstruktur einrichten | - | S | `docs/adr/` Verzeichnis mit Template und erstem ADR (ADR-0001: Migration Strategy) |
 | **P0-04** | Migrations-Kandidaten identifizieren und priorisieren | P0-01, P0-02 | M | Liste der Module mit Priorität (High/Medium/Low) basierend auf Performance-Impact und Type-Readiness |
 | **P0-05** | Bestehende Test-Coverage für Kandidaten dokumentieren | P0-04 | S | Coverage-Report pro Modul; Gap-Analyse für fehlende Tests |
