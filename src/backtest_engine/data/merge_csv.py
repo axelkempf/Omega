@@ -71,7 +71,7 @@ if __name__ == "__main__":
 
     # Use relative paths or config-driven paths instead of hardcoded absolute paths
     from hf_engine.infra.config.paths import DATA_DIR
-    
+
     base_raw = DATA_DIR / "raw" / "GBPUSD"
     base_out = DATA_DIR / "csv" / "GBPUSD"
 

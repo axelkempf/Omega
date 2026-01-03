@@ -125,7 +125,7 @@ def convert_h1_to_h4_d1(input_csv: str, out_h4_csv: str, out_d1_csv: str) -> Non
 if __name__ == "__main__":
     # Use relative paths or config-driven paths instead of hardcoded absolute paths
     from hf_engine.infra.config.paths import DATA_DIR
-    
+
     INPUT = DATA_DIR / "csv" / "USDCHF" / "USDCHF_H1_BID.csv"
     OUT_H4 = DATA_DIR / "csv" / "USDCHF" / "USDCHF_H4_BID.csv"
     OUT_D1 = DATA_DIR / "csv" / "USDCHF" / "USDCHF_D1_BID.csv"

@@ -30,7 +30,7 @@ APP_VERSION = "1.2.0"
 def get_repo_root() -> Path:
     """
     Get the repository root directory.
-    
+
     Returns the parent of the src directory where this module is located.
     """
     return Path(__file__).parent.parent.parent.parent.parent

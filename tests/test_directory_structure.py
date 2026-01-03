@@ -13,7 +13,6 @@ from pathlib import Path
 
 import pytest
 
-
 # Project root (relative to this test file)
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
@@ -106,12 +105,12 @@ class TestDirectoryStructure:
         content = gitignore_path.read_text()
 
         # Check for key unignore patterns
-        assert "!var/README.md" in content, (
-            ".gitignore must allow var/README.md to be tracked"
-        )
-        assert "!data/README.md" in content, (
-            ".gitignore must allow data/README.md to be tracked"
-        )
+        assert (
+            "!var/README.md" in content
+        ), ".gitignore must allow var/README.md to be tracked"
+        assert (
+            "!data/README.md" in content
+        ), ".gitignore must allow data/README.md to be tracked"
 
     def test_paths_module_creates_directories(self) -> None:
         """Verify paths.py auto-creates required directories on import."""

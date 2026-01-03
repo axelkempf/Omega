@@ -292,7 +292,9 @@ def ensure_combined_files(run_folders: List[Path]) -> None:
     Stellt sicher, dass alle Runs 05_final_scores_combined.csv haben.
     Erstellt fehlende Combined-Dateien automatisch.
     """
-    from backtest_engine.analysis.walkforward_analyzer import _rebuild_combined_if_missing
+    from backtest_engine.analysis.walkforward_analyzer import (
+        _rebuild_combined_if_missing,
+    )
 
     for run_folder in run_folders:
         final_dir = run_folder / "final_selection"

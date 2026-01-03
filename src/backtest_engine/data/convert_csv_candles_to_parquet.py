@@ -67,7 +67,7 @@ def convert_all_csv_to_parquet(
 if __name__ == "__main__":
     # Use relative paths or config-driven paths instead of hardcoded absolute paths
     from hf_engine.infra.config.paths import DATA_DIR
-    
+
     convert_all_csv_to_parquet(
         base_dir=DATA_DIR / "csv" / "EURUSD",
         output_dir=DATA_DIR / "parquet" / "EURUSD",
