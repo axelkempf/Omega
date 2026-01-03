@@ -253,7 +253,7 @@ Schema: `UTC time`, `Open`, `High`, `Low`, `Close`, `Volume`
 
 ### Single Source of Truth: pyproject.toml
 
-Alle Dependencies sind zentral in `pyproject.toml` definiert. Die Datei `requirements.txt` ist nur ein Wrapper für Tool-Kompatibilität.
+Alle Dependencies sind zentral in `pyproject.toml` definiert.
 
 | Extra      | Inhalt                                           | Verwendung                    |
 |------------|--------------------------------------------------|-------------------------------|
@@ -267,7 +267,6 @@ Alle Dependencies sind zentral in `pyproject.toml` definiert. Die Datei `require
 - Neuer Import in `src/` → **in `pyproject.toml` unter `dependencies` hinzufügen**
 - Neuer Import nur in `analysis/` → **in `pyproject.toml` unter `[project.optional-dependencies].analysis` hinzufügen**
 - Optionale Dependencies defensiv importieren (try/except mit Fallback)
-- `requirements.txt` **nicht direkt editieren** (ist nur Wrapper)
 
 ---
 
@@ -291,7 +290,7 @@ Beispiele:
 - [ ] **`var/`-Invarianten geprüft:** Heartbeat/Stop-Signal/Logs/Results kompatibel
 - [ ] **Resume/Magic geprüft:** `magic_number`-Matching unverändert oder Regression-Test
 - [ ] **Schema/Artefakte geprüft:** CSV-Shapes für Walkforward/Optimizer kompatibel
-- [ ] **Dependencies korrekt:** Alle Deps in `pyproject.toml` (nicht requirements.txt direkt editieren)
+- [ ] **Dependencies korrekt:** Alle Deps in `pyproject.toml`
 - [ ] **MT5/OS-Kompatibilität:** macOS/Linux ohne MT5 ok
 - [ ] **Secrets sicher:** Keine Tokens/Keys committed
 - [ ] **Qualität:** `pre-commit run -a` und `pytest -q` grün

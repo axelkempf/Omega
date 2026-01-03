@@ -96,7 +96,6 @@ Ordner-für-Ordner-Übersicht der Codebasis (ohne `results`-Ordner und ohne Aufl
 - `pyproject.toml`
 - `pytest.log`
 - `README.md`
-- `requirements.txt`
 - `SUMMARY.md`
 
 ---

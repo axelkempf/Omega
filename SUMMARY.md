@@ -170,7 +170,7 @@ Diese Datei fasst das Repository strukturiert und objektiv zusammen. Sie beschre
 
 - Tests: `tests/*` decken UI‑Controller, Datafeed‑Server, Risk/Lot‑Sizing, Broker‑FSM/Utils, Backtest‑Runner/Optimizer u. a. ab.
 - Numerik: BLAS/NumPy Threads werden in Backtests auf 1 begrenzt (Reproduzierbarkeit).
-- Formatierung/Packaging: `pyproject.toml` (setuptools, isort Black‑Profil); Abhängigkeiten via `pyproject.toml`/`requirements.txt`.
+- Formatierung/Packaging: `pyproject.toml` (setuptools, isort Black‑Profil); Abhängigkeiten via `pyproject.toml`.
 
 ## Abhängigkeiten (Auszug)
 

@@ -32,7 +32,6 @@ Ein Python-basierter Trading-Stack mit **Live-Engine (MetaTrader 5)**, **event-g
 ### Installation
 
 **Hinweis:** Alle Dependencies sind zentral in `pyproject.toml` definiert (Single Source of Truth).
-Die Datei `requirements.txt` ist nur ein Wrapper für Kompatibilität mit bestimmten Tools.
 
 **1) Entwicklung (Standard)**
 

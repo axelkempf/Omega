@@ -94,7 +94,6 @@ Relevante projektweite Leitlinien (Auswahl):
 
 ### Dependency-Policy (drift-frei)
 Dieses Repo hat **eine Single Source of Truth** für Dependencies: `pyproject.toml`.
-Die Datei `requirements.txt` ist nur ein Wrapper für Tool-Kompatibilität (z.B. pip-audit).
 
 | Extra      | Inhalt                                           | Verwendung                    |
 |------------|--------------------------------------------------|-------------------------------|
@@ -107,7 +106,6 @@ Regeln:
 - Neuer Import in `src/` → **in `pyproject.toml` unter `dependencies` hinzufügen**
 - Neuer Import nur in `analysis/` → **in `pyproject.toml` unter `[project.optional-dependencies].analysis` hinzufügen**
 - Optionale Dependencies defensiv importieren (try/except mit Fallback)
-- `requirements.txt` **nicht direkt editieren** (ist nur Wrapper)
 
 ### Tests (realistisch, aber strikt)
 - Ziel ist nicht “100% Coverage um jeden Preis”, sondern **nachweisbare Risiko-Reduktion**:
