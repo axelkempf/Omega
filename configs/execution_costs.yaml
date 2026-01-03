@@ -1,0 +1,89 @@
+# config/execution_costs.yaml
+# Einheitliche Ausführungskosten-Konfiguration
+# - Slippage (Backtest)
+# - Legacy-FeeModel (falls noch verwendet)
+# - CommissionModel (neue, währungsnormierte Gebühren-Logik)
+
+defaults:
+  # --- Slippage (Backtest) ---
+  slippage:
+    fixed_pips: 0.20        # z.B. 0.10 Pip fix
+    random_pips: 0.30       # zusätzliche Uniform-Zufallsslippage in Pips
+
+  # --- Legacy FeeModel (nur falls irgendwo noch genutzt) ---
+  fees:
+    per_million: 25.0        # EUR pro 1 Mio Notional
+    lot_size: 100000.0      # FX-Standardlot
+    min_fee: 0.0
+
+  # --- CommissionModel (NEU) Defaults ---
+  # Schema: per_lot | per_million_notional | percent_of_notional
+  schema: per_lot
+  side: both                # entry | exit | both
+  # fee_ccy: EUR              # Währung, in der Brokerfee "berechnet" wird (vor Umrechnung)
+  rate_per_million: 5.0     # nur für per_million_notional
+  per_lot: 2.5              # nur für per_lot (pro Lot und pro Seite)
+  pct: 0.0                  # nur für percent_of_notional (z.B. 0.0002 = 2 bp)
+  min_fee: 0.0              # Mindestgebühr pro Order/Seite in fee_ccy
+
+# Symbol-spezifische Overrides für CommissionModel
+per_symbol:
+  # Beispiel: Gold – Broker verlangt per-Lot in USD
+  XAUUSD:
+    schema: per_lot
+    per_lot: 3.50
+    fee_ccy: USD
+    side: both
+    min_fee: 0.00
+
+  # Beispiel: USDJPY – leicht höhere per-Million-Rate in USD
+  USDJPY:
+    schema: per_million_notional
+    fee_ccy: USD
+    rate_per_million: 6.0
+    side: both
+    min_fee: 1.0
+
+  # Beispiel: GBPAUD – Prozent vom Notional direkt in EUR
+  GBPAUD:
+    schema: percent_of_notional
+    fee_ccy: EUR
+    pct: 0.00015           # 1.5 bp pro Seite
+    side: both
+    min_fee: 1.0
+
+  # Beispiel: EURUSD – standard per Million in EUR (überschreibt defaults falls nötig)
+  AUDUSD:
+    schema: per_lot
+    per_lot: 2.5
+    rate_per_million: 5.0
+    side: both
+    min_fee: 0.0
+
+  EURUSD:
+    schema: per_lot
+    per_lot: 2.5
+    rate_per_million: 5.0
+    side: both
+    min_fee: 0.0
+
+  GBPUSD:
+    schema: per_lot
+    per_lot: 2.5
+    rate_per_million: 5.0
+    side: both
+    min_fee: 0.0
+
+  EURGBP:
+    schema: per_lot
+    per_lot: 2.5
+    rate_per_million: 5.0
+    side: both
+    min_fee: 0.0
+
+  USDCAD:
+    schema: per_lot
+    per_lot: 2.5
+    rate_per_million: 5.0
+    side: both
+    min_fee: 0.0

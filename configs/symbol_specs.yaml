@@ -1,0 +1,121 @@
+# Zentrale Symbol-Spezifikationen
+# Hinweis: Werte unbedingt mit deinem Broker/MT5 abgleichen!
+AUDUSD:
+  contract_size: 100000         # 1 Lot = 100k
+  tick_size: 0.00001            # Preis-Tick
+  tick_value: 1.0               # Geld pro tick_size bei 1 Lot (USD-Konto)
+  pip_size: 0.0001           
+  volume_min: 0.01
+  volume_step: 0.01
+  volume_max: 200
+  base_currency: AUD
+  quote_currency: USD
+  profit_currency: USD
+
+EURUSD:
+  contract_size: 100000         # 1 Lot = 100k
+  tick_size: 0.00001            # Preis-Tick
+  tick_value: 1.0               # Geld pro tick_size bei 1 Lot (USD-Konto)
+  pip_size: 0.0001           
+  volume_min: 0.01
+  volume_step: 0.01
+  volume_max: 200
+  base_currency: EUR
+  quote_currency: USD
+  profit_currency: USD
+
+GBPUSD:
+  contract_size: 100000         # 1 Lot = 100k
+  tick_size: 0.00001            # Preis-Tick
+  tick_value: 1.0               # Geld pro tick_size bei 1 Lot (USD-Konto)
+  pip_size: 0.0001           
+  volume_min: 0.01
+  volume_step: 0.01
+  volume_max: 200
+  base_currency: GBP
+  quote_currency: USD
+  profit_currency: USD
+
+EURGBP:
+  contract_size: 100000         # 1 Lot = 100k
+  tick_size: 0.00001            # Preis-Tick
+  tick_value: 1.0               # Geld pro tick_size bei 1 Lot (USD-Konto)
+  pip_size: 0.0001           
+  volume_min: 0.01
+  volume_step: 0.01
+  volume_max: 200
+  base_currency: EUR
+  quote_currency: GBP
+  profit_currency: USD
+
+USDCAD:
+  contract_size: 100000         # 1 Lot = 100k
+  tick_size: 0.00001            # Preis-Tick
+  tick_value: 1.0               # Geld pro tick_size bei 1 Lot (USD-Konto)
+  pip_size: 0.0001           
+  volume_min: 0.01
+  volume_step: 0.01
+  volume_max: 200
+  base_currency: USD
+  quote_currency: CAD
+  profit_currency: USD
+
+USDJPY:
+  contract_size: 100000
+  tick_size: 0.001
+  tick_value: 1.0               # ~1 USD pro 0.001 bei 1 Lot (Brokerabhängig)
+  pip_size: 0.01                
+  volume_min: 0.01
+  volume_step: 0.01
+  volume_max: 200
+  base_currency: USD
+  quote_currency: JPY
+  profit_currency: USD
+
+XAUUSD:
+  symbol: XAUUSD
+  contract_size: 100         # 1 Lot = 100 Unzen
+  tick_size: 0.01            # kleinstes Preisinkrement
+  tick_value: 1.0            # Wert pro Tick in USD (Brokerangabe!)
+  pip_size: 0.01             # wir definieren "pip" = 0.01 USD
+  volume_min: 0.01
+  volume_step: 0.01
+  volume_max: 100
+  base_currency: XAU
+  quote_currency: USD
+  profit_currency: USD
+
+XAGUSD:
+  contract_size: 5000           # häufig 5,000 oz pro Lot (prüfen!)
+  tick_size: 0.001
+  tick_value: 5.0               # Beispielwert; bitte Brokerangabe prüfen
+  volume_min: 0.01
+  volume_step: 0.01
+  volume_max: 50
+  base_currency: XAG
+  quote_currency: USD
+  profit_currency: USD
+
+DE40:
+  contract_size: 1              # CFD-konventionsabhängig
+  tick_size: 0.5
+  tick_value: 0.5               # 0.5 EUR pro 0.5 Punkt bei 1 Lot (Beispiel)
+  volume_min: 0.1
+  volume_step: 0.1
+  volume_max: 50
+  base_currency: EUR
+  quote_currency: EUR
+  profit_currency: EUR
+
+US500:
+  symbol: US500
+  contract_size: 1           # 1 Lot = 1 Indexkontrakt (Brokerabhängig!)
+  tick_size: 0.1             # falls Preis in 0.1 Schritten quotiert
+  tick_value: 1.0            # Wert eines Ticks in USD (Brokerangabe!)
+  pip_size: 1.0              # wir definieren "pip" = 1 Indexpoint (oder 0.1 – je nach Broker!)
+  volume_min: 0.10
+  volume_step: 0.10
+  volume_max: 100
+  base_currency: US500
+  quote_currency: USD
+  profit_currency: USD

@@ -1,0 +1,109 @@
+# pyproject.toml
+
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "kempf-capital-algorithmus"
+version = "1.1.0"
+description = ""
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "concurrent-log-handler>=0.9",
+    "fastapi>=0.109",
+    "filelock>=3.12",
+    "holidays>=0.34",
+    "joblib>=1.3",
+    "matplotlib>=3.7",
+    'MetaTrader5>=5.0; platform_system == "Windows"',
+    "numpy>=1.23",
+    "optuna>=3.4",
+    "pandas>=1.5",
+    "psutil>=5.9",
+    "pydantic>=2.5",
+    "python-dateutil>=2.8",
+    "python-dotenv>=1.0",
+    "pytz>=2023.3",
+    "PyYAML>=6.0",
+    "requests>=2.31",
+    "uvicorn>=0.23",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4",
+    "pytest-cov>=4.1",
+    "httpx>=0.28",
+    "black>=24.8.0",
+    "isort>=5.13.2",
+    "flake8>=7.1",
+    "flake8-bugbear>=24.0",
+    "mypy>=1.13",
+    "bandit>=1.7",
+    "pip-audit>=2.7",
+    "pydocstyle>=6.3",
+    "types-PyYAML>=6.0",
+    "types-requests>=2.31",
+    "types-python-dateutil>=2.8",
+    "pandas-stubs>=2.0",
+]
+analysis = [
+    # Scientific computing for analysis scripts
+    "scipy>=1.11",
+    # Clustering for walkforward analysis
+    "scikit-learn>=1.2",
+    "hdbscan>=0.8",
+    # Progress bars for long-running analysis
+    "tqdm>=4.65",
+]
+ml = [
+    "torch>=2.1",
+]
+# Convenience extra: installs everything for full development + analysis
+all = [
+    "kempf-capital-algorithmus[dev,analysis,ml]",
+]
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.isort]
+profile = "black"
+
+[tool.mypy]
+python_version = "3.10"
+ignore_missing_imports = true
+warn_return_any = true
+warn_unused_ignores = true
+show_error_codes = true
+pretty = true
+
+[tool.pytest.ini_options]
+markers = [
+    "integration: Integrationstests über Komponenten hinweg",
+    "trading_safety: Regressions- und Guardrail-Tests für Trading-Sicherheit",
+]
+
+# Strict mode für bereits typisierte Module
+[[tool.mypy.overrides]]
+module = [
+    "strategies._base.*",
+    "strategies.mean_reversion_z_score.*",
+    "strategies.ema_rsi_trend_follow.*",
+]
+strict = true
+warn_unreachable = true
+
+# Relaxed für noch nicht typisierte Module
+[[tool.mypy.overrides]]
+module = [
+    "hf_engine.*",
+    "backtest_engine.*",
+    "ui_engine.*",
+]
+ignore_errors = true

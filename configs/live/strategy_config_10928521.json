@@ -1,0 +1,66 @@
+{
+  "terminal_path": "D:/Axel/Kempf-Capital/Algorithmus/Terminals/MT5_2/terminal64.exe",
+  "data_path": "D:/Axel/Kempf-Capital/Algorithmus/mt5_data/account_10928521",
+  "account_id": 10928521,
+  "password": "Vr3N$WVn",
+  "server": "VantageInternational-Demo",
+  "broker_class": "MT5Adapter",
+  "symbol_map": {
+    "AUDCAD": "AUDCAD+",
+    "AUDCHF": "AUDCHF+",
+    "AUDJPY": "AUDJPY+",
+    "AUDNZD": "AUDNZD+",
+    "AUDUSD": "AUDUSD+",
+    "CADCHF": "CADCHF+",
+    "CADJPY": "CADJPY+",
+    "CHFJPY": "CHFJPY+",
+    "EURAUD": "EURAUD+",
+    "EURCAD": "EURCAD+",
+    "EURCHF": "EURCHF+",
+    "EURGBP": "EURGBP+",
+    "EURJPY": "EURJPY+",
+    "EURNZD": "EURNZD+",
+    "EURUSD": "EURUSD+",
+    "GBPAUD": "GBPAUD+",
+    "GBPCAD": "GBPCAD+",
+    "GBPCHF": "GBPCHF+",
+    "GBPJPY": "GBPJPY+",
+    "GBPNZD": "GBPNZD+",
+    "GBPUSD": "GBPUSD+",
+    "NZDCAD": "NZDCAD+",
+    "NZDCHF": "NZDCHF+",
+    "NZDJPY": "NZDJPY+",
+    "NZDUSD": "NZDUSD+",
+    "USDCAD": "USDCAD+",
+    "USDCHF": "USDCHF+",
+    "USDJPY": "USDJPY+"
+  },
+
+  "data_provider_remote": true,
+  "data_provider_host": "127.0.0.1",
+  "data_provider_port": 8081,
+
+  "strategies": [
+    {
+      "module": "mean_reversion_z_score.live.portfolio_strategy",
+      "class": "MeanReversionZScoreSetupStrategy",
+      "init_args": ["eurusd_m5_m15_long_s2", "M5"],
+      "active": true,
+      "magic_number": 10035
+    },
+    {
+      "module": "mean_reversion_z_score.live.portfolio_strategy",
+      "class": "MeanReversionZScoreSetupStrategy",
+      "init_args": ["eurusd_m5_m15_long_s2", "M15"],
+      "active": true,
+      "magic_number": 10045
+    },
+    {
+      "module": "mean_reversion_z_score.live.portfolio_strategy",
+      "class": "MeanReversionZScoreSetupStrategy",
+      "init_args": ["eurusd_m15_short_cluster_s5", "M15"],
+      "active": true,
+      "magic_number": 10145
+    }
+  ]
+}

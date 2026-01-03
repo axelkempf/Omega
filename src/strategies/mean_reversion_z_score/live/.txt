@@ -1,0 +1,300 @@
+2025-08-18 16:46:21 [INFO] [SYSTEM] [System|10928521] ✅ Strategie MeanReversionZScoreStrategy geladen mit Magic 10030
+2025-08-18 16:46:21 [DEBUG] Statuswechsel: DISCONNECTED -> INITIALIZING
+2025-08-18 16:46:21 [INFO] [SYSTEM] [RunnerThread-Mean_Reversion_Z_Score] gestartet für Mean_Reversion_Z_Score
+2025-08-18 16:46:21 [INFO] [SYSTEM] [Latency] p50=0.000s p95=0.000s p99=0.000s over n=1
+2025-08-18 16:46:21 [DEBUG] Statuswechsel: INITIALIZING -> CONNECTED
+2025-08-18 16:46:21 [INFO] [SYSTEM] [Controller] 🧭 Watchdog gestartet
+2025-08-18 16:46:21 [INFO] Broker verbunden (Retries seit letztem Erfolg: 0)
+2025-08-18 16:46:21 [INFO] [SYSTEM] [MultiRunner] ✅ Alle Strategie-Runner gestartet
+2025-08-18 16:47:21 [INFO] [SYSTEM] [Latency] p50=0.000s p95=0.000s p99=0.000s over n=4
+2025-08-18 16:48:21 [INFO] [SYSTEM] [Latency] p50=0.000s p95=0.000s p99=0.000s over n=7
+2025-08-18 16:49:21 [INFO] [SYSTEM] [Latency] p50=0.000s p95=0.000s p99=0.000s over n=10
+2025-08-18 16:50:00 [DEBUG] POST http://127.0.0.1:8081/ohlc payload={'symbol': 'AUDCAD', 'timeframe': 'M5', 'count': 400}
+2025-08-18 16:50:00 [DEBUG] POST http://127.0.0.1:8081/ohlc payload={'symbol': 'AUDCHF', 'timeframe': 'M5', 'count': 400}
+2025-08-18 16:50:00 [DEBUG] POST http://127.0.0.1:8081/ohlc payload={'symbol': 'AUDJPY', 'timeframe': 'M5', 'count': 400}
+2025-08-18 16:50:00 [DEBUG] POST http://127.0.0.1:8081/ohlc payload={'symbol': 'AUDNZD', 'timeframe': 'M5', 'count': 400}
+2025-08-18 16:50:00 [DEBUG] POST http://127.0.0.1:8081/ohlc payload={'symbol': 'AUDUSD', 'timeframe': 'M5', 'count': 400}
+2025-08-18 16:50:00 [DEBUG] POST http://127.0.0.1:8081/ohlc payload={'symbol': 'CHFJPY', 'timeframe': 'M5', 'count': 400}
+2025-08-18 16:50:00 [DEBUG] POST http://127.0.0.1:8081/ohlc payload={'symbol': 'CADJPY', 'timeframe': 'M5', 'count': 400}
+2025-08-18 16:50:00 [DEBUG] POST http://127.0.0.1:8081/ohlc payload={'symbol': 'CADCHF', 'timeframe': 'M5', 'count': 400}
+2025-08-18 16:50:00 [DEBUG] OK http://127.0.0.1:8081/ohlc
+2025-08-18 16:50:00 [DEBUG] OK http://127.0.0.1:8081/ohlc
+2025-08-18 16:50:00 [DEBUG] POST http://127.0.0.1:8081/ohlc payload={'symbol': 'EURAUD', 'timeframe': 'M5', 'count': 400}
+2025-08-18 16:50:00 [DEBUG] POST http://127.0.0.1:8081/ohlc payload={'symbol': 'EURCAD', 'timeframe': 'M5', 'count': 400}
+2025-08-18 16:50:00 [DEBUG] OK http://127.0.0.1:8081/ohlc
+2025-08-18 16:50:00 [DEBUG] POST http://127.0.0.1:8081/ohlc payload={'symbol': 'EURJPY', 'timeframe': 'M5', 'count': 400}
+2025-08-18 16:50:00 [DEBUG] OK http://127.0.0.1:8081/ohlc
+2025-08-18 16:50:00 [DEBUG] POST http://127.0.0.1:8081/ohlc payload={'symbol': 'EURNZD', 'timeframe': 'M5', 'count': 400}
+2025-08-18 16:50:00 [DEBUG] OK http://127.0.0.1:8081/ohlc
+2025-08-18 16:50:00 [DEBUG] POST http://127.0.0.1:8081/ohlc payload={'symbol': 'EURGBP', 'timeframe': 'M5', 'count': 400}
+2025-08-18 16:50:00 [DEBUG] OK http://127.0.0.1:8081/ohlc
+2025-08-18 16:50:00 [DEBUG] OK http://127.0.0.1:8081/ohlc
+2025-08-18 16:50:00 [DEBUG] OK http://127.0.0.1:8081/ohlc
+2025-08-18 16:50:00 [DEBUG] POST http://127.0.0.1:8081/ohlc payload={'symbol': 'EURUSD', 'timeframe': 'M5', 'count': 400}
+2025-08-18 16:50:00 [DEBUG] POST http://127.0.0.1:8081/ohlc payload={'symbol': 'GBPAUD', 'timeframe': 'M5', 'count': 400}
+2025-08-18 16:50:00 [DEBUG] POST http://127.0.0.1:8081/ohlc payload={'symbol': 'GBPCAD', 'timeframe': 'M5', 'count': 400}
+2025-08-18 16:50:00 [DEBUG] OK http://127.0.0.1:8081/ohlc
+2025-08-18 16:50:00 [DEBUG] POST http://127.0.0.1:8081/ohlc payload={'symbol': 'GBPCHF', 'timeframe': 'M5', 'count': 400}
+2025-08-18 16:50:00 [DEBUG] OK http://127.0.0.1:8081/ohlc
+2025-08-18 16:50:00 [DEBUG] POST http://127.0.0.1:8081/ohlc payload={'symbol': 'GBPJPY', 'timeframe': 'M5', 'count': 400}
+2025-08-18 16:50:00 [DEBUG] OK http://127.0.0.1:8081/ohlc
+2025-08-18 16:50:00 [DEBUG] POST http://127.0.0.1:8081/ohlc payload={'symbol': 'GBPNZD', 'timeframe': 'M5', 'count': 400}
+2025-08-18 16:50:00 [DEBUG] OK http://127.0.0.1:8081/ohlc
+2025-08-18 16:50:00 [DEBUG] OK http://127.0.0.1:8081/ohlc
+2025-08-18 16:50:00 [DEBUG] POST http://127.0.0.1:8081/ohlc payload={'symbol': 'GBPUSD', 'timeframe': 'M5', 'count': 400}
+2025-08-18 16:50:00 [DEBUG] POST http://127.0.0.1:8081/ohlc payload={'symbol': 'USDCAD', 'timeframe': 'M5', 'count': 400}
+2025-08-18 16:50:01 [DEBUG] OK http://127.0.0.1:8081/ohlc
+2025-08-18 16:50:01 [DEBUG] OK http://127.0.0.1:8081/ohlc
+2025-08-18 16:50:01 [DEBUG] OK http://127.0.0.1:8081/ohlc
+2025-08-18 16:50:01 [DEBUG] POST http://127.0.0.1:8081/ohlc payload={'symbol': 'USDCHF', 'timeframe': 'M5', 'count': 400}
+2025-08-18 16:50:01 [DEBUG] POST http://127.0.0.1:8081/ohlc payload={'symbol': 'USDJPY', 'timeframe': 'M5', 'count': 400}
+2025-08-18 16:50:01 [DEBUG] OK http://127.0.0.1:8081/ohlc
+2025-08-18 16:50:01 [DEBUG] OK http://127.0.0.1:8081/ohlc
+2025-08-18 16:50:01 [DEBUG] POST http://127.0.0.1:8081/ohlc payload={'symbol': 'NZDJPY', 'timeframe': 'M5', 'count': 400}
+2025-08-18 16:50:01 [DEBUG] POST http://127.0.0.1:8081/ohlc payload={'symbol': 'NZDCAD', 'timeframe': 'M5', 'count': 400}
+2025-08-18 16:50:01 [DEBUG] POST http://127.0.0.1:8081/ohlc payload={'symbol': 'NZDUSD', 'timeframe': 'M5', 'count': 400}
+2025-08-18 16:50:01 [DEBUG] OK http://127.0.0.1:8081/ohlc
+2025-08-18 16:50:01 [DEBUG] OK http://127.0.0.1:8081/ohlc
+2025-08-18 16:50:01 [DEBUG] OK http://127.0.0.1:8081/ohlc
+2025-08-18 16:50:01 [DEBUG] POST http://127.0.0.1:8081/ohlc payload={'symbol': 'NZDCHF', 'timeframe': 'M5', 'count': 400}
+2025-08-18 16:50:01 [DEBUG] Fehler bei Tick-Abruf für Cross JPYEUR: Symbol konnte nicht selektiert werden: JPYEUR (-1 – Terminal: Call failed)
+2025-08-18 16:50:01 [INFO] [SYSTEM] [OrderAttempt] CHFJPY SELL MARKET @ 183.284 | SL=183.379, TP=183.114, Vol=1.81
+2025-08-18 16:50:10 [WARNING] [SYSTEM] [Order] ⏱️ Timeout bei Platzierung CHFJPY
+2025-08-18 16:50:10 [DEBUG] OK http://127.0.0.1:8081/ohlc
+2025-08-18 16:50:10 [DEBUG] OK http://127.0.0.1:8081/ohlc
+2025-08-18 16:50:10 [DEBUG] OK http://127.0.0.1:8081/ohlc
+2025-08-18 16:50:10 [DEBUG] OK http://127.0.0.1:8081/ohlc
+2025-08-18 16:50:10 [DEBUG] OK http://127.0.0.1:8081/ohlc
+2025-08-18 16:50:10 [DEBUG] OK http://127.0.0.1:8081/ohlc
+2025-08-18 16:50:10 [DEBUG] Fehler bei Tick-Abruf für Cross USDEUR: Symbol konnte nicht selektiert werden: USDEUR (-1 – Terminal: Call failed)
+2025-08-18 16:50:10 [INFO] [SYSTEM] [Order Erfolgreich] CHFJPY: Order-ID 365907972
+2025-08-18 16:50:10 [INFO] [SYSTEM] [OrderAttempt] EURUSD BUY MARKET @ 1.16652 | SL=1.16519, TP=1.16752, Vol=0.87
+2025-08-18 16:50:23 [INFO] [SYSTEM] [Latency] p50=0.000s p95=0.000s p99=0.000s over n=11
+2025-08-18 16:50:23 [ERROR] [SYSTEM] [BrokerIO] ⏱️ Timeout
+2025-08-18 16:50:23 [WARNING] [SYSTEM] [Order] ⏱️ Timeout bei Platzierung EURUSD
+2025-08-18 16:50:23 [ERROR] [SYSTEM] [Order Fehler] EURUSD: Keine Antwort
+2025-08-18 16:50:23 [DEBUG] Fehler bei Tick-Abruf für Cross USDEUR: Symbol konnte nicht selektiert werden: USDEUR (-1 – Terminal: Call failed)
+2025-08-18 16:50:23 [INFO] [SYSTEM] [OrderAttempt] GBPUSD BUY MARKET @ 1.35192 | SL=1.35051, TP=1.35371, Vol=0.82
+2025-08-18 16:50:32 [WARNING] [SYSTEM] [Order] ⏱️ Timeout bei Platzierung GBPUSD
+2025-08-18 16:50:32 [DEBUG] Fehler bei Tick-Abruf für Cross USDEUR: Symbol konnte nicht selektiert werden: USDEUR (-1 – Terminal: Call failed)
+2025-08-18 16:50:32 [INFO] [SYSTEM] [OrderAttempt] NZDUSD BUY MARKET @ 0.59133 | SL=0.59091, TP=0.59252, Vol=2.77
+2025-08-18 16:50:38 [WARNING] [SYSTEM] [Order] ⏱️ Timeout bei Platzierung NZDUSD
+2025-08-18 16:50:38 [ERROR] [SYSTEM] [BrokerIO] ⏱️ Timeout
+2025-08-18 16:50:38 [ERROR] [SYSTEM] [BrokerIO] ⏱️ Timeout
+2025-08-18 16:50:38 [DEBUG] Fehler bei Tick-Abruf für Cross JPYEUR: Symbol konnte nicht selektiert werden: JPYEUR (-1 – Terminal: Call failed)
+2025-08-18 16:50:38 [ERROR] [SYSTEM] [Order Fehler] GBPUSD: Keine Antwort
+2025-08-18 16:50:38 [ERROR] [SYSTEM] [Order Fehler] NZDUSD: Keine Antwort
+2025-08-18 16:50:38 [INFO] [SYSTEM] [OrderAttempt] USDJPY SELL MARKET @ 147.938 | SL=148.061, TP=147.796, Vol=1.4
+2025-08-18 16:50:46 [WARNING] [SYSTEM] [Order] ⏱️ Timeout bei Platzierung USDJPY
+2025-08-18 16:50:46 [INFO] [SYSTEM] [Order Erfolgreich] USDJPY: Order-ID 365908802
+2025-08-18 16:51:26 [INFO] [SYSTEM] [Latency] p50=0.000s p95=0.000s p99=0.000s over n=16
+2025-08-18 16:52:26 [INFO] [SYSTEM] [Latency] p50=0.000s p95=0.000s p99=0.000s over n=19
+2025-08-18 16:53:26 [INFO] [SYSTEM] [Latency] p50=0.000s p95=0.000s p99=0.000s over n=22
+2025-08-18 16:54:26 [INFO] [SYSTEM] [Latency] p50=0.000s p95=0.000s p99=0.000s over n=25
+2025-08-18 16:55:00 [DEBUG] POST http://127.0.0.1:8081/ohlc payload={'symbol': 'AUDCAD', 'timeframe': 'M5', 'count': 400}
+2025-08-18 16:55:00 [DEBUG] POST http://127.0.0.1:8081/ohlc payload={'symbol': 'AUDJPY', 'timeframe': 'M5', 'count': 400}
+2025-08-18 16:55:00 [DEBUG] POST http://127.0.0.1:8081/ohlc payload={'symbol': 'AUDCHF', 'timeframe': 'M5', 'count': 400}
+2025-08-18 16:55:00 [DEBUG] POST http://127.0.0.1:8081/ohlc payload={'symbol': 'CADCHF', 'timeframe': 'M5', 'count': 400}
+2025-08-18 16:55:00 [DEBUG] POST http://127.0.0.1:8081/ohlc payload={'symbol': 'AUDNZD', 'timeframe': 'M5', 'count': 400}
+2025-08-18 16:55:00 [DEBUG] POST http://127.0.0.1:8081/ohlc payload={'symbol': 'CADJPY', 'timeframe': 'M5', 'count': 400}
+2025-08-18 16:55:00 [DEBUG] POST http://127.0.0.1:8081/ohlc payload={'symbol': 'AUDUSD', 'timeframe': 'M5', 'count': 400}
+2025-08-18 16:55:00 [DEBUG] POST http://127.0.0.1:8081/ohlc payload={'symbol': 'EURAUD', 'timeframe': 'M5', 'count': 400}
+2025-08-18 16:55:00 [DEBUG] OK http://127.0.0.1:8081/ohlc
+2025-08-18 16:55:01 [DEBUG] POST http://127.0.0.1:8081/ohlc payload={'symbol': 'EURCAD', 'timeframe': 'M5', 'count': 400}
+2025-08-18 16:55:01 [DEBUG] OK http://127.0.0.1:8081/ohlc
+2025-08-18 16:55:01 [DEBUG] POST http://127.0.0.1:8081/ohlc payload={'symbol': 'EURJPY', 'timeframe': 'M5', 'count': 400}
+2025-08-18 16:55:01 [DEBUG] OK http://127.0.0.1:8081/ohlc
+2025-08-18 16:55:01 [DEBUG] OK http://127.0.0.1:8081/ohlc
+2025-08-18 16:55:01 [DEBUG] POST http://127.0.0.1:8081/ohlc payload={'symbol': 'EURNZD', 'timeframe': 'M5', 'count': 400}
+2025-08-18 16:55:01 [DEBUG] OK http://127.0.0.1:8081/ohlc
+2025-08-18 16:55:01 [DEBUG] OK http://127.0.0.1:8081/ohlc
+2025-08-18 16:55:01 [DEBUG] OK http://127.0.0.1:8081/ohlc
+2025-08-18 16:55:01 [DEBUG] OK http://127.0.0.1:8081/ohlc
+2025-08-18 16:55:01 [DEBUG] POST http://127.0.0.1:8081/ohlc payload={'symbol': 'EURGBP', 'timeframe': 'M5', 'count': 400}
+2025-08-18 16:55:01 [DEBUG] POST http://127.0.0.1:8081/ohlc payload={'symbol': 'GBPAUD', 'timeframe': 'M5', 'count': 400}
+2025-08-18 16:55:01 [DEBUG] POST http://127.0.0.1:8081/ohlc payload={'symbol': 'GBPCAD', 'timeframe': 'M5', 'count': 400}
+2025-08-18 16:55:01 [DEBUG] OK http://127.0.0.1:8081/ohlc
+2025-08-18 16:55:01 [DEBUG] POST http://127.0.0.1:8081/ohlc payload={'symbol': 'GBPCHF', 'timeframe': 'M5', 'count': 400}
+2025-08-18 16:55:01 [DEBUG] OK http://127.0.0.1:8081/ohlc
+2025-08-18 16:55:01 [DEBUG] POST http://127.0.0.1:8081/ohlc payload={'symbol': 'GBPJPY', 'timeframe': 'M5', 'count': 400}
+2025-08-18 16:55:01 [DEBUG] OK http://127.0.0.1:8081/ohlc
+2025-08-18 16:55:01 [DEBUG] POST http://127.0.0.1:8081/ohlc payload={'symbol': 'GBPNZD', 'timeframe': 'M5', 'count': 400}
+2025-08-18 16:55:01 [DEBUG] POST http://127.0.0.1:8081/ohlc payload={'symbol': 'USDCAD', 'timeframe': 'M5', 'count': 400}
+2025-08-18 16:55:01 [DEBUG] POST http://127.0.0.1:8081/ohlc payload={'symbol': 'USDCHF', 'timeframe': 'M5', 'count': 400}
+2025-08-18 16:55:01 [DEBUG] OK http://127.0.0.1:8081/ohlc
+2025-08-18 16:55:01 [DEBUG] OK http://127.0.0.1:8081/ohlc
+2025-08-18 16:55:01 [DEBUG] OK http://127.0.0.1:8081/ohlc
+2025-08-18 16:55:01 [DEBUG] POST http://127.0.0.1:8081/ohlc payload={'symbol': 'NZDJPY', 'timeframe': 'M5', 'count': 400}
+2025-08-18 16:55:01 [DEBUG] POST http://127.0.0.1:8081/ohlc payload={'symbol': 'NZDCAD', 'timeframe': 'M5', 'count': 400}
+2025-08-18 16:55:01 [DEBUG] POST http://127.0.0.1:8081/ohlc payload={'symbol': 'NZDCHF', 'timeframe': 'M5', 'count': 400}
+2025-08-18 16:55:01 [DEBUG] OK http://127.0.0.1:8081/ohlc
+2025-08-18 16:55:01 [DEBUG] OK http://127.0.0.1:8081/ohlc
+2025-08-18 16:55:01 [DEBUG] OK http://127.0.0.1:8081/ohlc
+2025-08-18 16:55:01 [DEBUG] OK http://127.0.0.1:8081/ohlc
+2025-08-18 16:55:01 [DEBUG] OK http://127.0.0.1:8081/ohlc
+2025-08-18 16:55:01 [DEBUG] Fehler bei Tick-Abruf für Cross CADEUR: Symbol konnte nicht selektiert werden: CADEUR (-1 – Terminal: Call failed)
+2025-08-18 16:55:01 [INFO] [SYSTEM] [OrderAttempt] EURCAD BUY MARKET @ 1.61229 | SL=1.61117, TP=1.61261, Vol=1.43
+2025-08-18 16:55:01 [DEBUG] OK http://127.0.0.1:8081/ohlc
+2025-08-18 16:55:01 [DEBUG] OK http://127.0.0.1:8081/ohlc
+2025-08-18 16:55:01 [DEBUG] OK http://127.0.0.1:8081/ohlc
+2025-08-18 16:55:07 [ERROR] [SYSTEM] [BrokerIO] ⏱️ Timeout
+2025-08-18 16:55:07 [WARNING] [SYSTEM] [Order] ⏱️ Timeout bei Platzierung EURCAD
+2025-08-18 16:55:07 [ERROR] [SYSTEM] [Order Fehler] EURCAD: Keine Antwort
+2025-08-18 16:55:07 [DEBUG] Fehler bei Tick-Abruf für Cross CHFEUR: Symbol konnte nicht selektiert werden: CHFEUR (-1 – Terminal: Call failed)
+2025-08-18 16:55:07 [INFO] [SYSTEM] [OrderAttempt] USDCHF SELL MARKET @ 0.80737 | SL=0.80799, TP=0.80707, Vol=1.51
+2025-08-18 16:55:07 [INFO] [SYSTEM] [Order Erfolgreich] USDCHF: Order-ID 365914649
+2025-08-18 16:55:07 [INFO] [SYSTEM] [PosMon] ➕ Manager 365914649 registriert
+2025-08-18 16:55:27 [INFO] [SYSTEM] [Latency] p50=0.000s p95=0.000s p99=6.740s over n=29
+2025-08-18 16:56:27 [INFO] [SYSTEM] [Latency] p50=0.000s p95=0.000s p99=6.740s over n=32
+2025-08-18 16:57:27 [INFO] [SYSTEM] [Latency] p50=0.000s p95=0.000s p99=6.740s over n=35
+2025-08-18 16:58:27 [INFO] [SYSTEM] [Latency] p50=0.000s p95=0.000s p99=6.740s over n=38
+2025-08-18 16:59:27 [INFO] [SYSTEM] [Latency] p50=0.000s p95=0.000s p99=6.740s over n=41
+2025-08-18 17:00:00 [DEBUG] POST http://127.0.0.1:8081/ohlc payload={'symbol': 'AUDJPY', 'timeframe': 'M5', 'count': 400}
+2025-08-18 17:00:00 [DEBUG] POST http://127.0.0.1:8081/ohlc payload={'symbol': 'AUDNZD', 'timeframe': 'M5', 'count': 400}
+2025-08-18 17:00:00 [DEBUG] POST http://127.0.0.1:8081/ohlc payload={'symbol': 'CADJPY', 'timeframe': 'M5', 'count': 400}
+2025-08-18 17:00:00 [DEBUG] POST http://127.0.0.1:8081/ohlc payload={'symbol': 'AUDCHF', 'timeframe': 'M5', 'count': 400}
+2025-08-18 17:00:00 [DEBUG] POST http://127.0.0.1:8081/ohlc payload={'symbol': 'AUDCAD', 'timeframe': 'M5', 'count': 400}
+2025-08-18 17:00:00 [DEBUG] POST http://127.0.0.1:8081/ohlc payload={'symbol': 'AUDUSD', 'timeframe': 'M5', 'count': 400}
+2025-08-18 17:00:00 [DEBUG] POST http://127.0.0.1:8081/ohlc payload={'symbol': 'CADCHF', 'timeframe': 'M5', 'count': 400}
+2025-08-18 17:00:00 [DEBUG] POST http://127.0.0.1:8081/ohlc payload={'symbol': 'EURAUD', 'timeframe': 'M5', 'count': 400}
+2025-08-18 17:00:00 [DEBUG] OK http://127.0.0.1:8081/ohlc
+2025-08-18 17:00:00 [DEBUG] POST http://127.0.0.1:8081/ohlc payload={'symbol': 'EURJPY', 'timeframe': 'M5', 'count': 400}
+2025-08-18 17:00:00 [DEBUG] OK http://127.0.0.1:8081/ohlc
+2025-08-18 17:00:00 [DEBUG] OK http://127.0.0.1:8081/ohlc
+2025-08-18 17:00:00 [DEBUG] POST http://127.0.0.1:8081/ohlc payload={'symbol': 'EURNZD', 'timeframe': 'M5', 'count': 400}
+2025-08-18 17:00:00 [DEBUG] POST http://127.0.0.1:8081/ohlc payload={'symbol': 'EURGBP', 'timeframe': 'M5', 'count': 400}
+2025-08-18 17:00:00 [DEBUG] OK http://127.0.0.1:8081/ohlc
+2025-08-18 17:00:00 [DEBUG] POST http://127.0.0.1:8081/ohlc payload={'symbol': 'GBPAUD', 'timeframe': 'M5', 'count': 400}
+2025-08-18 17:00:00 [DEBUG] OK http://127.0.0.1:8081/ohlc
+2025-08-18 17:00:00 [DEBUG] OK http://127.0.0.1:8081/ohlc
+2025-08-18 17:00:00 [DEBUG] POST http://127.0.0.1:8081/ohlc payload={'symbol': 'GBPCAD', 'timeframe': 'M5', 'count': 400}
+2025-08-18 17:00:00 [DEBUG] OK http://127.0.0.1:8081/ohlc
+2025-08-18 17:00:00 [DEBUG] OK http://127.0.0.1:8081/ohlc
+2025-08-18 17:00:00 [DEBUG] POST http://127.0.0.1:8081/ohlc payload={'symbol': 'GBPCHF', 'timeframe': 'M5', 'count': 400}
+2025-08-18 17:00:00 [DEBUG] POST http://127.0.0.1:8081/ohlc payload={'symbol': 'GBPJPY', 'timeframe': 'M5', 'count': 400}
+2025-08-18 17:00:00 [DEBUG] POST http://127.0.0.1:8081/ohlc payload={'symbol': 'GBPNZD', 'timeframe': 'M5', 'count': 400}
+2025-08-18 17:00:00 [DEBUG] OK http://127.0.0.1:8081/ohlc
+2025-08-18 17:00:00 [DEBUG] POST http://127.0.0.1:8081/ohlc payload={'symbol': 'USDCAD', 'timeframe': 'M5', 'count': 400}
+2025-08-18 17:00:00 [DEBUG] OK http://127.0.0.1:8081/ohlc
+2025-08-18 17:00:00 [DEBUG] OK http://127.0.0.1:8081/ohlc
+2025-08-18 17:00:00 [DEBUG] OK http://127.0.0.1:8081/ohlc
+2025-08-18 17:00:00 [DEBUG] POST http://127.0.0.1:8081/ohlc payload={'symbol': 'NZDJPY', 'timeframe': 'M5', 'count': 400}
+2025-08-18 17:00:00 [DEBUG] POST http://127.0.0.1:8081/ohlc payload={'symbol': 'NZDCAD', 'timeframe': 'M5', 'count': 400}
+2025-08-18 17:00:00 [DEBUG] POST http://127.0.0.1:8081/ohlc payload={'symbol': 'NZDCHF', 'timeframe': 'M5', 'count': 400}
+2025-08-18 17:00:01 [DEBUG] OK http://127.0.0.1:8081/ohlc
+2025-08-18 17:00:01 [DEBUG] OK http://127.0.0.1:8081/ohlc
+2025-08-18 17:00:01 [DEBUG] OK http://127.0.0.1:8081/ohlc
+2025-08-18 17:00:01 [DEBUG] OK http://127.0.0.1:8081/ohlc
+2025-08-18 17:00:01 [DEBUG] OK http://127.0.0.1:8081/ohlc
+2025-08-18 17:00:01 [DEBUG] OK http://127.0.0.1:8081/ohlc
+2025-08-18 17:00:01 [DEBUG] OK http://127.0.0.1:8081/ohlc
+2025-08-18 17:00:01 [DEBUG] OK http://127.0.0.1:8081/ohlc
+2025-08-18 17:00:27 [INFO] [SYSTEM] [Latency] p50=0.000s p95=0.000s p99=6.740s over n=45
+2025-08-18 17:01:27 [INFO] [SYSTEM] [Latency] p50=0.000s p95=0.000s p99=6.740s over n=48
+2025-08-18 17:01:57 [INFO] [SYSTEM] [Tracker] 📉 Position geschlossen: USDCHF / 365914649
+2025-08-18 17:01:57 [INFO] [SYSTEM] [PosMon] 🧹 Manager 365914649 entfernt (done)
+2025-08-18 17:02:27 [INFO] [SYSTEM] [Latency] p50=0.000s p95=0.000s p99=6.740s over n=51
+2025-08-18 17:03:27 [INFO] [SYSTEM] [Latency] p50=0.000s p95=0.000s p99=6.740s over n=54
+2025-08-18 17:04:27 [INFO] [SYSTEM] [Latency] p50=0.000s p95=0.000s p99=6.740s over n=57
+2025-08-18 17:05:00 [DEBUG] POST http://127.0.0.1:8081/ohlc payload={'symbol': 'AUDCHF', 'timeframe': 'M5', 'count': 400}
+2025-08-18 17:05:00 [DEBUG] POST http://127.0.0.1:8081/ohlc payload={'symbol': 'AUDJPY', 'timeframe': 'M5', 'count': 400}
+2025-08-18 17:05:00 [DEBUG] POST http://127.0.0.1:8081/ohlc payload={'symbol': 'AUDUSD', 'timeframe': 'M5', 'count': 400}
+2025-08-18 17:05:00 [DEBUG] POST http://127.0.0.1:8081/ohlc payload={'symbol': 'AUDCAD', 'timeframe': 'M5', 'count': 400}
+2025-08-18 17:05:00 [DEBUG] POST http://127.0.0.1:8081/ohlc payload={'symbol': 'AUDNZD', 'timeframe': 'M5', 'count': 400}
+2025-08-18 17:05:00 [DEBUG] POST http://127.0.0.1:8081/ohlc payload={'symbol': 'CADJPY', 'timeframe': 'M5', 'count': 400}
+2025-08-18 17:05:00 [DEBUG] POST http://127.0.0.1:8081/ohlc payload={'symbol': 'EURAUD', 'timeframe': 'M5', 'count': 400}
+2025-08-18 17:05:00 [DEBUG] POST http://127.0.0.1:8081/ohlc payload={'symbol': 'CADCHF', 'timeframe': 'M5', 'count': 400}
+2025-08-18 17:05:00 [DEBUG] OK http://127.0.0.1:8081/ohlc
+2025-08-18 17:05:00 [DEBUG] POST http://127.0.0.1:8081/ohlc payload={'symbol': 'EURCAD', 'timeframe': 'M5', 'count': 400}
+2025-08-18 17:05:00 [DEBUG] OK http://127.0.0.1:8081/ohlc
+2025-08-18 17:05:00 [DEBUG] POST http://127.0.0.1:8081/ohlc payload={'symbol': 'EURJPY', 'timeframe': 'M5', 'count': 400}
+2025-08-18 17:05:00 [DEBUG] OK http://127.0.0.1:8081/ohlc
+2025-08-18 17:05:00 [DEBUG] POST http://127.0.0.1:8081/ohlc payload={'symbol': 'EURNZD', 'timeframe': 'M5', 'count': 400}
+2025-08-18 17:05:00 [DEBUG] OK http://127.0.0.1:8081/ohlc
+2025-08-18 17:05:00 [DEBUG] OK http://127.0.0.1:8081/ohlc
+2025-08-18 17:05:00 [DEBUG] OK http://127.0.0.1:8081/ohlc
+2025-08-18 17:05:00 [DEBUG] OK http://127.0.0.1:8081/ohlc
+2025-08-18 17:05:00 [DEBUG] POST http://127.0.0.1:8081/ohlc payload={'symbol': 'EURGBP', 'timeframe': 'M5', 'count': 400}
+2025-08-18 17:05:00 [DEBUG] OK http://127.0.0.1:8081/ohlc
+2025-08-18 17:05:00 [DEBUG] POST http://127.0.0.1:8081/ohlc payload={'symbol': 'GBPAUD', 'timeframe': 'M5', 'count': 400}
+2025-08-18 17:05:00 [DEBUG] POST http://127.0.0.1:8081/ohlc payload={'symbol': 'GBPCAD', 'timeframe': 'M5', 'count': 400}
+2025-08-18 17:05:00 [DEBUG] OK http://127.0.0.1:8081/ohlc
+2025-08-18 17:05:00 [DEBUG] OK http://127.0.0.1:8081/ohlc
+2025-08-18 17:05:00 [DEBUG] POST http://127.0.0.1:8081/ohlc payload={'symbol': 'GBPCHF', 'timeframe': 'M5', 'count': 400}
+2025-08-18 17:05:00 [DEBUG] POST http://127.0.0.1:8081/ohlc payload={'symbol': 'GBPJPY', 'timeframe': 'M5', 'count': 400}
+2025-08-18 17:05:00 [DEBUG] OK http://127.0.0.1:8081/ohlc
+2025-08-18 17:05:01 [DEBUG] POST http://127.0.0.1:8081/ohlc payload={'symbol': 'GBPNZD', 'timeframe': 'M5', 'count': 400}
+2025-08-18 17:05:01 [DEBUG] POST http://127.0.0.1:8081/ohlc payload={'symbol': 'USDCAD', 'timeframe': 'M5', 'count': 400}
+2025-08-18 17:05:01 [DEBUG] OK http://127.0.0.1:8081/ohlc
+2025-08-18 17:05:01 [DEBUG] POST http://127.0.0.1:8081/ohlc payload={'symbol': 'USDCHF', 'timeframe': 'M5', 'count': 400}
+2025-08-18 17:05:01 [DEBUG] POST http://127.0.0.1:8081/ohlc payload={'symbol': 'NZDJPY', 'timeframe': 'M5', 'count': 400}
+2025-08-18 17:05:01 [DEBUG] OK http://127.0.0.1:8081/ohlc
+2025-08-18 17:05:01 [DEBUG] OK http://127.0.0.1:8081/ohlc
+2025-08-18 17:05:01 [DEBUG] OK http://127.0.0.1:8081/ohlc
+2025-08-18 17:05:01 [DEBUG] OK http://127.0.0.1:8081/ohlc
+2025-08-18 17:05:01 [DEBUG] POST http://127.0.0.1:8081/ohlc payload={'symbol': 'NZDCAD', 'timeframe': 'M5', 'count': 400}
+2025-08-18 17:05:01 [DEBUG] POST http://127.0.0.1:8081/ohlc payload={'symbol': 'NZDCHF', 'timeframe': 'M5', 'count': 400}
+2025-08-18 17:05:01 [DEBUG] Fehler bei Tick-Abruf für Cross NZDEUR: Symbol konnte nicht selektiert werden: NZDEUR (-1 – Terminal: Call failed)
+2025-08-18 17:05:01 [INFO] [SYSTEM] [OrderAttempt] AUDNZD SELL MARKET @ 1.09695 | SL=1.09733, TP=1.09681, Vol=5.19
+2025-08-18 17:05:02 [DEBUG] OK http://127.0.0.1:8081/ohlc
+2025-08-18 17:05:02 [DEBUG] OK http://127.0.0.1:8081/ohlc
+2025-08-18 17:05:02 [DEBUG] OK http://127.0.0.1:8081/ohlc
+2025-08-18 17:05:02 [DEBUG] OK http://127.0.0.1:8081/ohlc
+2025-08-18 17:05:02 [DEBUG] OK http://127.0.0.1:8081/ohlc
+2025-08-18 17:05:02 [DEBUG] OK http://127.0.0.1:8081/ohlc
+2025-08-18 17:05:02 [INFO] [SYSTEM] [Order Erfolgreich] AUDNZD: Order-ID 365925718
+2025-08-18 17:05:02 [INFO] [SYSTEM] [PosMon] ➕ Manager 365925718 registriert
+2025-08-18 17:05:27 [INFO] [SYSTEM] [Latency] p50=0.000s p95=1.076s p99=6.740s over n=61
+2025-08-18 17:06:27 [INFO] [SYSTEM] [Latency] p50=0.000s p95=0.000s p99=6.740s over n=64
+2025-08-18 17:07:27 [INFO] [SYSTEM] [Latency] p50=0.000s p95=0.000s p99=6.740s over n=67
+2025-08-18 17:08:27 [INFO] [SYSTEM] [Latency] p50=0.000s p95=0.000s p99=6.740s over n=70
+2025-08-18 17:09:27 [INFO] [SYSTEM] [Latency] p50=0.000s p95=0.000s p99=6.740s over n=73
+2025-08-18 17:10:00 [DEBUG] POST http://127.0.0.1:8081/ohlc payload={'symbol': 'AUDCHF', 'timeframe': 'M5', 'count': 400}
+2025-08-18 17:10:00 [DEBUG] POST http://127.0.0.1:8081/ohlc payload={'symbol': 'AUDCAD', 'timeframe': 'M5', 'count': 400}
+2025-08-18 17:10:00 [DEBUG] POST http://127.0.0.1:8081/ohlc payload={'symbol': 'EURAUD', 'timeframe': 'M5', 'count': 400}
+2025-08-18 17:10:00 [DEBUG] POST http://127.0.0.1:8081/ohlc payload={'symbol': 'CADCHF', 'timeframe': 'M5', 'count': 400}
+2025-08-18 17:10:00 [DEBUG] POST http://127.0.0.1:8081/ohlc payload={'symbol': 'AUDJPY', 'timeframe': 'M5', 'count': 400}
+2025-08-18 17:10:00 [DEBUG] POST http://127.0.0.1:8081/ohlc payload={'symbol': 'CADJPY', 'timeframe': 'M5', 'count': 400}
+2025-08-18 17:10:00 [DEBUG] POST http://127.0.0.1:8081/ohlc payload={'symbol': 'AUDUSD', 'timeframe': 'M5', 'count': 400}
+2025-08-18 17:10:00 [DEBUG] POST http://127.0.0.1:8081/ohlc payload={'symbol': 'EURCAD', 'timeframe': 'M5', 'count': 400}
+2025-08-18 17:10:00 [DEBUG] OK http://127.0.0.1:8081/ohlc
+2025-08-18 17:10:00 [DEBUG] POST http://127.0.0.1:8081/ohlc payload={'symbol': 'EURJPY', 'timeframe': 'M5', 'count': 400}
+2025-08-18 17:10:00 [DEBUG] OK http://127.0.0.1:8081/ohlc
+2025-08-18 17:10:00 [DEBUG] OK http://127.0.0.1:8081/ohlc
+2025-08-18 17:10:00 [DEBUG] POST http://127.0.0.1:8081/ohlc payload={'symbol': 'EURNZD', 'timeframe': 'M5', 'count': 400}
+2025-08-18 17:10:00 [DEBUG] POST http://127.0.0.1:8081/ohlc payload={'symbol': 'EURGBP', 'timeframe': 'M5', 'count': 400}
+2025-08-18 17:10:00 [DEBUG] OK http://127.0.0.1:8081/ohlc
+2025-08-18 17:10:00 [DEBUG] OK http://127.0.0.1:8081/ohlc
+2025-08-18 17:10:00 [DEBUG] OK http://127.0.0.1:8081/ohlc
+2025-08-18 17:10:00 [DEBUG] OK http://127.0.0.1:8081/ohlc
+2025-08-18 17:10:00 [DEBUG] OK http://127.0.0.1:8081/ohlc
+2025-08-18 17:10:00 [DEBUG] POST http://127.0.0.1:8081/ohlc payload={'symbol': 'GBPAUD', 'timeframe': 'M5', 'count': 400}
+2025-08-18 17:10:00 [DEBUG] POST http://127.0.0.1:8081/ohlc payload={'symbol': 'GBPCAD', 'timeframe': 'M5', 'count': 400}
+2025-08-18 17:10:00 [DEBUG] POST http://127.0.0.1:8081/ohlc payload={'symbol': 'GBPCHF', 'timeframe': 'M5', 'count': 400}
+2025-08-18 17:10:00 [DEBUG] OK http://127.0.0.1:8081/ohlc
+2025-08-18 17:10:00 [DEBUG] POST http://127.0.0.1:8081/ohlc payload={'symbol': 'GBPJPY', 'timeframe': 'M5', 'count': 400}
+2025-08-18 17:10:00 [DEBUG] POST http://127.0.0.1:8081/ohlc payload={'symbol': 'GBPNZD', 'timeframe': 'M5', 'count': 400}
+2025-08-18 17:10:00 [DEBUG] POST http://127.0.0.1:8081/ohlc payload={'symbol': 'USDCAD', 'timeframe': 'M5', 'count': 400}
+2025-08-18 17:10:00 [DEBUG] OK http://127.0.0.1:8081/ohlc
+2025-08-18 17:10:00 [DEBUG] OK http://127.0.0.1:8081/ohlc
+2025-08-18 17:10:00 [DEBUG] POST http://127.0.0.1:8081/ohlc payload={'symbol': 'USDCHF', 'timeframe': 'M5', 'count': 400}
+2025-08-18 17:10:00 [DEBUG] POST http://127.0.0.1:8081/ohlc payload={'symbol': 'NZDJPY', 'timeframe': 'M5', 'count': 400}
+2025-08-18 17:10:01 [DEBUG] OK http://127.0.0.1:8081/ohlc
+2025-08-18 17:10:01 [DEBUG] OK http://127.0.0.1:8081/ohlc
+2025-08-18 17:10:01 [DEBUG] OK http://127.0.0.1:8081/ohlc
+2025-08-18 17:10:01 [DEBUG] OK http://127.0.0.1:8081/ohlc
+2025-08-18 17:10:01 [DEBUG] OK http://127.0.0.1:8081/ohlc
+2025-08-18 17:10:01 [DEBUG] OK http://127.0.0.1:8081/ohlc
+2025-08-18 17:10:01 [DEBUG] POST http://127.0.0.1:8081/ohlc payload={'symbol': 'NZDCAD', 'timeframe': 'M5', 'count': 400}
+2025-08-18 17:10:01 [DEBUG] POST http://127.0.0.1:8081/ohlc payload={'symbol': 'NZDCHF', 'timeframe': 'M5', 'count': 400}
+2025-08-18 17:10:01 [DEBUG] OK http://127.0.0.1:8081/ohlc
+2025-08-18 17:10:01 [DEBUG] OK http://127.0.0.1:8081/ohlc
+2025-08-18 17:10:01 [DEBUG] OK http://127.0.0.1:8081/ohlc
+2025-08-18 17:10:01 [DEBUG] OK http://127.0.0.1:8081/ohlc
+2025-08-18 17:10:03 [INFO] [SYSTEM] [Tracker] 📉 Position geschlossen: AUDNZD / 365925718
+2025-08-18 17:10:03 [INFO] [SYSTEM] [PosMon] 🧹 Manager 365925718 entfernt (done)
+2025-08-18 17:10:27 [INFO] [SYSTEM] [Latency] p50=0.000s p95=1.044s p99=6.740s over n=77
+2025-08-18 17:10:34 [INFO] [SYSTEM] [MultiRunner] 🛑 Controller gestoppt
+2025-08-18 17:10:34 [INFO] [SYSTEM] [Launcher|10928521] 🧹 Shutdown-Datei entfernt
+2025-08-18 17:10:34 [INFO] [SYSTEM] [MT5Adapter] 📴 Shutdown für Account 10928521
+2025-08-18 17:10:34 [INFO] [SYSTEM] [Launcher] 📴 Broker MT5Adapter erfolgreich beendet

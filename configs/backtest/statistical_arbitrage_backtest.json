@@ -1,0 +1,44 @@
+{
+  "multi_symbols": {
+    "EURUSD": ["M15"],
+    "GBPUSD": ["M15"]
+  },
+  "timeframes": {
+    "primary": "M15",
+    "additional": []
+  },
+  "mode": "candle",
+  "enable_entry_logging": true,
+  "initial_balance": 100000.0,
+  "risk_per_trade": 100.0,
+  "start_date": "2025-01-01",
+  "end_date": "2025-07-20",
+  "warmup_bars": 500,
+  "cooldown_candles": 0,
+  "cooldown_minutes": 0,
+
+  "anchored_session_filter": {
+    "windows": [
+      { "anchor": "london", "offset_window": [["-08:00", "-01:00"]] },
+      { "anchor": "london", "offset_window": [["00:00", "02:00"]] }   
+    ]
+  },
+
+
+  "slippage": {
+    "fixed_pips": 0.2,
+    "random_pips": 0.3
+  },
+  "fees": {
+    "per_million": 5.0
+  },
+  "strategy": {
+    "module": "statistical_arbitrage.backtest.backtest_strategy",
+    "class": "SpreadArbStrategy",
+    "parameters": {
+      "symbols": ["EURUSD", "GBPUSD"],
+      "spread_threshold": 0.0000,
+      "timeframe": "M15"
+    }
+  }
+}
