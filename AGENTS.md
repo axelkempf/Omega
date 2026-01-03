@@ -129,10 +129,10 @@ pytest --cov=src --cov-report=term-missing
 pre-commit run -a
 
 # Nur black
-black src/ tests/ analysis/
+black src/ tests/
 
 # Nur isort
-isort src/ tests/ analysis/
+isort src/ tests/
 ```
 
 ### Konfiguration
@@ -258,14 +258,13 @@ Alle Dependencies sind zentral in `pyproject.toml` definiert.
 | Extra      | Inhalt                                           | Verwendung                    |
 |------------|--------------------------------------------------|-------------------------------|
 | `dev`      | pytest, black, isort, flake8, mypy, bandit, etc. | Entwicklung und CI            |
-| `analysis` | scipy, scikit-learn, hdbscan, tqdm               | Analyse-Scripts in `analysis/`|
+| `analysis` | scipy, scikit-learn, hdbscan, tqdm               | Analyse-Scripts (backtest_engine.analysis)|
 | `ml`       | torch>=2.1                                       | Machine Learning Research     |
 | `all`      | Kombiniert dev + analysis + ml                   | Vollständige Umgebung         |
 
 ### Regeln
 
 - Neuer Import in `src/` → **in `pyproject.toml` unter `dependencies` hinzufügen**
-- Neuer Import nur in `analysis/` → **in `pyproject.toml` unter `[project.optional-dependencies].analysis` hinzufügen**
 - Optionale Dependencies defensiv importieren (try/except mit Fallback)
 
 ---
@@ -325,7 +324,6 @@ var/                        # Runtime-State (gitignored)
 ├── tmp/                    # Heartbeats, Stop-Signale
 └── archive/                # Archivierte Daten
 
-analysis/                   # Post-Processing, Analyzer-Scripts
 tests/                      # pytest Tests
 ```
 

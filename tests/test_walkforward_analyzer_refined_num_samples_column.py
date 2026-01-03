@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pandas as pd
 
-from analysis.walkforward_analyzer import _expand_pairs_for_display
+from backtest_engine.analysis.walkforward_analyzer import _expand_pairs_for_display
 
 
 def test_refined_display_includes_robustness_num_samples_per_leg() -> None:

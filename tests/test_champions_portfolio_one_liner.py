@@ -4,7 +4,7 @@ import pandas as pd
 def test_collapse_champions_combo_pairs_to_one_liners_keeps_only_identical_columns() -> (
     None
 ):
-    from analysis import combined_walkforward_matrix_analyzer as cwm
+    from backtest_engine.analysis import combined_walkforward_matrix_analyzer as cwm
 
     # Simuliere das expandierte Champion-Format (2 Legs + eine Trennzeile)
     expanded = pd.DataFrame(
@@ -67,7 +67,7 @@ def test_collapse_champions_combo_pairs_to_one_liners_keeps_only_identical_colum
 
 
 def test_collapse_champions_combo_pairs_to_one_liners_sorts_by_category_order() -> None:
-    from analysis import combined_walkforward_matrix_analyzer as cwm
+    from backtest_engine.analysis import combined_walkforward_matrix_analyzer as cwm
 
     expanded = pd.DataFrame(
         [

@@ -34,7 +34,7 @@ from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 import numpy as np
 import pandas as pd
 
-from analysis.metric_adjustments import (
+from backtest_engine.analysis.metric_adjustments import (
     risk_adjusted,
     shrinkage_adjusted,
     wilson_score_lower_bound,
@@ -2574,7 +2574,7 @@ def _standard_mean_rev_reporting() -> Optional[Dict[str, Any]]:
     Wird als Referenz benutzt, um fehlende oder abweichende Reporting-Einträge zu ergänzen.
     """
     cfg_path = (
-        Path(__file__).resolve().parent.parent
+        Path(__file__).resolve().parents[3]
         / "configs"
         / "backtest"
         / "mean_reversion_z_score.json"

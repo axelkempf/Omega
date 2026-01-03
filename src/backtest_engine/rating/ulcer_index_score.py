@@ -13,7 +13,7 @@ def compute_ulcer_index_and_score(
     Compute Ulcer Index (weekly, drawdown in percent) and mapped score.
 
     This implementation is intentionally aligned with the logic used in
-    ``analysis/combined_walkforward_matrix_analyzer.py`` (weekly resampling and
+    ``backtest_engine/analysis/combined_walkforward_matrix_analyzer.py`` (weekly resampling and
     percent drawdowns):
 
     - weekly = equity.resample("W").last()

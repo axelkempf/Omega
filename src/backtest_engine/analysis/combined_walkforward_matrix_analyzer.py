@@ -96,9 +96,9 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 
-# Allow running this file directly (e.g. `python analysis/combined_walkforward_matrix_analyzer.py`)
-# from the repository root without requiring `python -m ...`.
-_REPO_ROOT = Path(__file__).resolve().parents[1]
+# Allow running this file directly (e.g. `python -m backtest_engine.analysis.combined_walkforward_matrix_analyzer`)
+# from the repository root without requiring the package to be installed.
+_REPO_ROOT = Path(__file__).resolve().parents[3]
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
@@ -109,12 +109,12 @@ except (
 ):  # pragma: no cover - scipy is listed in requirements, but stay defensive
     linear_sum_assignment = None
 
-from analysis.metric_adjustments import (
+from backtest_engine.analysis.metric_adjustments import (
     risk_adjusted,
     shrinkage_adjusted,
     wilson_score_lower_bound,
 )
-from analysis.walkforward_analyzer import (
+from backtest_engine.analysis.walkforward_analyzer import (
     BACKFILL_SNAPSHOT_NAME,
     COMBINED_DIR,
     WALKFORWARD_ROOT,
@@ -292,7 +292,7 @@ def ensure_combined_files(run_folders: List[Path]) -> None:
     Stellt sicher, dass alle Runs 05_final_scores_combined.csv haben.
     Erstellt fehlende Combined-Dateien automatisch.
     """
-    from analysis.walkforward_analyzer import _rebuild_combined_if_missing
+    from backtest_engine.analysis.walkforward_analyzer import _rebuild_combined_if_missing
 
     for run_folder in run_folders:
         final_dir = run_folder / "final_selection"

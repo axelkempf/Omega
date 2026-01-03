@@ -46,7 +46,7 @@ def test_monte_carlo_fast_eval_matches_slow_metrics(tmp_path: Path) -> None:
     Der Test ist absichtlich klein und deterministisch (kein Multiprocessing), damit er stabil ist.
     """
 
-    from analysis import combined_walkforward_matrix_analyzer as cwm
+    from backtest_engine.analysis import combined_walkforward_matrix_analyzer as cwm
 
     # Isoliere globale Caches (verhindert Cross-Test-Leaks)
     cwm._EQUITY_CACHE.clear()

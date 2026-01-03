@@ -98,13 +98,12 @@ Dieses Repo hat **eine Single Source of Truth** für Dependencies: `pyproject.to
 | Extra      | Inhalt                                           | Verwendung                    |
 |------------|--------------------------------------------------|-------------------------------|
 | `dev`      | pytest, black, isort, flake8, mypy, bandit, etc. | Entwicklung und CI            |
-| `analysis` | scipy, scikit-learn, hdbscan, tqdm               | Analyse-Scripts in `analysis/`|
+| `analysis` | scipy, scikit-learn, hdbscan, tqdm               | Analyse-Scripts (backtest_engine.analysis)|
 | `ml`       | torch>=2.1                                       | Machine Learning Research     |
 | `all`      | Kombiniert dev + analysis + ml                   | Vollständige Umgebung         |
 
 Regeln:
 - Neuer Import in `src/` → **in `pyproject.toml` unter `dependencies` hinzufügen**
-- Neuer Import nur in `analysis/` → **in `pyproject.toml` unter `[project.optional-dependencies].analysis` hinzufügen**
 - Optionale Dependencies defensiv importieren (try/except mit Fallback)
 
 ### Tests (realistisch, aber strikt)
@@ -117,7 +116,7 @@ Regeln:
 ### Dokumentationspflicht
 - Bei Änderungen an User-facing Interfaces/Workflows: `README.md` und relevante `docs/` aktualisieren.
 - Bei Änderungen an Config-Feldern, Dateistrukturen, Output-CSV-Schemas: Doku + Beispiel-Konfigs anpassen.
-- Bei neuen **relevanten Dateien/Modulen** (insb. in `src/`, `src/strategies/`, `src/hf_engine/`, `src/backtest_engine/`, `src/ui_engine/`, `analysis/`, `configs/`) oder bei strukturellen Änderungen an diesen Verzeichnissen: **`architecture.md` aktualisieren**, sodass die Ordner- und Datei-Hierarchie konsistent bleibt (weiterhin ohne Auflistung einzelner `.csv`-Dateien und ohne Inhalte aus `var/results/`).
+- Bei neuen **relevanten Dateien/Modulen** (insb. in `src/`, `src/strategies/`, `src/hf_engine/`, `src/backtest_engine/`, `src/ui_engine/`, `configs/`) oder bei strukturellen Änderungen an diesen Verzeichnissen: **`architecture.md` aktualisieren**, sodass die Ordner- und Datei-Hierarchie konsistent bleibt (weiterhin ohne Auflistung einzelner `.csv`-Dateien und ohne Inhalte aus `var/results/`).
 
 ### Gemeinsame Workflows (Commands)
 - Dev install: `python -m venv .venv && source .venv/bin/activate && pip install -e .[dev,analysis]`
@@ -138,7 +137,7 @@ Multi-stage Framework unter `src/backtest_engine/optimizer/`:
 - `robust_zone_analyzer.py` — stabile Zonen via Clustering
 - `instrumentation.py` — `StageRecorder` (Timing, Memory, Artefakte)
 
-**Achtung:** `final_param_selector.py`/`walkforward.py` erwarten konkrete Output-CSV-Shapes, die von `analysis/walkforward_analyzer.py` konsumiert werden. Schema-Änderungen nur mit Migration + Tests.
+**Achtung:** `final_param_selector.py`/`walkforward.py` erwarten konkrete Output-CSV-Shapes, die von `src/backtest_engine/analysis/walkforward_analyzer.py` konsumiert werden. Schema-Änderungen nur mit Migration + Tests.
 
 ### Data file naming conventions (gitignored)
 Market data folgt festen Namen (siehe `src/backtest_engine/data/data_handler.py`):

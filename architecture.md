@@ -4,14 +4,6 @@ Ordner-für-Ordner-Übersicht der Codebasis (ohne `results`-Ordner und ohne Aufl
 
 ### Wurzelverzeichnis
 
-- `analysis/`
-  - `backfill_walkforward_equity_curves.py`
-  - `combine_equity_curves.py`
-  - `combined_walkforward_matrix_analyzer.py`
-  - `final_combo_equity_plotter.py`
-  - `metric_adjustments.py` (Trade-count basierte Metrik-Adjustierungen)
-  - `walkforward_analyzer.py`
-  - `__pycache__/`
 - `configs/`
   - `backtest/`
     - `_config_validator.py`
@@ -87,7 +79,6 @@ Ordner-für-Ordner-Übersicht der Codebasis (ohne `results`-Ordner und ohne Aufl
   - `archive/`
   - `logs/`
   - `results/`
-    - `analysis/` — Zentraler Ordner für Walkforward-Analysen (backfill, matrix, equity plots)
   - `runtime/`
   - `tmp/`
 - `CHANGELOG.md`
@@ -107,6 +98,14 @@ Ordner-für-Ordner-Übersicht der Codebasis (ohne `results`-Ordner und ohne Aufl
 - `run_all.py`
 - `runner.py`
 - `__pycache__/`
+- `analysis/`
+  - `__init__.py`
+  - `backfill_walkforward_equity_curves.py`
+  - `combine_equity_curves.py`
+  - `combined_walkforward_matrix_analyzer.py`
+  - `final_combo_equity_plotter.py`
+  - `metric_adjustments.py` (Trade-count basierte Metrik-Adjustierungen)
+  - `walkforward_analyzer.py`
 - `core/`
   - `__init__.py`
   - `event_engine.py`

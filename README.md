@@ -162,10 +162,10 @@ Schema:
 - `src/engine_launcher.py` – Launcher (Live/Datafeed), Heartbeat/Shutdown
 - `src/hf_engine/` – Live-Engine (Adapter, Risk, Execution, Logging)
 - `src/backtest_engine/` – Backtests/Optimizer/Walkforward
+  - `analysis/` – Post-Processing/Analyzer (Walkforward-Matrix, Backfill, Equity-Plots)
 - `src/ui_engine/` – FastAPI UI (Start/Stop/Logs/Resources)
 - `src/strategies/` – Strategien + Template
 - `configs/` – Live-/Backtest-Konfigurationen + zentrale YAMLs
-- `analysis/` – Post-Processing/Analyzer
 - `var/` – Runtime-State (gitignored): Logs/Results/tmp
 
 ## Hilfe & Doku

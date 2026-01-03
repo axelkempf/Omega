@@ -6,7 +6,7 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-from analysis import backfill_walkforward_equity_curves as backfill
+from backtest_engine.analysis import backfill_walkforward_equity_curves as backfill
 
 
 @pytest.fixture()

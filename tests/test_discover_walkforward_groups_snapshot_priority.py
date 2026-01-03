@@ -38,7 +38,7 @@ def _make_minimal_run(tmp_path: Path, name: str) -> Path:
 
 
 def test_discover_walkforward_groups_accepts_backfill_snapshot(tmp_path: Path) -> None:
-    from analysis import combined_walkforward_matrix_analyzer as cwm
+    from backtest_engine.analysis import combined_walkforward_matrix_analyzer as cwm
 
     run_dir = _make_minimal_run(tmp_path, "run_no_parse_1")
     _write_minimal_snapshot(
@@ -54,7 +54,7 @@ def test_discover_walkforward_groups_accepts_backfill_snapshot(tmp_path: Path) -
 
 
 def test_load_metadata_from_snapshot_prefers_backfill(tmp_path: Path) -> None:
-    from analysis import combined_walkforward_matrix_analyzer as cwm
+    from backtest_engine.analysis import combined_walkforward_matrix_analyzer as cwm
 
     run_dir = _make_minimal_run(tmp_path, "run_no_parse_2")
     _write_minimal_snapshot(
