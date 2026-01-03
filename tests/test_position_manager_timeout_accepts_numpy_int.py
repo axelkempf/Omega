@@ -69,4 +69,3 @@ def test_z_score_backtest_position_manager_timeout_accepts_numpy_int64() -> None
 
     assert pos.status == "closed"
     assert pos.reason == "timeout"
-
