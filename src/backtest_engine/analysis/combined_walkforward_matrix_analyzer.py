@@ -1793,7 +1793,8 @@ def _final_combo_id_from_selection(selection: Dict[str, Dict[str, Any]]) -> str:
     # Hash zur Kürzung
     import hashlib
 
-    digest = hashlib.sha1(base.encode("utf-8")).hexdigest()[:16]
+    # SHA1 nur für nicht-kryptografische ID-Generierung verwendet
+    digest = hashlib.sha1(base.encode("utf-8"), usedforsecurity=False).hexdigest()[:16]  # nosec B324
     return f"final_{digest}"
 
 
@@ -1830,7 +1831,8 @@ def get_equity_cached(path_str: str) -> Optional[pd.Series]:
             raw = None
         if raw is not None:
             try:
-                s = pickle.loads(raw)
+                # Pickle von vertrauenswürdigen internen Daten (eigene Snapshots)
+                s = pickle.loads(raw)  # nosec B301
             except Exception:
                 s = None
             with _EQUITY_LOCK:
@@ -1864,7 +1866,8 @@ def get_trades_cached(path_str: str) -> List[Dict[str, Any]]:
             raw = None
         if raw is not None:
             try:
-                t = pickle.loads(raw)
+                # Pickle von vertrauenswürdigen internen Daten (eigene Snapshots)
+                t = pickle.loads(raw)  # nosec B301
             except Exception:
                 t = []
             with _TRADES_LOCK:
@@ -2768,7 +2771,8 @@ def _evaluate_portfolio_batch(
     """
     batch_selections, matrix_bytes = args
     # Matrix einmal entpacken (statt pro Portfolio)
-    matrix = pickle.loads(matrix_bytes)
+    # Pickle von vertrauenswürdigen internen Daten (eigene Backtest-Matrix)
+    matrix = pickle.loads(matrix_bytes)  # nosec B301
 
     results: List[Optional[Dict[str, Any]]] = []
     for selection in batch_selections:
@@ -3068,7 +3072,8 @@ def monte_carlo_portfolio_search(
         base = "__".join(parts)
         import hashlib
 
-        digest = hashlib.sha1(base.encode("utf-8")).hexdigest()[:16]
+        # SHA1 nur für nicht-kryptografische ID-Generierung verwendet
+        digest = hashlib.sha1(base.encode("utf-8"), usedforsecurity=False).hexdigest()[:16]  # nosec B324
         final_ids.append(f"final_{digest}")
 
     df.insert(0, "final_combo_pair_id", final_ids)
