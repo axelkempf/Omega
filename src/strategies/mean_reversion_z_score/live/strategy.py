@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import importlib
 from datetime import datetime, timedelta, timezone
-from typing import Any
+from typing import Any, override
 
 import hf_engine.core.risk.news_filter as news_filter
 from hf_engine.adapter.broker.broker_interface import BrokerInterface
@@ -92,6 +92,7 @@ class MeanReversionZScoreStrategy(Strategy):
 
         self.szenarien: SzenarioEvaluator | None = None
 
+    @override
     def name(self) -> str:
         """Return the strategy name."""
         return self.config.get("strategy_name", "Mean_Reversion_Z_Score")
@@ -116,6 +117,7 @@ class MeanReversionZScoreStrategy(Strategy):
         # Standard: FX/CFD nur Mo–Fr
         return date.astimezone(timezone.utc).weekday() in range(0, 5)
 
+    @override
     def generate_signal(
         self,
         symbol: str,

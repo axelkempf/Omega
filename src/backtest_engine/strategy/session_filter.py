@@ -1,5 +1,5 @@
 from datetime import datetime, time, timedelta
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Any
 
 from backtest_engine.core.symbol_data_slicer import SymbolDataSlice
 from backtest_engine.data.candle import Candle
@@ -26,7 +26,7 @@ class AnchoredSessionFilterWrapper:
         self.strategy = wrapped_strategy
         self.calendar = anchored_calendar
         self.cross_symbol: bool = getattr(wrapped_strategy, "cross_symbol", False)
-        self.logger: Optional[Any] = getattr(wrapped_strategy, "logger", None)
+        self.logger: Any | None = getattr(wrapped_strategy, "logger", None)
         self.logging_mode: str = getattr(
             wrapped_strategy, "logging_mode", "trades_only"
         )
@@ -71,8 +71,8 @@ class AnchoredSessionFilterWrapper:
         return False
 
     def evaluate(
-        self, index: int, slice_map: Dict[str, SymbolDataSlice]
-    ) -> Optional[List[TradeSignal]]:
+        self, index: int, slice_map: dict[str, SymbolDataSlice]
+    ) -> list[TradeSignal] | None:
         """
         Evaluates the wrapped strategy only if the current time is allowed.
 
@@ -126,8 +126,8 @@ class AnchoredSessionFilterWrapper:
         return [result]
 
     def evaluate_tick(
-        self, tick: Tick, slice_map: Dict[str, SymbolDataSlice]
-    ) -> Optional[Any]:
+        self, tick: Tick, slice_map: dict[str, SymbolDataSlice]
+    ) -> Any | None:
         """
         Evaluates the wrapped strategy on tick-level if session is open.
 
@@ -175,12 +175,12 @@ class UniversalSessionFilterWrapper:
     def __init__(self, wrapped_strategy: Any, session_filter: dict) -> None:
         self.strategy = wrapped_strategy
         self.cross_symbol: bool = getattr(wrapped_strategy, "cross_symbol", False)
-        self.fixed_times: List[Tuple[time, time]] = [
+        self.fixed_times: list[tuple[time, time]] = [
             (time.fromisoformat(s), time.fromisoformat(e))
             for s, e in session_filter.get("fixed_times", [])
         ]
-        self.session_names: List[str] = session_filter.get("sessions", [])
-        self.logger: Optional[Any] = getattr(wrapped_strategy, "logger", None)
+        self.session_names: list[str] = session_filter.get("sessions", [])
+        self.logger: Any | None = getattr(wrapped_strategy, "logger", None)
         self.logging_mode: str = getattr(
             wrapped_strategy, "logging_mode", "trades_only"
         )
@@ -235,8 +235,8 @@ class UniversalSessionFilterWrapper:
         return self._in_fixed_time(dt.time())
 
     def evaluate(
-        self, index: int, slice_map: Dict[str, SymbolDataSlice]
-    ) -> Optional[List[TradeSignal]]:
+        self, index: int, slice_map: dict[str, SymbolDataSlice]
+    ) -> list[TradeSignal] | None:
         """
         Evaluates the wrapped strategy only if the current time is within allowed windows.
 
@@ -289,8 +289,8 @@ class UniversalSessionFilterWrapper:
         return [result]
 
     def evaluate_tick(
-        self, tick: Tick, slice_map: Dict[str, SymbolDataSlice]
-    ) -> Optional[Any]:
+        self, tick: Tick, slice_map: dict[str, SymbolDataSlice]
+    ) -> Any | None:
         """
         Evaluates the wrapped strategy on tick-level if session is open.
 

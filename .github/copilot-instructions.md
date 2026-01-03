@@ -9,8 +9,8 @@ Zusätzlicher, tool-agnostischer Einstiegspunkt: `AGENT.md` im Repo-Root (Kurzfa
 
 Bei der Code-Generierung für dieses Repository:
 
-1. **Version Compatibility**: Strikt Python ≥3.10 und exakte Dependency-Versionen aus `pyproject.toml` einhalten
-2. **Context Files**: Patterns aus `.github/instructions/` und `.github/prompts/` priorisieren
+1. **Version Compatibility**: Strikt Python ≥3.12 und exakte Dependency-Versionen aus `pyproject.toml` einhalten
+2. **Context Files**: Patterns aus `.github/instructions/` priorisieren
 3. **Codebase Patterns**: Bei fehlender Guidance → bestehende Muster im Code suchen und folgen
 4. **Architectural Consistency**: Layered, event-driven Architektur und Komponenten-Grenzen wahren
 5. **Trading Safety First**: Finanzielle Sicherheit, Risk Management und Datenintegrität priorisieren
@@ -21,16 +21,16 @@ Bei der Code-Generierung für dieses Repository:
 ## Technology Stack
 
 ### Python Version
-- **Required**: Python ≥3.10 (spezifiziert in `pyproject.toml`)
+- **Required**: Python ≥3.12 (spezifiziert in `pyproject.toml`)
 - Moderne Type Hints inkl. `|` Union-Syntax, `TypedDict`, `Literal`, `Final`
 - `from __future__ import annotations` für Forward References
 - `dataclasses` für Datencontainer
 
 ### Core Dependencies (aus pyproject.toml)
 ```
-pandas>=1.5          numpy>=1.23         fastapi>=0.109
+pandas>=2.1          numpy>=1.26         fastapi>=0.109
 pydantic>=2.5        optuna>=3.4         joblib>=1.3
-matplotlib>=3.7      uvicorn>=0.23       python-dotenv>=1.0
+matplotlib>=3.8      uvicorn>=0.23       python-dotenv>=1.0
 PyYAML>=6.0          requests>=2.31      psutil>=5.9
 MetaTrader5>=5.0 (Windows-only)
 ```
@@ -43,35 +43,24 @@ black>=24.8.0        isort>=5.13.2
 
 ### Optional ML/Research Dependencies
 ```
-torch>=2.1           scipy>=1.11
-scikit-learn>=1.2    hdbscan>=0.8
+torch>=2.1           scipy>=1.12
+scikit-learn>=1.4    hdbscan>=0.8.33
 ```
 
 ---
-## Specialized Instructions and Prompts
+## Specialized Instructions
 
-Für spezifische Entwicklungsaufgaben, verwende die entsprechenden Instructions und Prompts:
+Relevante projektweite Leitlinien (Auswahl):
 
-### Instructions (Development Guidelines)
-- [Python Development](instructions/python.instructions.md) - Python coding conventions for trading systems
-- [Testing Standards](instructions/testing.instructions.md) - Testing practices and strategies
-- [Documentation Requirements](instructions/documentation.instructions.md) - Documentation standards
-- [Security Best Practices](instructions/security.instructions.md) - Security guidelines for trading systems
-- [Performance Optimization](instructions/performance.instructions.md) - Performance tuning guidelines
-- [Code Review Standards](instructions/code-review.instructions.md) - Review process and standards
-
-### Prompts (Task Assistance)
-- [Setup Component](prompts/setup-component.prompt.md) - Create new trading strategies or system components
-- [Write Tests](prompts/write-tests.prompt.md) - Generate comprehensive tests
-- [Code Review](prompts/code-review.prompt.md) - Conduct thorough code reviews
-- [Refactor Code](prompts/refactor-code.prompt.md) - Improve code quality and structure
-- [Generate Documentation](prompts/generate-docs.prompt.md) - Create comprehensive documentation
-- [Debug Issues](prompts/debug-issue.prompt.md) - Systematic debugging assistance
-
-### Agents (Specialized Modes)
-- [Trading System Architect](agents/architect.agent.md) - Strategic planning and architecture
-- [Trading System Code Reviewer](agents/reviewer.agent.md) - Comprehensive code review
-- [Trading System Debugger](agents/debugger.agent.md) - Systematic debugging
+- [Code Review Generic](instructions/code-review-generic.instructions.md)
+- [Security & OWASP](instructions/security-and-owasp.instructions.md)
+- [Performance Optimization](instructions/performance-optimization.instructions.md)
+- [DevOps Core Principles](instructions/devops-core-principles.instructions.md)
+- [Self-Explanatory Code Commenting](instructions/self-explanatory-code-commenting.instructions.md)
+- [Markdown Standards](instructions/markdown.instructions.md)
+- [Containerization (Docker) Best Practices](instructions/containerization-docker-best-practices.instructions.md)
+- [GitHub Actions CI/CD Best Practices](instructions/github-actions-ci-cd-best-practices.instructions.md)
+- [Kubernetes Deployment Best Practices](instructions/kubernetes-deployment-best-practices.instructions.md)
 ### Zielbild (DoD für PRs/Änderungen)
 - **Safety first:** Keine stillschweigenden Verhaltensänderungen in Trading/Execution. Neue Logik hinter Config-Flag oder mit klarer Migration.
 - **Reproduzierbarkeit:** Backtests/Analysen müssen deterministisch und ohne Lookahead/Leakage sein.

@@ -3,12 +3,12 @@ import itertools
 import json
 import os
 from copy import deepcopy
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable
 
 
 def generate_param_combinations(
-    param_grid: Dict[str, List[Any]],
-) -> List[Dict[str, Any]]:
+    param_grid: dict[str, list[Any]],
+) -> list[dict[str, Any]]:
     """
     Erzeugt alle möglichen Parameterkombinationen aus einem Grid.
 
@@ -26,15 +26,15 @@ def generate_param_combinations(
 
 def run_grid_search(
     config_template_path: str,
-    param_grid: Dict[str, List[Any]],
+    param_grid: dict[str, list[Any]],
     output_dir: str = "grid_results",
     strategy_key: str = "strategy",
     result_csv: str = "grid_results/summary.csv",
-    min_criteria: Optional[Dict[str, float]] = None,
+    min_criteria: dict[str, float] | None = None,
     sort_by: str = "Avg R-Multiple",
     top_n: int = 5,
-    base_config: Optional[Dict[str, Any]] = None,
-    config_overwrite: Optional[Callable[[Dict[str, Any]], Dict[str, Any]]] = None,
+    base_config: dict[str, Any] | None = None,
+    config_overwrite: Callable[[dict[str, Any]], dict[str, Any]] | None = None,
 ) -> None:
     """
     Führt eine vollständige Grid Search mit Backtest und Metrik-Auswertung durch.
@@ -74,7 +74,7 @@ def run_grid_search(
         "Total Trades",
     ]
 
-    results = []
+    results: list[dict[str, Any]] = []
 
     for i, params in enumerate(combinations):
         print(f"🔹 [{i+1}/{len(combinations)}] Parameter: {params}")
