@@ -529,3 +529,12 @@ Alle Score-Berechnungen in den Analysis-Modulen verwenden trade-count adjustiert
 - Verhindert Selektion von "Lucky Trades" mit hohen Scores bei wenigen Ausführungen
 - Wilson Score Lower Bound gibt konservative Untergrenze für Winrate bei kleinen Samples
 
+---
+
+### `docs/` Ordner
+
+Der `docs/` Ordner enthält technische Dokumentation und Migrationspläne:
+
+- **`CATEGORICAL_RANKING_OPTIMIZATION.md`**: Detaillierter Performance-Optimierung Report
+- **`PYTHON_312_MIGRATION_PLAN.md`**: Konvertierungsplan für die Migration von Python 3.10 auf Python 3.12
+
