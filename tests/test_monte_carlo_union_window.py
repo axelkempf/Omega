@@ -3,7 +3,7 @@ import pandas as pd
 
 
 def test_build_daily_index_union_vs_intersection() -> None:
-    from analysis import combined_walkforward_matrix_analyzer as cwm
+    from backtest_engine.analysis import combined_walkforward_matrix_analyzer as cwm
 
     # Use overlapping ranges so intersection is non-empty
     starts = [
@@ -26,7 +26,7 @@ def test_build_daily_index_union_vs_intersection() -> None:
 
 def test_invalid_candidate_excluded_from_monte_carlo_scoring() -> None:
     """Wenn ein Kandidat nicht bis zum globalen Ende reicht, soll er in MC ausgeschlossen werden."""
-    from analysis import combined_walkforward_matrix_analyzer as cwm
+    from backtest_engine.analysis import combined_walkforward_matrix_analyzer as cwm
 
     daily_index = pd.date_range(
         "2021-01-01", periods=3, freq="D", tz="UTC"

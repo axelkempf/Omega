@@ -9,7 +9,7 @@ und deren Auswirkungen auf die Adjusted Winrate.
 import numpy as np
 import pytest
 
-from analysis.metric_adjustments import bayesian_shrinkage
+from backtest_engine.analysis.metric_adjustments import bayesian_shrinkage
 
 
 def compute_alpha_beta_manually(all_winrates):

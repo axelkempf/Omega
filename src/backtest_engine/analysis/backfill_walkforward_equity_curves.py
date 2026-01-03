@@ -14,14 +14,14 @@ import pandas as pd
 from joblib import Parallel, delayed
 
 # Ensure repository root and src/ are on sys.path so local modules can be imported
-REPO_ROOT = Path(__file__).resolve().parents[1]
+REPO_ROOT = Path(__file__).resolve().parents[3]
 SRC_ROOT = REPO_ROOT / "src"
 for _extra in (REPO_ROOT, SRC_ROOT):
     if str(_extra) not in sys.path:
         sys.path.append(str(_extra))
 
 try:
-    from analysis.walkforward_analyzer import _upgrade_base_config
+    from backtest_engine.analysis.walkforward_analyzer import _upgrade_base_config
     from backtest_engine.optimizer.final_param_selector import (
         _ensure_preloaded_in_worker,
         _extract_trades,

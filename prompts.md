@@ -1,4 +1,4 @@
-# Kempf Capital Prompt Identifikationen 
+# Omega Prompt Identifikationen 
 
 Hier sind unterschiedliche Vorlagen für wieder zu verwendende Prompts
 
@@ -148,7 +148,7 @@ EXECUTION COMMAND CONTRACT (verbindlich)
 ---
 - In Phase 3 darf ausschließlich der folgende Startbefehl ausgeführt werden (byte-identisch in Reihenfolge und Argumenten), ohne zusätzliche Flags, ohne Weglassen, ohne Substitution:
 
-conda run -n algorithmus python -m analysis.combined_walkforward_matrix_analyzer --enable-dev-mode --perf-log-path perf_logs.jsonl
+conda run -n omega python -m backtest_engine.analysis.combined_walkforward_matrix_analyzer --enable-dev-mode --perf-log-path perf_logs.jsonl
 
 - Verboten sind:
   - das Hinzufügen von Flags (z. B. --n-jobs, --skip-*, --monte-carlo-samples),

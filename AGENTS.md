@@ -129,10 +129,10 @@ pytest --cov=src --cov-report=term-missing
 pre-commit run -a
 
 # Nur black
-black src/ tests/ analysis/
+black src/ tests/
 
 # Nur isort
-isort src/ tests/ analysis/
+isort src/ tests/
 ```
 
 ### Konfiguration
@@ -253,21 +253,19 @@ Schema: `UTC time`, `Open`, `High`, `Low`, `Close`, `Volume`
 
 ### Single Source of Truth: pyproject.toml
 
-Alle Dependencies sind zentral in `pyproject.toml` definiert. Die Datei `requirements.txt` ist nur ein Wrapper für Tool-Kompatibilität.
+Alle Dependencies sind zentral in `pyproject.toml` definiert.
 
 | Extra      | Inhalt                                           | Verwendung                    |
 |------------|--------------------------------------------------|-------------------------------|
 | `dev`      | pytest, black, isort, flake8, mypy, bandit, etc. | Entwicklung und CI            |
-| `analysis` | scipy, scikit-learn, hdbscan, tqdm               | Analyse-Scripts in `analysis/`|
+| `analysis` | scipy, scikit-learn, hdbscan, tqdm               | Analyse-Scripts (backtest_engine.analysis)|
 | `ml`       | torch>=2.1                                       | Machine Learning Research     |
 | `all`      | Kombiniert dev + analysis + ml                   | Vollständige Umgebung         |
 
 ### Regeln
 
 - Neuer Import in `src/` → **in `pyproject.toml` unter `dependencies` hinzufügen**
-- Neuer Import nur in `analysis/` → **in `pyproject.toml` unter `[project.optional-dependencies].analysis` hinzufügen**
 - Optionale Dependencies defensiv importieren (try/except mit Fallback)
-- `requirements.txt` **nicht direkt editieren** (ist nur Wrapper)
 
 ---
 
@@ -291,7 +289,7 @@ Beispiele:
 - [ ] **`var/`-Invarianten geprüft:** Heartbeat/Stop-Signal/Logs/Results kompatibel
 - [ ] **Resume/Magic geprüft:** `magic_number`-Matching unverändert oder Regression-Test
 - [ ] **Schema/Artefakte geprüft:** CSV-Shapes für Walkforward/Optimizer kompatibel
-- [ ] **Dependencies korrekt:** Alle Deps in `pyproject.toml` (nicht requirements.txt direkt editieren)
+- [ ] **Dependencies korrekt:** Alle Deps in `pyproject.toml`
 - [ ] **MT5/OS-Kompatibilität:** macOS/Linux ohne MT5 ok
 - [ ] **Secrets sicher:** Keine Tokens/Keys committed
 - [ ] **Qualität:** `pre-commit run -a` und `pytest -q` grün
@@ -326,7 +324,6 @@ var/                        # Runtime-State (gitignored)
 ├── tmp/                    # Heartbeats, Stop-Signale
 └── archive/                # Archivierte Daten
 
-analysis/                   # Post-Processing, Analyzer-Scripts
 tests/                      # pytest Tests
 ```
 

@@ -35,11 +35,11 @@ repos:
           - types-requests
           - types-python-dateutil
           - pandas-stubs
-        exclude: ^(tests/|analysis/)
+        exclude: ^tests/
 
   - repo: https://github.com/pycqa/pydocstyle
     rev: 6.3.0
     hooks:
       - id: pydocstyle
         args: ["--convention=google", "--add-ignore=D100,D104,D105,D107"]
-        exclude: ^(tests/|analysis/)
+        exclude: ^tests/

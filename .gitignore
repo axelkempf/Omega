@@ -1,28 +1,55 @@
-.DS_Store
+# ==============================================================================
+# Omega Trading Stack – Git Ignore Rules
+# ==============================================================================
+# Central .gitignore for tracked directory skeletons (var/, data/) with ignored contents.
+# Follows the "tracked skeleton + ignored contents" pattern for operational guardrails.
+
+# ------------------------------------------------------------------------------
+# IDE & Editor
+# ------------------------------------------------------------------------------
 .vscode/
 .idea/
-*.log
+*.swp
+*.swo
+*~
+
+# ------------------------------------------------------------------------------
+# macOS
+# ------------------------------------------------------------------------------
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# ------------------------------------------------------------------------------
+# Python
+# ------------------------------------------------------------------------------
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
 .venv/
+venv/
 .env
 .env.*
 *.egg-info/
 dist/
 build/
 .ipynb_checkpoints/
-data_raw/
-datasets/
-results/
-artifacts/
-logs/
-checkpoints/
-*.parquet
-*.feather
-*.pkl
-*.pickle
-*.csv.gz
-*.zip
+
+# ------------------------------------------------------------------------------
+# Testing & Coverage
+# ------------------------------------------------------------------------------
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+*.log
+pytest.log
+
+# ------------------------------------------------------------------------------
+# Secrets & Credentials (never commit!)
+# ------------------------------------------------------------------------------
 *.key
 *.pem
 *.crt
@@ -31,19 +58,68 @@ checkpoints/
 *api_key*.json
 *secret*.json
 secrets/
-tmp/
-archive/
-var/
-/data/
 
-### macOS ###
-.DS_Store
-.AppleDouble
-.LSOverride
-._*
+# ------------------------------------------------------------------------------
+# Binary Data & Archives
+# ------------------------------------------------------------------------------
+*.parquet
+*.feather
+*.pkl
+*.pickle
+*.csv.gz
+*.zip
+*.db
+*.sqlite
+*.sqlite3
 
-# Coverage
-.coverage
-.coverage.*
-htmlcov/
-coverage.xml
+# ------------------------------------------------------------------------------
+# var/ – Runtime State (tracked skeleton, ignored contents)
+# ------------------------------------------------------------------------------
+# The var/ directory structure is tracked for operational guardrails.
+# Contents (logs, results, heartbeats, DBs) are git-ignored.
+
+# Ignore all content in var/ by default
+var/**
+
+# Un-ignore the directory structure (subdirectories themselves)
+!var/
+!var/*/
+!var/*/*/
+
+# Track the README.md files that document each directory's purpose
+!var/README.md
+!var/*/README.md
+!var/*/*/README.md
+
+# ------------------------------------------------------------------------------
+# data/ – Market Data (tracked skeleton, ignored contents)
+# ------------------------------------------------------------------------------
+# The data/ directory structure is tracked for reproducibility.
+# Actual market data files (CSV, Parquet) are git-ignored.
+
+# Ignore all content in data/ by default
+data/**
+
+# Un-ignore the directory structure
+!data/
+!data/*/
+
+# Track the README.md files that document each directory's purpose
+!data/README.md
+!data/*/README.md
+
+# Allow the news csv_cleaner.py utility script
+!data/news/csv_cleaner.py
+
+# ------------------------------------------------------------------------------
+# Legacy/Obsolete directories (full ignore)
+# ------------------------------------------------------------------------------
+data_raw/
+datasets/
+artifacts/
+checkpoints/
+
+# ------------------------------------------------------------------------------
+# final_selection/ – Optimizer temp files
+# ------------------------------------------------------------------------------
+final_selection/joblib_tmp/*

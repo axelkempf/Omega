@@ -40,7 +40,7 @@ import pandas as pd
 from matplotlib.ticker import StrMethodFormatter
 
 # Pfade relativ zum Projektroot
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
+PROJECT_ROOT = Path(__file__).resolve().parents[3]
 WALKFORWARD_ROOT = PROJECT_ROOT / "var" / "results" / "analysis"
 COMBINED_MATRIX_DIR = WALKFORWARD_ROOT / "combined_matrix"
 FINAL_COMBOS_DIR = COMBINED_MATRIX_DIR / "final_combos"
@@ -319,7 +319,7 @@ def _max_drawdown_vs_prev_period(
 ) -> Tuple[float, Optional[pd.Timestamp]]:
     """
     Maximaler negativer Intraperioden-Drawdown relativ zur Equity des jeweils
-    vorherigen Zeitraums. Logik gespiegelt aus analysis/combine_equity_curves.py.
+    vorherigen Zeitraums. Logik gespiegelt aus backtest_engine/analysis/combine_equity_curves.py.
     """
     if period_freq is None:
         period_freq = resample_freq

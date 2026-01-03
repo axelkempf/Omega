@@ -1,8 +1,8 @@
 import numpy as np
 import pandas as pd
 
-import analysis.combined_walkforward_matrix_analyzer as cwm
-import analysis.walkforward_analyzer as wfa
+import backtest_engine.analysis.combined_walkforward_matrix_analyzer as cwm
+import backtest_engine.analysis.walkforward_analyzer as wfa
 
 
 def test_add_total_adust_metrics_to_portfolios_adds_columns_and_clips_negative_pod(

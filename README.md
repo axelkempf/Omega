@@ -1,6 +1,6 @@
-# Kempf Capital Algorithmus
+# Omega
 
-[![CI](https://github.com/axelkempf/kempf_capital_algorithmus/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/axelkempf/kempf_capital_algorithmus/actions/workflows/ci.yml)
+[![CI](https://github.com/axelkempf/Omega/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/axelkempf/Omega/actions/workflows/ci.yml)
 ![Python](https://img.shields.io/badge/python-%3E%3D3.12-blue)
 ![Version](https://img.shields.io/badge/version-1.2.0-blue)
 
@@ -32,7 +32,6 @@ Ein Python-basierter Trading-Stack mit **Live-Engine (MetaTrader 5)**, **event-g
 ### Installation
 
 **Hinweis:** Alle Dependencies sind zentral in `pyproject.toml` definiert (Single Source of Truth).
-Die Datei `requirements.txt` ist nur ein Wrapper für Kompatibilität mit bestimmten Tools.
 
 **1) Entwicklung (Standard)**
 
@@ -163,10 +162,10 @@ Schema:
 - `src/engine_launcher.py` – Launcher (Live/Datafeed), Heartbeat/Shutdown
 - `src/hf_engine/` – Live-Engine (Adapter, Risk, Execution, Logging)
 - `src/backtest_engine/` – Backtests/Optimizer/Walkforward
+  - `analysis/` – Post-Processing/Analyzer (Walkforward-Matrix, Backfill, Equity-Plots)
 - `src/ui_engine/` – FastAPI UI (Start/Stop/Logs/Resources)
 - `src/strategies/` – Strategien + Template
 - `configs/` – Live-/Backtest-Konfigurationen + zentrale YAMLs
-- `analysis/` – Post-Processing/Analyzer
 - `var/` – Runtime-State (gitignored): Logs/Results/tmp
 
 ## Hilfe & Doku

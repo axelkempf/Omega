@@ -4,14 +4,6 @@ Ordner-für-Ordner-Übersicht der Codebasis (ohne `results`-Ordner und ohne Aufl
 
 ### Wurzelverzeichnis
 
-- `analysis/`
-  - `backfill_walkforward_equity_curves.py`
-  - `combine_equity_curves.py`
-  - `combined_walkforward_matrix_analyzer.py`
-  - `final_combo_equity_plotter.py`
-  - `metric_adjustments.py` (Trade-count basierte Metrik-Adjustierungen)
-  - `walkforward_analyzer.py`
-  - `__pycache__/`
 - `configs/`
   - `backtest/`
     - `_config_validator.py`
@@ -29,46 +21,12 @@ Ordner-für-Ordner-Übersicht der Codebasis (ohne `results`-Ordner und ohne Aufl
     - `strategy_config_15582434.json`
   - `execution_costs.yaml`
   - `symbol_specs.yaml`
-- `data/`
-  - `csv/`
-    - `AUDUSD/`
-    - `EURGBP/`
-    - `EURUSD/`
-    - `GBPUSD/`
-    - `US500/`
-    - `USDCAD/`
-    - `USDCHF/`
+- `data/` *(Market data, git-ignored contents – tracked via README.md skeleton)*
+  - `csv/` *({SYMBOL}/{SYMBOL}_{TIMEFRAME}_BID.csv, ASK.csv)*
   - `news/`
     - `csv_cleaner.py`
-  - `parquet/`
-    - `AUDUSD/`
-    - `EURGBP/`
-    - `EURUSD/`
-    - `GBPUSD/`
-    - `USDCAD/`
-    - `USDCHF/`
-  - `raw/`
-    - `AUDUSD/`
-      - `D1/`
-      - `H1/`
-      - `H4/`
-      - `M15/`
-      - `M30/`
-      - `M5/`
-    - `EURUSD/`
-      - `02_5min_timeframe/`
-      - `03_15min_timeframe/`
-      - `04_30min_timeframe/`
-      - `05_1h_timeframe/`
-      - `06_4h_timeframe/`
-      - `07_Daily_timeframe/`
-    - `USDCAD/`
-      - `D1/`
-      - `H1/`
-      - `H4/`
-      - `M15/`
-      - `M30/`
-      - `M5/`
+  - `parquet/` *({SYMBOL}/{SYMBOL}_{TIMEFRAME}_BID.parquet, ASK.parquet)*
+  - `raw/` *(Unprocessed broker exports)*
 - `docs/`
   - `CATEGORICAL_RANKING_OPTIMIZATION.md` (Detaillierter Performance-Optimierung Report)
 - `final_selection/`
@@ -77,18 +35,23 @@ Ordner-für-Ordner-Übersicht der Codebasis (ohne `results`-Ordner und ohne Aufl
 - `src/`
   - `backtest_engine/`
   - `hf_engine/`
-  - `kempf_capital_algorithmus.egg-info/`
+  - `omega.egg-info/` *(build artifact from pyproject.toml name)*
   - `strategies/`
   - `ui_engine/`
   - `watchdog/`
   - `engine_launcher.py`
 - `tests/`
-- `var/`
+- `var/` *(Runtime state, git-ignored contents – tracked via README.md skeleton)*
   - `archive/`
   - `logs/`
+    - `entry_logs/`
+    - `optuna/`
+    - `system/`
+    - `trade_logs/`
   - `results/`
-    - `analysis/` — Zentraler Ordner für Walkforward-Analysen (backfill, matrix, equity plots)
-  - `runtime/`
+    - `analysis/`
+    - `backtests/`
+    - `walkforwards/`
   - `tmp/`
 - `CHANGELOG.md`
 - `CONTRIBUTING.md`
@@ -96,7 +59,6 @@ Ordner-für-Ordner-Übersicht der Codebasis (ohne `results`-Ordner und ohne Aufl
 - `pyproject.toml`
 - `pytest.log`
 - `README.md`
-- `requirements.txt`
 - `SUMMARY.md`
 
 ---
@@ -108,6 +70,14 @@ Ordner-für-Ordner-Übersicht der Codebasis (ohne `results`-Ordner und ohne Aufl
 - `run_all.py`
 - `runner.py`
 - `__pycache__/`
+- `analysis/`
+  - `__init__.py`
+  - `backfill_walkforward_equity_curves.py`
+  - `combine_equity_curves.py`
+  - `combined_walkforward_matrix_analyzer.py`
+  - `final_combo_equity_plotter.py`
+  - `metric_adjustments.py` (Trade-count basierte Metrik-Adjustierungen)
+  - `walkforward_analyzer.py`
 - `core/`
   - `__init__.py`
   - `event_engine.py`
@@ -438,7 +408,7 @@ Ordner-für-Ordner-Übersicht der Codebasis (ohne `results`-Ordner und ohne Aufl
 ### Weitere `src`-Verzeichnisse
 
 - `src/engine_launcher.py`
-- `src/kempf_capital_algorithmus.egg-info/`
+- `src/omega.egg-info/` *(build artifact from current distribution name)*
   - `dependency_links.txt`
   - `PKG-INFO`
   - `requires.txt`

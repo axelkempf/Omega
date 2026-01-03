@@ -8,7 +8,7 @@ aus analysis.metric_adjustments.
 import numpy as np
 import pytest
 
-from analysis.metric_adjustments import (
+from backtest_engine.analysis.metric_adjustments import (
     TRADES_PER_YEAR_REFERENCE,
     bayesian_shrinkage,
     risk_adjusted,

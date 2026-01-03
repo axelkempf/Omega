@@ -9,7 +9,7 @@ Zeigt die Raw vs. Adjusted Metriken für alle drei Scoring-Stellen:
 
 import numpy as np
 
-from analysis.metric_adjustments import (
+from backtest_engine.analysis.metric_adjustments import (
     bayesian_shrinkage,
     risk_adjusted,
     shrinkage_adjusted,

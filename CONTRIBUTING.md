@@ -61,7 +61,7 @@ pre-commit run -a
 - [ ] **`var/`-Invarianten geprüft:** Heartbeat/Stop-Signal/Logs/Results kompatibel
 - [ ] **Resume/Magic geprüft:** `magic_number`-Matching unverändert oder per Regression-Test abgesichert
 - [ ] **Schema/Artefakte geprüft:** Walkforward/Optimizer-CSV-Shapes kompatibel oder Migration + Tests
-- [ ] **Dependencies korrekt:** Alle Deps in `pyproject.toml` (nicht requirements.txt direkt editieren)
+- [ ] **Dependencies korrekt:** Alle Deps in `pyproject.toml`
 - [ ] **MT5/OS-Kompatibilität:** macOS/Linux ohne MT5 ok; Windows-only sauber gekapselt
 - [ ] **Secrets sicher:** keine Secrets committed; neue ENV-Vars als Placeholder + README/Doku
 - [ ] **Qualität:** `pre-commit run -a` und `pytest -q` grün

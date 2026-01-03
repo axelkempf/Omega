@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 
-from analysis.combined_walkforward_matrix_analyzer import (
+from backtest_engine.analysis.combined_walkforward_matrix_analyzer import (
     _EQUITY_CACHE,
     _TRADES_CACHE,
     _compute_additional_categorical_metrics,

@@ -16,7 +16,7 @@ def test_persist_final_combo_artifacts_prefers_reconstruct(
     Dieser Test stellt sicher, dass persist_final_combo_artifacts() bei übergebenem ``index`` und
     gültigem ``groups_mapping_json`` aggregate_final_combo aufruft und den Legacy-Fallback nicht nutzt.
     """
-    from analysis import combined_walkforward_matrix_analyzer as cwm
+    from backtest_engine.analysis import combined_walkforward_matrix_analyzer as cwm
 
     # Isoliere IO in tmp_path
     monkeypatch.setattr(

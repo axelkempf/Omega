@@ -5,7 +5,7 @@ requires = ["setuptools>=69", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "kempf-capital-algorithmus"
+name = "omega"
 version = "1.2.0"
 description = ""
 readme = "README.md"
@@ -63,7 +63,7 @@ ml = [
 ]
 # Convenience extra: installs everything for full development + analysis
 all = [
-    "kempf-capital-algorithmus[dev,analysis,ml]",
+    "omega[dev,analysis,ml]",
 ]
 
 [tool.setuptools]
