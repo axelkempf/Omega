@@ -98,7 +98,9 @@ def compute_ulcer_index_and_score(
         dd_pct = np.zeros_like(equities, dtype=float)
         valid = roll_max > 0.0
         with np.errstate(divide="ignore", invalid="ignore"):
-            dd_pct[valid] = (equities[valid] - roll_max[valid]) / roll_max[valid] * 100.0
+            dd_pct[valid] = (
+                (equities[valid] - roll_max[valid]) / roll_max[valid] * 100.0
+            )
         dd_pct[~np.isfinite(dd_pct)] = 0.0
         ulcer_index = float(np.sqrt(np.mean(dd_pct**2)))
 

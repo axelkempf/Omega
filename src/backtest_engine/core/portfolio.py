@@ -365,12 +365,8 @@ class Portfolio:
                                 "trade_dropout_score", 0.0
                             ),
                             "Ulcer Index": extra.get("ulcer_index", 0.0),
-                            "Ulcer Index Score": extra.get(
-                                "ulcer_index_score", 0.0
-                            ),
-                            "Data Jitter Score": extra.get(
-                                "data_jitter_score", 0.0
-                            ),
+                            "Ulcer Index Score": extra.get("ulcer_index_score", 0.0),
+                            "Data Jitter Score": extra.get("data_jitter_score", 0.0),
                             "Data Jitter Num Samples": extra.get(
                                 "data_jitter_num_samples", 0
                             ),

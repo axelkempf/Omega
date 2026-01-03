@@ -28,7 +28,6 @@ from backtest_engine.rating.cost_shock_score import (
     apply_cost_shock_inplace,
     compute_multi_factor_cost_shock_score,
 )
-from backtest_engine.rating.ulcer_index_score import compute_ulcer_index_and_score
 from backtest_engine.rating.p_values import compute_p_values
 from backtest_engine.rating.robustness_score_1 import compute_robustness_score_1
 from backtest_engine.rating.stability_score import (
@@ -48,6 +47,7 @@ from backtest_engine.rating.trade_dropout_score import (
     compute_multi_run_trade_dropout_score,
     simulate_trade_dropout_metrics_multi,
 )
+from backtest_engine.rating.ulcer_index_score import compute_ulcer_index_and_score
 from backtest_engine.report.metrics import calculate_metrics
 from backtest_engine.runner import (
     clear_alignment_cache,

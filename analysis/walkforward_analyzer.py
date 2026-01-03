@@ -3204,9 +3204,7 @@ def _compute_true_robustness_1(config: Dict[str, Any]) -> Dict[str, Any]:
             metrics.get("robustness_1_num_samples", 0) or 0
         ),
         "data_jitter_score": float(metrics.get("data_jitter_score", 0.0) or 0.0),
-        "data_jitter_num_samples": int(
-            metrics.get("data_jitter_num_samples", 0) or 0
-        ),
+        "data_jitter_num_samples": int(metrics.get("data_jitter_num_samples", 0) or 0),
         "cost_shock_score": float(metrics.get("cost_shock_score", 0.0) or 0.0),
         "timing_jitter_score": float(metrics.get("timing_jitter_score", 0.0) or 0.0),
         "trade_dropout_score": float(metrics.get("trade_dropout_score", 0.0) or 0.0),

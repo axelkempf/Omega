@@ -462,7 +462,9 @@ def get_common_timestamps(
         raise ValueError("Methode muss 'intersection' oder 'union' sein")
 
 
-def _sequence_signature(seq: List[Any], sample: int = 2) -> Tuple[int, Tuple[Any, ...], Tuple[Any, ...]]:
+def _sequence_signature(
+    seq: List[Any], sample: int = 2
+) -> Tuple[int, Tuple[Any, ...], Tuple[Any, ...]]:
     ts = [c.timestamp for c in seq]
     length = len(ts)
     head = tuple(ts[:sample])
@@ -470,14 +472,18 @@ def _sequence_signature(seq: List[Any], sample: int = 2) -> Tuple[int, Tuple[Any
     return length, head, tail
 
 
-def _collect_tf_signatures(symbol_map: dict) -> Dict[str, Dict[str, Tuple[int, Tuple[Any, ...], Tuple[Any, ...]]]]:
+def _collect_tf_signatures(
+    symbol_map: dict,
+) -> Dict[str, Dict[str, Tuple[int, Tuple[Any, ...], Tuple[Any, ...]]]]:
     sym = next(iter(symbol_map), None)
     if sym is None:
         return {}
     signatures: Dict[str, Dict[str, Tuple[int, Tuple[Any, ...], Tuple[Any, ...]]]] = {}
     for tf, sides in symbol_map[sym].items():
         signatures[tf] = {
-            side: _sequence_signature(seq) for side, seq in sides.items() if isinstance(seq, list)
+            side: _sequence_signature(seq)
+            for side, seq in sides.items()
+            if isinstance(seq, list)
         }
     return signatures
 
@@ -499,7 +505,9 @@ class AlignmentPlan:
     signatures: Dict[str, Dict[str, Tuple[int, Tuple[Any, ...], Tuple[Any, ...]]]]
 
 
-def _build_alignment_plan(symbol_map: dict, primary_tf: str, config: dict) -> AlignmentPlan:
+def _build_alignment_plan(
+    symbol_map: dict, primary_tf: str, config: dict
+) -> AlignmentPlan:
     """
     Baut einen Alignment-Plan auf Basis der aktuellen Candle-Sequenzen.
     Rückgabe enthält ausschließlich Indizes/Timestamps – keine Candle-Objekte.
@@ -644,7 +652,8 @@ def _apply_alignment_plan(
         for side, expected_sig in sides.items():
             if side not in current_signatures[tf]:
                 raise ValueError(
-                    f"AlignmentPlan invalid: Side {side} fehlt in TF {tf}.")
+                    f"AlignmentPlan invalid: Side {side} fehlt in TF {tf}."
+                )
             if current_signatures[tf][side] != expected_sig:
                 raise ValueError(
                     f"AlignmentPlan Signatur-Mismatch für TF={tf}, side={side}."
@@ -654,7 +663,10 @@ def _apply_alignment_plan(
     primary_ask_seq = tf_map[primary_tf]["ask"]
     expected_len = len(plan.common_ts)
 
-    if len(plan.primary_bid_idx) != expected_len or len(plan.primary_ask_idx) != expected_len:
+    if (
+        len(plan.primary_bid_idx) != expected_len
+        or len(plan.primary_ask_idx) != expected_len
+    ):
         raise ValueError("AlignmentPlan Länge passt nicht zu Common-Timestamps.")
 
     def _ensure_range(idx_list: List[int], seq_len: int, label: str) -> None:
@@ -712,7 +724,9 @@ def _align_single_symbol_primary_and_multi(
     """
     Kompatibilitäts-Wrapper: baut einen Alignment-Plan und wendet ihn direkt an.
     """
-    plan = _build_alignment_plan(symbol_map=symbol_map, primary_tf=primary_tf, config=config)
+    plan = _build_alignment_plan(
+        symbol_map=symbol_map, primary_tf=primary_tf, config=config
+    )
     return _apply_alignment_plan(plan, symbol_map, primary_tf)
 
 
@@ -752,7 +766,9 @@ def _alignment_cache_key(
         for tf in sorted(tf_signatures):
             for side in ("bid", "ask"):
                 if side in tf_signatures[tf]:
-                    parts.append(f"{tf}:{side}:{_serialize_signature(tf_signatures[tf][side])}")
+                    parts.append(
+                        f"{tf}:{side}:{_serialize_signature(tf_signatures[tf][side])}"
+                    )
         sig_blob = ";".join(parts)
         align_cfg = json.dumps(config.get("timestamp_alignment", {}), sort_keys=True)
         raw_key = f"{sym}|{primary_tf}|{sig_blob}|{align_cfg}|{start_dt.isoformat()}"

@@ -2,11 +2,11 @@ import numpy as np
 import pandas as pd
 
 from backtest_engine.rating.data_jitter_score import (
+    _stable_data_jitter_seed,
     build_jittered_preloaded_data,
     compute_atr_series,
     compute_data_jitter_score,
     precompute_atr_cache,
-    _stable_data_jitter_seed,
 )
 
 
@@ -36,7 +36,9 @@ def test_shift_jitter_preserves_candle_constraints():
     )
 
     for key, df in jittered.items():
-        high_ge = df["High"].to_numpy() >= np.maximum(df["Open"], df["Close"]).to_numpy()
+        high_ge = (
+            df["High"].to_numpy() >= np.maximum(df["Open"], df["Close"]).to_numpy()
+        )
         low_le = df["Low"].to_numpy() <= np.minimum(df["Open"], df["Close"]).to_numpy()
         assert np.all(high_ge)
         assert np.all(low_le)
@@ -102,12 +104,14 @@ def test_bid_ask_receive_identical_epsilon():
         base, atr_cache=atr_cache, sigma_atr=0.05, seed=42, min_price=1e-6
     )
 
-    bid_diff = jittered[("M15", "bid")]["Close"].to_numpy() - base[("M15", "bid")][
-        "Close"
-    ].to_numpy()
-    ask_diff = jittered[("M15", "ask")]["Close"].to_numpy() - base[("M15", "ask")][
-        "Close"
-    ].to_numpy()
+    bid_diff = (
+        jittered[("M15", "bid")]["Close"].to_numpy()
+        - base[("M15", "bid")]["Close"].to_numpy()
+    )
+    ask_diff = (
+        jittered[("M15", "ask")]["Close"].to_numpy()
+        - base[("M15", "ask")]["Close"].to_numpy()
+    )
 
     np.testing.assert_allclose(bid_diff, ask_diff)
 

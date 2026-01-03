@@ -36,7 +36,10 @@ def _make_symbol_map(offset: float) -> dict:
 
 def test_alignment_cache_uses_current_candles_on_identical_timestamps():
     clear_alignment_cache()
-    config = {"timeframes": {"primary": "M1", "additional": []}, "timestamp_alignment": {}}
+    config = {
+        "timeframes": {"primary": "M1", "additional": []},
+        "timestamp_alignment": {},
+    }
     start_dt = datetime(2024, 1, 1, tzinfo=timezone.utc)
 
     symbol_map_a = _make_symbol_map(offset=0.0)
