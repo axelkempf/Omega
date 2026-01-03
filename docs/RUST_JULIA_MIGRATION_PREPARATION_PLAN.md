@@ -78,8 +78,8 @@ Dieses Dokument beschreibt den systematischen Vorbereitungsplan zur sicheren, in
 | **P0-01** | Performance-Baseline für Migrations-Kandidaten erstellen | - | M | Benchmark-Results für alle Kandidaten-Module dokumentiert; Laufzeiten, Memory-Usage, CPU-Profile |
 | **P0-02** | Aktuelle Type Coverage analysieren und dokumentieren | - | S | `tools/type_coverage.py` Output + Analyse der Module mit `ignore_errors=true` in `pyproject.toml` (Baseline: `reports/type_coverage/README.md`) |
 | **P0-03** | ADR-Verzeichnisstruktur einrichten | - | S | `docs/adr/` Verzeichnis mit Template und erstem ADR (ADR-0001: Migration Strategy) |
-| **P0-04** | Migrations-Kandidaten identifizieren und priorisieren | P0-01, P0-02 | M | Liste der Module mit Priorität (High/Medium/Low) basierend auf Performance-Impact und Type-Readiness |
-| **P0-05** | Bestehende Test-Coverage für Kandidaten dokumentieren | P0-04 | S | Coverage-Report pro Modul; Gap-Analyse für fehlende Tests |
+| **P0-04** | Migrations-Kandidaten identifizieren und priorisieren | P0-01, P0-02 | M | Evidence-based Liste (Performance-Baselines + Type-Readiness) inkl. Priorität (High/Medium/Low), dokumentiert in `reports/migration_candidates/README.md` (+ JSON: `reports/migration_candidates/p0-04_candidates.json`) |
+| **P0-05** | Bestehende Test-Coverage für Kandidaten dokumentieren | P0-04 | S | Evidence-based Coverage-Report + Gap-Analyse, dokumentiert in `reports/migration_test_coverage/README.md` (+ JSON: `reports/migration_test_coverage/p0-05_candidate_coverage.json`) |
 
 ### Phase 1: Type Safety Hardening
 
@@ -302,6 +302,10 @@ Ein Modul gilt als "Ready for Migration" wenn:
 ---
 
 ## Anhang: Migrations-Kandidaten
+
+Hinweis: Die **kanonische**, datenbasierte Priorisierung (aus P0-01 + P0-02) liegt in
+`reports/migration_candidates/README.md`. Die Tabellen unten sind eine fachliche
+Kategorisierung (Rust vs. Julia) und bleiben bewusst „high level“.
 
 ### Primäre Kandidaten (Rust)
 
