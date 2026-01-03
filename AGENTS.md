@@ -16,7 +16,7 @@ Dieses Repository ist ein **Python-basierter Trading-Stack** mit Live-Engine (Me
 | **Strategien** | `src/strategies/` | Trading-Strategien + Template (`_template/`) |
 | **Launcher** | `src/engine_launcher.py` | Zentraler Entry-Point (live/datafeed/backtest) |
 
-**Technologien**: Python ≥3.10, pandas, numpy, FastAPI, Optuna, MetaTrader5 (Windows-only für Live)
+**Technologien**: Python ≥3.12, pandas, numpy, FastAPI, Optuna, MetaTrader5 (Windows-only für Live)
 
 ---
 
