@@ -1,8 +1,8 @@
 # Kempf Capital Algorithmus
 
 [![CI](https://github.com/axelkempf/kempf_capital_algorithmus/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/axelkempf/kempf_capital_algorithmus/actions/workflows/ci.yml)
-![Python](https://img.shields.io/badge/python-%3E%3D3.10-blue)
-![Version](https://img.shields.io/badge/version-1.1.0-blue)
+![Python](https://img.shields.io/badge/python-%3E%3D3.12-blue)
+![Version](https://img.shields.io/badge/version-1.2.0-blue)
 
 Ein Python-basierter Trading-Stack mit **Live-Engine (MetaTrader 5)**, **event-getriebenem Backtest/Optimizer** und einer **FastAPI-UI** zur Prozesssteuerung und zum Monitoring.
 
@@ -25,7 +25,7 @@ Ein Python-basierter Trading-Stack mit **Live-Engine (MetaTrader 5)**, **event-g
 
 ### Voraussetzungen
 
-- Python **>= 3.10**
+- Python **>= 3.12**
 - macOS/Linux: Backtests/Analyse funktionieren ohne MT5.
 - Windows: Für **Live-Trading** wird `MetaTrader5` benötigt (Dependency wird nur unter Windows installiert).
 

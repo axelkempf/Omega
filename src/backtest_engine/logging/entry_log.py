@@ -1,7 +1,6 @@
 import json
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
-from typing import List, Optional
 
 import pandas as pd
 
@@ -23,7 +22,7 @@ class EntryEvaluation:
     entry_allowed: bool
     signal_reason: str = "-"
     blocker: str = "-"
-    tags: List[str] = field(default_factory=list)
+    tags: list[str] = field(default_factory=list)
 
 
 class EntryLogger:
@@ -32,7 +31,7 @@ class EntryLogger:
     """
 
     def __init__(self):
-        self.logs: List[EntryEvaluation] = []
+        self.logs: list[EntryEvaluation] = []
 
     def log(
         self,
@@ -41,8 +40,8 @@ class EntryLogger:
         entry_allowed: bool,
         signal_reason: str = "-",
         blocker: str = "-",
-        tags: Optional[List[str]] = None,
-    ):
+        tags: list[str] | None = None,
+    ) -> None:
         """
         Fügt einen Entry-Eintrag dem Log hinzu.
 
