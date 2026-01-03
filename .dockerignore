@@ -1,0 +1,62 @@
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+*.egg
+.venv/
+venv/
+ENV/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.mypy_cache/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project Specific
+var/logs/
+var/results/
+var/tmp/
+var/archive/
+data/csv/
+data/parquet/
+data/raw/
+final_selection/
+.pre-commit-config.yaml
+
+# Documentation
+docs/
+*.md
+!README.md
+
+# Development
+tests/
+tools/
+prompts.md
+CHANGELOG.md
+CONTRIBUTING.md
+AGENTS.md
+architecture.md
+SUMMARY.md
