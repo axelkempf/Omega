@@ -1,0 +1,66 @@
+{
+  "terminal_path": "D:/Axel/Kempf-Capital/Algorithmus/Terminals/MT5_3/terminal64.exe",
+  "data_path": "D:/Axel/Kempf-Capital/Algorithmus/mt5_data/account_10929345",
+  "account_id": 10929345,
+  "password": "%Ro^aT69",
+  "server": "VantageInternational-Demo",
+  "broker_class": "MT5Adapter",
+  "symbol_map": {
+    "AUDCAD": "AUDCAD+",
+    "AUDCHF": "AUDCHF+",
+    "AUDJPY": "AUDJPY+",
+    "AUDNZD": "AUDNZD+",
+    "AUDUSD": "AUDUSD+",
+    "CADCHF": "CADCHF+",
+    "CADJPY": "CADJPY+",
+    "CHFJPY": "CHFJPY+",
+    "EURAUD": "EURAUD+",
+    "EURCAD": "EURCAD+",
+    "EURCHF": "EURCHF+",
+    "EURGBP": "EURGBP+",
+    "EURJPY": "EURJPY+",
+    "EURNZD": "EURNZD+",
+    "EURUSD": "EURUSD+",
+    "GBPAUD": "GBPAUD+",
+    "GBPCAD": "GBPCAD+",
+    "GBPCHF": "GBPCHF+",
+    "GBPJPY": "GBPJPY+",
+    "GBPNZD": "GBPNZD+",
+    "GBPUSD": "GBPUSD+",
+    "NZDCAD": "NZDCAD+",
+    "NZDCHF": "NZDCHF+",
+    "NZDJPY": "NZDJPY+",
+    "NZDUSD": "NZDUSD+",
+    "USDCAD": "USDCAD+",
+    "USDCHF": "USDCHF+",
+    "USDJPY": "USDJPY+"
+  },
+
+  "data_provider_remote": true,
+  "data_provider_host": "127.0.0.1",
+  "data_provider_port": 8081,
+
+  "strategies": [
+    {
+      "module": "trading_the_flow.live.strategy",
+      "class": "TradingTheFlowStrategy",
+      "init_args": ["config_asia"],
+      "magic_number": 10005,
+      "active": true
+    },
+    {
+      "module": "trading_the_flow.live.strategy",
+      "class": "TradingTheFlowStrategy",
+      "init_args": ["config_london"],
+      "magic_number": 10006,
+      "active": true
+    },
+    {
+      "module": "trading_the_flow.live.strategy",
+      "class": "TradingTheFlowStrategy",
+      "init_args": ["config_new_york"],
+      "magic_number": 10007,
+      "active": true
+    }
+  ]
+}

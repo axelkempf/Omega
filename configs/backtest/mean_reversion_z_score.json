@@ -1,0 +1,232 @@
+{
+  "symbol": "EURUSD",
+  "timeframes": {
+    "primary": "H1",
+    "additional": ["D1"]
+  },
+  "mode": "candle",
+  "enable_entry_logging": true,
+  "enable_backtest_robust_metrics": true,
+  "robust_jitter_frac": 0.05,
+  "robust_jitter_repeats": 80,
+  "robust_data_jitter_repeats": 50,  
+  "robust_data_jitter_atr_period": 14,
+  "robust_data_jitter_sigma_atr": 0.2,
+  "robust_data_jitter_fraq": 0.5,
+  "initial_balance": 100000.0,
+  "risk_per_trade": 100.0,
+  "account_currency": "USD",
+  "rates": {
+    "mode": "timeseries",                
+    "timeframe": "AUTO",                  
+    "pairs": ["EURUSD"], 
+    "use_price": "close",                
+    "stale_limit_bars": 10,              
+    "strict": true                      
+  },
+
+  "start_date": "2021-01-01",
+  "end_date": "2025-09-12",
+
+  "warmup_bars": 500,
+
+  "cooldown_candles": 2,
+  "cooldown_minutes": 5,
+  "cooldown_minutes_trade": 5,
+
+  "session_filter": {
+    "fixed_times": [
+      ["23:00", "05:00"],
+      ["15:00", "19:00"]
+    ]
+  },
+
+  "timestamp_alignment": {
+    "entry_timestamp_mode": "close",
+    "additional_tfs_mode": "carry_forward",
+    "stale_bar_limit_bars": 0,
+    "use_previous_completed_higher_tf": true,
+    "diagnostics": true,
+    "higher_tf_timestamps_mode": {
+      "D1": "close"
+    }
+  },
+
+  "strategy": {
+    "module": "mean_reversion_z_score.backtest.backtest_strategy",
+    "class": "MeanReversionZScoreStrategy",
+    "parameters": {
+      "ema_length": 18,
+      "atr_length": 14,
+      "atr_mult": 1.4,
+      "b_b_length": 48,
+      "std_factor": 2.0,
+      "window_length": 180,
+      
+      "z_score_long": -0.31,
+      "z_score_short": 1.5,
+      "kalman_q": 1.3,
+      "kalman_r": 0.546,
+
+      "htf_tf": "D1",
+      "htf_ema": 75,
+      "htf_filter": "above",
+
+      "extra_htf_tf": "H4",      
+      "extra_htf_ema": 100,
+      "extra_htf_filter": "none",
+
+      "garch_alpha": 0.1,
+      "garch_beta": 0.76,
+      "garch_omega": null,               
+      "garch_use_log_returns": true,
+      "garch_scale": 100.0,              
+      "garch_min_periods": 170,
+      "garch_sigma_floor": 1e-6,
+      "local_z_lookback": 500,
+
+      "intraday_vol_cluster_window": 150,
+      "intraday_vol_cluster_k": 3,
+      "intraday_vol_min_points": 80,
+      "intraday_vol_log_transform": true,
+      "intraday_vol_allowed": ["low", "mid"],
+      "intraday_vol_feature": "garch_forecast",
+      "cluster_hysteresis_bars": 1,
+      "intraday_vol_garch_lookback": 500,
+
+      "tp_min_distance": 0.0003,
+      "max_holding_minutes": 300,
+
+      "direction_filter": "long",
+      "enabled_scenarios": [4],
+      "use_position_manager": false,
+
+      "scenario6_mode": "all",
+      "scenario6_timeframes": ["M30", "H1"],
+      "scenario6_params": {
+        "M30": {
+          "long": {
+            "b_b_length":16,
+            "std_factor":1.5,
+            "window_length": 60,
+            "z_score_long": -1.0,
+            "kalman_q": 1.0,
+            "kalman_r": 0.01
+          },
+          "short": {
+            "b_b_length":16,
+            "std_factor":1.5,
+            "window_length": 60,
+            "z_score_short": 1.0,
+            "kalman_q": 1.0,
+            "kalman_r": 0.01
+          }
+        },
+        "H1": {
+          "long": {
+            "b_b_length":20,
+            "std_factor":1.2,
+            "window_length": 100,
+            "z_score_long": -1.1,
+            "kalman_q": 1.0,
+            "kalman_r": 0.01
+          },
+          "short": {
+            "b_b_length":20,
+            "std_factor":1.2,
+            "window_length": 100,
+            "z_score_short": 1.1,
+            "kalman_q": 1.0,
+            "kalman_r": 0.01
+          }
+        }
+      }
+    }
+  },
+
+  "reporting": {
+    "param_jitter_include_by_scenario": {
+      "scenario2": [
+        "atr_length",
+        "atr_mult",
+        "b_b_length",
+        "std_factor",
+        "window_length",
+        "z_score_long",
+        "z_score_short",
+        "kalman_q",
+        "kalman_r",
+        "htf_ema",
+        "extra_htf_ema"
+        
+      ],
+      "scenario3": [
+        "atr_length",
+        "atr_mult",
+        "b_b_length",
+        "std_factor",
+        "window_length",
+        "z_score_long",
+        "z_score_short",
+        "kalman_q",
+        "kalman_r",
+        "htf_ema",
+        "extra_htf_ema",
+
+        "ema_length",
+        "tp_min_distance",
+        "max_holding_minutes"
+      ],
+      "scenario4": [
+        "atr_length",
+        "atr_mult",
+        "b_b_length",
+        "std_factor",
+        "z_score_long",
+        "z_score_short",
+        "kalman_q",
+        "kalman_r",
+        "htf_ema",
+        "extra_htf_ema",
+
+        "garch_alpha",
+        "garch_beta",
+        "garch_min_periods"
+      ],
+      "scenario5": [
+        "atr_length",
+        "atr_mult",
+        "b_b_length",
+        "std_factor",
+        "window_length",
+        "z_score_long",
+        "z_score_short",
+        "kalman_q",
+        "kalman_r",
+        "htf_ema",
+        "extra_htf_ema",
+
+        "garch_alpha",
+        "garch_beta",
+        "garch_min_periods",
+
+        "intraday_vol_cluster_window",
+        "intraday_vol_min_points"
+      ]
+    },
+    "param_jitter_debug": true,
+    "param_jitter_debug_verbose": true,
+    "param_jitter_debug_per_repeat": true,
+
+    "data_jitter_debug_per_repeat": true,
+
+    "debug_timing_jitter": true,
+
+    "robust_dropout_frac": 0.10,
+    "robust_dropout_runs": 3,
+    "debug_trade_dropout": true,
+
+    "dev_mode": true,
+    "dev_seed": 123
+  }
+}

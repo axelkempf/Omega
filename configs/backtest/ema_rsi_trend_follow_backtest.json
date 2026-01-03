@@ -1,0 +1,77 @@
+{
+  "symbol": "EURUSD",
+  "timeframes": {
+    "primary": "M15",
+    "additional": ["D1", "H4"]
+  },
+  "mode": "candle",
+  "enable_entry_logging": true,
+  "initial_balance": 100000.0,
+  "risk_per_trade": 100.0,
+  "account_currency": "USD",
+  "rates": {
+    "mode": "timeseries",                
+    "timeframe": "AUTO",                  
+    "pairs": ["EURUSD"], 
+    "use_price": "close",                
+    "stale_limit_bars": 10,              
+    "strict": true                      
+  },
+
+  "start_date": "2025-01-01",
+  "end_date": "2025-07-20",
+  
+  "warmup_bars": 500,
+
+  "cooldown_candles": 2,
+  "cooldown_minutes": 15,
+  "cooldown_minutes_trade": 5,
+
+  "anchored_session_filter": {
+    "windows": [
+      { "anchor": "london", "offset_window": [["00:00", "07:00"]] },
+      { "anchor": "new_york", "offset_window": [["-00:30", "06:30"]] }
+    ]
+  },
+
+  "timestamp_alignment": {
+    "entry_timestamp_mode": "close",
+    "additional_tfs_mode": "carry_forward",
+    "stale_bar_limit_bars": 0,
+    "use_previous_completed_higher_tf": true,
+    "diagnostics": true,
+    "higher_tf_timestamps_mode": {
+      "D1": "close", "H4": "open"
+    }
+  },
+
+  "strategy": {
+    "module": "ema_rsi_trend_follow.backtest.backtest_strategy",
+    "class": "EMARSITrendFollowBacktestStrategy",
+    "parameters": {  
+      "ema_length_fast": 13,
+      "ema_length_slow": 26,
+      "rsi_length": 14,
+      "choppiness_length": 14,
+      "rsi_value_short": 45,
+      "rsi_value_long": 50,
+      "choppiness_value": 77,
+      "atr_length": 14,
+      "atr_mult": 2.0,
+      "tp_mult": 1.2,
+      
+      "max_holding_minutes": 135,
+      "max_pending_minutes": 45,
+      "breakeven_r_multiple": 0.5,
+      "breakeven_buffer": 0.0001,
+
+      "htf_tf": "D1",
+      "htf_ema": 50,
+      "htf_filter": "both",
+
+      "extra_htf_tf": "H4",
+      "extra_htf_ema": 50,
+      "extra_htf_filter": "both"
+    }
+  }
+}

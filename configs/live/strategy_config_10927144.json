@@ -1,0 +1,81 @@
+{
+  "terminal_path": "D:/Axel/Kempf-Capital/Algorithmus/Terminals/MT5_1/terminal64.exe",
+  "data_path": "D:/Axel/Kempf-Capital/Algorithmus/mt5_data/account_10927144",
+  "account_id": 10927144,
+  "password": "B*uo2Dcq",
+  "server": "VantageInternational-Demo",
+  "broker_class": "MT5Adapter",
+
+  "symbol_map": {
+    "AUDCAD": "AUDCAD+",
+    "AUDCHF": "AUDCHF+",
+    "AUDJPY": "AUDJPY+",
+    "AUDNZD": "AUDNZD+",
+    "AUDUSD": "AUDUSD+",
+    "CADCHF": "CADCHF+",
+    "CADJPY": "CADJPY+",
+    "CHFJPY": "CHFJPY+",
+    "EURAUD": "EURAUD+",
+    "EURCAD": "EURCAD+",
+    "EURCHF": "EURCHF+",
+    "EURGBP": "EURGBP+",
+    "EURJPY": "EURJPY+",
+    "EURNZD": "EURNZD+",
+    "EURUSD": "EURUSD+",
+    "GBPAUD": "GBPAUD+",
+    "GBPCAD": "GBPCAD+",
+    "GBPCHF": "GBPCHF+",
+    "GBPJPY": "GBPJPY+",
+    "GBPNZD": "GBPNZD+",
+    "GBPUSD": "GBPUSD+",
+    "NZDCAD": "NZDCAD+",
+    "NZDCHF": "NZDCHF+",
+    "NZDJPY": "NZDJPY+",
+    "NZDUSD": "NZDUSD+",
+    "USDCAD": "USDCAD+",
+    "USDCHF": "USDCHF+",
+    "USDJPY": "USDJPY+"
+  },
+  
+  "data_provider_remote": true,
+  "data_provider_host": "127.0.0.1",
+  "data_provider_port": 8081,
+
+  "strategies": [
+    {
+      "module": "mean_reversion_bollinger_bands_plus_macd.strategy",
+      "class": "MeanReversionBollingerBandsPlusMACDStrategy",
+      "init_args": ["config_M5"],
+      "magic_number": 10012,
+      "active": true
+    },
+    {
+      "module": "mean_reversion_bollinger_bands_plus_macd.strategy",
+      "class": "MeanReversionBollingerBandsPlusMACDStrategy",
+      "init_args": ["config_M15"],
+      "magic_number": 10013,
+      "active": true
+    },
+    {
+      "module": "mean_reversion_bollinger_bands_plus_macd.strategy",
+      "class": "MeanReversionBollingerBandsPlusMACDStrategy",
+      "init_args": ["config_M30"],
+      "magic_number": 10014,
+      "active": true
+    },
+    {
+      "module": "mean_reversion_bollinger_bands_plus_macd.strategy",
+      "class": "MeanReversionBollingerBandsPlusMACDStrategy",
+      "init_args": ["config_H1"],
+      "magic_number": 10015,
+      "active": true
+    },
+    {
+      "module": "mean_reversion_bollinger_bands_plus_macd.strategy",
+      "class": "MeanReversionBollingerBandsPlusMACDStrategy",
+      "init_args": ["config_H4"],
+      "magic_number": 10016,
+      "active": true
+    }
+  ]
+}
