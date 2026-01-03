@@ -507,4 +507,7 @@ Der `docs/` Ordner enthält technische Dokumentation und Migrationspläne:
 
 - **`CATEGORICAL_RANKING_OPTIMIZATION.md`**: Detaillierter Performance-Optimierung Report
 - **`PYTHON_312_MIGRATION_PLAN.md`**: Konvertierungsplan für die Migration von Python 3.10 auf Python 3.12
+- **`RUST_JULIA_MIGRATION_PREPARATION_PLAN.md`**: Vorbereitungsplan für die Migration ausgewählter Module zu Rust und Julia
+- **`adr/`**: Architecture Decision Records (ADRs) für wichtige technische Entscheidungen
+  - **`ADR-0001-migration-strategy.md`**: Rust und Julia Migrations-Strategie
 
