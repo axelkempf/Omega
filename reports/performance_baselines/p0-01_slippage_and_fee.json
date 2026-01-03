@@ -1,0 +1,17 @@
+{
+  "meta": {
+    "generated_at": "2026-01-03T21:37:23Z",
+    "iterations": 100000,
+    "seed": 321
+  },
+  "slippage_model": {
+    "seconds": 0.437713,
+    "peak_mb": 0.000607,
+    "ops_per_sec": 228460.22
+  },
+  "fee_model": {
+    "seconds": 0.298294,
+    "peak_mb": 0.000881,
+    "ops_per_sec": 335240.26
+  }
+}

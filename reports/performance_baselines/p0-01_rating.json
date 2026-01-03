@@ -1,0 +1,50 @@
+{
+  "meta": {
+    "n_equity_points": 365,
+    "n_jitter": 100,
+    "generated_at": "2026-01-03T21:37:42Z"
+  },
+  "operations": {
+    "ulcer_index": {
+      "seconds": 0.022665,
+      "peak_mb": 0.091707
+    },
+    "robustness_1": {
+      "seconds": 0.001347,
+      "peak_mb": 0.004864
+    },
+    "strategy_rating": {
+      "seconds": 1.7e-05,
+      "peak_mb": 7.2e-05
+    },
+    "data_jitter": {
+      "seconds": 0.001501,
+      "peak_mb": 0.004888
+    },
+    "timing_jitter": {
+      "seconds": 0.000833,
+      "peak_mb": 0.005184
+    },
+    "cost_shock": {
+      "seconds": 0.00059,
+      "peak_mb": 0.002024
+    },
+    "trade_dropout": {
+      "seconds": 0.000646,
+      "peak_mb": 0.002024
+    },
+    "tp_sl_stress": {
+      "seconds": 0.047336,
+      "peak_mb": 0.078126
+    },
+    "stability": {
+      "seconds": 8e-05,
+      "peak_mb": 0.000713
+    },
+    "p_values": {
+      "seconds": 0.002714,
+      "peak_mb": 0.647568
+    }
+  },
+  "profile_top15": "         1241904 function calls (1235504 primitive calls) in 1.127 seconds\n\n   Ordered by: cumulative time\n   List reduced from 645 to 15 due to restriction <15>\n\n   ncalls  tottime  percall  cumtime  percall filename:lineno(function)\n        1    0.000    0.000    1.127    1.127 perf_rating.py:190(<lambda>)\n       50    0.000    0.000    0.502    0.010 perf_rating.py:178(<lambda>)\n       50    0.214    0.004    0.501    0.010 tp_sl_stress_score.py:107(compute_tp_sl_stress_score)\n       50    0.002    0.000    0.320    0.006 perf_rating.py:167(<lambda>)\n       50    0.029    0.001    0.318    0.006 ulcer_index_score.py:9(compute_ulcer_index_and_score)\n      100    0.043    0.000    0.153    0.002 robustness_score_1.py:25(compute_robustness_score_1)\n       50    0.000    0.000    0.097    0.002 generic.py:9410(resample)\n       50    0.000    0.000    0.097    0.002 resample.py:2039(get_resampler)\n       50    0.000    0.000    0.093    0.002 resample.py:2204(_get_resampler)\n       50    0.000    0.000    0.091    0.002 resample.py:163(__init__)\n       50    0.000    0.000    0.089    0.002 resample.py:246(_get_binner)\n       50    0.000    0.000    0.088    0.002 resample.py:1737(_get_binner_for_time)\n       50    0.001    0.000    0.088    0.002 resample.py:2271(_get_time_bins)\n       50    0.001    0.000    0.081    0.002 frame.py:1568(itertuples)\n       50    0.000    0.000    0.080    0.002 perf_rating.py:168(<lambda>)\n\n\n"
+}

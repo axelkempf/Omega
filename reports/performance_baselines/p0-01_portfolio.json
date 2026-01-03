@@ -1,0 +1,30 @@
+{
+  "events": 20000,
+  "first_run_seconds": 0.288673,
+  "first_peak_mb": 11.57668,
+  "second_run_seconds": 0.248001,
+  "second_peak_mb": 10.982952,
+  "profile_top25": "         320002 function calls in 0.196 seconds\n\n   Ordered by: cumulative time\n\n   ncalls  tottime  percall  cumtime  percall filename:lineno(function)\n        1    0.035    0.035    0.196    0.196 perf_portfolio.py:83(_process)\n    40000    0.065    0.000    0.088    0.000 portfolio.py:160(register_fee)\n    20000    0.026    0.000    0.039    0.000 portfolio.py:200(register_exit)\n    20000    0.018    0.000    0.023    0.000 portfolio.py:274(update)\n   100000    0.018    0.000    0.018    0.000 {built-in method builtins.getattr}\n    80000    0.018    0.000    0.018    0.000 {method 'append' of 'list' objects}\n    20000    0.008    0.000    0.012    0.000 portfolio.py:192(register_entry)\n    20000    0.005    0.000    0.005    0.000 {method 'remove' of 'list' objects}\n    20000    0.004    0.000    0.004    0.000 {built-in method builtins.hasattr}\n        1    0.000    0.000    0.000    0.000 {method 'disable' of '_lsprof.Profiler' objects}\n\n\n",
+  "summary": {
+    "Initial Balance": 100000.0,
+    "Final Balance": 124158.05,
+    "Equity": 124158.05,
+    "Max Drawdown": 20593.78,
+    "Drawdown Initial Balance": 14683.82,
+    "Total Fees": 46666.02,
+    "Total Lots": 15555.34,
+    "Total Trades": 20000,
+    "Expired Orders": 0,
+    "Partial Closed Orders": 0,
+    "Orders closed at Break Even": 0,
+    "Avg R-Multiple": 0.012,
+    "Winrate": 50.46,
+    "Wins": 10091,
+    "Losses": 9909
+  },
+  "meta": {
+    "generated_at": "2026-01-03T21:37:22Z",
+    "seed": 123,
+    "sys_path_inserted": true
+  }
+}
