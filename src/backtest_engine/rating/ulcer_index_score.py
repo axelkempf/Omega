@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import math
-from typing import Iterable, Sequence, Tuple
+from typing import Any, Iterable, Sequence, Tuple, cast
 
 import numpy as np
 
@@ -43,7 +43,7 @@ def compute_ulcer_index_and_score(
         if isinstance(point, (tuple, list)) and len(point) >= 2:
             ts, val = point[0], point[1]
             try:
-                num = float(val)  # type: ignore[arg-type]
+                num = float(val)
             except Exception:
                 continue
             if not math.isfinite(num):
@@ -53,7 +53,7 @@ def compute_ulcer_index_and_score(
             continue
 
         try:
-            num = float(point)  # type: ignore[arg-type]
+            num = float(cast(Any, point))
         except Exception:
             continue
         if math.isfinite(num):
@@ -66,7 +66,8 @@ def compute_ulcer_index_and_score(
         try:
             import pandas as pd
 
-            ts = pd.to_datetime([p[0] for p in ts_points], utc=True, errors="coerce")
+            raw_ts = cast(Sequence[Any], [p[0] for p in ts_points])
+            ts = pd.to_datetime(raw_ts, utc=True, errors="coerce")
             vals = np.asarray([p[1] for p in ts_points], dtype=float)
             mask = ts.notna() & np.isfinite(vals)
             if int(mask.sum()) >= 2:
@@ -94,15 +95,15 @@ def compute_ulcer_index_and_score(
         if equities.size < 2:
             return math.nan, 0.0
 
-        roll_max = np.maximum.accumulate(equities)
-        dd_pct = np.zeros_like(equities, dtype=float)
-        valid = roll_max > 0.0
+        roll_max_arr = np.maximum.accumulate(equities)
+        dd_pct_arr = np.zeros_like(equities, dtype=float)
+        valid = roll_max_arr > 0.0
         with np.errstate(divide="ignore", invalid="ignore"):
-            dd_pct[valid] = (
-                (equities[valid] - roll_max[valid]) / roll_max[valid] * 100.0
+            dd_pct_arr[valid] = (
+                (equities[valid] - roll_max_arr[valid]) / roll_max_arr[valid] * 100.0
             )
-        dd_pct[~np.isfinite(dd_pct)] = 0.0
-        ulcer_index = float(np.sqrt(np.mean(dd_pct**2)))
+        dd_pct_arr[~np.isfinite(dd_pct_arr)] = 0.0
+        ulcer_index = float(np.sqrt(np.mean(dd_pct_arr**2)))
 
     if not math.isfinite(ulcer_index):
         ulcer_index = math.nan

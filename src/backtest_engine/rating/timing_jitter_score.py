@@ -3,10 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 from typing import Any, Dict, Mapping, Sequence
 
-try:
-    from dateutil.relativedelta import relativedelta  # type: ignore
-except ImportError:  # Spezifischer als Exception
-    relativedelta = None  # type: ignore
+from dateutil.relativedelta import relativedelta
 
 from backtest_engine.rating.stress_penalty import (
     compute_penalty_profit_drawdown_sharpe,
@@ -38,19 +35,18 @@ def _window_months(start: datetime, end: datetime) -> int:
       - 2020-01-01 -> 2024-12-31 => 60 months (4y11m + leftover days => +1)
     """
     try:
-        if relativedelta is not None:
-            rd = relativedelta(end, start)
-            months = int(rd.years) * 12 + int(rd.months)
-            has_remainder = bool(
-                getattr(rd, "days", 0)
-                or getattr(rd, "hours", 0)
-                or getattr(rd, "minutes", 0)
-                or getattr(rd, "seconds", 0)
-                or getattr(rd, "microseconds", 0)
-            )
-            if has_remainder:
-                months += 1
-            return max(0, months)
+        rd = relativedelta(end, start)
+        months = int(rd.years) * 12 + int(rd.months)
+        has_remainder = bool(
+            getattr(rd, "days", 0)
+            or getattr(rd, "hours", 0)
+            or getattr(rd, "minutes", 0)
+            or getattr(rd, "seconds", 0)
+            or getattr(rd, "microseconds", 0)
+        )
+        if has_remainder:
+            months += 1
+        return max(0, months)
     except (TypeError, ValueError, AttributeError):
         pass
 
@@ -143,14 +139,14 @@ def apply_timing_jitter_month_shift_inplace(
         start = _parse_date_string(start_s)
         end = _parse_date_string(end_s)
 
-        if relativedelta is not None:
-            offset = relativedelta(months=-m)
-            new_start = start + offset
-            new_end = end + offset
-        else:
-            offset = timedelta(days=30 * m)
-            new_start = start - offset
-            new_end = end - offset
+        try:
+            rd_offset = relativedelta(months=-m)
+            new_start = start + rd_offset
+            new_end = end + rd_offset
+        except Exception:
+            td_offset = timedelta(days=30 * m)
+            new_start = start - td_offset
+            new_end = end - td_offset
 
         if date_only:
             cfg["start_date"] = new_start.strftime("%Y-%m-%d")

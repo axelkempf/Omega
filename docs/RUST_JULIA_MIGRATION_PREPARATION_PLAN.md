@@ -96,6 +96,17 @@ Dieses Dokument beschreibt den systematischen Vorbereitungsplan zur sicheren, in
 | **P1-09** | Type Stubs für untyped Dependencies erstellen | P1-01 | M | `.pyi` Stubs für kritische untyped Libraries oder in `py.typed` Marker |
 | **P1-10** | Mypy-Konfiguration granular aufteilen | P1-06, P1-07 | S | `pyproject.toml` mit differenzierten `[[tool.mypy.overrides]]` Blöcken; kein globales `ignore_errors` |
 
+#### Phase 1 – Implementierungsstatus (Stand: 2026-01-04)
+
+- **P1-01 (Katalog):** Baseline-Report erzeugt:
+	- JSON: `reports/mypy_baseline/p1-01_ignore_errors_catalog.json`
+	- Summary/Ranking: `reports/mypy_baseline/README.md`
+	- Baseline (Errors/Datei): `backtest_engine` 5.83, `hf_engine` 1.61, `ui_engine` 0.18
+- **P1-02 (Ranking):** initiales Tiering in `reports/mypy_baseline/README.md` dokumentiert.
+- **P1-03 (Typed Schemas Kickoff):** Start mit `src/backtest_engine/core/types.py`.
+	- Strict-Enablement carve-out via `pyproject.toml` Override für `backtest_engine.core.types`.
+	- Erweitert um zentrale Interface-Typen (Signals/Ticks/Portfolio-Exports, JSON-Meta) als TypedDict/TypeAlias.
+
 ### Phase 2: Interface-Definition
 
 | Task-ID | Beschreibung | Abhängigkeiten | Aufwand | Akzeptanzkriterien |
