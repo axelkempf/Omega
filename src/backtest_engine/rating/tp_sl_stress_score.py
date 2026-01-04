@@ -14,7 +14,7 @@ PrimaryCandleArrays = Dict[str, np.ndarray]
 
 
 def align_primary_candles(
-    bid_df: pd.DataFrame, ask_df: pd.DataFrame
+    bid_df: pd.DataFrame | None, ask_df: pd.DataFrame | None
 ) -> Optional[PrimaryCandleArrays]:
     """
     Align bid/ask candle DataFrames on UTC timestamps and expose arrays for fast lookups.

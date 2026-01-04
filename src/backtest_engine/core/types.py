@@ -182,7 +182,7 @@ class TradeRow(TypedDict, total=False):
     meta: JSONValue
 
 
-PortfolioSummaryDict: TypeAlias = TypedDict(
+PortfolioSummaryDict = TypedDict(
     "PortfolioSummaryDict",
     {
         # Core summary

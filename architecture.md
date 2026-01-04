@@ -36,6 +36,7 @@ Ordner-für-Ordner-Übersicht der Codebasis (ohne `results`-Ordner und ohne Aufl
   - `backtest_engine/`
   - `hf_engine/`
   - `omega.egg-info/` *(build artifact from pyproject.toml name)*
+  - `shared/` *(Shared Protocols & type aliases for stable boundaries)*
   - `strategies/`
   - `ui_engine/`
   - `watchdog/`
@@ -62,6 +63,11 @@ Ordner-für-Ordner-Übersicht der Codebasis (ohne `results`-Ordner und ohne Aufl
 - `SUMMARY.md`
 
 ---
+
+### `src/shared/`
+
+- `__init__.py`
+- `protocols.py` *(runtime-checkable Protocols for stable boundaries / future FFI)*
 
 ### `src/backtest_engine/`
 

@@ -4,7 +4,8 @@ import signal
 import subprocess
 import threading
 import time
-from typing import Dict
+from typing import Any, Dict
+from typing import TypedDict
 
 import psutil
 import requests
@@ -13,14 +14,29 @@ from hf_engine.infra.config.paths import TMP_DIR
 from ui_engine.registry.strategy_alias import resolve_alias
 
 # Alle gestarteten Prozesse nach Name
-running_processes: Dict[str, subprocess.Popen] = {}
+running_processes: Dict[str, subprocess.Popen[Any]] = {}
 
 
-def stream_process_output(process: subprocess.Popen, name: str):
-    def _stream():
-        for line in iter(process.stdout.readline, ""):
+_CREATE_NEW_CONSOLE: int = getattr(subprocess, "CREATE_NEW_CONSOLE", 0)
+
+
+class ResourceUsageData(TypedDict, total=False):
+    status: str
+    cpu_percent: float
+    memory_mb: float
+    threads: int
+    start_time: str
+
+
+def stream_process_output(process: subprocess.Popen[Any], name: str) -> None:
+    def _stream() -> None:
+        stdout = process.stdout
+        if stdout is None:
+            return
+
+        for line in iter(stdout.readline, b""):
             print(f"[{name}] {line.strip()}")
-        process.stdout.close()
+        stdout.close()
 
     threading.Thread(target=_stream, daemon=True).start()
 
@@ -68,7 +84,7 @@ def start_strategy(name: str, config_path: str) -> bool:
     process = subprocess.Popen(
         ["python", "engine_launcher.py", "--config", config_path],
         cwd=os.path.dirname(os.path.abspath(__file__)) + "/..",
-        creationflags=subprocess.CREATE_NEW_CONSOLE if os.name == "nt" else 0,
+        creationflags=_CREATE_NEW_CONSOLE if os.name == "nt" else 0,
         close_fds=True,
     )
 
@@ -109,6 +125,10 @@ def stop_strategy(name: str) -> bool:
             print(f"⚠️ {real_name} hat nicht reagiert – .kill() wird erzwungen.")
             process.kill()
             return False
+
+    # Prozess ist bereits beendet.
+    running_processes.pop(real_name, None)
+    return True
 
 
 def get_status(name: str) -> str:
@@ -153,7 +173,7 @@ def start_datafeed_server() -> bool:
     process = subprocess.Popen(
         ["python", "engine_launcher.py", "--config", config_path],
         cwd=os.path.dirname(os.path.abspath(__file__)) + "/..",
-        creationflags=subprocess.CREATE_NEW_CONSOLE if os.name == "nt" else 0,
+        creationflags=_CREATE_NEW_CONSOLE if os.name == "nt" else 0,
         close_fds=True,
     )
 
@@ -175,7 +195,7 @@ def check_datafeed_health() -> bool:
         return False
 
 
-def restart_unresponsive_strategies(interval: int = 30):
+def restart_unresponsive_strategies(interval: int = 30) -> None:
     print("🛡️ Starte Watchdog für automatische Strategieüberwachung...")
     while True:
         for heartbeat_path in TMP_DIR.glob("heartbeat_*.txt"):
@@ -207,7 +227,7 @@ def restart_unresponsive_strategies(interval: int = 30):
         time.sleep(interval)
 
 
-def get_resource_usage(name: str) -> dict:
+def get_resource_usage(name: str) -> ResourceUsageData:
     real_name = resolve_alias(name)
     proc = running_processes.get(real_name)
     if not proc:

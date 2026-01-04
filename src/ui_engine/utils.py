@@ -1,13 +1,16 @@
+from __future__ import annotations
+
 # engine_ui/utils.py
 import datetime
 import subprocess
+from typing import Any
 
 
 def format_timestamp(ts: datetime.datetime) -> str:
     return ts.strftime("%Y-%m-%d %H:%M:%S")
 
 
-def is_process_alive(proc: subprocess.Popen) -> bool:
+def is_process_alive(proc: subprocess.Popen[Any]) -> bool:
     return proc.poll() is None
 
 

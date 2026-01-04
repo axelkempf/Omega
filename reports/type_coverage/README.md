@@ -60,12 +60,22 @@ Strict overrides (bereits als „strict“ konfiguriert):
 - `strategies._base.*`
 - `strategies.mean_reversion_z_score.*`
 - `strategies.ema_rsi_trend_follow.*`
+- `backtest_engine.core.types`
+- `backtest_engine.optimizer._settings`
+- `backtest_engine.rating` / `backtest_engine.rating.*`
+- `backtest_engine.config` / `backtest_engine.config.*`
+- `shared` / `shared.*`
 
 Relaxed overrides (`ignore_errors = true`):
 
-- `hf_engine.*`
-- `backtest_engine.*`
-- `ui_engine.*`
+- `hf_engine.adapter.*`, `hf_engine.core.*`, `hf_engine.infra.*`
+- `backtest_engine.analysis.*`, `backtest_engine.data.*`, `backtest_engine.deployment.*`, `backtest_engine.logging.*`,
+  `backtest_engine.report.*`, `backtest_engine.sizing.*`, `backtest_engine.strategy.*`, `backtest_engine.runner`,
+  `backtest_engine.run_all`, `backtest_engine.batch_runner`
+- `backtest_engine.core.*` (außer `backtest_engine.core.types` als carve-out)
+- `backtest_engine.optimizer.*` (außer `backtest_engine.optimizer._settings` als carve-out)
+
+Hinweis: `ui_engine` wird aktuell **nicht** via `ignore_errors` maskiert und ist damit als „realer“ Typing-Kandidat gut sichtbar.
 
 Diese Relaxed-Overlays sind die expliziten Kandidaten für P1-01/P1-02 (Katalog + Ranking)
 und später für die schrittweise Strict-Migration.

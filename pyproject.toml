@@ -102,20 +102,58 @@ warn_unreachable = true
 # Relaxed für noch nicht typisierte Module
 [[tool.mypy.overrides]]
 module = [
-    "hf_engine.*",
-    "backtest_engine.*",
-    "ui_engine.*",
+    "hf_engine.adapter.*",
+    "hf_engine.core.*",
+    "hf_engine.infra.*",
+]
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = [
+    "backtest_engine.analysis.*",
+    "backtest_engine.data.*",
+    "backtest_engine.deployment.*",
+    "backtest_engine.logging.*",
+    "backtest_engine.report.*",
+    "backtest_engine.sizing.*",
+    "backtest_engine.strategy.*",
+    "backtest_engine.runner",
+    "backtest_engine.run_all",
+    "backtest_engine.batch_runner",
 ]
 ignore_errors = true
 
 # Phase 1: carve out small, stable modules from the global ignore_errors bucket.
+[[tool.mypy.overrides]]
+module = ["backtest_engine.core", "backtest_engine.core.*"]
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = ["backtest_engine.optimizer", "backtest_engine.optimizer.*"]
+ignore_errors = true
+
 [[tool.mypy.overrides]]
 module = ["backtest_engine.core.types"]
 strict = true
 warn_unreachable = true
 
 [[tool.mypy.overrides]]
+module = ["backtest_engine.optimizer._settings"]
+strict = true
+warn_unreachable = true
+
+[[tool.mypy.overrides]]
 module = ["backtest_engine.rating", "backtest_engine.rating.*"]
+strict = true
+warn_unreachable = true
+
+[[tool.mypy.overrides]]
+module = ["backtest_engine.config", "backtest_engine.config.*"]
+strict = true
+warn_unreachable = true
+
+[[tool.mypy.overrides]]
+module = ["shared", "shared.*"]
 strict = true
 warn_unreachable = true
 

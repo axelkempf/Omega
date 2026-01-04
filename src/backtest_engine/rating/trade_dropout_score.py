@@ -13,7 +13,7 @@ from backtest_engine.rating.stress_penalty import (
 )
 
 
-def _drawdown_from_results(results: np.ndarray) -> float:
+def _drawdown_from_results(results: np.ndarray | None) -> float:
     if results is None:
         return 0.0
     res = np.asarray(results, dtype=float)

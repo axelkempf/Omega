@@ -106,6 +106,18 @@ Dieses Dokument beschreibt den systematischen Vorbereitungsplan zur sicheren, in
 - **P1-03 (Typed Schemas Kickoff):** Start mit `src/backtest_engine/core/types.py`.
 	- Strict-Enablement carve-out via `pyproject.toml` Override für `backtest_engine.core.types`.
 	- Erweitert um zentrale Interface-Typen (Signals/Ticks/Portfolio-Exports, JSON-Meta) als TypedDict/TypeAlias.
+- **P1-04 (Config-Modelle):** Pydantic-Modelle standardisiert:
+	- `src/backtest_engine/config/models.py` + `src/backtest_engine/config/__init__.py`
+	- `configs/backtest/_config_validator.py` nutzt Pydantic-Validation (legacy Fallback bleibt)
+	- Tests: `tests/test_backtest_config_models.py`
+	- Strict carve-out via `pyproject.toml` für `backtest_engine.config.*`
+- **P1-05 (Optimizer Strict):** gestartet mit erstem carve-out:
+	- Strict-Override in `pyproject.toml` für `backtest_engine.optimizer._settings`
+
+- **P1-08 (FFI Protocols):** `src/shared/protocols.py` hinzugefügt.
+	- `@runtime_checkable` Protocols für zentrale Boundary-Objekte (IndicatorCache / DataSlices / Strategy Evaluators).
+	- Mypy strict carve-out in `pyproject.toml` für `shared.*`.
+	- Runtime-Smoke-Tests: `tests/test_shared_protocols_runtime.py`.
 
 ### Phase 2: Interface-Definition
 
@@ -246,14 +258,43 @@ Dieses Dokument beschreibt den systematischen Vorbereitungsplan zur sicheren, in
 
 **Konfiguration:**
 ```toml
-# Ziel-Konfiguration in pyproject.toml
+# Snapshot (Phase 1) in pyproject.toml: große Legacy-Bereiche bleiben relaxed,
+# kleine, stabile Module werden als strict carve-out gehärtet.
 [[tool.mypy.overrides]]
-module = ["backtest_engine.core.*", "backtest_engine.optimizer.*", "backtest_engine.rating.*"]
+module = ["backtest_engine.core", "backtest_engine.core.*"]
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = ["backtest_engine.optimizer", "backtest_engine.optimizer.*"]
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = ["backtest_engine.core.types"]
 strict = true
 warn_unreachable = true
 
 [[tool.mypy.overrides]]
-module = ["hf_engine.*"]
+module = ["backtest_engine.optimizer._settings"]
+strict = true
+warn_unreachable = true
+
+[[tool.mypy.overrides]]
+module = ["backtest_engine.rating", "backtest_engine.rating.*"]
+strict = true
+warn_unreachable = true
+
+[[tool.mypy.overrides]]
+module = ["backtest_engine.config", "backtest_engine.config.*"]
+strict = true
+warn_unreachable = true
+
+[[tool.mypy.overrides]]
+module = ["shared", "shared.*"]
+strict = true
+warn_unreachable = true
+
+[[tool.mypy.overrides]]
+module = ["hf_engine.adapter.*", "hf_engine.core.*", "hf_engine.infra.*"]
 ignore_errors = true  # Live-Trading bleibt relaxed
 ```
 

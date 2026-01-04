@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
-from typing import Any, Dict, Mapping, Sequence
+from typing import Any, Mapping, Sequence
 
 from dateutil.relativedelta import relativedelta
 
@@ -78,8 +78,6 @@ def get_timing_jitter_backward_shift_months(
     The caller typically runs 3 additional backtests, each with start/end shifted
     BACKWARD by one of the returned month values.
     """
-    if not isinstance(start_date, str) or not isinstance(end_date, str):
-        return []
     try:
         start = _parse_date_string(start_date)
         end = _parse_date_string(end_date)
@@ -103,7 +101,7 @@ def get_timing_jitter_backward_shift_months(
 
 
 def apply_timing_jitter_month_shift_inplace(
-    cfg: Dict[str, Any],
+    cfg: Any,
     *,
     shift_months_backward: int,
 ) -> None:
@@ -117,10 +115,8 @@ def apply_timing_jitter_month_shift_inplace(
     """
     if not isinstance(cfg, dict):
         return
-    try:
-        m = int(shift_months_backward)
-    except (TypeError, ValueError):
-        return
+
+    m = shift_months_backward
     if m <= 0:
         return
 
