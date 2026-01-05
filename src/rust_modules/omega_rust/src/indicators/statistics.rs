@@ -63,8 +63,11 @@ pub fn rolling_std_impl(values: &[f64], window: usize) -> Result<Vec<f64>> {
         let mean: f64 = window_values.iter().sum::<f64>() / window as f64;
 
         // Calculate variance using two-pass algorithm for stability
-        let variance: f64 =
-            window_values.iter().map(|&x| (x - mean).powi(2)).sum::<f64>() / (window - 1) as f64;
+        let variance: f64 = window_values
+            .iter()
+            .map(|&x| (x - mean).powi(2))
+            .sum::<f64>()
+            / (window - 1) as f64;
 
         result[i] = variance.sqrt();
     }
