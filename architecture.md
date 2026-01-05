@@ -35,7 +35,9 @@ Ordner-für-Ordner-Übersicht der Codebasis (ohne `results`-Ordner und ohne Aufl
 - `src/`
   - `backtest_engine/`
   - `hf_engine/`
+  - `julia_modules/` *(Future: High-perf Julia extensions via PythonCall)*
   - `omega.egg-info/` *(build artifact from pyproject.toml name)*
+  - `rust_modules/` *(Future: High-perf Rust extensions via PyO3/Maturin)*
   - `shared/` *(Shared Protocols & type aliases for stable boundaries)*
   - `strategies/`
   - `ui_engine/`
@@ -61,6 +63,40 @@ Ordner-für-Ordner-Übersicht der Codebasis (ohne `results`-Ordner und ohne Aufl
 - `pytest.log`
 - `README.md`
 - `SUMMARY.md`
+
+---
+
+### `src/rust_modules/` *(High-Performance Rust Extensions via PyO3/Maturin)*
+
+- `omega_rust/`
+  - `Cargo.toml` *(PyO3 0.20+, ndarray, rayon, serde)*
+  - `pyproject.toml` *(Maturin build system)*
+  - `rust-toolchain.toml` *(Rust 1.76.0 pinning)*
+  - `README.md`
+  - `src/`
+    - `lib.rs` *(PyO3 module entry point)*
+    - `error.rs` *(OmegaError with thiserror)*
+    - `indicators/`
+      - `mod.rs` *(Module exports)*
+      - `ema.rs` *(Exponential Moving Average)*
+      - `rsi.rs` *(Relative Strength Index)*
+      - `statistics.rs` *(Rolling standard deviation)*
+  - `benches/`
+    - `indicator_bench.rs` *(Criterion benchmarks)*
+
+### `src/julia_modules/` *(High-Performance Julia Extensions via PythonCall)*
+
+- `omega_julia/`
+  - `Project.toml` *(PythonCall 0.9+, Arrow 2.7+, DataFrames 1.6+)*
+  - `README.md`
+  - `src/`
+    - `OmegaJulia.jl` *(Main module)*
+    - `monte_carlo.jl` *(Monte Carlo VaR simulations)*
+    - `rolling_stats.jl` *(Rolling Sharpe/Sortino/Calmar)*
+    - `bootstrap.jl` *(Block bootstrap methods)*
+    - `risk_metrics.jl` *(Sharpe, Sortino, max_drawdown, etc.)*
+  - `test/`
+    - `runtests.jl` *(Test suite)*
 
 ---
 

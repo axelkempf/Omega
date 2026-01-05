@@ -1,0 +1,57 @@
+# Omega Rust Module - Python Build Configuration
+# Task-ID: P4-06 | Phase: 4 – Build-System
+#
+# Maturin configuration for building Python wheels from Rust source.
+
+[build-system]
+requires = ["maturin>=1.4,<2.0"]
+build-backend = "maturin"
+
+[project]
+name = "omega-rust"
+version = "0.1.0"
+description = "High-performance Rust extensions for Omega Trading System"
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.10"
+authors = [
+    { name = "Axel Kempf" }
+]
+keywords = ["trading", "finance", "indicators", "rust", "performance"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Financial and Insurance Industry",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Rust",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Office/Business :: Financial :: Investment",
+    "Topic :: Scientific/Engineering :: Mathematics",
+    "Typing :: Typed",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "numpy>=1.26",
+    "pandas>=2.0",
+]
+
+[project.urls]
+Repository = "https://github.com/axelkempf/Omega"
+Documentation = "https://github.com/axelkempf/Omega/tree/main/docs"
+
+[tool.maturin]
+# Python source directory (for pure Python companion modules)
+python-source = "python"
+# Module name in Python namespace
+module-name = "omega._rust"
+# Build features
+features = []
+# Strip debug symbols in release
+strip = true

@@ -1,0 +1,381 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+# GitHub Actions Workflow for Rust Build and Test
+# Task-ID: P4-03 | Phase: 4 – Build-System | Status: Active
+# Handles: Rust toolchain setup, Maturin build, Cargo test, Clippy, Artifact upload
+
+name: Rust Build
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/rust_modules/**'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - 'rust-toolchain.toml'
+      - '.github/workflows/rust-build.yml'
+  pull_request:
+    paths:
+      - 'src/rust_modules/**'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - 'rust-toolchain.toml'
+      - '.github/workflows/rust-build.yml'
+  workflow_dispatch:
+    inputs:
+      build_release:
+        description: 'Build release wheels'
+        required: false
+        default: true
+        type: boolean
+      run_benchmarks:
+        description: 'Run Rust benchmarks'
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+  RUSTFLAGS: "-D warnings"
+  # Rust toolchain version (pinned for reproducibility)
+  RUST_VERSION: "1.76.0"
+
+jobs:
+  # ============================================================================
+  # Code Quality Checks (Fast Feedback)
+  # ============================================================================
+  lint:
+    name: Lint & Format Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check for Rust modules
+        id: check_rust
+        run: |
+          if [ -d "src/rust_modules" ] && [ -f "src/rust_modules/omega_rust/Cargo.toml" ]; then
+            echo "rust_exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "rust_exists=false" >> $GITHUB_OUTPUT
+            echo "::notice::No Rust modules found - skipping Rust workflow"
+          fi
+
+      - name: Setup Rust toolchain
+        if: steps.check_rust.outputs.rust_exists == 'true'
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+          components: rustfmt, clippy
+
+      - name: Cache Cargo registry
+        if: steps.check_rust.outputs.rust_exists == 'true'
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-lint-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-lint-
+            ${{ runner.os }}-cargo-
+
+      - name: Check formatting
+        if: steps.check_rust.outputs.rust_exists == 'true'
+        working-directory: src/rust_modules/omega_rust
+        run: cargo fmt --all -- --check
+
+      - name: Run Clippy (pedantic)
+        if: steps.check_rust.outputs.rust_exists == 'true'
+        working-directory: src/rust_modules/omega_rust
+        run: |
+          cargo clippy --all-targets --all-features -- \
+            -D warnings \
+            -D clippy::pedantic \
+            -A clippy::module_name_repetitions \
+            -A clippy::must_use_candidate
+
+  # ============================================================================
+  # Security Audit
+  # ============================================================================
+  security:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check for Rust modules
+        id: check_rust
+        run: |
+          if [ -d "src/rust_modules" ] && [ -f "src/rust_modules/omega_rust/Cargo.toml" ]; then
+            echo "rust_exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "rust_exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Setup Rust toolchain
+        if: steps.check_rust.outputs.rust_exists == 'true'
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+
+      - name: Install cargo-audit
+        if: steps.check_rust.outputs.rust_exists == 'true'
+        run: cargo install cargo-audit
+
+      - name: Run security audit
+        if: steps.check_rust.outputs.rust_exists == 'true'
+        working-directory: src/rust_modules/omega_rust
+        run: cargo audit
+        continue-on-error: true  # Don't fail build on advisory warnings
+
+  # ============================================================================
+  # Unit Tests
+  # ============================================================================
+  test:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    needs: [lint]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check for Rust modules
+        id: check_rust
+        run: |
+          if [ -d "src/rust_modules" ] && [ -f "src/rust_modules/omega_rust/Cargo.toml" ]; then
+            echo "rust_exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "rust_exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Setup Rust toolchain
+        if: steps.check_rust.outputs.rust_exists == 'true'
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+
+      - name: Cache Cargo registry
+        if: steps.check_rust.outputs.rust_exists == 'true'
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-test-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-test-
+            ${{ runner.os }}-cargo-
+
+      - name: Run unit tests
+        if: steps.check_rust.outputs.rust_exists == 'true'
+        working-directory: src/rust_modules/omega_rust
+        run: cargo test --all-features --lib
+
+      - name: Run doc tests
+        if: steps.check_rust.outputs.rust_exists == 'true'
+        working-directory: src/rust_modules/omega_rust
+        run: cargo test --doc
+
+  # ============================================================================
+  # Build Wheels (Maturin)
+  # ============================================================================
+  build:
+    name: Build (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    needs: [lint, test]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            python: "3.12"
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            python: "3.12"
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            python: "3.12"
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            python: "3.12"
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check for Rust modules
+        id: check_rust
+        shell: bash
+        run: |
+          if [ -d "src/rust_modules" ] && [ -f "src/rust_modules/omega_rust/Cargo.toml" ]; then
+            echo "rust_exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "rust_exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Setup Rust toolchain
+        if: steps.check_rust.outputs.rust_exists == 'true'
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+          targets: ${{ matrix.target }}
+
+      - name: Setup Python
+        if: steps.check_rust.outputs.rust_exists == 'true'
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+          cache: 'pip'
+
+      - name: Cache Cargo registry
+        if: steps.check_rust.outputs.rust_exists == 'true'
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-${{ matrix.target }}-cargo-build-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ matrix.target }}-cargo-build-
+            ${{ runner.os }}-${{ matrix.target }}-cargo-
+
+      - name: Install maturin
+        if: steps.check_rust.outputs.rust_exists == 'true'
+        run: pip install maturin
+
+      - name: Build wheel (Linux/macOS)
+        if: steps.check_rust.outputs.rust_exists == 'true' && matrix.os != 'windows-latest'
+        working-directory: src/rust_modules/omega_rust
+        run: |
+          maturin build --release \
+            --target ${{ matrix.target }} \
+            --out dist \
+            --interpreter python${{ matrix.python }}
+
+      - name: Build wheel (Windows)
+        if: steps.check_rust.outputs.rust_exists == 'true' && matrix.os == 'windows-latest'
+        working-directory: src/rust_modules/omega_rust
+        run: |
+          maturin build --release `
+            --target ${{ matrix.target }} `
+            --out dist `
+            --interpreter python
+
+      - name: Upload wheel artifact
+        if: steps.check_rust.outputs.rust_exists == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheel-${{ matrix.os }}-${{ matrix.target }}
+          path: src/rust_modules/omega_rust/dist/*.whl
+          retention-days: 7
+          if-no-files-found: warn
+
+  # ============================================================================
+  # Integration Tests (Python + Rust)
+  # ============================================================================
+  integration:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    needs: [build]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check for Rust modules
+        id: check_rust
+        run: |
+          if [ -d "src/rust_modules" ] && [ -f "src/rust_modules/omega_rust/Cargo.toml" ]; then
+            echo "rust_exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "rust_exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Setup Python
+        if: steps.check_rust.outputs.rust_exists == 'true'
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Download wheel artifact
+        if: steps.check_rust.outputs.rust_exists == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          name: wheel-ubuntu-latest-x86_64-unknown-linux-gnu
+          path: dist/
+
+      - name: Install wheel and dependencies
+        if: steps.check_rust.outputs.rust_exists == 'true'
+        run: |
+          pip install dist/*.whl
+          pip install -e .[dev]
+
+      - name: Run integration tests
+        if: steps.check_rust.outputs.rust_exists == 'true'
+        run: |
+          pytest tests/ -v -m "rust_integration" --tb=short
+        continue-on-error: true  # Until integration tests are created
+
+  # ============================================================================
+  # Benchmarks (Optional)
+  # ============================================================================
+  benchmarks:
+    name: Rust Benchmarks
+    runs-on: ubuntu-latest
+    needs: [build]
+    if: github.event.inputs.run_benchmarks == 'true' || github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check for Rust modules
+        id: check_rust
+        run: |
+          if [ -d "src/rust_modules" ] && [ -f "src/rust_modules/omega_rust/Cargo.toml" ]; then
+            echo "rust_exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "rust_exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Setup Rust toolchain
+        if: steps.check_rust.outputs.rust_exists == 'true'
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+
+      - name: Cache Cargo registry
+        if: steps.check_rust.outputs.rust_exists == 'true'
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-bench-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-bench-
+            ${{ runner.os }}-cargo-
+
+      - name: Run benchmarks
+        if: steps.check_rust.outputs.rust_exists == 'true'
+        working-directory: src/rust_modules/omega_rust
+        run: cargo bench --no-fail-fast
+
+      - name: Upload benchmark results
+        if: steps.check_rust.outputs.rust_exists == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: rust-benchmark-results
+          path: target/criterion/
+          retention-days: 30
+          if-no-files-found: warn

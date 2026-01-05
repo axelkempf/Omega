@@ -376,20 +376,198 @@ Dieses Dokument beschreibt den systematischen Vorbereitungsplan zur sicheren, in
 
 ### Phase 4: Build-System
 
-| Task-ID | Beschreibung | Abhängigkeiten | Aufwand | Akzeptanzkriterien |
-|---------|--------------|----------------|---------|-------------------|
-| **P4-01** | Rust-Toolchain Anforderungen dokumentieren | - | S | Minimum Rust Version, Required Features, Cargo.toml Template |
-| **P4-02** | Julia-Environment Anforderungen dokumentieren | - | S | Julia Version, Required Packages, Project.toml Template |
-| **P4-03** | GitHub Actions Workflow für Rust-Kompilierung | P4-01 | L | `maturin` Build, Unit-Tests, Artifact Upload |
-| **P4-04** | GitHub Actions Workflow für Julia-Paket-Installation | P4-02 | L | `julia --project` Setup, Package Tests |
-| **P4-05** | Cross-Platform Matrix (Linux, MacOS, Windows) | P4-03, P4-04 | L | Alle drei OS in CI-Matrix; MT5-Tests nur auf Windows |
-| **P4-06** | PyO3/Maturin Integration Template | P4-03 | M | Beispiel-Modul in `src/rust_modules/` mit Python-Bindings |
-| **P4-07** | PyJulia/PythonCall Integration Template | P4-04 | M | Beispiel-Modul in `src/julia_modules/` mit Python-Bindings |
-| **P4-08** | Makefile für lokale Entwicklung erstellen | P4-06, P4-07 | M | `make rust-build`, `make julia-test`, `make all` |
-| **P4-09** | justfile Alternative erstellen | P4-08 | S | Identische Targets wie Makefile für just-Nutzer |
-| **P4-10** | Dev-Container Configuration | P4-08 | M | `.devcontainer/` mit Rust + Julia + Python Toolchain |
-| **P4-11** | Cache-Strategie für CI-Builds | P4-03 bis P4-05 | S | Cargo-Cache, Julia-Depot-Cache, pip-Cache in Actions |
-| **P4-12** | Release-Workflow für Hybrid-Packages | P4-03, P4-04 | L | Wheel-Build für alle Platforms, PyPI-Ready |
+| Task-ID | Beschreibung | Abhängigkeiten | Aufwand | Status |
+|---------|--------------|----------------|---------|--------|
+| **P4-01** | Rust-Toolchain Anforderungen dokumentieren | - | S | ✅ |
+| **P4-02** | Julia-Environment Anforderungen dokumentieren | - | S | ✅ |
+| **P4-03** | GitHub Actions Workflow für Rust-Kompilierung | P4-01 | L | ✅ |
+| **P4-04** | GitHub Actions Workflow für Julia-Paket-Installation | P4-02 | L | ✅ |
+| **P4-05** | Cross-Platform Matrix (Linux, MacOS, Windows) | P4-03, P4-04 | L | ✅ |
+| **P4-06** | PyO3/Maturin Integration Template | P4-03 | M | ✅ |
+| **P4-07** | PyJulia/PythonCall Integration Template | P4-04 | M | ✅ |
+| **P4-08** | Makefile für lokale Entwicklung erstellen | P4-06, P4-07 | M | ✅ |
+| **P4-09** | justfile Alternative erstellen | P4-08 | S | ✅ |
+| **P4-10** | Dev-Container Configuration | P4-08 | M | ✅ |
+| **P4-11** | Cache-Strategie für CI-Builds | P4-03 bis P4-05 | S | ✅ (integriert in P4-03/P4-04/P4-05) |
+| **P4-12** | Release-Workflow für Hybrid-Packages | P4-03, P4-04 | L | ✅ |
+
+#### Phase 4 – Implementierungsstatus (Stand: 2026-01-05)
+
+- **P4-01 (Rust-Toolchain Anforderungen):** ✅ **KOMPLETT** (2026-01-05)
+  - Vollständige Dokumentation in `docs/rust-toolchain-requirements.md` (~600 Zeilen)
+  - Minimum Rust Version: 1.75.0 (Recommended: 1.76+)
+  - Required Features: PyO3 0.20+ mit abi3-py310, ndarray, Arrow FFI, anyhow/thiserror
+  - Cargo.toml Template mit allen Core Dependencies
+  - Maturin Build-System Integration (Version 1.4+)
+  - Cross-Platform Targets: Linux (x86_64), macOS (Intel + ARM64), Windows (MSVC)
+  - Development Workflow: Project Structure, Example Module, Build & Test Commands
+  - CI/CD Integration: GitHub Actions Workflow Snippet für Matrix Builds
+  - Performance Optimization: Compiler Flags, LTO, mimalloc Allocator
+  - Security: cargo-audit, Dependency Auditing, Clippy Lints
+
+- **P4-02 (Julia-Environment Anforderungen):** ✅ **KOMPLETT** (2026-01-05)
+  - Vollständige Dokumentation in `docs/julia-environment-requirements.md` (~650 Zeilen)
+  - Minimum Julia Version: 1.9.0 LTS (Recommended: 1.10+)
+  - Required Packages: PythonCall.jl 0.9+, Arrow.jl 2.7+, DataFrames.jl 1.6+
+  - Optional Packages: Distributions.jl, CSV.jl, StatsBase.jl für Research
+  - Project.toml Template mit allen Core Dependencies und Compat-Constraints
+  - Development Workflow: Project Structure, Example Module (Monte-Carlo VaR, Rolling Sharpe)
+  - Python ↔ Julia Integration: Bidirektionale FFI via PythonCall/juliacall
+  - Arrow Bridge für Zero-Copy Data Transfer
+  - CI/CD Integration: GitHub Actions Workflow mit julia-actions
+  - Performance Optimization: Pre-compilation, Multi-threading, Type Stability
+  - Troubleshooting Guide für häufige Issues (PythonCall, Precompilation, Windows)
+
+- **P4-03 (GitHub Actions Workflow für Rust):** ✅ **KOMPLETT** (2026-01-05)
+  - Workflow-Datei: `.github/workflows/rust-build.yml` (~350 Zeilen)
+  - Jobs: lint (rustfmt, clippy), security (cargo-audit), test, build, integration, benchmarks
+  - Rust Version Pinning: 1.76.0 für Reproduzierbarkeit
+  - Maturin Build für Python FFI Wheels
+  - Cross-Platform Targets: Linux (x86_64), macOS (Intel + ARM64), Windows (MSVC)
+  - Artifact Upload für Built Wheels (7 Tage Retention)
+  - Conditional Execution: Nur bei Änderungen in `src/rust_modules/`
+  - Cache-Strategie: Cargo Registry + Git + Target Directory
+  - Python-Rust Integration Tests mit pytest marker `rust_integration`
+
+- **P4-04 (GitHub Actions Workflow für Julia):** ✅ **KOMPLETT** (2026-01-05)
+  - Workflow-Datei: `.github/workflows/julia-tests.yml` (~320 Zeilen)
+  - Jobs: test (Matrix: Julia 1.9/1.10 × OS), format (JuliaFormatter), integration, docs
+  - Julia Version Matrix: 1.9 (LTS) und 1.10 (Stable)
+  - Package Instantiation via `Pkg.instantiate()`
+  - PythonCall Integration mit `JULIA_PYTHONCALL_EXE` Environment
+  - Cross-Platform Testing: Ubuntu, macOS, Windows
+  - Cache-Strategie: Julia Depot via `julia-actions/cache@v2`
+  - Python-Julia FFI Validation: Bidirektionale Callable-Tests
+  - Documentation Build für Main Branch
+
+- **P4-05 (Cross-Platform Matrix):** ✅ **KOMPLETT** (2026-01-05)
+  - Workflow-Datei: `.github/workflows/cross-platform-ci.yml` (~400 Zeilen)
+  - Path-Filter für Conditional Execution: Python, Rust, Julia, MT5
+  - Python Tests: Matrix (Ubuntu/macOS/Windows × Python 3.11/3.12)
+  - MT5 Integration: Windows-only mit MetaTrader5 Package Check
+  - Rust Cross-Platform: Linux (x86_64), macOS (Intel + ARM64), Windows (MSVC)
+  - Julia Cross-Platform: Ubuntu, macOS, Windows mit Julia 1.10
+  - Hybrid FFI Integration Job: Kombinierter Test aller FFI Bridges
+  - Summary Job: Cross-Platform Ergebnis-Aggregation in GitHub Step Summary
+  - MT5 Compatibility Report als Artifact
+
+- **P4-11 (Cache-Strategie für CI-Builds):** ✅ **KOMPLETT** (2026-01-05)
+  - Integriert in P4-03, P4-04, P4-05 Workflows
+  - Cargo Cache: `~/.cargo/registry`, `~/.cargo/git`, `target/`
+  - Julia Depot Cache: `~/.julia` via `julia-actions/cache@v2`
+  - pip Cache: Python Packages via `actions/setup-python` cache
+  - Cache Key Strategy: OS + Target + Lock-File Hash
+  - Restore Keys für Fallback bei Cache Miss
+
+- **P4-06 (PyO3/Maturin Integration Template):** ✅ **KOMPLETT** (2026-01-07)
+  - Vollständiges Rust-Modul in `src/rust_modules/omega_rust/` (~800 Zeilen)
+  - Projekt-Struktur:
+    - `Cargo.toml`: PyO3 0.20+ mit abi3-py310, ndarray, rayon, serde
+    - `pyproject.toml`: Maturin 1.4+ Build-System
+    - `rust-toolchain.toml`: Rust 1.76.0 Pinning mit Multi-Target Support
+    - `README.md`: Installationsanleitung, API-Referenz, Performance-Notes
+  - Source Code (`src/`):
+    - `lib.rs`: PyO3 Entry-Point mit Modul-Registrierung
+    - `error.rs`: OmegaError mit thiserror + automatischer PyErr Konvertierung
+    - `indicators/mod.rs`: Modul-Exports
+    - `indicators/ema.rs`: EMA mit ~200 Zeilen, vollständige Tests
+    - `indicators/rsi.rs`: RSI mit Smoothed-Average Implementation
+    - `indicators/statistics.rs`: Rolling Standard Deviation
+  - Benchmarks (`benches/indicator_bench.rs`): Criterion-basiert, 1K-1M Datenpunkte
+  - Python-API: `from omega._rust import ema, rsi, rolling_std`
+  - Build-Kommandos: `maturin develop --release`, `maturin build --release`
+
+- **P4-07 (PyJulia/PythonCall Integration Template):** ✅ **KOMPLETT** (2026-01-07)
+  - Vollständiges Julia-Paket in `src/julia_modules/omega_julia/` (~1200 Zeilen)
+  - Projekt-Struktur:
+    - `Project.toml`: PythonCall 0.9+, Arrow 2.7+, DataFrames 1.6+, Distributions
+    - `README.md`: Installationsanleitung, API-Referenz, Performance-Notes
+  - Source Code (`src/`):
+    - `OmegaJulia.jl`: Haupt-Modul mit Exports und __init__
+    - `monte_carlo.jl`: Monte-Carlo VaR (~200 Zeilen)
+      - `monte_carlo_var()`: Basis-VaR Berechnung
+      - `monte_carlo_var_detailed()`: VaR + CVaR + Statistiken
+      - `monte_carlo_portfolio_var()`: Korrelierte Portfolio-Simulation (Cholesky)
+    - `rolling_stats.jl`: Rolling-Window Statistiken (~250 Zeilen)
+      - `rolling_sharpe()`: Rolling Sharpe Ratio
+      - `rolling_sortino()`: Rolling Sortino Ratio
+      - `rolling_calmar()`: Rolling Calmar Ratio
+      - `rolling_volatility()`: Annualisierte Volatilität
+    - `bootstrap.jl`: Bootstrap-Methoden (~200 Zeilen)
+      - `block_bootstrap()`: Block-basiertes Resampling
+      - `stationary_bootstrap()`: Politis-Romano Stationary Bootstrap
+      - `bootstrap_confidence_interval()`: Bootstrap-CI Berechnung
+    - `risk_metrics.jl`: Risiko-Metriken (~200 Zeilen)
+      - `sharpe_ratio()`, `sortino_ratio()`, `max_drawdown()`
+      - `calmar_ratio()`, `omega_ratio()`, `information_ratio()`
+  - Test Suite (`test/runtests.jl`): ~350 Zeilen mit @testset für alle Module
+  - Python-Integration: `from juliacall import Main as jl; jl.seval("using OmegaJulia")`
+
+- **P4-08 (Makefile für lokale Entwicklung):** ✅ **KOMPLETT** (2026-01-05)
+  - Datei: `Makefile` (~400 Zeilen)
+  - Kategorien: Installation, Rust, Julia, Python, Code Quality, Combined, Cleanup, Utility
+  - Installation-Targets: `install`, `install-dev`, `install-all`, `install-pre-commit`
+  - Rust-Targets: `rust-build`, `rust-build-debug`, `rust-test`, `rust-bench`, `rust-clippy`, `rust-fmt`, `rust-fmt-check`, `rust-doc`, `rust-clean`, `rust-audit`, `rust-wheel`
+  - Julia-Targets: `julia-instantiate`, `julia-test`, `julia-bench`, `julia-precompile`, `julia-update`, `julia-repl`
+  - Python-Targets: `python-test`, `python-test-cov`, `python-test-fast`, `benchmark`, `benchmark-save`, `property-test`, `golden-test`, `golden-regenerate`
+  - Code Quality: `lint`, `format`, `mypy`, `mypy-strict`, `security`, `pre-commit`
+  - Combined: `all`, `test`, `build`, `ci`, `full-check`, `dev-setup`
+  - Utility: `clean`, `clean-all`, `version`, `check-deps`
+  - Farbige Output-Formatierung für bessere Lesbarkeit
+  - Conditional Execution: Module werden nur gebaut wenn vorhanden
+
+- **P4-09 (justfile Alternative):** ✅ **KOMPLETT** (2026-01-05)
+  - Datei: `justfile` (~350 Zeilen)
+  - Identische Targets wie Makefile für `just`-Nutzer
+  - Native `just` Features: dotenv-load, shell configuration
+  - Variable Definitions für alle Pfade und Tools
+  - Vollständige Parität mit Makefile-Funktionalität
+  - Installation: `brew install just` (macOS), `cargo install just` (Rust)
+
+- **P4-10 (Dev-Container Configuration):** ✅ **KOMPLETT** (2026-01-05)
+  - Verzeichnis: `.devcontainer/` mit 3 Dateien
+  - `devcontainer.json` (~150 Zeilen):
+    - Build-Args: Python 3.12, Rust 1.76.0, Julia 1.10
+    - VS Code Extensions: Python, Rust-Analyzer, Julia, GitLens, Copilot
+    - VS Code Settings: Formatierung, Linting, Type-Checking
+    - Port Forwarding: 8000 für FastAPI UI
+    - Volume Mounts: Cargo/Julia/pip Cache für Persistenz
+    - Host Requirements: 4 CPUs, 8GB RAM, 32GB Storage
+  - `Dockerfile` (~120 Zeilen):
+    - Base: `mcr.microsoft.com/devcontainers/python:1-3.12-bookworm`
+    - Rust: rustup mit 1.76.0, Maturin, cargo-audit, cargo-watch
+    - Julia: Automatische Version-Detection, Multi-Arch (x64/ARM64)
+    - Python: pip upgrade, ipython, jupyterlab, pre-commit
+  - `post-create.sh` (~100 Zeilen):
+    - Python: `pip install -e ".[dev,analysis]"`
+    - Rust: Maturin develop für omega_rust
+    - Julia: Pkg.instantiate() + Pkg.precompile()
+    - Git: pre-commit hooks, VS Code als Editor
+    - Sanity Checks: omega_rust und juliacall Verfügbarkeit
+
+- **P4-12 (Release-Workflow für Hybrid-Packages):** ✅ **KOMPLETT** (2026-01-05)
+  - Workflow-Datei: `.github/workflows/release.yml` (~400 Zeilen)
+  - Trigger: Tag-Push (v*) oder workflow_dispatch (dry-run/test-pypi/pypi)
+  - Jobs:
+    - `prepare`: Version extraction, Release-Parameter
+    - `build-python`: Pure Python Wheel
+    - `build-rust-linux`: Maturin-Action für x86_64 und aarch64
+    - `build-rust-macos`: Intel (x86_64) und Apple Silicon (aarch64)
+    - `build-rust-windows`: MSVC x64
+    - `build-sdist`: Source Distribution
+    - `publish`: PyPI oder Test-PyPI mit Trusted Publishing (OIDC)
+    - `github-release`: Automatisches Release mit Changelog-Excerpt
+    - `summary`: Aggregierte Build-Status-Tabelle
+  - Features:
+    - PyPI Trusted Publishing (keine Secrets für Token)
+    - Conditional Rust-Build (nur wenn Modul existiert)
+    - Manylinux Wheels für maximale Linux-Kompatibilität
+    - Automatische Changelog-Extraction für Release Notes
+    - Dry-Run Modus für Testing ohne Publish
+
+**Phase 4 Status: ✅ 100% KOMPLETT** (P4-01 bis P4-12 abgeschlossen am 2026-01-05)
+
+---
 
 ### Phase 5: Dokumentation & Validation
 

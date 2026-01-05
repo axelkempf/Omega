@@ -1,0 +1,15 @@
+# Rust Toolchain Configuration
+# Task-ID: P4-06 | Phase: 4 – Build-System
+#
+# Pin Rust version for reproducible builds across CI and local development.
+
+[toolchain]
+channel = "1.76.0"
+components = ["rustfmt", "clippy"]
+targets = [
+    "x86_64-unknown-linux-gnu",
+    "x86_64-apple-darwin",
+    "aarch64-apple-darwin",
+    "x86_64-pc-windows-msvc"
+]
+profile = "minimal"

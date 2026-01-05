@@ -1,0 +1,116 @@
+# Omega Rust Module - Performance-Critical Components
+# Task-ID: P4-06 | Phase: 4 – Build-System
+# 
+# This crate provides high-performance Rust implementations of
+# numerically intensive algorithms for the Omega Trading System.
+# Integration with Python via PyO3/Maturin.
+
+[package]
+name = "omega-rust"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.75"
+authors = ["Axel Kempf"]
+description = "High-performance Rust extensions for Omega Trading System"
+license = "MIT"
+repository = "https://github.com/axelkempf/Omega"
+keywords = ["trading", "finance", "indicators", "python", "ffi"]
+categories = ["science", "finance"]
+
+[lib]
+name = "omega_rust"
+crate-type = ["cdylib", "rlib"]
+
+# ==============================================================================
+# Core Dependencies
+# ==============================================================================
+
+[dependencies]
+# Python FFI - PyO3 with stable ABI for Python 3.10+
+pyo3 = { version = "0.20", features = ["extension-module", "abi3-py310"] }
+
+# Numerical Computing
+ndarray = { version = "0.15", features = ["serde", "rayon"] }
+num-traits = "0.2"
+
+# Arrow Zero-Copy FFI (for future DataFrame integration)
+# arrow = { version = "50.0", features = ["ffi"], optional = true }
+# arrow-array = { version = "50.0", optional = true }
+# arrow-schema = { version = "50.0", optional = true }
+
+# Error Handling
+anyhow = "1.0"
+thiserror = "1.0"
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Performance
+rayon = "1.8"
+
+# ==============================================================================
+# Development Dependencies
+# ==============================================================================
+
+[dev-dependencies]
+criterion = { version = "0.5", features = ["html_reports"] }
+proptest = "1.4"
+approx = "0.5"
+
+# ==============================================================================
+# Features
+# ==============================================================================
+
+[features]
+default = []
+# Enable Arrow FFI for zero-copy data transfer
+# arrow-ffi = ["arrow", "arrow-array", "arrow-schema"]
+# Enable all optional features
+# full = ["arrow-ffi"]
+
+# ==============================================================================
+# Build Profiles
+# ==============================================================================
+
+[profile.dev]
+opt-level = 0
+debug = true
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 1
+panic = "abort"
+strip = true
+
+[profile.release-with-debug]
+inherits = "release"
+debug = true
+strip = false
+
+# ==============================================================================
+# Benchmarks
+# ==============================================================================
+
+[[bench]]
+name = "indicator_bench"
+harness = false
+
+# ==============================================================================
+# Lints
+# ==============================================================================
+
+[lints.rust]
+unsafe_code = "warn"
+
+[lints.clippy]
+all = "warn"
+pedantic = "warn"
+nursery = "warn"
+# Allow common patterns in numerical code
+cast_precision_loss = "allow"
+cast_possible_truncation = "allow"
+cast_sign_loss = "allow"
+module_name_repetitions = "allow"
+must_use_candidate = "allow"
