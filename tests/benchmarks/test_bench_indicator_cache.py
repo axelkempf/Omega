@@ -30,7 +30,6 @@ from .conftest import (
     generate_multi_tf_candle_data,
 )
 
-
 # ══════════════════════════════════════════════════════════════════════════════
 # TEST FIXTURES (lokale Erzeugung für Isolation)
 # ══════════════════════════════════════════════════════════════════════════════

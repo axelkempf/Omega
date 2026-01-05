@@ -24,7 +24,6 @@ from tools.benchmark_history import (
     RegressionResult,
 )
 
-
 # ==============================================================================
 # Fixtures
 # ==============================================================================
@@ -102,7 +101,9 @@ def tracker(temp_history_file: Path) -> BenchmarkHistoryTracker:
 
 
 @pytest.fixture
-def pytest_benchmark_json(tmp_path: Path, sample_benchmark_runs: List[BenchmarkRun]) -> Path:
+def pytest_benchmark_json(
+    tmp_path: Path, sample_benchmark_runs: List[BenchmarkRun]
+) -> Path:
     """Erstellt eine pytest-benchmark JSON-Datei."""
     json_path = tmp_path / "benchmark_results.json"
 
@@ -308,9 +309,7 @@ class TestBenchmarkHistoryTracker:
         sample_benchmark_runs: List[BenchmarkRun],
     ):
         """Test Max-History-Limit."""
-        tracker = BenchmarkHistoryTracker(
-            history_file=temp_history_file, max_history=3
-        )
+        tracker = BenchmarkHistoryTracker(history_file=temp_history_file, max_history=3)
 
         with patch.object(
             BenchmarkHistoryTracker,
@@ -641,7 +640,9 @@ class TestEdgeCases:
     """Tests für Randfälle."""
 
     def test_empty_history_regression_detection(
-        self, tracker: BenchmarkHistoryTracker, sample_benchmark_runs: List[BenchmarkRun]
+        self,
+        tracker: BenchmarkHistoryTracker,
+        sample_benchmark_runs: List[BenchmarkRun],
     ):
         """Test Regression-Detection ohne Historie."""
         results = tracker.detect_regressions(sample_benchmark_runs)
@@ -657,9 +658,7 @@ class TestEdgeCases:
         tracker = BenchmarkHistoryTracker(history_file=temp_history_file)
         assert tracker.get_latest_snapshot() is None
 
-    def test_zero_baseline_mean(
-        self, tracker: BenchmarkHistoryTracker
-    ):
+    def test_zero_baseline_mean(self, tracker: BenchmarkHistoryTracker):
         """Test mit Baseline-Mean von 0."""
         zero_run = BenchmarkRun(
             name="zero_bench",

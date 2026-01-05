@@ -37,11 +37,24 @@ export monte_carlo_var,
     sortino_ratio,
     max_drawdown
 
+# Export error handling (FFI boundary)
+export ErrorCode,
+    is_recoverable,
+    error_category,
+    FfiResult,
+    ok_result,
+    error_result,
+    ffi_safe
+
 # Include submodules
+include("error.jl")  # Error codes for FFI (sync with Python/Rust)
 include("monte_carlo.jl")
 include("rolling_stats.jl")
 include("bootstrap.jl")
 include("risk_metrics.jl")
+
+# Re-export ErrorCodes module members
+using .ErrorCodes
 
 # Module initialization
 function __init__()

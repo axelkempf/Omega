@@ -121,7 +121,9 @@ class MultiStrategyController:
         Läuft die Strategie über alle Candle-Paare.
         """
         if self.multi_candle_data is None:
-            raise ValueError("multi_candle_data nicht gesetzt. Rufe set_multi_candle_data() auf.")
+            raise ValueError(
+                "multi_candle_data nicht gesetzt. Rufe set_multi_candle_data() auf."
+            )
         for i, (bid, ask) in enumerate(zip(bid_candles, ask_candles)):
             if callable(on_progress):
                 on_progress(i, len(bid_candles))

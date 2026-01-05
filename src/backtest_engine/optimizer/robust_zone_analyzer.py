@@ -296,7 +296,9 @@ def _compute_min_total_trades_threshold(options: Dict[str, Any]) -> Optional[flo
 # ---------- Step 1: Clean & round ---------------------------------------------
 
 
-def _step1_clean_and_round(df: pd.DataFrame, param_grid: Dict[str, Dict[str, Any]]) -> Tuple[pd.DataFrame, Dict[str, Any]]:
+def _step1_clean_and_round(
+    df: pd.DataFrame, param_grid: Dict[str, Dict[str, Any]]
+) -> Tuple[pd.DataFrame, Dict[str, Any]]:
     meta: Dict[str, Any] = {
         "rows_in": int(len(df)),
         "rows_out": 0,
@@ -399,7 +401,11 @@ def _step1_clean_and_round(df: pd.DataFrame, param_grid: Dict[str, Dict[str, Any
 def _step2_apply_hard_gates(
     df: pd.DataFrame, *, min_total_trades_threshold: Optional[float] = None
 ) -> Tuple[pd.DataFrame, Dict[str, Any]]:
-    meta: Dict[str, Any] = {"rows_in": int(len(df)), "rows_out": 0, "drop_reason_counts": {}}
+    meta: Dict[str, Any] = {
+        "rows_in": int(len(df)),
+        "rows_out": 0,
+        "drop_reason_counts": {},
+    }
     if df.empty:
         return df, meta
     df = df.copy()

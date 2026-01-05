@@ -258,9 +258,7 @@ class GoldenFileManager:
         category_dir.mkdir(parents=True, exist_ok=True)
         return category_dir / f"{name}.json"
 
-    def save_backtest_reference(
-        self, name: str, result: GoldenBacktestResult
-    ) -> Path:
+    def save_backtest_reference(self, name: str, result: GoldenBacktestResult) -> Path:
         """Speichert eine Backtest-Referenz."""
         path = self._get_reference_path(name, "backtest")
 
@@ -373,9 +371,7 @@ class GoldenFileManager:
                 "actual_count": len(current.trade_hashes),
                 "mismatches": sum(
                     1
-                    for a, b in zip(
-                        current.trade_hashes, reference.trade_hashes
-                    )
+                    for a, b in zip(current.trade_hashes, reference.trade_hashes)
                     if a != b
                 ),
             }
@@ -388,11 +384,18 @@ class GoldenFileManager:
             }
 
         # Summary Metrics (wichtige Metriken prüfen)
-        for key in ["net_profit_eur", "winrate_percent", "profit_factor", "sharpe_trade"]:
+        for key in [
+            "net_profit_eur",
+            "winrate_percent",
+            "profit_factor",
+            "sharpe_trade",
+        ]:
             if key in reference.summary_metrics and key in current.summary_metrics:
                 ref_val = reference.summary_metrics[key]
                 cur_val = current.summary_metrics[key]
-                if isinstance(ref_val, (int, float)) and isinstance(cur_val, (int, float)):
+                if isinstance(ref_val, (int, float)) and isinstance(
+                    cur_val, (int, float)
+                ):
                     if abs(ref_val - cur_val) > metric_tolerance:
                         if "summary_metrics" not in differences:
                             differences["summary_metrics"] = {}

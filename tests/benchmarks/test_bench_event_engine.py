@@ -39,7 +39,6 @@ from .conftest import (
     generate_synthetic_ohlcv,
 )
 
-
 # ══════════════════════════════════════════════════════════════════════════════
 # MOCK OBJECTS FÜR BENCHMARKS
 # ══════════════════════════════════════════════════════════════════════════════
@@ -65,9 +64,7 @@ class MockStrategy:
         self._rng = np.random.default_rng(BENCHMARK_SEED)
         self.call_count = 0
 
-    def evaluate(
-        self, index: int, slice_map: Any
-    ) -> Optional[List[Dict[str, Any]]]:
+    def evaluate(self, index: int, slice_map: Any) -> Optional[List[Dict[str, Any]]]:
         """Gibt mit geringer Wahrscheinlichkeit ein Signal zurück."""
         self.call_count += 1
         if self._rng.random() < self.signal_probability:
@@ -89,9 +86,7 @@ class MockStrategyWrapper:
     def __init__(self, strategy: MockStrategy) -> None:
         self.strategy = strategy
 
-    def evaluate(
-        self, index: int, slice_map: Any
-    ) -> Optional[List[Dict[str, Any]]]:
+    def evaluate(self, index: int, slice_map: Any) -> Optional[List[Dict[str, Any]]]:
         return self.strategy.evaluate(index, slice_map)
 
 
@@ -331,9 +326,7 @@ class TestSingleSymbolEventEngine:
 class TestEventEngineWithIndicators:
     """Benchmarks für EventEngine mit Indikator-Lookups."""
 
-    def test_event_loop_with_indicator_lookups_medium(
-        self, benchmark: Any
-    ) -> None:
+    def test_event_loop_with_indicator_lookups_medium(self, benchmark: Any) -> None:
         """Benchmark: Event Loop mit Indikator-Lookups (10K Bars)."""
         n = DEFAULT_CANDLE_COUNT
         candles = generate_candle_list(n)

@@ -32,7 +32,7 @@ import pytest
 # Optuna import
 try:
     import optuna
-    from optuna.samplers import TPESampler, RandomSampler
+    from optuna.samplers import RandomSampler, TPESampler
 
     OPTUNA_AVAILABLE = True
 except ImportError:
@@ -46,10 +46,7 @@ from tests.golden.conftest import (
     set_deterministic_seed,
 )
 
-
-pytestmark = pytest.mark.skipif(
-    not OPTUNA_AVAILABLE, reason="Optuna not installed"
-)
+pytestmark = pytest.mark.skipif(not OPTUNA_AVAILABLE, reason="Optuna not installed")
 
 
 # ==============================================================================
@@ -418,7 +415,11 @@ class TestGridSearchDeterminism:
 
         def evaluate(params: Dict[str, Any]) -> float:
             """Deterministische Evaluation."""
-            return params["ema_fast"] * 0.1 + params["ema_slow"] * 0.05 + params["threshold"]
+            return (
+                params["ema_fast"] * 0.1
+                + params["ema_slow"] * 0.05
+                + params["threshold"]
+            )
 
         # Generiere alle Kombinationen
         keys = list(param_grid.keys())

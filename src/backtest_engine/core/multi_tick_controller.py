@@ -26,7 +26,9 @@ class MultiTickController:
     ):
         self.envs = envs
         self.tick_data_map = tick_data_map
-        self.multi_candle_data: Dict[str, Dict[str, List[Any]]] = multi_candle_data or {}
+        self.multi_candle_data: Dict[str, Dict[str, List[Any]]] = (
+            multi_candle_data or {}
+        )
         self.on_progress = on_progress
 
     def run(self) -> None:

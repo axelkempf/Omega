@@ -3,10 +3,10 @@
 Phase 2 Task: P2-07
 Status: Implementiert (2026-01-05)
 
-Diese Error-Codes werden über FFI-Grenzen hinweg verwendet (Python ↔ Rust ↔ Julia).
-Sie müssen synchron gehalten werden mit:
-- Rust: src/rust_modules/src/error.rs (ErrorCode enum)
-- Julia: src/julia_modules/src/error.jl (ErrorCode enum)
+Diese Error-Codes werden über FFI-Grenzen hinweg verwendet
+(Python ↔ Rust ↔ Julia). Sie müssen synchron gehalten werden mit:
+- Rust: src/rust_modules/omega_rust/src/error.rs (ErrorCode enum)
+- Julia: src/julia_modules/omega_julia/src/error.jl (ErrorCodes module)
 
 Referenz: docs/adr/ADR-0003-error-handling.md
 """
@@ -218,9 +218,7 @@ def is_recoverable(code: ErrorCode | int) -> bool:
     # Teilweise recoverable
     if 2000 <= code_int < 3000:  # Computation
         # Nur bestimmte Computation-Errors sind recoverable
-        return code_int in (
-            ErrorCode.INSUFFICIENT_DATA,
-        )
+        return code_int in (ErrorCode.INSUFFICIENT_DATA,)
     if 6000 <= code_int < 7000:  # Resource
         return code_int in (
             ErrorCode.RESOURCE_BUSY,

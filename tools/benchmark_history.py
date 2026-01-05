@@ -157,7 +157,9 @@ class BenchmarkHistoryTracker:
         """Holt Git-Informationen (commit hash, message, branch)."""
         try:
             commit_hash = (
-                subprocess.check_output(["git", "rev-parse", "HEAD"], stderr=subprocess.DEVNULL)
+                subprocess.check_output(
+                    ["git", "rev-parse", "HEAD"], stderr=subprocess.DEVNULL
+                )
                 .decode()
                 .strip()
             )
@@ -179,7 +181,8 @@ class BenchmarkHistoryTracker:
         try:
             branch = (
                 subprocess.check_output(
-                    ["git", "rev-parse", "--abbrev-ref", "HEAD"], stderr=subprocess.DEVNULL
+                    ["git", "rev-parse", "--abbrev-ref", "HEAD"],
+                    stderr=subprocess.DEVNULL,
                 )
                 .decode()
                 .strip()
@@ -383,9 +386,7 @@ class BenchmarkHistoryTracker:
 
         # Details Table
         lines.append("\n## Benchmark Results\n")
-        lines.append(
-            "| Benchmark | Baseline (ms) | Current (ms) | Change | Status |"
-        )
+        lines.append("| Benchmark | Baseline (ms) | Current (ms) | Change | Status |")
         lines.append("|-----------|---------------|--------------|--------|--------|")
 
         for r in sorted(regressions, key=lambda x: -abs(x.change_percent)):
@@ -413,7 +414,9 @@ class BenchmarkHistoryTracker:
             lines.append("| Benchmark | Mean (ms) | StdDev (ms) |")
             lines.append("|-----------|-----------|-------------|")
             for b in new_benchmarks:
-                lines.append(f"| {b.name} | {b.mean * 1000:.3f} | {b.stddev * 1000:.3f} |")
+                lines.append(
+                    f"| {b.name} | {b.mean * 1000:.3f} | {b.stddev * 1000:.3f} |"
+                )
 
         return "\n".join(lines)
 
@@ -436,7 +439,9 @@ def main():
 
     # report command
     report_parser = subparsers.add_parser("report", help="Generate report")
-    report_parser.add_argument("json_file", type=Path, help="pytest-benchmark JSON file")
+    report_parser.add_argument(
+        "json_file", type=Path, help="pytest-benchmark JSON file"
+    )
     report_parser.add_argument(
         "--threshold", type=float, default=20.0, help="Regression threshold (%)"
     )
@@ -444,9 +449,7 @@ def main():
     # trend command
     trend_parser = subparsers.add_parser("trend", help="Show trend for benchmark")
     trend_parser.add_argument("benchmark_name", help="Name of benchmark")
-    trend_parser.add_argument(
-        "--n", type=int, default=10, help="Number of snapshots"
-    )
+    trend_parser.add_argument("--n", type=int, default=10, help="Number of snapshots")
 
     args = parser.parse_args()
 
@@ -454,7 +457,9 @@ def main():
 
     if args.command == "add":
         snapshot = tracker.add_from_pytest_benchmark_json(args.json_file)
-        print(f"Added snapshot: {snapshot.commit_hash[:8]} ({len(snapshot.benchmarks)} benchmarks)")
+        print(
+            f"Added snapshot: {snapshot.commit_hash[:8]} ({len(snapshot.benchmarks)} benchmarks)"
+        )
 
     elif args.command == "report":
         with open(args.json_file) as f:

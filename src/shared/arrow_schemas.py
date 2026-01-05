@@ -24,25 +24,22 @@ Referenz: docs/adr/ADR-0002-serialization-format.md
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import TYPE_CHECKING, Any, Sequence
+from typing import Any, Sequence
 
 import numpy as np
 
-# Lazy import für pyarrow (optional dependency)
-# Falls pyarrow nicht verfügbar: Fallback zu dict-basierter Serialisierung
+# pyarrow ist Core-Dependency (pyproject.toml: pyarrow>=14.0)
+# Import sollte immer erfolgreich sein. PYARROW_AVAILABLE bleibt für
+# Abwärtskompatibilität mit bestehendem Code erhalten.
 try:
     import pyarrow as pa
 
     PYARROW_AVAILABLE = True
 except ImportError:
+    # Sollte nicht auftreten da pyarrow Core-Dependency ist.
+    # Fallback nur für Edge-Cases (z.B. kaputte Installation).
     PYARROW_AVAILABLE = False
-
-if TYPE_CHECKING:
-    import pyarrow as pa
-else:
-    # Zur Laufzeit, wenn pyarrow nicht verfügbar ist
-    if not PYARROW_AVAILABLE:
-        pa = None  # type: ignore[assignment]
+    pa = None
 
 # =============================================================================
 # Type Mapping Reference (Python → Arrow → Rust → Julia)
@@ -76,6 +73,7 @@ def _ensure_pyarrow() -> None:
 # OHLCV Schema (Candle Data)
 # =============================================================================
 
+
 def get_ohlcv_schema() -> Any:
     """Schema für OHLCV (Candlestick) Daten.
 
@@ -101,7 +99,9 @@ def get_ohlcv_schema() -> Any:
     _ensure_pyarrow()
     return pa.schema(
         [
-            pa.field("timestamp", pa.timestamp("us", tz="UTC"), nullable=False),
+            pa.field(
+                "timestamp", pa.timestamp("us", tz="UTC"), nullable=False
+            ),
             pa.field("open", pa.float64(), nullable=False),
             pa.field("high", pa.float64(), nullable=False),
             pa.field("low", pa.float64(), nullable=False),
@@ -120,6 +120,7 @@ if PYARROW_AVAILABLE:
 # =============================================================================
 # Trade Signal Schema
 # =============================================================================
+
 
 def get_trade_signal_schema() -> Any:
     """Schema für Trade-Signale.
@@ -143,14 +144,28 @@ def get_trade_signal_schema() -> Any:
     _ensure_pyarrow()
     return pa.schema(
         [
-            pa.field("timestamp", pa.timestamp("us", tz="UTC"), nullable=False),
-            pa.field("direction", pa.dictionary(pa.int8(), pa.utf8()), nullable=False),
+            pa.field(
+                "timestamp", pa.timestamp("us", tz="UTC"), nullable=False
+            ),
+            pa.field(
+                "direction",
+                pa.dictionary(pa.int8(), pa.utf8()),
+                nullable=False,
+            ),
             pa.field("entry", pa.float64(), nullable=False),
             pa.field("sl", pa.float64(), nullable=False),
             pa.field("tp", pa.float64(), nullable=False),
             pa.field("size", pa.float64(), nullable=False),
-            pa.field("symbol", pa.dictionary(pa.int8(), pa.utf8()), nullable=False),
-            pa.field("order_type", pa.dictionary(pa.int8(), pa.utf8()), nullable=False),
+            pa.field(
+                "symbol",
+                pa.dictionary(pa.int8(), pa.utf8()),
+                nullable=False
+            ),
+            pa.field(
+                "order_type",
+                pa.dictionary(pa.int8(), pa.utf8()),
+                nullable=False,
+            ),
             pa.field("reason", pa.utf8(), nullable=True),
             pa.field("scenario", pa.utf8(), nullable=True),
         ]
@@ -166,6 +181,7 @@ if PYARROW_AVAILABLE:
 # Position Schema
 # =============================================================================
 
+
 def get_position_schema() -> Any:
     """Schema für Portfolio-Positionen.
 
@@ -179,7 +195,8 @@ def get_position_schema() -> Any:
         direction:      utf8 (dict-encoded)    - "long" | "short"
         symbol:         utf8 (dict-encoded)    - Symbol-Name
         entry_price:    float64                - Entry-Preis
-        exit_price:     float64                - Exit-Preis (nullable, NaN wenn offen)
+        exit_price:     float64                - Exit-Preis (nullable, NaN wenn
+                                               offen)
         initial_sl:     float64                - Initialer Stop-Loss
         current_sl:     float64                - Aktueller Stop-Loss
         tp:             float64                - Take-Profit
@@ -191,19 +208,35 @@ def get_position_schema() -> Any:
     _ensure_pyarrow()
     return pa.schema(
         [
-            pa.field("entry_time", pa.timestamp("us", tz="UTC"), nullable=False),
-            pa.field("exit_time", pa.timestamp("us", tz="UTC"), nullable=True),
-            pa.field("direction", pa.dictionary(pa.int8(), pa.utf8()), nullable=False),
-            pa.field("symbol", pa.dictionary(pa.int8(), pa.utf8()), nullable=False),
-            pa.field("entry_price", pa.float64(), nullable=False),
-            pa.field("exit_price", pa.float64(), nullable=True),
+            pa.field(
+                "entry_time", pa.timestamp("us", tz="UTC"),
+                nullable=False
+            ),
+            pa.field(
+                "exit_time", pa.timestamp("us", tz="UTC"), nullable=True),
+            pa.field(
+                "direction",
+                pa.dictionary(pa.int8(), pa.utf8()),
+                nullable=False
+            ),
+            pa.field(
+                "symbol", pa.dictionary(pa.int8(), pa.utf8()), nullable=False),
+            pa.field(
+                "entry_price", pa.float64(), nullable=False),
+            pa.field(
+                "exit_price", pa.float64(), nullable=True
+            ),
             pa.field("initial_sl", pa.float64(), nullable=False),
             pa.field("current_sl", pa.float64(), nullable=False),
             pa.field("tp", pa.float64(), nullable=False),
             pa.field("size", pa.float64(), nullable=False),
             pa.field("result", pa.float64(), nullable=True),
             pa.field("r_multiple", pa.float64(), nullable=True),
-            pa.field("status", pa.dictionary(pa.int8(), pa.utf8()), nullable=False),
+            pa.field(
+                "status",
+                pa.dictionary(pa.int8(), pa.utf8()),
+                nullable=False
+            ),
         ]
     )
 
@@ -216,6 +249,7 @@ if PYARROW_AVAILABLE:
 # =============================================================================
 # Indicator Series Schema
 # =============================================================================
+
 
 def get_indicator_schema() -> Any:
     """Schema für Indikator-Serien.
@@ -237,7 +271,9 @@ def get_indicator_schema() -> Any:
     _ensure_pyarrow()
     return pa.schema(
         [
-            pa.field("timestamp", pa.timestamp("us", tz="UTC"), nullable=False),
+            pa.field(
+                "timestamp", pa.timestamp("us", tz="UTC"), nullable=False
+            ),
             pa.field("value", pa.float64(), nullable=False),
             pa.field("valid", pa.bool_(), nullable=False),
         ]
@@ -252,6 +288,7 @@ if PYARROW_AVAILABLE:
 # =============================================================================
 # Rating Score Schema
 # =============================================================================
+
 
 def get_rating_score_schema() -> Any:
     """Schema für Rating-Scores.
@@ -270,7 +307,11 @@ def get_rating_score_schema() -> Any:
     _ensure_pyarrow()
     return pa.schema(
         [
-            pa.field("metric_name", pa.dictionary(pa.int8(), pa.utf8()), nullable=False),
+            pa.field(
+                "metric_name",
+                pa.dictionary(pa.int8(), pa.utf8()),
+                nullable=False
+            ),
             pa.field("raw_value", pa.float64(), nullable=False),
             pa.field("score", pa.float64(), nullable=False),
             pa.field("weight", pa.float64(), nullable=False),
@@ -287,6 +328,7 @@ if PYARROW_AVAILABLE:
 # =============================================================================
 # Portfolio Equity Curve Schema
 # =============================================================================
+
 
 def get_equity_curve_schema() -> Any:
     """Schema für Equity-Kurven.
@@ -306,7 +348,9 @@ def get_equity_curve_schema() -> Any:
     _ensure_pyarrow()
     return pa.schema(
         [
-            pa.field("timestamp", pa.timestamp("us", tz="UTC"), nullable=False),
+            pa.field(
+                "timestamp", pa.timestamp("us", tz="UTC"), nullable=False
+            ),
             pa.field("equity", pa.float64(), nullable=False),
             pa.field("balance", pa.float64(), nullable=False),
             pa.field("drawdown", pa.float64(), nullable=False),
@@ -323,6 +367,7 @@ if PYARROW_AVAILABLE:
 # =============================================================================
 # Factory Functions für RecordBatches
 # =============================================================================
+
 
 def create_ohlcv_batch(
     timestamps: np.ndarray | Sequence[datetime],
@@ -370,15 +415,19 @@ def create_ohlcv_batch(
     n = len(opens)
 
     # Timestamp-Konvertierung
-    if isinstance(timestamps, np.ndarray) and timestamps.dtype == np.dtype("datetime64[us]"):
+    if isinstance(timestamps, np.ndarray) and timestamps.dtype == np.dtype(
+        "datetime64[us]"
+    ):
         ts_array = pa.array(timestamps, type=pa.timestamp("us", tz="UTC"))
     else:
         # datetime objects → timestamp
         ts_array = pa.array(
             [
-                int(t.replace(tzinfo=timezone.utc).timestamp() * 1_000_000)
-                if isinstance(t, datetime)
-                else int(t)
+                (
+                    int(t.replace(tzinfo=timezone.utc).timestamp() * 1_000_000)
+                    if isinstance(t, datetime)
+                    else int(t)
+                )
                 for t in timestamps
             ],
             type=pa.timestamp("us", tz="UTC"),
@@ -435,17 +484,19 @@ def create_indicator_batch(
     _ensure_pyarrow()
     import json
 
-    n = len(values)
-
     # Timestamp-Konvertierung
-    if isinstance(timestamps, np.ndarray) and timestamps.dtype == np.dtype("datetime64[us]"):
+    if isinstance(timestamps, np.ndarray) and timestamps.dtype == np.dtype(
+        "datetime64[us]"
+    ):
         ts_array = pa.array(timestamps, type=pa.timestamp("us", tz="UTC"))
     else:
         ts_array = pa.array(
             [
-                int(t.replace(tzinfo=timezone.utc).timestamp() * 1_000_000)
-                if isinstance(t, datetime)
-                else int(t)
+                (
+                    int(t.replace(tzinfo=timezone.utc).timestamp() * 1_000_000)
+                    if isinstance(t, datetime)
+                    else int(t)
+                )
                 for t in timestamps
             ],
             type=pa.timestamp("us", tz="UTC"),
@@ -478,6 +529,7 @@ def create_indicator_batch(
 # Zero-Copy Utilities
 # =============================================================================
 
+
 def numpy_to_arrow_buffer(array: np.ndarray) -> Any:
     """Zero-Copy Konvertierung von NumPy Array zu Arrow Buffer.
 
@@ -496,7 +548,7 @@ def numpy_to_arrow_buffer(array: np.ndarray) -> Any:
     return pa.py_buffer(array)
 
 
-def arrow_to_numpy_zero_copy(array: Any) -> np.ndarray:
+def arrow_to_numpy_zero_copy(array: Any) -> np.ndarray[Any, np.dtype[Any]]:
     """Zero-Copy Konvertierung von Arrow Array zu NumPy.
 
     Args:
@@ -514,7 +566,10 @@ def arrow_to_numpy_zero_copy(array: Any) -> np.ndarray:
             f"Cannot zero-copy convert array with {array.null_count} nulls. "
             "Use array.to_numpy(zero_copy_only=False) instead."
         )
-    return array.to_numpy(zero_copy_only=True)
+    result: np.ndarray[Any, np.dtype[Any]] = array.to_numpy(
+        zero_copy_only=True
+    )
+    return result
 
 
 # =============================================================================
@@ -548,8 +603,12 @@ def get_schema(name: str) -> Any:
     schema = SCHEMA_REGISTRY.get(name)
     if schema is None:
         if name not in SCHEMA_REGISTRY:
-            raise KeyError(f"Unknown schema: {name}. Available: {list(SCHEMA_REGISTRY.keys())}")
-        # Schema existiert aber ist None (pyarrow war beim Import nicht verfügbar)
+            available = list(SCHEMA_REGISTRY.keys())
+            raise KeyError(
+                f"Unknown schema: {name}. Available: {available}"
+            )
+        # Schema existiert aber ist None
+        # (pyarrow war beim Import nicht verfügbar)
         raise ImportError("pyarrow is required for Arrow schemas")
     return schema
 

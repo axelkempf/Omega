@@ -1,10 +1,10 @@
 # Type stubs for joblib (verwendet in backtest_engine.optimizer)
-# 
+#
 # joblib hat teilweise Type Hints, aber nicht vollständig.
 # Diese Stubs decken die im Projekt verwendeten APIs ab.
 
-from typing import Any, Callable, Iterable, Optional, TypeVar, Union
 from collections.abc import Sequence
+from typing import Any, Callable, Iterable, Optional, TypeVar, Union
 
 _T = TypeVar("_T")
 
@@ -20,7 +20,6 @@ class Memory:
         bytes_limit: Union[int, str] = ...,
         backend_options: Optional[dict[str, Any]] = ...,
     ) -> None: ...
-    
     def cache(
         self,
         func: Optional[Callable[..., _T]] = ...,
@@ -28,7 +27,6 @@ class Memory:
         verbose: Optional[int] = ...,
         mmap_mode: Optional[str] = ...,
     ) -> Callable[[Callable[..., _T]], Callable[..., _T]]: ...
-    
     def clear(self, warn: bool = ...) -> None: ...
     def reduce_size(self, bytes_limit: Union[int, str] = ...) -> None: ...
 
@@ -48,7 +46,6 @@ class Parallel:
         prefer: Optional[str] = ...,
         require: Optional[str] = ...,
     ) -> None: ...
-    
     def __call__(self, iterable: Iterable[Any]) -> list[Any]: ...
     def __enter__(self) -> Parallel: ...
     def __exit__(self, *args: Any) -> None: ...
@@ -65,7 +62,6 @@ def dump(
     protocol: Optional[int] = ...,
     cache_size: Optional[int] = ...,
 ) -> list[str]: ...
-
 def load(
     filename: str,
     mmap_mode: Optional[str] = ...,

@@ -3,8 +3,8 @@
 # Optuna hat Type Hints, aber mypy kann sie manchmal nicht finden.
 # Diese Stubs decken die im Projekt verwendeten Core-APIs ab.
 
-from typing import Any, Callable, Optional, Union, Sequence
 from enum import Enum
+from typing import Any, Callable, Optional, Sequence, Union
 
 # Study & Trial
 class Study:
@@ -19,19 +19,14 @@ class Study:
         gc_after_trial: bool = ...,
         show_progress_bar: bool = ...,
     ) -> None: ...
-    
     @property
     def best_params(self) -> dict[str, Any]: ...
-    
     @property
     def best_value(self) -> float: ...
-    
     @property
     def best_trial(self) -> "Trial": ...
-    
     @property
     def trials(self) -> list["Trial"]: ...
-    
     def trials_dataframe(
         self,
         attrs: Sequence[str] = ...,
@@ -48,7 +43,6 @@ class Trial:
         step: Optional[float] = ...,
         log: bool = ...,
     ) -> float: ...
-    
     def suggest_int(
         self,
         name: str,
@@ -58,25 +52,19 @@ class Trial:
         step: int = ...,
         log: bool = ...,
     ) -> int: ...
-    
     def suggest_categorical(
         self,
         name: str,
         choices: Sequence[Union[str, int, float, bool, None]],
     ) -> Union[str, int, float, bool, None]: ...
-    
     def suggest_uniform(self, name: str, low: float, high: float) -> float: ...
     def suggest_loguniform(self, name: str, low: float, high: float) -> float: ...
-    
     @property
     def params(self) -> dict[str, Any]: ...
-    
     @property
     def number(self) -> int: ...
-    
     def report(self, value: float, step: int) -> None: ...
     def should_prune(self) -> bool: ...
-    
     def set_user_attr(self, key: str, value: Any) -> None: ...
     def user_attrs(self) -> dict[str, Any]: ...
 
@@ -98,7 +86,6 @@ def create_study(
     directions: Optional[Sequence[Union[str, "StudyDirection"]]] = ...,
     load_if_exists: bool = ...,
 ) -> Study: ...
-
 def load_study(
     *,
     study_name: str,
@@ -115,7 +102,7 @@ class StudyDirection(Enum):
 # Samplers
 class samplers:
     class BaseSampler: ...
-    
+
     class TPESampler(BaseSampler):
         def __init__(
             self,
@@ -130,10 +117,10 @@ class samplers:
             multivariate: bool = ...,
             warn_independent_sampling: bool = ...,
         ) -> None: ...
-    
+
     class RandomSampler(BaseSampler):
         def __init__(self, seed: Optional[int] = ...) -> None: ...
-    
+
     class GridSampler(BaseSampler):
         def __init__(
             self,
@@ -144,7 +131,7 @@ class samplers:
 # Pruners
 class pruners:
     class BasePruner: ...
-    
+
     class MedianPruner(BasePruner):
         def __init__(
             self,
@@ -152,7 +139,7 @@ class pruners:
             n_warmup_steps: int = ...,
             interval_steps: int = ...,
         ) -> None: ...
-    
+
     class PercentilePruner(BasePruner):
         def __init__(
             self,
@@ -166,10 +153,10 @@ class pruners:
 # Storage
 class storages:
     class BaseStorage: ...
-    
+
     class InMemoryStorage(BaseStorage):
         def __init__(self) -> None: ...
-    
+
     class RDBStorage(BaseStorage):
         def __init__(
             self,
@@ -182,10 +169,9 @@ class storages:
 class logging:
     @staticmethod
     def set_verbosity(verbosity: int) -> None: ...
-    
     @staticmethod
     def get_verbosity() -> int: ...
-    
+
     DEBUG: int
     INFO: int
     WARNING: int

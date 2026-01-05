@@ -165,9 +165,7 @@ def generate_synthetic_trades_df(
 
     # Sortierte Exit-Zeiten
     base_time = pd.Timestamp("2024-01-01")
-    exit_times = [
-        base_time + pd.Timedelta(hours=i * 4) for i in range(n_trades)
-    ]
+    exit_times = [base_time + pd.Timedelta(hours=i * 4) for i in range(n_trades)]
 
     return pd.DataFrame(
         {

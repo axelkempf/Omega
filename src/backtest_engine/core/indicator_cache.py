@@ -339,9 +339,13 @@ class IndicatorCache:
 
         new_idx = self._stepwise_indices(tf, price_type)
         if not new_idx:
-            nan_series: pd.Series[float] = pd.Series(np.nan, index=closes.index, dtype="float64")
+            nan_series: pd.Series[float] = pd.Series(
+                np.nan, index=closes.index, dtype="float64"
+            )
             empty_tuple: Tuple[pd.Series[Any], pd.Series[Any], pd.Series[Any]] = (
-                nan_series.copy(), nan_series.copy(), nan_series.copy()
+                nan_series.copy(),
+                nan_series.copy(),
+                nan_series.copy(),
             )
             self._ind_cache[key] = empty_tuple
             return empty_tuple

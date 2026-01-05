@@ -30,7 +30,6 @@ from .conftest import (
     price_arrays,
 )
 
-
 # ══════════════════════════════════════════════════════════════════════════════
 # BOUNDS AND RANGE TESTS
 # ══════════════════════════════════════════════════════════════════════════════
@@ -39,7 +38,10 @@ from .conftest import (
 class TestIndicatorBounds:
     """Tests für mathematische Bounds von Indikatoren."""
 
-    @given(data=multi_tf_candle_data(), period=indicator_periods(min_period=2, max_period=50))
+    @given(
+        data=multi_tf_candle_data(),
+        period=indicator_periods(min_period=2, max_period=50),
+    )
     @settings(max_examples=50)
     def test_ema_within_price_range(
         self,
@@ -68,7 +70,10 @@ class TestIndicatorBounds:
         assert valid_ema.min() >= min_close * 0.99, "EMA below minimum close"
         assert valid_ema.max() <= max_close * 1.01, "EMA above maximum close"
 
-    @given(data=multi_tf_candle_data(), period=indicator_periods(min_period=2, max_period=50))
+    @given(
+        data=multi_tf_candle_data(),
+        period=indicator_periods(min_period=2, max_period=50),
+    )
     @settings(max_examples=50)
     def test_sma_within_price_range(
         self,
@@ -95,7 +100,10 @@ class TestIndicatorBounds:
         assert valid_sma.min() >= min_close * 0.99, "SMA below minimum close"
         assert valid_sma.max() <= max_close * 1.01, "SMA above maximum close"
 
-    @given(data=multi_tf_candle_data(), period=indicator_periods(min_period=2, max_period=30))
+    @given(
+        data=multi_tf_candle_data(),
+        period=indicator_periods(min_period=2, max_period=30),
+    )
     @settings(max_examples=50)
     def test_rsi_between_0_and_100(
         self,
@@ -115,7 +123,10 @@ class TestIndicatorBounds:
         assert valid_rsi.min() >= 0.0, f"RSI below 0: {valid_rsi.min()}"
         assert valid_rsi.max() <= 100.0, f"RSI above 100: {valid_rsi.max()}"
 
-    @given(data=multi_tf_candle_data(), period=indicator_periods(min_period=2, max_period=30))
+    @given(
+        data=multi_tf_candle_data(),
+        period=indicator_periods(min_period=2, max_period=30),
+    )
     @settings(max_examples=50)
     def test_atr_non_negative(
         self,
@@ -134,7 +145,10 @@ class TestIndicatorBounds:
 
         assert valid_atr.min() >= 0.0, f"ATR negative: {valid_atr.min()}"
 
-    @given(data=multi_tf_candle_data(), period=indicator_periods(min_period=5, max_period=30))
+    @given(
+        data=multi_tf_candle_data(),
+        period=indicator_periods(min_period=5, max_period=30),
+    )
     @settings(max_examples=50)
     def test_bollinger_band_ordering(
         self,
@@ -161,7 +175,10 @@ class TestIndicatorBounds:
         # Middle >= Lower
         assert (middle_valid >= lower_valid - 1e-10).all(), "Middle < Lower"
 
-    @given(data=multi_tf_candle_data(), period=indicator_periods(min_period=5, max_period=30))
+    @given(
+        data=multi_tf_candle_data(),
+        period=indicator_periods(min_period=5, max_period=30),
+    )
     @settings(max_examples=50)
     def test_dmi_bounds(
         self,
@@ -195,7 +212,10 @@ class TestIndicatorBounds:
 class TestIndicatorDeterminism:
     """Tests für Determinismus der Indikatoren."""
 
-    @given(data=multi_tf_candle_data(), period=indicator_periods(min_period=5, max_period=30))
+    @given(
+        data=multi_tf_candle_data(),
+        period=indicator_periods(min_period=5, max_period=30),
+    )
     @settings(max_examples=30)
     def test_ema_deterministic(
         self,
@@ -212,7 +232,10 @@ class TestIndicatorDeterminism:
 
         pd.testing.assert_series_equal(ema1, ema2, check_exact=True)
 
-    @given(data=multi_tf_candle_data(), period=indicator_periods(min_period=5, max_period=30))
+    @given(
+        data=multi_tf_candle_data(),
+        period=indicator_periods(min_period=5, max_period=30),
+    )
     @settings(max_examples=30)
     def test_rsi_deterministic(
         self,
@@ -229,7 +252,10 @@ class TestIndicatorDeterminism:
 
         pd.testing.assert_series_equal(rsi1, rsi2, check_exact=True)
 
-    @given(data=multi_tf_candle_data(), period=indicator_periods(min_period=5, max_period=30))
+    @given(
+        data=multi_tf_candle_data(),
+        period=indicator_periods(min_period=5, max_period=30),
+    )
     @settings(max_examples=30)
     def test_macd_deterministic(
         self,
@@ -313,13 +339,17 @@ class TestNumericalStability:
         ema = cache.ema("M5", "bid", 10)
         valid_ema = ema.dropna()
         if len(valid_ema) > 0:
-            assert np.allclose(valid_ema, 1.0, rtol=1e-6), "EMA not stable at constant price"
+            assert np.allclose(
+                valid_ema, 1.0, rtol=1e-6
+            ), "EMA not stable at constant price"
 
         # ATR sollte 0 sein (keine Bewegung)
         atr = cache.atr("M5", "bid", 14)
         valid_atr = atr.dropna()
         if len(valid_atr) > 0:
-            assert np.allclose(valid_atr, 0.0, atol=1e-10), "ATR not zero at constant price"
+            assert np.allclose(
+                valid_atr, 0.0, atol=1e-10
+            ), "ATR not zero at constant price"
 
         # RSI sollte 50 sein oder NaN (keine Bewegung)
         # Bei konstanten Preisen ist delta=0, gain=0, loss=0
@@ -401,7 +431,10 @@ class TestNumericalStability:
 class TestCachingConsistency:
     """Tests dass Caching keine Inkonsistenzen verursacht."""
 
-    @given(data=multi_tf_candle_data(), period=indicator_periods(min_period=5, max_period=30))
+    @given(
+        data=multi_tf_candle_data(),
+        period=indicator_periods(min_period=5, max_period=30),
+    )
     @settings(max_examples=30)
     def test_cached_equals_fresh(
         self,

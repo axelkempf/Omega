@@ -85,7 +85,9 @@ class SliceView:
     def __init__(self, candle: Optional[Any]) -> None:
         self.candle = candle
 
-    def latest(self, tf: Optional[str] = None, price_type: str = "bid") -> Optional[Any]:
+    def latest(
+        self, tf: Optional[str] = None, price_type: str = "bid"
+    ) -> Optional[Any]:
         """
         Gibt die aktuelle Candle zurück.
         """

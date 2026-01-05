@@ -69,7 +69,9 @@ def _configure_optuna_experimental_warnings() -> None:
         return
 
     try:
-        from optuna._experimental import ExperimentalWarning  # type: ignore[attr-defined]
+        from optuna._experimental import (
+            ExperimentalWarning,  # type: ignore[attr-defined]
+        )
     except Exception:
         return
 
@@ -203,7 +205,9 @@ def _build_trial_config(
 def _evaluate_config(
     conf: Dict[str, Any],
     preloaded_data: Optional[Dict[str, Any]] = None,
-    _prealigned_cache: Optional[Dict[Tuple[Optional[str], str, str, str], Tuple[Any, ...]]] = None,
+    _prealigned_cache: Optional[
+        Dict[Tuple[Optional[str], str, str, str], Tuple[Any, ...]]
+    ] = None,
 ) -> Dict[str, Any]:
     """Führt Backtest aus und gibt Metrik-Dict zurück (mit sicheren Defaults)."""
     prealigned = None
@@ -245,7 +249,10 @@ def _evaluate_config(
 
 
 def _jitter_value(
-    val: Any, space: Dict[str, Any], frac: float, rnd: Optional[Callable[[], float]] = None
+    val: Any,
+    space: Dict[str, Any],
+    frac: float,
+    rnd: Optional[Callable[[], float]] = None,
 ) -> Any:
     """Jitter für float/int Parameter innerhalb der Bounds."""
     if rnd is None:
@@ -472,7 +479,9 @@ def optimize_strategy_with_optuna_pareto(
 
         # === CV-Auswertung
         fold_metrics = []
-        prealigned_cache: Dict[Tuple[Optional[str], str, str, str], Tuple[Any, ...]] = {}
+        prealigned_cache: Dict[Tuple[Optional[str], str, str, str], Tuple[Any, ...]] = (
+            {}
+        )
         try:
             for fold_idx, (s, e) in enumerate(cv_splits):
                 conf_fold = _build_trial_config(
@@ -603,6 +612,7 @@ def optimize_strategy_with_optuna_pareto(
         avg_r = base_scores["avg_r"]
         winrate = base_scores["winrate"]
         drawdown = base_scores["drawdown"]
+
         # Für konsistente Darstellung downstream runden wir die im Study gespeicherten User-Attribute
         def r2(x: float) -> float:
             return float(round(float(x), 2))

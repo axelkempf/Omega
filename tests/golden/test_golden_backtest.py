@@ -29,6 +29,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
+from backtest_engine.core.indicator_cache import IndicatorCache
 from tests.golden.conftest import (
     GoldenBacktestResult,
     GoldenFileManager,
@@ -38,7 +39,6 @@ from tests.golden.conftest import (
     create_metadata,
     set_deterministic_seed,
 )
-from backtest_engine.core.indicator_cache import IndicatorCache
 
 # ==============================================================================
 # FIXTURES
@@ -153,7 +153,9 @@ def create_backtest_result_from_mock(
         trade_count=len(trades),
         trade_hashes=trade_hashes,
         equity_curve_hash=equity_hash,
-        final_equity=float(equity_curve["equity"].iloc[-1]) if len(equity_curve) > 0 else 0.0,
+        final_equity=(
+            float(equity_curve["equity"].iloc[-1]) if len(equity_curve) > 0 else 0.0
+        ),
         total_pnl=float(metrics.get("net_profit_eur", 0.0)),
     )
 
@@ -311,7 +313,9 @@ class TestTradeGenerationDeterminism:
         signals1 = generate_signals(minimal_ohlcv_data, seed=42)
         signals2 = generate_signals(minimal_ohlcv_data, seed=42)
 
-        assert signals1 == signals2, "Signal sequences should be identical with same seed"
+        assert (
+            signals1 == signals2
+        ), "Signal sequences should be identical with same seed"
 
     def test_different_seeds_produce_different_results(
         self, minimal_ohlcv_data: pd.DataFrame
@@ -377,20 +381,30 @@ class TestGoldenFileBacktest:
                 "close": row["Close"],
             }
 
-            outputs["ema_10"].append(cache.ema(candle, length=10, key="close", prefix="10"))
-            outputs["ema_20"].append(cache.ema(candle, length=20, key="close", prefix="20"))
+            outputs["ema_10"].append(
+                cache.ema(candle, length=10, key="close", prefix="10")
+            )
+            outputs["ema_20"].append(
+                cache.ema(candle, length=20, key="close", prefix="20")
+            )
             outputs["rsi_14"].append(cache.rsi(candle, length=14, key="close"))
             outputs["atr_14"].append(cache.atr(candle, length=14))
 
         # Berechne Hash des gesamten Outputs
         output_hash = compute_dict_hash(
-            {k: [v if v is not None else "None" for v in vals] for k, vals in outputs.items()}
+            {
+                k: [v if v is not None else "None" for v in vals]
+                for k, vals in outputs.items()
+            }
         )
 
         # Erstelle Golden-File Result
         result = GoldenBacktestResult(
             metadata=create_metadata(42, "IndicatorCache golden output test"),
-            summary_metrics={"output_hash": output_hash, "n_bars": len(minimal_ohlcv_data)},
+            summary_metrics={
+                "output_hash": output_hash,
+                "n_bars": len(minimal_ohlcv_data),
+            },
             trade_count=0,
             trade_hashes=[],
             equity_curve_hash="",
@@ -401,7 +415,10 @@ class TestGoldenFileBacktest:
         # Vergleiche oder erstelle Referenz
         try:
             comparison = golden_manager.compare_backtest_results(
-                "indicator_cache_output", result, metric_tolerance=1e-10, strict_trades=False
+                "indicator_cache_output",
+                result,
+                metric_tolerance=1e-10,
+                strict_trades=False,
             )
             assert comparison["status"] == "match"
         except Exception:
@@ -525,7 +542,10 @@ class TestReproducibilityAcrossRuns:
                 if ema is not None:
                     results.append(round(ema, 10))
 
-            return {"ema_values": results, "hash": compute_dict_hash({"values": results})}
+            return {
+                "ema_values": results,
+                "hash": compute_dict_hash({"values": results}),
+            }
 
         # Führe 3 identische Runs durch
         run1 = run_simulation(42)
@@ -655,9 +675,7 @@ class TestGoldenFileManagement:
         assert loaded.final_equity == result.final_equity
         assert loaded.trade_hashes == result.trade_hashes
 
-    def test_comparison_detects_differences(
-        self, tmp_path: Path
-    ):
+    def test_comparison_detects_differences(self, tmp_path: Path):
         """Vergleich erkennt Unterschiede zwischen Referenz und aktuellem Ergebnis."""
         manager = GoldenFileManager(tmp_path / "golden")
 
@@ -692,9 +710,7 @@ class TestGoldenFileManagement:
         assert "trade_count" in exc_info.value.details
         assert "final_equity" in exc_info.value.details
 
-    def test_nonexistent_reference_returns_no_reference(
-        self, tmp_path: Path
-    ):
+    def test_nonexistent_reference_returns_no_reference(self, tmp_path: Path):
         """Nicht existierende Referenz gibt no_reference Status zurück."""
         manager = GoldenFileManager(tmp_path / "golden")
 

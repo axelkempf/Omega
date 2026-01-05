@@ -46,7 +46,6 @@ from .conftest import (
     generate_synthetic_trades_df,
 )
 
-
 # ══════════════════════════════════════════════════════════════════════════════
 # HELPER: Synthetic Metrics Generators
 # ══════════════════════════════════════════════════════════════════════════════
@@ -89,8 +88,7 @@ def generate_yearly_profits(
     rng = np.random.default_rng(seed)
     base_year = 2020
     return {
-        base_year + i: float(rng.normal(avg_profit, std_profit))
-        for i in range(n_years)
+        base_year + i: float(rng.normal(avg_profit, std_profit)) for i in range(n_years)
     }
 
 
@@ -322,9 +320,7 @@ class TestStabilityScoreBenchmarks:
         result = benchmark(compute)
         assert 0.0 <= result <= 1.0
 
-    def test_stability_score_with_durations_5_years(
-        self, benchmark: Any
-    ) -> None:
+    def test_stability_score_with_durations_5_years(self, benchmark: Any) -> None:
         """Benchmark: Stability Score mit Durations (5 Jahre)."""
         profits = generate_yearly_profits(5)
         durations = generate_yearly_durations(profits)
@@ -427,9 +423,7 @@ class TestCombinedRatingBenchmarks:
             cost_shock = compute_multi_factor_cost_shock_score(
                 base, shocked_metrics, penalty_cap=0.5
             )
-            stability = compute_stability_score_from_yearly_profits(
-                yearly_profits
-            )
+            stability = compute_stability_score_from_yearly_profits(yearly_profits)
             dropout = simulate_trade_dropout_metrics(
                 trades_df,
                 dropout_frac=0.1,
@@ -471,9 +465,7 @@ class TestCombinedRatingBenchmarks:
             cost_shock = compute_multi_factor_cost_shock_score(
                 base, shocked_metrics, penalty_cap=0.5
             )
-            stability = compute_stability_score_from_yearly_profits(
-                yearly_profits
-            )
+            stability = compute_stability_score_from_yearly_profits(yearly_profits)
             dropout = simulate_trade_dropout_metrics(
                 trades_df,
                 dropout_frac=0.15,
@@ -536,9 +528,7 @@ class TestVectorizedPerformance:
             return {
                 "total_profit": float(trades_df["result"].sum()),
                 "avg_r": float(trades_df["r_multiple"].mean()),
-                "win_rate": float(
-                    (trades_df["r_multiple"] > 0).sum() / len(trades_df)
-                ),
+                "win_rate": float((trades_df["r_multiple"] > 0).sum() / len(trades_df)),
                 "max_dd": float(
                     (
                         trades_df["result"].cumsum()

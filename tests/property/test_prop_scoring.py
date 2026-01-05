@@ -31,7 +31,6 @@ from backtest_engine.rating.stability_score import (
 
 from .conftest import percentage_values, trade_returns, yearly_profits_dict
 
-
 # ══════════════════════════════════════════════════════════════════════════════
 # CUSTOM STRATEGIES FOR SCORING
 # ══════════════════════════════════════════════════════════════════════════════
@@ -44,10 +43,14 @@ def base_metrics(
     max_profit: float = 100000.0,
 ) -> Dict[str, float]:
     """Strategy für base_metrics Dict."""
-    profit = draw(st.floats(min_value=min_profit, max_value=max_profit, allow_nan=False))
+    profit = draw(
+        st.floats(min_value=min_profit, max_value=max_profit, allow_nan=False)
+    )
     avg_r = draw(st.floats(min_value=-5.0, max_value=10.0, allow_nan=False))
     winrate = draw(st.floats(min_value=0.0, max_value=1.0, allow_nan=False))
-    drawdown = draw(st.floats(min_value=0.0, max_value=abs(profit) * 2 + 1000, allow_nan=False))
+    drawdown = draw(
+        st.floats(min_value=0.0, max_value=abs(profit) * 2 + 1000, allow_nan=False)
+    )
 
     return {
         "profit": profit,
@@ -74,7 +77,9 @@ def jitter_metrics_list(
         profit_factor = draw(st.floats(min_value=1.0 - max_degradation, max_value=1.0))
         avg_r_factor = draw(st.floats(min_value=1.0 - max_degradation, max_value=1.0))
         winrate_factor = draw(st.floats(min_value=1.0 - max_degradation, max_value=1.0))
-        drawdown_factor = draw(st.floats(min_value=1.0, max_value=1.0 + max_degradation))
+        drawdown_factor = draw(
+            st.floats(min_value=1.0, max_value=1.0 + max_degradation)
+        )
 
         jitter = {
             "profit": base["profit"] * profit_factor,
@@ -219,7 +224,9 @@ class TestRobustnessScoreMonotonicity:
         score_good = compute_robustness_score_1(base, good_jitter, penalty_cap=0.5)
         score_bad = compute_robustness_score_1(base, bad_jitter, penalty_cap=0.5)
 
-        assert score_good > score_bad, f"Monotonicity violated: {score_good} <= {score_bad}"
+        assert (
+            score_good > score_bad
+        ), f"Monotonicity violated: {score_good} <= {score_bad}"
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -293,9 +300,9 @@ class TestStabilityScoreConsistency:
 
         if wmape >= 0 and np.isfinite(wmape):
             expected_score = 1.0 / (1.0 + wmape)
-            assert abs(score - expected_score) < 1e-9, (
-                f"Inconsistent: score={score}, wmape={wmape}, expected={expected_score}"
-            )
+            assert (
+                abs(score - expected_score) < 1e-9
+            ), f"Inconsistent: score={score}, wmape={wmape}, expected={expected_score}"
 
 
 class TestStabilityScoreMonotonicity:
@@ -312,9 +319,9 @@ class TestStabilityScoreMonotonicity:
         score_stable = compute_stability_score_from_yearly_profits(stable)
         score_volatile = compute_stability_score_from_yearly_profits(volatile)
 
-        assert score_stable > score_volatile, (
-            f"Monotonicity violated: stable={score_stable} <= volatile={score_volatile}"
-        )
+        assert (
+            score_stable > score_volatile
+        ), f"Monotonicity violated: stable={score_stable} <= volatile={score_volatile}"
 
 
 # ══════════════════════════════════════════════════════════════════════════════

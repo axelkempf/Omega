@@ -36,7 +36,9 @@ class ExecutionSimulator:
         risk_per_trade: float = 100.0,
         slippage_model: Optional[SlippageModel] = None,
         fee_model: Optional[FeeModel] = None,
-        symbol_specs: Optional[Union[Dict[str, SymbolSpec], SymbolSpecsRegistry]] = None,
+        symbol_specs: Optional[
+            Union[Dict[str, SymbolSpec], SymbolSpecsRegistry]
+        ] = None,
         lot_sizer: Optional[LotSizer] = None,
         commission_model: Optional[CommissionModel] = None,
         rate_provider: Optional[RateProvider] = None,
@@ -307,7 +309,9 @@ class ExecutionSimulator:
                 fee, signal.timestamp, kind="entry", position=position
             )
 
-    def evaluate_exits(self, bid_candle: Candle, ask_candle: Optional[Candle] = None) -> None:
+    def evaluate_exits(
+        self, bid_candle: Candle, ask_candle: Optional[Candle] = None
+    ) -> None:
         """
         Prüft, ob offene Positionen geschlossen werden müssen.
         """
@@ -327,7 +331,9 @@ class ExecutionSimulator:
             if pos.status == "pending" and self.check_if_entry_triggered(
                 pos, bid_candle, ask_candle
             ):
-                entry_candle = ask_candle if pos.direction == "long" and ask_candle else bid_candle
+                entry_candle = (
+                    ask_candle if pos.direction == "long" and ask_candle else bid_candle
+                )
                 self.trigger_entry(pos, entry_candle)
 
             if pos.status != "open":
@@ -352,7 +358,9 @@ class ExecutionSimulator:
                     reason = "stop_loss"
                 elif tp_hit:
                     if pos.order_type == "limit":
-                        ref_candle = ask_candle if ask_candle is not None else bid_candle
+                        ref_candle = (
+                            ask_candle if ask_candle is not None else bid_candle
+                        )
                         close_price = (
                             bid_candle.close
                             if pos.direction == "long"
