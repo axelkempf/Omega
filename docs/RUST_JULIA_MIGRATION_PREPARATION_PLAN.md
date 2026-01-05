@@ -146,18 +146,83 @@ Dieses Dokument beschreibt den systematischen Vorbereitungsplan zur sicheren, in
 
 ### Phase 2: Interface-Definition
 
-| Task-ID | Beschreibung | Abhängigkeiten | Aufwand | Akzeptanzkriterien |
-|---------|--------------|----------------|---------|-------------------|
-| **P2-01** | Input/Output-Typen für `indicator_cache.py` spezifizieren | P1-03 | M | Dokumentierte Signaturen mit Numpy-DTypes, Shape-Constraints |
-| **P2-02** | Input/Output-Typen für `event_engine.py` spezifizieren | P1-06 | M | Event-Typen als TypedDict/Pydantic; Callback-Signaturen |
-| **P2-03** | Input/Output-Typen für `execution_simulator.py` spezifizieren | P1-06 | M | Trade-Execution-Typen, Position-States |
-| **P2-04** | Input/Output-Typen für Rating-Module spezifizieren | P1-07 | M | Score-Typen, Metric-Dicts, Confidence-Intervals |
-| **P2-05** | Serialisierungsformat evaluieren und entscheiden | P2-01 | M | ADR mit Vergleich: Arrow IPC vs msgpack vs JSON; Entscheidung dokumentiert |
-| **P2-06** | Arrow-Schema-Definitionen erstellen | P2-05 | L | `src/shared/arrow_schemas.py` mit allen FFI-relevanten Schemas |
-| **P2-07** | Fehlerbehandlungs-Konvention definieren | P2-01 | S | ADR: Exceptions vs Result-Types; Error-Codes für FFI |
-| **P2-08** | FFI-Interface-Dokumentation erstellen | P2-01 bis P2-04 | L | `docs/ffi/` mit Interface-Specs pro Migrations-Kandidat |
-| **P2-09** | Nullability-Konvention für FFI festlegen | P2-07 | S | Dokumentierte Regeln für Optional-Handling an FFI-Grenzen |
-| **P2-10** | Data-Flow-Diagramme für Migrations-Kandidaten | P2-08 | M | PlantUML/Mermaid Diagramme in `docs/ffi/` |
+| Task-ID | Beschreibung | Abhängigkeiten | Aufwand | Status |
+|---------|--------------|----------------|---------|--------|
+| **P2-01** | Input/Output-Typen für `indicator_cache.py` spezifizieren | P1-03 | M | ✅ |
+| **P2-02** | Input/Output-Typen für `event_engine.py` spezifizieren | P1-06 | M | ✅ |
+| **P2-03** | Input/Output-Typen für `execution_simulator.py` spezifizieren | P1-06 | M | ✅ |
+| **P2-04** | Input/Output-Typen für Rating-Module spezifizieren | P1-07 | M | ✅ |
+| **P2-05** | Serialisierungsformat evaluieren und entscheiden | P2-01 | M | ✅ |
+| **P2-06** | Arrow-Schema-Definitionen erstellen | P2-05 | L | ✅ |
+| **P2-07** | Fehlerbehandlungs-Konvention definieren | P2-01 | S | ✅ |
+| **P2-08** | FFI-Interface-Dokumentation erstellen | P2-01 bis P2-04 | L | ✅ |
+| **P2-09** | Nullability-Konvention für FFI festlegen | P2-07 | S | ✅ |
+| **P2-10** | Data-Flow-Diagramme für Migrations-Kandidaten | P2-08 | M | ✅ |
+
+**Phase 2 Status: ✅ 100% KOMPLETT** (P2-01 bis P2-10 abgeschlossen am 2026-01-05)
+
+**Phase 2 Fortschritt:**
+
+- **P2-01 (indicator_cache.py):** ✅ **KOMPLETT** (2026-01-05)
+  - Vollständige Interface-Spezifikation in `docs/ffi/indicator_cache.md`
+  - AlignedMultiCandleData Arrow Schema dokumentiert
+  - Alle Indicator-Funktionen (EMA, RSI, MACD, Bollinger, ATR, DMI, Z-Score) mit Signaturen
+  - Cache-Key Struktur, Performance-Charakteristika, Rust Migration Strategy
+  
+- **P2-02 (event_engine.py):** ✅ **KOMPLETT** (2026-01-05)
+  - Vollständige Interface-Spezifikation in `docs/ffi/event_engine.md`
+  - EventEngine und CrossSymbolEventEngine State Machines dokumentiert
+  - TradeSignal Arrow Schema, Callback-Signaturen
+  - 3 Migration Strategies (Full Rust, Hybrid, Batch Processing)
+
+- **P2-03 (execution_simulator.py):** ✅ **KOMPLETT** (2026-01-05)
+  - Vollständige Interface-Spezifikation in `docs/ffi/execution_simulator.md`
+  - PortfolioPosition State Machine und Arrow Schema
+  - Signal Processing, Entry Trigger, Exit Evaluation APIs
+  - Position Sizing Logic, Slippage/Fee Models
+
+- **P2-04 (Rating-Module):** ✅ **KOMPLETT** (2026-01-05)
+  - Vollständige Interface-Spezifikation in `docs/ffi/rating_modules.md`
+  - 6 Module: strategy_rating, robustness_score_1, stability_score, cost_shock_score, trade_dropout_score, stress_penalty
+  - MetricsDict Arrow Schema, Score-Berechnungs-Algorithmen
+  - Rust Implementation Examples, Benchmark Targets
+
+- **P2-05 (Serialisierungsformat):** ✅ **KOMPLETT** (2026-01-05)
+  - ADR-0002 in `docs/adr/ADR-0002-serialization-format.md`
+  - Apache Arrow IPC als primäres Format, msgpack als Fallback, JSON für Debug
+  - Benchmark-Ergebnisse und Entscheidungskriterien dokumentiert
+  - Typ-Mapping Python ↔ Arrow ↔ Rust ↔ Julia
+
+- **P2-06 (Arrow-Schema-Definitionen):** ✅ **KOMPLETT** (2026-01-05)
+  - `src/shared/arrow_schemas.py` mit 6 Schemas erstellt
+  - OHLCV, Trade Signal, Position, Indicator, Rating Score, Equity Curve
+  - Factory-Functions für RecordBatch-Erstellung
+  - Zero-Copy Utility Functions (numpy_to_arrow_buffer, arrow_to_numpy_zero_copy)
+
+- **P2-07 (Fehlerbehandlungs-Konvention):** ✅ **KOMPLETT** (2026-01-05)
+  - ADR-0003 in `docs/adr/ADR-0003-error-handling.md`
+  - `src/shared/error_codes.py`: ErrorCode IntEnum (6 Kategorien, ~40 Codes)
+  - `src/shared/exceptions.py`: OmegaError Hierarchie mit FFI-Integration
+  - Hybrid-Ansatz: Python Exceptions + Rust Result<T,E> + FFI ErrorCode
+
+- **P2-08 (FFI-Dokumentation):** ✅ **KOMPLETT** (2026-01-05)
+  - `docs/ffi/README.md` als vollständiger Index erstellt
+  - 4 detaillierte Interface-Spezifikationen erstellt
+  - Konventionen (Typ-Notation, FFI-Boundary-Marker, Serialisierung) dokumentiert
+  - ADR-Links und Shared-Code-Referenzen
+
+- **P2-09 (Nullability-Konvention):** ✅ **KOMPLETT** (2026-01-05)
+  - `docs/ffi/nullability-convention.md`
+  - None vs NaN Semantik dokumentiert
+  - Typ-Mapping: Optional[T] → Option<T> → Union{T, Nothing}
+  - Validity-Mask Pattern für numerische Arrays
+  - Nullability pro Datentyp (OHLCV, Signals, Positions, Indicators)
+
+- **P2-10 (Data-Flow-Diagramme):** ✅ **KOMPLETT** (2026-01-05)
+  - `docs/ffi/data-flow-diagrams.md`
+  - 4 detaillierte ASCII-Diagramme: Indicator Cache, Event Engine, Execution Simulator, Rating Pipeline
+  - End-to-End Backtest Flow Diagramm
+  - FFI Boundary Patterns und Hot-Path Prioritäten
 
 ### Phase 3: Test-Infrastruktur
 
