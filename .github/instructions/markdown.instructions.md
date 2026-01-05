@@ -34,18 +34,18 @@ Follow these guidelines for formatting and structuring your markdown content:
 
 Ensure compliance with the following validation requirements:
 
-- **Front Matter**: Include the following fields in the YAML front matter:
+- **Front Matter for ADRs**: Include these fields: 
+  - `title`: ADR title (e.g., "ADR-0001: Migration Strategy")
+  - `status`: Draft | Proposed | Accepted | Deprecated | Superseded
+  - `date`: ISO 8601 date
+  - `deciders`: List of decision makers
+  - `consulted`: List of consulted stakeholders
 
-  - `post_title`: The title of the post.
-  - `author1`: The primary author of the post.
-  - `post_slug`: The URL slug for the post.
-  - `microsoft_alias`: The Microsoft alias of the author.
-  - `featured_image`: The URL of the featured image.
-  - `categories`: The categories for the post. These categories must be from the list in /categories.txt.
-  - `tags`: The tags for the post.
-  - `ai_note`: Indicate if AI was used in the creation of the post.
-  - `summary`: A brief summary of the post. Recommend a summary based on the content when possible.
-  - `post_date`: The publication date of the post.
+- **Front Matter for Runbooks**: Include these fields:
+  - `module`: Target module (e.g., `indicator_cache`)
+  - `phase`: Migration phase (1-6)
+  - `prerequisites`: List of required tasks
+  - `rollback_procedure`: Link to rollback steps
 
 - **Content Rules**: Ensure that the content follows the markdown content rules specified above.
 - **Formatting**: Ensure that the content is properly formatted and structured according to the guidelines.
