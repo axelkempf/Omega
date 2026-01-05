@@ -277,3 +277,4 @@ error_response = {
 | Datum | Autor | Änderung |
 |-------|-------|----------|
 | 2026-01-05 | AI Agent | Initiale Version (P2-05) |
+| 2026-01-05 | AI Agent | Finalisiert (P5-02); Benchmark-Ergebnisse validiert |

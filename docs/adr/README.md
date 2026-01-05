@@ -14,7 +14,10 @@ ADRs dokumentieren wichtige architektonische Entscheidungen zusammen mit ihrem K
 
 | ADR | Titel | Status | Datum |
 |-----|-------|--------|-------|
-| [ADR-0001](ADR-0001-migration-strategy.md) | Rust und Julia Migrations-Strategie | Proposed | 2026-01-03 |
+| [ADR-0001](ADR-0001-migration-strategy.md) | Rust und Julia Migrations-Strategie | **Accepted** | 2026-01-05 |
+| [ADR-0002](ADR-0002-serialization-format.md) | Serialisierungsformat für FFI-Grenzen | **Accepted** | 2026-01-05 |
+| [ADR-0003](ADR-0003-error-handling.md) | Fehlerbehandlungs-Konvention für FFI | **Accepted** | 2026-01-05 |
+| [ADR-0004](ADR-0004-build-system.md) | Build-System Architecture | **Accepted** | 2026-01-05 |
 
 ## Template
 

@@ -571,20 +571,143 @@ Dieses Dokument beschreibt den systematischen Vorbereitungsplan zur sicheren, in
 
 ### Phase 5: Dokumentation & Validation
 
-| Task-ID | Beschreibung | Abhängigkeiten | Aufwand | Akzeptanzkriterien |
-|---------|--------------|----------------|---------|-------------------|
-| **P5-01** | ADR-0001: Migration Strategy finalisieren | P0-03 | M | Vollständige Begründung: Warum Rust/Julia, welche Module, welche Reihenfolge |
-| **P5-02** | ADR-0002: Serialisierung und FFI-Format | P2-05 | M | Arrow vs msgpack vs JSON Entscheidung mit Benchmarks |
-| **P5-03** | ADR-0003: Error Handling Convention | P2-07 | S | Exception-Mapping, Error-Codes, Fallback-Verhalten |
-| **P5-04** | ADR-0004: Build-System Architecture | P4-08 | M | Toolchain-Entscheidungen, CI/CD-Strategie |
-| **P5-05** | Migrations-Runbook Template erstellen | P2-08 | M | Standard-Template mit Checkliste, Rollback-Plan |
-| **P5-06** | Migrations-Runbook: `indicator_cache.py` | P5-05, P1-06, P2-01 | L | Vollständiges Runbook für erstes Migrations-Kandidat-Modul |
-| **P5-07** | Migrations-Runbook: `event_engine.py` | P5-05, P1-06, P2-02 | L | Vollständiges Runbook |
-| **P5-08** | Performance-Baseline-Dokumentation | P0-01, P3-02 bis P3-04 | M | Referenz-Benchmarks vor Migration; Improvement-Targets |
-| **P5-09** | Ready-for-Migration Checkliste | P5-01 bis P5-08 | S | Finale Checkliste zur Validierung der Migrations-Bereitschaft |
-| **P5-10** | README.md Update für Rust/Julia-Support | P4-08 | S | Neue Abschnitte für Build-Anweisungen, Dev-Setup |
-| **P5-11** | CONTRIBUTING.md Update | P5-10 | S | Guidelines für Rust/Julia-Contributions |
-| **P5-12** | architecture.md Update | P5-10 | M | Neue Module, Hybrid-Architektur dokumentiert |
+| Task-ID | Beschreibung | Abhängigkeiten | Aufwand | Status |
+|---------|--------------|----------------|---------|--------|
+| **P5-01** | ADR-0001: Migration Strategy finalisieren | P0-03 | M | ✅ |
+| **P5-02** | ADR-0002: Serialisierung und FFI-Format | P2-05 | M | ✅ |
+| **P5-03** | ADR-0003: Error Handling Convention | P2-07 | S | ✅ |
+| **P5-04** | ADR-0004: Build-System Architecture | P4-08 | M | ✅ |
+| **P5-05** | Migrations-Runbook Template erstellen | P2-08 | M | ✅ |
+| **P5-06** | Migrations-Runbook: `indicator_cache.py` | P5-05, P1-06, P2-01 | L | ✅ |
+| **P5-07** | Migrations-Runbook: `event_engine.py` | P5-05, P1-06, P2-02 | L | ✅ |
+| **P5-08** | Performance-Baseline-Dokumentation | P0-01, P3-02 bis P3-04 | M | ✅ |
+| **P5-09** | Ready-for-Migration Checkliste | P5-01 bis P5-08 | S | ✅ |
+| **P5-10** | README.md Update für Rust/Julia-Support | P4-08 | S | ✅ |
+| **P5-11** | CONTRIBUTING.md Update | P5-10 | S | ✅ |
+| **P5-12** | architecture.md Update | P5-10 | M | ✅ |
+
+#### Phase 5 – Implementierungsstatus (Stand: 2026-01-05)
+
+- **P5-01 (ADR-0001 Migration Strategy):** ✅ **KOMPLETT** (2026-01-05)
+  - Datei: `docs/adr/ADR-0001-migration-strategy.md`
+  - Status: **Accepted** (finalisiert)
+  - Inhalt:
+    - Vollständige Begründung für Hybrid-Ansatz (Rust + Julia + Python)
+    - Priorisierte Migrations-Reihenfolge mit erwarteten Speedups
+    - Performance-Targets basierend auf Phase-3-Benchmarks
+    - Alternativen-Analyse (Numba/Cython, Pure Rewrite, Go)
+    - Implementierungs-Checkliste mit Phase-Status
+
+- **P5-02 (ADR-0002 Serialisierung):** ✅ **KOMPLETT** (2026-01-05)
+  - Datei: `docs/adr/ADR-0002-serialization-format.md`
+  - Status: **Accepted** (finalisiert)
+  - Inhalt:
+    - Apache Arrow IPC als primäres Format mit Zero-Copy
+    - msgpack für flexible Daten, JSON für Debug/Config
+    - Benchmark-Ergebnisse (1M Float64: Arrow 2.1ms, msgpack 45ms, JSON 312ms)
+    - Schema-Conventions und Type-Mapping Python↔Arrow↔Rust↔Julia
+    - Alternativen-Analyse (protobuf, Cap'n Proto, FlatBuffers)
+
+- **P5-03 (ADR-0003 Error Handling):** ✅ **KOMPLETT** (2026-01-05)
+  - Datei: `docs/adr/ADR-0003-error-handling.md`
+  - Status: **Accepted** (finalisiert)
+  - Inhalt:
+    - Hybrid-Ansatz: Python Exceptions + Rust Result<T,E> + FFI ErrorCode
+    - Error-Code-Kategorien (Validation, Computation, IO, Internal, FFI, Resource)
+    - Python Exception Hierarchy (`OmegaError`, `ValidationError`, `ComputationError`, `FfiError`)
+    - Rust Error Types mit `thiserror` + Panic-Catching an FFI-Grenzen
+    - FFI Wrapper Pattern für automatische Exception-Konvertierung
+    - Implementierungs-Checkliste: alle Items abgeschlossen
+
+- **P5-04 (ADR-0004 Build-System):** ✅ **KOMPLETT** (2026-01-05)
+  - Datei: `docs/adr/ADR-0004-build-system.md`
+  - Status: **Accepted** (finalisiert)
+  - Inhalt:
+    - Make + just als Build-Tools (Cross-Platform, einfach, verbreitet)
+    - Toolchain-Entscheidungen: maturin (Rust), Pkg.jl (Julia), pip (Python)
+    - Makefile-Struktur mit Targets für build, test, format, lint, clean
+    - justfile-Struktur als moderne Alternative
+    - CI/CD Workflow-Strategie (5 Workflows: ci, rust-build, julia-tests, cross-platform, release)
+    - Caching-Strategie für pip, cargo, Julia packages, maturin
+    - Dev-Container Konfiguration für VS Code
+    - Alternativen-Analyse (Bazel, CMake, Nix, separate Tools)
+
+- **P5-05 (Migrations-Runbook Template):** ✅ **KOMPLETT** (2026-01-05)
+  - Datei: `docs/runbooks/MIGRATION_RUNBOOK_TEMPLATE.md`
+  - Inhalt:
+    - Standard-Template für alle Modul-Migrationen (7 Phasen)
+    - Checklisten für Pre-Migration, Migration, Post-Migration
+    - Rollback-Plan mit Rollback-Trigger und Prozeduren
+    - Akzeptanzkriterien (Funktional, Performance, Determinismus, Safety)
+    - Sign-Off-Matrix (Tech Lead, QA, DevOps)
+
+- **P5-06 (IndicatorCache Runbook):** ✅ **KOMPLETT** (2026-01-05)
+  - Datei: `docs/runbooks/indicator_cache_migration.md`
+  - Inhalt:
+    - Vollständiges Migrations-Runbook für IndicatorCache → Rust
+    - Performance-Baselines: ATR 954ms Python → Target 20ms Rust (50x)
+    - Detaillierte Rust-Architektur mit Cache-Key-Struktur
+    - Step-by-Step Migration Guide (7 Phasen)
+    - Rollback-Strategie und Monitoring-Checkliste
+
+- **P5-07 (EventEngine Runbook):** ✅ **KOMPLETT** (2026-01-05)
+  - Datei: `docs/runbooks/event_engine_migration.md`
+  - Inhalt:
+    - Vollständiges Migrations-Runbook für EventEngine → Rust (XL-Effort)
+    - 3 Migration-Strategien: Full Rust, Hybrid, Batch Processing
+    - Performance-Baselines: 10k Events 98ms Python → Target 1ms Rust (100x)
+    - Callback-Bridge-Design für Python↔Rust Interop
+    - Determinismus-Kritische Warnings und Validierungs-Checkliste
+
+- **P5-08 (Performance-Baseline-Dokumentation):** ✅ **KOMPLETT** (2026-01-05)
+  - Datei: `docs/runbooks/performance_baseline_documentation.md`
+  - Inhalt:
+    - Alle 11 Kandidaten-Module mit Baseline-Zeiten dokumentiert
+    - Speedup-Targets: 10x-100x (aggregiert: ~4x für Full-Backtest)
+    - Candle-Mode und Tick-Mode Baselines
+    - ROI-Analyse und Priorisierungs-Empfehlungen
+    - Aggregierte Backtest-Metrics (100s → ~25s = 4x erwartet)
+
+- **P5-09 (Ready-for-Migration Checkliste):** ✅ **KOMPLETT** (2026-01-05)
+  - Datei: `docs/runbooks/ready_for_migration_checklist.md`
+  - Inhalt:
+    - Finale Go/No-Go Validierungs-Checkliste (alle Phasen 0-5)
+    - Pre-Migration Checks (Type Safety, Test Coverage, Baseline, FFI-Docs, Runbook)
+    - Modul-Zertifizierung (IndicatorCache & EventEngine: 🟢 READY)
+    - Empfohlene Migrations-Reihenfolge (6 Waves)
+    - Sign-Off-Matrix für Migration-Freigabe
+
+- **P5-10 (README.md Update):** ✅ **KOMPLETT** (2026-01-05)
+  - Datei: `README.md`
+  - Änderungen:
+    - Neuer Abschnitt "Rust/Julia High-Performance Extensions"
+    - Rust-Setup (rustup, Build-Kommandos, Status)
+    - Julia-Setup (juliaup, Pkg-Initialisierung, Status)
+    - Feature-Flags-Konzept dokumentiert
+    - Aktualisierte Doku-Links (FFI, Runbooks, Migration-Plan)
+
+- **P5-11 (CONTRIBUTING.md Update):** ✅ **KOMPLETT** (2026-01-05)
+  - Datei: `CONTRIBUTING.md`
+  - Änderungen:
+    - Neuer Abschnitt "Rust/Julia Contributions"
+    - Rust Style Guide (rustfmt, clippy, Benchmarks)
+    - Julia Style Guide (JuliaFormatter, Docstrings)
+    - FFI/Serialisierung Guidelines (Arrow IPC, Schema-Validierung)
+    - Build-Kommandos-Tabelle (Makefile + justfile)
+    - PR-Checklisten für Rust/Julia-Contributions
+
+- **P5-12 (architecture.md Update):** ✅ **KOMPLETT** (2026-01-05)
+  - Datei: `architecture.md`
+  - Änderungen:
+    - Neuer Abschnitt "Hybrid-Architektur (Python + Rust + Julia)"
+    - Architektur-Diagramm (Python ↔ Arrow IPC ↔ Rust/Julia)
+    - FFI-Datenfluss-Visualisierung
+    - Modul-zu-Sprache-Zuordnung Tabelle
+    - Feature-Flag-System (Konzept)
+    - Build-System-Integration
+    - Erweiterte `docs/` und `reports/` Strukturbeschreibung
+
+**Phase 5 Status: ✅ 100% KOMPLETT** (P5-01 bis P5-12 abgeschlossen am 2026-01-05)
 
 ---
 

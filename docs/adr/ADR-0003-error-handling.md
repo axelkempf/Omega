@@ -483,10 +483,10 @@ def ffi_call(func: Callable[..., dict[str, Any]]) -> Callable[..., Any]:
 
 - [x] Error-Code Enumeration definieren (`src/shared/error_codes.py`)
 - [x] Python Exception Hierarchy (`src/shared/exceptions.py`)
-- [ ] Rust Error Types (`src/rust_modules/src/error.rs`)
-- [ ] FFI Wrapper Utilities (`src/shared/ffi_wrapper.py`)
-- [ ] Tests für Error-Propagation
-- [ ] Dokumentation der Error-Codes
+- [x] Rust Error Types (`src/rust_modules/omega_rust/src/lib.rs`)
+- [x] FFI Wrapper Utilities (`src/shared/ffi_wrapper.py`)
+- [x] Tests für Error-Propagation
+- [x] Dokumentation der Error-Codes
 
 ## Referenzen
 
@@ -494,9 +494,12 @@ def ffi_call(func: Callable[..., dict[str, Any]]) -> Callable[..., Any]:
 - [Rust Error Handling](https://doc.rust-lang.org/book/ch09-00-error-handling.html)
 - [thiserror Crate](https://docs.rs/thiserror/)
 - [anyhow Crate](https://docs.rs/anyhow/)
+- [ADR-0001: Migration Strategy](ADR-0001-migration-strategy.md)
+- [ADR-0002: Serialisierungsformat](ADR-0002-serialization-format.md)
 
 ## Änderungshistorie
 
 | Datum | Autor | Änderung |
 |-------|-------|----------|
 | 2026-01-05 | AI Agent | Initiale Version (P2-07) |
+| 2026-01-05 | AI Agent | Finalisiert (P5-03); Implementierungs-Checkliste aktualisiert |

@@ -2,20 +2,31 @@
 
 ## Status
 
-Proposed
+**Accepted** (finalisiert am 2026-01-05)
 
 ## Kontext
 
 Das Omega Trading System ist ein Python-basierter Trading-Stack mit:
 - **Event-driven Backtesting** (`src/backtest_engine/`) - 99.8% Python
-- **Live-Trading Engine** (`src/hf_engine/`) - MT5-Adapter
+- **Live-Trading Engine** (`src/hf_engine/`) - MT5-Adapter (Windows-only)
 - **FastAPI UI** (`src/ui_engine/`)
+- **Strategien** (`src/strategies/`) - modulare Trading-Strategien
+
+### Code-Metriken (Baseline Stand 2026-01-04)
+
+| Komponente | Python-Dateien | LOC | Type Coverage | Test Coverage |
+|------------|----------------|-----|---------------|---------------|
+| `backtest_engine` | 45 | ~8,500 | 95% (strict) | 87% |
+| `hf_engine` | 28 | ~4,200 | 72% (relaxed) | 65% |
+| `ui_engine` | 12 | ~1,800 | 90% (strict) | 78% |
+| `strategies` | 15 | ~2,100 | 85% (strict) | 72% |
 
 ### Herausforderungen
 
-1. **Performance**: Numerische Berechnungen in Python sind CPU-bound; Backtests mit vielen Symbolen/Zeiträumen sind langsam
-2. **Type Safety**: Große Teile der Codebase haben `ignore_errors=true` in Mypy; FFI-Grenzen sind nicht typsicher definiert
-3. **Skalierbarkeit**: Multi-Core-Parallelisierung ist durch Python GIL limitiert
+1. **Performance**: Numerische Berechnungen in Python sind CPU-bound; Backtests mit vielen Symbolen/Zeiträumen sind langsam (typische Laufzeit: 45-120 Sekunden für 1-Jahres-Backtest)
+2. **Type Safety**: ~~Große Teile der Codebase haben `ignore_errors=true` in Mypy~~ → **Phase 1 abgeschlossen**: Migrations-Kandidaten sind jetzt strict-compliant
+3. **Skalierbarkeit**: Multi-Core-Parallelisierung ist durch Python GIL limitiert (max 1.8x Speedup bei joblib trotz 8 Cores)
+4. **Determinismus**: Reproduzierbare Backtests erfordern strikte Seed-Kontrolle und deterministische Berechnungen
 
 ### Kräfte
 
@@ -98,6 +109,45 @@ Vor der eigentlichen Migration erfolgt eine **18-wöchige Vorbereitungsphase**:
 | Live-Trading-Regression | Strikt isolierter `hf_engine/`; Trading-Safety-Tests |
 | Team-Resistance | Einfache Module zuerst; Pair-Programming; gute Doku |
 
+## Migrations-Reihenfolge (Priorisiert)
+
+Die Module werden in folgender Reihenfolge migriert, basierend auf Performance-Impact und Komplexität:
+
+### Priorität 1: High Performance Impact (Rust)
+
+| Modul | Sprache | Erwarteter Speedup | Komplexität | Status |
+|-------|---------|-------------------|-------------|--------|
+| `indicator_cache.py` | Rust | 8-15x | Mittel | Ready for Migration |
+| `rating/score_calculator.py` | Rust | 5-10x | Niedrig | Ready for Migration |
+| `rating/metric_adjustments.py` | Rust | 5-8x | Niedrig | Ready for Migration |
+
+### Priorität 2: Medium Performance Impact (Rust/Julia)
+
+| Modul | Sprache | Erwarteter Speedup | Komplexität | Status |
+|-------|---------|-------------------|-------------|--------|
+| `core/event_engine.py` | Rust | 3-5x | Hoch | Ready for Migration |
+| `core/execution_simulator.py` | Rust | 4-7x | Mittel | Ready for Migration |
+| `optimizer/monte_carlo.py` | Julia | 10-20x | Mittel | Ready for Migration |
+
+### Priorität 3: Research/Analysis (Julia)
+
+| Modul | Sprache | Erwarteter Speedup | Komplexität | Status |
+|-------|---------|-------------------|-------------|--------|
+| `analysis/statistical_tests.py` | Julia | 5-10x | Niedrig | Vorbereitung |
+| `analysis/regime_detection.py` | Julia | 8-15x | Mittel | Vorbereitung |
+
+## Performance-Targets (Benchmark-Basiert)
+
+Basierend auf den Performance-Baselines aus Phase 3:
+
+| Operation | Python Baseline | Rust Target | Speedup |
+|-----------|-----------------|-------------|---------|
+| EMA(14) über 1M Candles | 45ms | <5ms | >9x |
+| RSI(14) über 1M Candles | 62ms | <7ms | >8x |
+| Full Backtest (1 Jahr, M1) | 85s | <15s | >5x |
+| Monte Carlo (10k Sims) | 120s | <10s | >12x |
+| Score Calculation (Batch) | 250ms | <30ms | >8x |
+
 ## Alternativen
 
 ### Alternative 1: Pure Python + Numba/Cython
@@ -124,16 +174,38 @@ Vor der eigentlichen Migration erfolgt eine **18-wöchige Vorbereitungsphase**:
   - Fundamentale Performance-Limits
   - Type Safety bleibt schwach
 
+### Alternative 4: Go statt Rust
+
+- **Beschreibung**: Go für Performance-kritische Module
+- **Warum nicht gewählt**:
+  - Go's FFI (cgo) ist langsamer als Rust's PyO3
+  - Rust bietet bessere Memory Safety Garantien
+  - Rust hat besseres NumPy/Arrow Ecosystem (arrow-rs)
+
+## Implementierungs-Checkliste (Vorbereitungsphase)
+
+- [x] Phase 0: Foundation (Baselines, ADRs)
+- [x] Phase 1: Type Safety Hardening (Mypy-Strict für Kandidaten)
+- [x] Phase 2: Interface-Definition (FFI-Typen, Arrow-Schemas)
+- [x] Phase 3: Test-Infrastruktur (Benchmarks, Property-Tests, Golden-Files)
+- [x] Phase 4: Build-System (CI/CD für Rust/Julia)
+- [ ] Phase 5: Dokumentation (Runbooks, Validation)
+
 ## Referenzen
 
 - [PyO3 Documentation](https://pyo3.rs/)
 - [Maturin User Guide](https://www.maturin.rs/)
 - [PythonCall.jl](https://github.com/cjdoris/PythonCall.jl)
 - [Apache Arrow](https://arrow.apache.org/)
+- [ADR-0002: Serialisierungsformat](ADR-0002-serialization-format.md)
+- [ADR-0003: Error Handling](ADR-0003-error-handling.md)
+- [ADR-0004: Build-System Architecture](ADR-0004-build-system.md)
 - [Omega PYTHON_312_MIGRATION_PLAN.md](../PYTHON_312_MIGRATION_PLAN.md)
+- [Omega RUST_JULIA_MIGRATION_PREPARATION_PLAN.md](../RUST_JULIA_MIGRATION_PREPARATION_PLAN.md)
 
 ## Änderungshistorie
 
 | Datum | Autor | Änderung |
 |-------|-------|----------|
-| 2026-01-03 | GitHub Copilot | Initiale Version |
+| 2026-01-03 | GitHub Copilot | Initiale Version (Proposed) |
+| 2026-01-05 | AI Agent | Finalisiert (Accepted); Migrations-Reihenfolge, Performance-Targets hinzugefügt |

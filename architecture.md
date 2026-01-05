@@ -550,6 +550,175 @@ Der `docs/` Ordner enthält technische Dokumentation und Migrationspläne:
 - **`CATEGORICAL_RANKING_OPTIMIZATION.md`**: Detaillierter Performance-Optimierung Report
 - **`PYTHON_312_MIGRATION_PLAN.md`**: Konvertierungsplan für die Migration von Python 3.10 auf Python 3.12
 - **`RUST_JULIA_MIGRATION_PREPARATION_PLAN.md`**: Vorbereitungsplan für die Migration ausgewählter Module zu Rust und Julia
+- **`rust-toolchain-requirements.md`**: Rust-Toolchain-Anforderungen (1.76.0+, PyO3, Maturin)
+- **`julia-environment-requirements.md`**: Julia-Umgebungsanforderungen (1.10+, PythonCall)
 - **`adr/`**: Architecture Decision Records (ADRs) für wichtige technische Entscheidungen
   - **`ADR-0001-migration-strategy.md`**: Rust und Julia Migrations-Strategie
+  - **`ADR-0002-serialization-format.md`**: Arrow IPC für Zero-Copy FFI-Transfer
+  - **`ADR-0003-error-handling.md`**: Hybrid Error-Handling (Python-Exceptions ↔ Result-Types)
+  - **`ADR-0004-build-system-architecture.md`**: Build-System für Multi-Language Stack
+- **`ffi/`**: Foreign Function Interface Spezifikationen
+  - **`README.md`**: FFI-Übersicht und Konventionen
+  - **`indicator_cache.md`**: IndicatorCache → Rust Interface
+  - **`event_engine.md`**: EventEngine → Rust Interface
+  - **`execution_simulator.md`**: ExecutionSimulator → Rust Interface
+  - **`rating_modules.md`**: Rating-Module Interfaces
+  - **`nullability-convention.md`**: Nullability-Regeln für FFI
+- **`runbooks/`**: Migrations-Runbooks für die praktische Umsetzung
+  - **`MIGRATION_RUNBOOK_TEMPLATE.md`**: Standard-Template für Modul-Migrationen
+  - **`indicator_cache_migration.md`**: Runbook für IndicatorCache → Rust
+  - **`event_engine_migration.md`**: Runbook für EventEngine → Rust
+  - **`performance_baseline_documentation.md`**: Baseline-Dokumentation aller Kandidaten
+  - **`ready_for_migration_checklist.md`**: Finale Go/No-Go Checkliste
 
+---
+
+### Hybrid-Architektur (Python + Rust + Julia)
+
+Das Projekt verwendet eine mehrschichtige Hybrid-Architektur, bei der performance-kritische Module optional in Rust oder Julia implementiert werden können.
+
+#### Architektur-Übersicht
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                      Python Layer (Orchestrierung)               │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────────┐  │
+│  │ FastAPI UI  │  │  Strategies │  │  Backtest Runner        │  │
+│  └──────┬──────┘  └──────┬──────┘  └───────────┬─────────────┘  │
+│         │                │                     │                 │
+│  ┌──────┴────────────────┴─────────────────────┴──────────────┐ │
+│  │              Shared Protocols & Arrow Schemas              │ │
+│  │                  (src/shared/protocols.py)                 │ │
+│  └────────────────────────────┬───────────────────────────────┘ │
+└───────────────────────────────┼─────────────────────────────────┘
+                                │ Arrow IPC (Zero-Copy)
+                ┌───────────────┴───────────────┐
+                │                               │
+┌───────────────▼───────────────┐ ┌─────────────▼─────────────────┐
+│      Rust Layer (Hot-Paths)    │ │    Julia Layer (Research)     │
+│  ┌─────────────────────────┐  │ │  ┌─────────────────────────┐  │
+│  │    omega_rust (PyO3)    │  │ │  │  omega_julia (PyCall)   │  │
+│  │  • IndicatorCache       │  │ │  │  • Monte Carlo VaR      │  │
+│  │  • EventEngine          │  │ │  │  • Rolling Statistics   │  │
+│  │  • ExecutionSimulator   │  │ │  │  • Bootstrap Methods    │  │
+│  │  • Rating Functions     │  │ │  │  • Optimizer Extensions │  │
+│  └─────────────────────────┘  │ │  └─────────────────────────┘  │
+└───────────────────────────────┘ └───────────────────────────────┘
+```
+
+#### Datenfluss (FFI-Boundaries)
+
+```
+Python DataFrame
+       │
+       ▼ (pyarrow.Table → bytes)
+┌──────────────────────┐
+│  Arrow IPC Buffer    │  ← Zero-Copy Serialization
+│  (Binary Format)     │
+└──────────┬───────────┘
+           │
+     ┌─────┴─────┐
+     │           │
+     ▼           ▼
+┌─────────┐ ┌─────────┐
+│  Rust   │ │  Julia  │
+│ (arrow) │ │ (Arrow) │
+└────┬────┘ └────┬────┘
+     │           │
+     ▼           ▼
+  Compute     Compute
+     │           │
+     └─────┬─────┘
+           │
+           ▼ (Result → Arrow → Python)
+   Python Result
+```
+
+#### Module-zu-Sprache-Zuordnung
+
+| Modul | Python | Rust | Julia | Rationale |
+| --- | --- | --- | --- | --- |
+| IndicatorCache | ✅ | 🎯 (Target) | - | Hot-Loop, 50x Speedup Target |
+| EventEngine | ✅ | 🎯 (Target) | - | Core-Loop, 100x Speedup Target |
+| ExecutionSimulator | ✅ | 🎯 (Target) | - | Trade-Matching, 50x Target |
+| Rating/Scoring | ✅ | 🎯 (Target) | - | Numerische Berechnungen |
+| Portfolio | ✅ | 🎯 (Target) | - | State-Management |
+| Slippage & Fee | ✅ | 🎯 (Pilot) | - | Ideales Pilotmodul |
+| Monte Carlo | ✅ | - | 🎯 (Target) | Research, Rapid Prototyping |
+| Optimizer | ✅ | - | 🎯 (Target) | Orchestrierung, Optuna-Wrapper |
+| Walkforward | ✅ | - | 🎯 (Target) | Research-Workflow |
+| Strategies | ✅ | - | - | Bleibt Python (User-Code) |
+| FastAPI/UI | ✅ | - | - | Bleibt Python |
+
+**Legende:**
+
+- ✅ = Aktuell implementiert/genutzt
+- 🎯 = Migrations-Ziel (gemäß Runbooks)
+- `-` = Nicht geplant für diese Sprache
+
+#### Feature-Flag-System (geplant)
+
+```python
+# src/omega/config.py (Konzept)
+import os
+
+def _check_rust_available() -> bool:
+    try:
+        import omega_rust
+        return True
+    except ImportError:
+        return False
+
+def _check_julia_available() -> bool:
+    try:
+        from juliacall import Main
+        return True
+    except ImportError:
+        return False
+
+# Auto-Detection mit Override-Möglichkeit
+USE_RUST_INDICATORS = os.getenv("OMEGA_USE_RUST", "auto") != "false" and _check_rust_available()
+USE_JULIA_MONTE_CARLO = os.getenv("OMEGA_USE_JULIA", "auto") != "false" and _check_julia_available()
+```
+
+#### Build-System Integration
+
+Das Build-System unterstützt alle drei Sprachen:
+
+```
+pyproject.toml          ← Python (pip, maturin)
+├── src/rust_modules/
+│   └── omega_rust/
+│       ├── Cargo.toml  ← Rust (cargo, maturin)
+│       └── pyproject.toml
+└── src/julia_modules/
+    └── omega_julia/
+        └── Project.toml ← Julia (Pkg)
+```
+
+**Build-Kommandos:**
+
+| Sprache | Development | Test | Release |
+| --- | --- | --- | --- |
+| Python | `pip install -e .[dev]` | `pytest` | `python -m build` |
+| Rust | `maturin develop` | `cargo test` | `maturin build --release` |
+| Julia | `Pkg.instantiate()` | `Pkg.test()` | (via Python wheel) |
+| Alle | `make all` | `make test-all` | `make release` |
+
+Weitere Details in `Makefile`, `justfile` und den CI-Workflows unter `.github/workflows/`.
+
+---
+
+### `reports/` Ordner
+
+Der `reports/` Ordner enthält automatisch generierte Analyse-Berichte:
+
+- **`migration_candidates/`**: Identifizierte Module für Rust/Julia-Migration
+  - `p0-04_candidates.json` — Priorisierte Kandidatenliste
+- **`migration_test_coverage/`**: Test-Coverage-Analyse für Kandidaten
+  - `p0-05_candidate_coverage.json` — Coverage pro Modul
+- **`mypy_baseline/`**: Type-Safety-Katalog
+  - `p1-01_ignore_errors_catalog.json` — Module mit `ignore_errors`
+- **`performance_baselines/`**: Benchmark-Baselines für Performance-Vergleich
+  - `p0-01_*.json` — Baselines pro Modul (Candle + Tick Modus)
+- **`type_coverage/`**: Type-Hint-Coverage-Analyse
