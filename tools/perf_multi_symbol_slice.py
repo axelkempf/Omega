@@ -4,10 +4,9 @@ import argparse
 import json
 import sys
 import time
+import tracemalloc
 from pathlib import Path
 from typing import Dict, Tuple
-
-import tracemalloc
 
 import numpy as np
 
@@ -28,7 +27,9 @@ def _measure(func) -> Tuple[float, float]:
     return duration, peak / 1_000_000.0
 
 
-def _generate_lookup(symbols: int, timeframes: int, bars: int, seed: int) -> Dict[str, Dict[str, Dict[int, Dict[str, float]]]]:
+def _generate_lookup(
+    symbols: int, timeframes: int, bars: int, seed: int
+) -> Dict[str, Dict[str, Dict[int, Dict[str, float]]]]:
     rng = np.random.default_rng(seed)
     tf_names = [f"TF{idx+1}" for idx in range(timeframes)]
     lookup: Dict[str, Dict[str, Dict[int, Dict[str, float]]]] = {}
@@ -40,14 +41,19 @@ def _generate_lookup(symbols: int, timeframes: int, bars: int, seed: int) -> Dic
         for price_type in ("bid", "ask"):
             price = base + (0.0002 if price_type == "ask" else 0.0)
             sym_map[price_type] = {
-                idx: {"price": float(price + delta), "tf": tf_names[idx % len(tf_names)]}
+                idx: {
+                    "price": float(price + delta),
+                    "tf": tf_names[idx % len(tf_names)],
+                }
                 for idx, delta in enumerate(deltas)
             }
         lookup[sym] = sym_map
     return lookup
 
 
-def _run_lookup(symbols: int, timeframes: int, bars: int, seed: int) -> Dict[str, float]:
+def _run_lookup(
+    symbols: int, timeframes: int, bars: int, seed: int
+) -> Dict[str, float]:
     lookup = _generate_lookup(symbols, timeframes, bars, seed)
     slice_obj = MultiSymbolSlice(candle_lookups=lookup, timestamp=0, primary_tf="TF1")
 
@@ -63,14 +69,28 @@ def _run_lookup(symbols: int, timeframes: int, bars: int, seed: int) -> Dict[str
         return acc
 
     sec, peak = _measure(_loop)
-    return {"seconds": round(sec, 6), "peak_mb": round(peak, 6), "ops_per_sec": round(symbols * bars / sec, 2)}
+    return {
+        "seconds": round(sec, 6),
+        "peak_mb": round(peak, 6),
+        "ops_per_sec": round(symbols * bars / sec, 2),
+    }
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Benchmark MultiSymbolSlice get/set operations")
+    parser = argparse.ArgumentParser(
+        description="Benchmark MultiSymbolSlice get/set operations"
+    )
     parser.add_argument("-s", "--symbols", type=int, default=5, help="Anzahl Symbole")
-    parser.add_argument("-t", "--timeframes", type=int, default=3, help="Anzahl Timeframes (synthetisch)")
-    parser.add_argument("-b", "--bars", type=int, default=50_000, help="Anzahl Schritte/Timestamps")
+    parser.add_argument(
+        "-t",
+        "--timeframes",
+        type=int,
+        default=3,
+        help="Anzahl Timeframes (synthetisch)",
+    )
+    parser.add_argument(
+        "-b", "--bars", type=int, default=50_000, help="Anzahl Schritte/Timestamps"
+    )
     parser.add_argument("-r", "--seed", type=int, default=777, help="Seed für RNG")
     parser.add_argument(
         "-o",

@@ -22,8 +22,10 @@ def _legacy_validate_config(config: dict[str, Any]) -> list[str]:
 
     # Optional: fees/slippage sanity checks
     fees = config.get("fees")
-    if isinstance(fees, dict) and "per_million" in fees and not isinstance(
-        fees.get("per_million"), (int, float)
+    if (
+        isinstance(fees, dict)
+        and "per_million" in fees
+        and not isinstance(fees.get("per_million"), (int, float))
     ):
         errors.append("🟥 'fees.per_million' muss eine Zahl sein")
 

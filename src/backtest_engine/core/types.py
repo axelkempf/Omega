@@ -69,7 +69,9 @@ MultiCandleData: TypeAlias = AlignedMultiCandleData
 
 
 # Dict[symbol][side][timestamp] -> Candle (multi-symbol engine)
-CandleLookups: TypeAlias = Mapping[Symbol, Mapping[PriceType, Mapping[TimestampKey, Candle]]]
+CandleLookups: TypeAlias = Mapping[
+    Symbol, Mapping[PriceType, Mapping[TimestampKey, Candle]]
+]
 
 # Gemeinsame, synchronisierte Zeitachse für Cross-Symbol Loops
 CommonTimestamps: TypeAlias = Sequence[TimestampKey]
@@ -201,7 +203,6 @@ PortfolioSummaryDict = TypedDict(
         "Winrate": float,
         "Wins": int,
         "Losses": int,
-
         # Optional: Backtest-Robustheitsmetriken (nur wenn aktiviert)
         "Robustness 1": float,
         "Robustness 1 Num Samples": int,

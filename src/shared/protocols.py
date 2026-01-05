@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Mapping, Protocol, TYPE_CHECKING, Sequence, runtime_checkable
+from typing import TYPE_CHECKING, Any, Mapping, Protocol, Sequence, runtime_checkable
 
 if TYPE_CHECKING:
     from pandas import DataFrame, Series
@@ -159,9 +159,7 @@ class SymbolDataSliceProtocol(Protocol):
 
     def set_index(self, index: int) -> None: ...
 
-    def latest(
-        self, timeframe: str, price_type: str = "bid"
-    ) -> CandleLike | None: ...
+    def latest(self, timeframe: str, price_type: str = "bid") -> CandleLike | None: ...
 
     def history(
         self, timeframe: str, price_type: str = "bid", length: int = 20
@@ -170,7 +168,9 @@ class SymbolDataSliceProtocol(Protocol):
 
 @runtime_checkable
 class MultiSymbolSliceViewProtocol(Protocol):
-    def latest(self, tf: str | None = None, price_type: str = "bid") -> CandleLike | None: ...
+    def latest(
+        self, tf: str | None = None, price_type: str = "bid"
+    ) -> CandleLike | None: ...
 
 
 @runtime_checkable
@@ -197,7 +197,9 @@ class ExecutionSimulatorProtocol(Protocol):
 
     def process_signal(self, signal: TradeSignalProtocol) -> None: ...
 
-    def evaluate_exits(self, bid_candle: CandleLike, ask_candle: CandleLike | None = None) -> None: ...
+    def evaluate_exits(
+        self, bid_candle: CandleLike, ask_candle: CandleLike | None = None
+    ) -> None: ...
 
 
 @runtime_checkable

@@ -429,7 +429,6 @@ def _summarize_optuna_study(study: Any) -> Dict[str, Any]:
     except Exception:
         pass
 
-
     return summary
 
 

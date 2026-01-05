@@ -9,7 +9,6 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-
 _ERROR_LINE_RE = re.compile(r"^(?P<path>[^:]+):(?P<line>\d+): (?P<kind>error|note):")
 
 
@@ -166,7 +165,9 @@ def main() -> int:
             "mypy_exit_code": int(exit_code),
             "error_count": int(err_count),
             "note_count": int(note_count),
-            "error_density": (float(err_count) / float(len(py_files))) if py_files else 0.0,
+            "error_density": (
+                (float(err_count) / float(len(py_files))) if py_files else 0.0
+            ),
         }
 
         # Aggregate a first-order subpackage breakdown (pkg.<subdir>)

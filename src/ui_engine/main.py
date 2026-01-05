@@ -11,8 +11,8 @@ from __future__ import annotations
 import asyncio
 import threading
 import time
-from contextlib import asynccontextmanager
 from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from typing import TYPE_CHECKING, TypeAlias
 
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
@@ -22,14 +22,14 @@ from fastapi.responses import PlainTextResponse
 from hf_engine.infra.config.paths import TMP_DIR
 from ui_engine.config import CONFIG_DIR, LOG_DIR
 from ui_engine.controller import (
+    ResourceUsageData,
     check_datafeed_health,
     get_resource_usage,
-    ResourceUsageData,
     restart_unresponsive_strategies,
     start_datafeed_server,
 )
-from ui_engine.datafeeds.factory import get_datafeed_manager
 from ui_engine.datafeeds.base import BaseDatafeedManager
+from ui_engine.datafeeds.factory import get_datafeed_manager
 from ui_engine.models import (
     DatafeedActionResponse,
     DatafeedHealth,
@@ -37,16 +37,17 @@ from ui_engine.models import (
     StrategyResponse,
 )
 from ui_engine.registry.strategy_alias import resolve_alias
-from ui_engine.strategies.factory import get_strategy_manager
 from ui_engine.strategies.base import BaseStrategyManager
+from ui_engine.strategies.factory import get_strategy_manager
 from ui_engine.utils import read_log_tail
-
 
 Manager: TypeAlias = BaseDatafeedManager | BaseStrategyManager
 
 
 def _get_manager(name: str) -> Manager:
-    return get_datafeed_manager(name) if name == "datafeed" else get_strategy_manager(name)
+    return (
+        get_datafeed_manager(name) if name == "datafeed" else get_strategy_manager(name)
+    )
 
 
 @asynccontextmanager

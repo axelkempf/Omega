@@ -2,17 +2,17 @@ from __future__ import annotations
 
 import argparse
 import json
-sys_path_inserted = False
-import sys
-import time
-from datetime import datetime, timedelta
-from pathlib import Path
-from typing import Dict, Tuple
 
+sys_path_inserted = False
 import cProfile
 import io
 import pstats
+import sys
+import time
 import tracemalloc
+from datetime import datetime, timedelta
+from pathlib import Path
+from typing import Dict, Tuple
 
 import numpy as np
 
@@ -71,7 +71,9 @@ def _make_positions(n: int, seed: int) -> list[PortfolioPosition]:
         # Simuliere Trigger/Exit-Ergebnisse deterministisch
         exit_price = pos.take_profit if i % 3 != 0 else pos.stop_loss
         reason = "take_profit" if i % 3 != 0 else "stop_loss"
-        pos.close(time=times[i] + timedelta(minutes=15), price=exit_price, reason=reason)
+        pos.close(
+            time=times[i] + timedelta(minutes=15), price=exit_price, reason=reason
+        )
         positions.append(pos)
     return positions
 
@@ -83,9 +85,13 @@ def _run_portfolio(events: int, seed: int) -> Dict[str, Any]:
     def _process():
         for pos in positions:
             portfolio.register_entry(pos)
-            portfolio.register_fee(amount=pos.size * 0.5, time=pos.entry_time, kind="entry", position=pos)
+            portfolio.register_fee(
+                amount=pos.size * 0.5, time=pos.entry_time, kind="entry", position=pos
+            )
             portfolio.register_exit(pos)
-            portfolio.register_fee(amount=pos.size * 0.5, time=pos.exit_time, kind="exit", position=pos)
+            portfolio.register_fee(
+                amount=pos.size * 0.5, time=pos.exit_time, kind="exit", position=pos
+            )
             portfolio.update(current_time=pos.exit_time or pos.entry_time)
 
     first_sec, first_peak = _measure(_process)
@@ -104,9 +110,15 @@ def _run_portfolio(events: int, seed: int) -> Dict[str, Any]:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Performance baseline for Portfolio hot paths")
-    parser.add_argument("-e", "--events", type=int, default=20000, help="Anzahl Trade-/Fee-Events")
-    parser.add_argument("-s", "--seed", type=int, default=123, help="Seed für deterministische Daten")
+    parser = argparse.ArgumentParser(
+        description="Performance baseline for Portfolio hot paths"
+    )
+    parser.add_argument(
+        "-e", "--events", type=int, default=20000, help="Anzahl Trade-/Fee-Events"
+    )
+    parser.add_argument(
+        "-s", "--seed", type=int, default=123, help="Seed für deterministische Daten"
+    )
     parser.add_argument(
         "-o",
         "--output",

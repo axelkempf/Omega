@@ -1,17 +1,16 @@
 from __future__ import annotations
 
 import argparse
+import cProfile
+import io
 import json
+import pstats
 import sys
 import time
+import tracemalloc
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable, Dict, Tuple
-
-import cProfile
-import io
-import pstats
-import tracemalloc
 
 import numpy as np
 import pandas as pd

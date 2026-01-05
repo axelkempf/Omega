@@ -4,10 +4,9 @@ import argparse
 import json
 import sys
 import time
+import tracemalloc
 from pathlib import Path
 from typing import Dict, Tuple
-
-import tracemalloc
 
 import numpy as np
 
@@ -66,12 +65,22 @@ def _run_slicer(tf_list, bars: int, history_len: int, seed: int) -> Dict[str, fl
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Benchmark SymbolDataSlice iteration/history cache")
-    parser.add_argument("-b", "--bars", type=int, default=30_000, help="Anzahl Schritte")
-    parser.add_argument(
-        "-t", "--timeframes", nargs="+", default=["M5", "M15", "H1"], help="Liste synthetischer Timeframes"
+    parser = argparse.ArgumentParser(
+        description="Benchmark SymbolDataSlice iteration/history cache"
     )
-    parser.add_argument("-l", "--history-length", type=int, default=50, help="History-Länge für Cache")
+    parser.add_argument(
+        "-b", "--bars", type=int, default=30_000, help="Anzahl Schritte"
+    )
+    parser.add_argument(
+        "-t",
+        "--timeframes",
+        nargs="+",
+        default=["M5", "M15", "H1"],
+        help="Liste synthetischer Timeframes",
+    )
+    parser.add_argument(
+        "-l", "--history-length", type=int, default=50, help="History-Länge für Cache"
+    )
     parser.add_argument("-s", "--seed", type=int, default=2024, help="RNG-Seed")
     parser.add_argument(
         "-o",

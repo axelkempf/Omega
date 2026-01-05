@@ -4,12 +4,10 @@ import argparse
 import json
 import sys
 import time
+import tracemalloc
+from math import fsum
 from pathlib import Path
 from typing import Dict, Tuple
-
-import tracemalloc
-
-from math import fsum
 
 import numpy as np
 
@@ -43,7 +41,11 @@ def _bench_slippage(n: int, seed: int) -> Dict[str, float]:
         return acc
 
     sec, peak = _measure(_run)
-    return {"seconds": round(sec, 6), "peak_mb": round(peak, 6), "ops_per_sec": round(n / sec, 2)}
+    return {
+        "seconds": round(sec, 6),
+        "peak_mb": round(peak, 6),
+        "ops_per_sec": round(n / sec, 2),
+    }
 
 
 def _bench_fee(n: int, seed: int) -> Dict[str, float]:
@@ -54,15 +56,25 @@ def _bench_fee(n: int, seed: int) -> Dict[str, float]:
 
     def _run():
         # fsum verhindert unnötige Optimierungen des Loops
-        return fsum(model.calculate(float(v), float(p)) for v, p in zip(volumes, prices))
+        return fsum(
+            model.calculate(float(v), float(p)) for v, p in zip(volumes, prices)
+        )
 
     sec, peak = _measure(_run)
-    return {"seconds": round(sec, 6), "peak_mb": round(peak, 6), "ops_per_sec": round(n / sec, 2)}
+    return {
+        "seconds": round(sec, 6),
+        "peak_mb": round(peak, 6),
+        "ops_per_sec": round(n / sec, 2),
+    }
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Microbenchmarks für SlippageModel und FeeModel")
-    parser.add_argument("-n", "--iterations", type=int, default=100_000, help="Anzahl Aufrufe je Modell")
+    parser = argparse.ArgumentParser(
+        description="Microbenchmarks für SlippageModel und FeeModel"
+    )
+    parser.add_argument(
+        "-n", "--iterations", type=int, default=100_000, help="Anzahl Aufrufe je Modell"
+    )
     parser.add_argument("-s", "--seed", type=int, default=321, help="RNG-Seed")
     parser.add_argument(
         "-o",

@@ -5,10 +5,9 @@ import json
 import shutil
 import sys
 import time
+import tracemalloc
 from pathlib import Path
 from typing import Any, Dict, Tuple
-
-import tracemalloc
 
 import numpy as np
 import pandas as pd
@@ -31,7 +30,13 @@ def _measure(func) -> Tuple[float, float]:
     return duration, peak / 1_000_000.0
 
 
-def _build_fixture(root: Path, param_grid: Dict[str, Dict[str, Any]], rows: int, windows: int, seed: int) -> Path:
+def _build_fixture(
+    root: Path,
+    param_grid: Dict[str, Dict[str, Any]],
+    rows: int,
+    windows: int,
+    seed: int,
+) -> Path:
     if root.exists():
         shutil.rmtree(root)
     root.mkdir(parents=True, exist_ok=True)
@@ -148,8 +153,16 @@ def benchmark_optimizer(rows: int, windows: int, seed: int, output: Path) -> Non
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Synthetic baseline for robust_zone_analyzer + final_param_selector")
-    parser.add_argument("-r", "--rows", type=int, default=200, help="Zeilen pro Window im Synthetic-OOS-CSV")
+    parser = argparse.ArgumentParser(
+        description="Synthetic baseline for robust_zone_analyzer + final_param_selector"
+    )
+    parser.add_argument(
+        "-r",
+        "--rows",
+        type=int,
+        default=200,
+        help="Zeilen pro Window im Synthetic-OOS-CSV",
+    )
     parser.add_argument("-w", "--windows", type=int, default=5, help="Anzahl Windows")
     parser.add_argument("-s", "--seed", type=int, default=99, help="RNG-Seed")
     parser.add_argument(

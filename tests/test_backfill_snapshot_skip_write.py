@@ -1,9 +1,9 @@
 """Test für die Skip-Write-Optimierung in _prepare_backfill_snapshot."""
+
 import json
 from pathlib import Path
 
 import pytest
-
 from analysis.backfill_reporting_defaults import BACKFILL_REPORTING_DEFAULTS
 from analysis.backfill_walkforward_equity_curves import (
     BACKFILL_SNAPSHOT_NAME,
@@ -41,7 +41,9 @@ def test_backfill_snapshot_skips_write_when_unchanged(tmp_path: Path) -> None:
     _prepare_backfill_snapshot(run_dir, start_date=None, end_date=None)
 
     mtime_2 = backfill_path.stat().st_mtime
-    assert mtime_2 == mtime_1, "Backfill-Snapshot sollte nicht neu geschrieben worden sein"
+    assert (
+        mtime_2 == mtime_1
+    ), "Backfill-Snapshot sollte nicht neu geschrieben worden sein"
 
 
 def test_backfill_snapshot_writes_when_dates_change(tmp_path: Path) -> None:
@@ -53,7 +55,9 @@ def test_backfill_snapshot_writes_when_dates_change(tmp_path: Path) -> None:
     base_cfg = {
         "symbol": "EURUSD",
         "timeframes": {"primary": "M15", "additional": []},
-        "reporting": {"dev_mode": True},  # Falsch, wird beim ersten Aufruf überschrieben
+        "reporting": {
+            "dev_mode": True
+        },  # Falsch, wird beim ersten Aufruf überschrieben
         "start_date": "2019-01-01",
         "end_date": "2019-12-31",
     }
@@ -70,6 +74,7 @@ def test_backfill_snapshot_writes_when_dates_change(tmp_path: Path) -> None:
 
     # Zweiter Aufruf mit geändertem Datum: sollte schreiben
     import time
+
     time.sleep(0.01)  # Sicherstellen, dass mtime sich unterscheidet
     _prepare_backfill_snapshot(run_dir, start_date="2020-01-01", end_date=None)
 

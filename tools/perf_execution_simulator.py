@@ -1,17 +1,16 @@
 from __future__ import annotations
 
 import argparse
+import cProfile
+import io
 import json
+import pstats
 import sys
 import time
+import tracemalloc
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Dict, Tuple
-
-import cProfile
-import io
-import pstats
-import tracemalloc
 
 import numpy as np
 
@@ -27,7 +26,9 @@ from backtest_engine.sizing.rate_provider import StaticRateProvider
 from backtest_engine.strategy.strategy_wrapper import TradeSignal
 
 
-def _generate_candles(num_bars: int, spread: float = 0.0002) -> Tuple[list[Candle], list[Candle]]:
+def _generate_candles(
+    num_bars: int, spread: float = 0.0002
+) -> Tuple[list[Candle], list[Candle]]:
     """Generate monotonic-up candles so TPs hit deterministically."""
     start = datetime(2020, 1, 1)
     ts = [start + timedelta(minutes=15 * i) for i in range(num_bars)]
@@ -86,7 +87,9 @@ def _profile(func) -> str:
     return stream.getvalue()
 
 
-def _run_sim(sim: ExecutionSimulator, bid: list[Candle], ask: list[Candle], num_signals: int) -> None:
+def _run_sim(
+    sim: ExecutionSimulator, bid: list[Candle], ask: list[Candle], num_signals: int
+) -> None:
     for idx, (b, a) in enumerate(zip(bid, ask)):
         if idx < num_signals:
             entry = b.close
@@ -133,9 +136,15 @@ def benchmark_execution_simulator(num_bars: int, num_signals: int) -> Dict[str, 
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Performance baseline for ExecutionSimulator (synthetic data)")
-    parser.add_argument("-n", "--num-bars", type=int, default=20000, help="Number of synthetic bars")
-    parser.add_argument("-s", "--num-signals", type=int, default=1000, help="Number of market signals")
+    parser = argparse.ArgumentParser(
+        description="Performance baseline for ExecutionSimulator (synthetic data)"
+    )
+    parser.add_argument(
+        "-n", "--num-bars", type=int, default=20000, help="Number of synthetic bars"
+    )
+    parser.add_argument(
+        "-s", "--num-signals", type=int, default=1000, help="Number of market signals"
+    )
     parser.add_argument(
         "-o",
         "--output",

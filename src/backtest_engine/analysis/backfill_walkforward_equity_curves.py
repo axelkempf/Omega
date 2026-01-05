@@ -14,7 +14,9 @@ import numpy as np
 import pandas as pd
 from joblib import Parallel, delayed
 
-from src.backtest_engine.analysis.backfill_reporting_defaults import BACKFILL_REPORTING_DEFAULTS
+from src.backtest_engine.analysis.backfill_reporting_defaults import (
+    BACKFILL_REPORTING_DEFAULTS,
+)
 
 # Ensure repository root and src/ are on sys.path so local modules can be imported
 REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -67,6 +69,7 @@ EXTRA_METRIC_COLS = {
 }
 BACKFILL_SNAPSHOT_NAME = "frozen_snapshot_backfill.json"
 BACKFILL_COMBINED_FILENAME = "05_final_scores_combined_backfill.csv"
+
 
 def _load_backfill_reporting_defaults() -> Dict[str, Any]:
     """Liefert eine Kopie der zentral definierten Reporting-Defaults für Backfill.
@@ -199,24 +202,27 @@ def _prepare_backfill_snapshot(
             existing_blob = json.loads(out_path.read_text())
             existing_cfg = existing_blob.get("base_config") or {}
             rep_defaults = _load_backfill_reporting_defaults()
-            
+
             # Check: Reporting bereits korrekt?
             reporting_match = existing_cfg.get("reporting") == rep_defaults
             # Check: Dates bereits korrekt?
-            start_match = (not start_date) or (existing_cfg.get("start_date") == start_date)
+            start_match = (not start_date) or (
+                existing_cfg.get("start_date") == start_date
+            )
             end_match = (not end_date) or (existing_cfg.get("end_date") == end_date)
-            
+
             if reporting_match and start_match and end_match:
                 logging.debug(
                     "Backfill-Snapshot bereits aktuell, kein Schreibvorgang nötig: %s",
-                    out_path
+                    out_path,
                 )
                 return
         except Exception as exc:
             # Wenn Lesen/Vergleich fehlschlägt, schreiben wir neu (defensive)
             logging.debug(
                 "Existierender Backfill-Snapshot konnte nicht validiert werden (%s): %s",
-                out_path, exc
+                out_path,
+                exc,
             )
 
     # Änderungen vornehmen
@@ -263,7 +269,9 @@ def load_snapshot(run_dir: Path) -> tuple[Dict[str, Any], Dict[str, Any]]:
     if not isinstance(base_cfg, dict):
         raise ValueError(f"base_config fehlt oder ist ungültig in {snap_path}")
     reporting_from_snapshot = (
-        deepcopy(base_cfg.get("reporting")) if isinstance(base_cfg.get("reporting"), dict) else None
+        deepcopy(base_cfg.get("reporting"))
+        if isinstance(base_cfg.get("reporting"), dict)
+        else None
     )
     # Ergänze fehlende Felder (direction_filter, enabled_scenarios, Reporting ...)
     upgraded = _upgrade_base_config(base_cfg, run_id=run_dir.name)

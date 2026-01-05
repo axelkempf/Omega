@@ -5,11 +5,10 @@ import json
 import shutil
 import sys
 import time
+import tracemalloc
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Dict, Tuple
-
-import tracemalloc
 
 import pandas as pd
 
@@ -149,10 +148,21 @@ def benchmark_walkforward(output: Path, seed: int, windows: int) -> None:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Stubbed walkforward baseline (synthetic, monkeypatched)")
-    parser.add_argument("-o", "--output", type=Path, default=Path("reports/performance_baselines/p0-01_walkforward_stub.json"))
-    parser.add_argument("-s", "--seed", type=int, default=4242, help="Seed für Dev-Mode")
-    parser.add_argument("-w", "--windows", type=int, default=1, help="Anzahl Windows (synthetisch)")
+    parser = argparse.ArgumentParser(
+        description="Stubbed walkforward baseline (synthetic, monkeypatched)"
+    )
+    parser.add_argument(
+        "-o",
+        "--output",
+        type=Path,
+        default=Path("reports/performance_baselines/p0-01_walkforward_stub.json"),
+    )
+    parser.add_argument(
+        "-s", "--seed", type=int, default=4242, help="Seed für Dev-Mode"
+    )
+    parser.add_argument(
+        "-w", "--windows", type=int, default=1, help="Anzahl Windows (synthetisch)"
+    )
     args = parser.parse_args()
     benchmark_walkforward(args.output, args.seed, args.windows)
 

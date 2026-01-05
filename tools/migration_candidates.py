@@ -23,7 +23,6 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Iterable
 
-
 ROOT = Path(__file__).resolve().parents[1]
 SRC_ROOT = ROOT / "src"
 BASELINES_DIR = ROOT / "reports" / "performance_baselines"
@@ -136,19 +135,27 @@ def _extract_impact_seconds(payload: dict[str, Any]) -> float | None:
 
     # Common nested shapes
     for key in ("results", "walkforward_window"):
-        if isinstance(payload.get(key), dict) and isinstance(payload[key].get("seconds"), (int, float)):
+        if isinstance(payload.get(key), dict) and isinstance(
+            payload[key].get("seconds"), (int, float)
+        ):
             return float(payload[key]["seconds"])
 
     # Optimizer baseline
-    if isinstance(payload.get("robust_zone_analysis"), dict) or isinstance(payload.get("final_param_selector"), dict):
+    if isinstance(payload.get("robust_zone_analysis"), dict) or isinstance(
+        payload.get("final_param_selector"), dict
+    ):
         total = 0.0
         for part in ("robust_zone_analysis", "final_param_selector"):
-            if isinstance(payload.get(part), dict) and isinstance(payload[part].get("seconds"), (int, float)):
+            if isinstance(payload.get(part), dict) and isinstance(
+                payload[part].get("seconds"), (int, float)
+            ):
                 total += float(payload[part]["seconds"])
         return total if total > 0 else None
 
     # Slippage + fee baseline
-    if isinstance(payload.get("slippage_model"), dict) and isinstance(payload.get("fee_model"), dict):
+    if isinstance(payload.get("slippage_model"), dict) and isinstance(
+        payload.get("fee_model"), dict
+    ):
         s = payload["slippage_model"].get("seconds")
         f = payload["fee_model"].get("seconds")
         if isinstance(s, (int, float)) and isinstance(f, (int, float)):
@@ -333,7 +340,11 @@ def build_report() -> dict[str, Any]:
                 "src_globs": list(c.src_globs),
                 "src_files": [str(p.relative_to(ROOT)) for p in files],
                 "baseline": baseline_path,
-                "impact_seconds": round(impact_seconds, 6) if isinstance(impact_seconds, float) else None,
+                "impact_seconds": (
+                    round(impact_seconds, 6)
+                    if isinstance(impact_seconds, float)
+                    else None
+                ),
                 "perf_bucket": perf_bucket,
                 "function_coverage": func_cov,
                 "parameter_coverage": param_cov,
@@ -382,26 +393,40 @@ def render_markdown(report: dict[str, Any]) -> str:
     lines: list[str] = []
     lines.append("# Migration Candidates (P0-04)")
     lines.append("")
-    lines.append("Diese Liste priorisiert Migrations-Kandidaten für Rust/Julia basierend auf:")
+    lines.append(
+        "Diese Liste priorisiert Migrations-Kandidaten für Rust/Julia basierend auf:"
+    )
     lines.append("")
-    lines.append("- Performance-Baselines: `reports/performance_baselines/p0-01_*.json`")
-    lines.append("- Type-Readiness: AST-basierte Type-Coverage (Return- und Parameter-Annotationen)")
+    lines.append(
+        "- Performance-Baselines: `reports/performance_baselines/p0-01_*.json`"
+    )
+    lines.append(
+        "- Type-Readiness: AST-basierte Type-Coverage (Return- und Parameter-Annotationen)"
+    )
     lines.append("")
-    lines.append("Hinweis: Das ist ein Planungsartefakt. Die finale Reihenfolge muss zusätzlich")
-    lines.append("Interfaces/Serialisierung, Golden-File-Determinismus und FFI-Risiken berücksichtigen.")
+    lines.append(
+        "Hinweis: Das ist ein Planungsartefakt. Die finale Reihenfolge muss zusätzlich"
+    )
+    lines.append(
+        "Interfaces/Serialisierung, Golden-File-Determinismus und FFI-Risiken berücksichtigen."
+    )
     lines.append("")
 
     lines.append("## Regeln")
     rules = report.get("rules", {})
     lines.append("")
     lines.append("- Perf-Bucket: High (>= 1.0s), Medium (>= 0.15s), Low (< 0.15s)")
-    lines.append("- Type-Bucket: High (Return >= 80% & Params >= 90%), Medium (Return >= 50% & Params >= 80%), sonst Low")
+    lines.append(
+        "- Type-Bucket: High (Return >= 80% & Params >= 90%), Medium (Return >= 50% & Params >= 80%), sonst Low"
+    )
     lines.append("- Recommended Priority: konservativ aus Perf + Type abgeleitet")
     lines.append("")
 
     lines.append("## Kandidaten")
     lines.append("")
-    lines.append("| Kandidat | Target | Perf | Impact (s) | Type | Return% | Param% | Priority | Baseline |")
+    lines.append(
+        "| Kandidat | Target | Perf | Impact (s) | Type | Return% | Param% | Priority | Baseline |"
+    )
     lines.append("|---|---|---:|---:|---:|---:|---:|---:|---|")
 
     for r in report.get("candidates", []):
@@ -431,8 +456,12 @@ def render_markdown(report: dict[str, Any]) -> str:
     lines.append("")
     lines.append("## Reproduzieren")
     lines.append("")
-    lines.append("- JSON (machine-readable): `tools/migration_candidates.py --format json`")
-    lines.append("- Markdown (human-readable): `tools/migration_candidates.py --format md`")
+    lines.append(
+        "- JSON (machine-readable): `tools/migration_candidates.py --format json`"
+    )
+    lines.append(
+        "- Markdown (human-readable): `tools/migration_candidates.py --format md`"
+    )
     lines.append("")
 
     return "\n".join(lines)

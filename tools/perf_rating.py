@@ -1,17 +1,16 @@
 from __future__ import annotations
 
 import argparse
+import cProfile
+import io
 import json
+import pstats
 import sys
 import time
+import tracemalloc
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, Tuple
-
-import cProfile
-import io
-import pstats
-import tracemalloc
 
 import numpy as np
 import pandas as pd
@@ -78,7 +77,9 @@ def _make_trades_df(n: int = 200) -> pd.DataFrame:
 
 def _make_tp_sl_arrays(n: int = 400) -> Dict[str, np.ndarray]:
     base_time = pd.Timestamp("2020-01-01T00:00:00Z")
-    times = np.array([(base_time + pd.Timedelta(minutes=i)).value for i in range(n)], dtype=np.int64)
+    times = np.array(
+        [(base_time + pd.Timedelta(minutes=i)).value for i in range(n)], dtype=np.int64
+    )
     bid_low = np.linspace(1.1990, 1.2050, n)
     bid_high = bid_low + 0.0008
     ask_low = bid_low + 0.0002
@@ -164,11 +165,17 @@ def benchmark_rating(n_equity: int, n_jitter: int) -> Dict[str, Any]:
     )
 
     ops = {
-        "ulcer_index": lambda: compute_ulcer_index_and_score(equity_curve, ulcer_cap=10.0),
-        "robustness_1": lambda: compute_robustness_score_1(base_metrics, jitter_metrics),
+        "ulcer_index": lambda: compute_ulcer_index_and_score(
+            equity_curve, ulcer_cap=10.0
+        ),
+        "robustness_1": lambda: compute_robustness_score_1(
+            base_metrics, jitter_metrics
+        ),
         "strategy_rating": lambda: rate_strategy_performance(summary),
         "data_jitter": lambda: compute_data_jitter_score(base_metrics, jitter_metrics),
-        "timing_jitter": lambda: compute_timing_jitter_score(base_metrics, jitter_metrics),
+        "timing_jitter": lambda: compute_timing_jitter_score(
+            base_metrics, jitter_metrics
+        ),
         "cost_shock": lambda: compute_multi_factor_cost_shock_score(
             base_metrics, shocked_metrics_list
         ),
@@ -201,9 +208,19 @@ def benchmark_rating(n_equity: int, n_jitter: int) -> Dict[str, Any]:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Performance baseline for rating functions (synthetic data)")
-    parser.add_argument("-e", "--n-equity", type=int, default=365, help="Number of equity points")
-    parser.add_argument("-j", "--n-jitter", type=int, default=100, help="Number of jitter metric samples")
+    parser = argparse.ArgumentParser(
+        description="Performance baseline for rating functions (synthetic data)"
+    )
+    parser.add_argument(
+        "-e", "--n-equity", type=int, default=365, help="Number of equity points"
+    )
+    parser.add_argument(
+        "-j",
+        "--n-jitter",
+        type=int,
+        default=100,
+        help="Number of jitter metric samples",
+    )
     parser.add_argument(
         "-o",
         "--output",

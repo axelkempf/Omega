@@ -172,7 +172,9 @@ class BacktestConfig(BaseModel):
         has_single = self.strategy is not None
         has_multi = bool(self.strategies)
         if has_single == has_multi:
-            raise ValueError("Genau eines von 'strategy' oder 'strategies' muss gesetzt sein")
+            raise ValueError(
+                "Genau eines von 'strategy' oder 'strategies' muss gesetzt sein"
+            )
 
         if self.mode == "tick":
             if self.multi_symbols:
@@ -184,7 +186,9 @@ class BacktestConfig(BaseModel):
                     raise ValueError("symbol ist im Tick-Modus Pflicht")
 
             if self.strategies:
-                missing = [s.name or s.class_name for s in self.strategies if not s.symbol]
+                missing = [
+                    s.name or s.class_name for s in self.strategies if not s.symbol
+                ]
                 if missing:
                     raise ValueError(
                         "Im Tick-Modus muss jede Strategie ein 'symbol' enthalten: "
@@ -193,7 +197,9 @@ class BacktestConfig(BaseModel):
 
         if self.mode == "candle":
             if not (self.symbol or self.multi_symbols):
-                raise ValueError("Entweder 'symbol' oder 'multi_symbols' muss gesetzt sein")
+                raise ValueError(
+                    "Entweder 'symbol' oder 'multi_symbols' muss gesetzt sein"
+                )
 
         return self
 

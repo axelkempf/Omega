@@ -1,17 +1,16 @@
 from __future__ import annotations
 
 import argparse
+import cProfile
+import io
 import json
+import pstats
 import sys
 import time
+import tracemalloc
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Dict, Tuple
-
-import cProfile
-import io
-import pstats
-import tracemalloc
 
 import numpy as np
 
@@ -39,7 +38,9 @@ class _NoopStrategy:
         return None
 
 
-def _generate_candles(num_bars: int, spread: float = 0.0002) -> Tuple[list[Candle], list[Candle]]:
+def _generate_candles(
+    num_bars: int, spread: float = 0.0002
+) -> Tuple[list[Candle], list[Candle]]:
     rng = np.random.default_rng(7)
     start = datetime(2020, 1, 1)
     ts = [start + timedelta(minutes=15 * i) for i in range(num_bars)]
@@ -105,7 +106,9 @@ def benchmark_event_engine(num_bars: int) -> Dict[str, Any]:
     multi = {"M15": {"bid": bid, "ask": ask}}
 
     portfolio = Portfolio(initial_balance=10000.0)
-    exec_sim = ExecutionSimulator(portfolio=portfolio, slippage_model=SlippageModel(), fee_model=FeeModel())
+    exec_sim = ExecutionSimulator(
+        portfolio=portfolio, slippage_model=SlippageModel(), fee_model=FeeModel()
+    )
     strategy = _NoopStrategy(primary_tf="M15")
     wrapper = StrategyWrapper(strategy, portfolio=portfolio)
 
@@ -138,8 +141,12 @@ def benchmark_event_engine(num_bars: int) -> Dict[str, Any]:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Performance baseline for EventEngine (synthetic data)")
-    parser.add_argument("-n", "--num-bars", type=int, default=20000, help="Number of synthetic bars")
+    parser = argparse.ArgumentParser(
+        description="Performance baseline for EventEngine (synthetic data)"
+    )
+    parser.add_argument(
+        "-n", "--num-bars", type=int, default=20000, help="Number of synthetic bars"
+    )
     parser.add_argument(
         "-o",
         "--output",

@@ -8,7 +8,6 @@ import pytest
 from backtest_engine.config.models import BacktestConfig
 from configs.backtest._config_validator import validate_config
 
-
 _REPO_ROOT = Path(__file__).resolve().parents[1]
 
 

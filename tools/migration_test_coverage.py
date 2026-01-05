@@ -22,9 +22,10 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-
 ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_CANDIDATES_JSON = ROOT / "reports" / "migration_candidates" / "p0-04_candidates.json"
+DEFAULT_CANDIDATES_JSON = (
+    ROOT / "reports" / "migration_candidates" / "p0-04_candidates.json"
+)
 
 
 @dataclass(frozen=True)
@@ -71,7 +72,9 @@ def _run_pytest_cov_json(
         )
 
 
-def _file_summary(coverage_payload: dict[str, Any], relpath: str) -> dict[str, Any] | None:
+def _file_summary(
+    coverage_payload: dict[str, Any], relpath: str
+) -> dict[str, Any] | None:
     files = coverage_payload.get("files")
     if not isinstance(files, dict):
         return None
@@ -91,7 +94,9 @@ def _file_summary(coverage_payload: dict[str, Any], relpath: str) -> dict[str, A
 
     if not isinstance(percent_covered, (int, float)):
         # Fall back to computed percent.
-        percent_covered = (covered_lines / num_statements) * 100.0 if num_statements else 100.0
+        percent_covered = (
+            (covered_lines / num_statements) * 100.0 if num_statements else 100.0
+        )
 
     return {
         "path": relpath,
@@ -118,7 +123,9 @@ def build_report(
     coverage_json_path = tmp_dir / "p0-05_coverage_raw.json"
 
     if run_tests:
-        _run_pytest_cov_json(coverage_json_path=coverage_json_path, marker_expression=marker_expression)
+        _run_pytest_cov_json(
+            coverage_json_path=coverage_json_path, marker_expression=marker_expression
+        )
 
     if not coverage_json_path.exists():
         raise FileNotFoundError(
@@ -154,7 +161,9 @@ def build_report(
 
         total_statements = sum(int(s["num_statements"]) for s in summaries)
         total_covered = sum(int(s["covered_lines"]) for s in summaries)
-        candidate_percent = (total_covered / total_statements) * 100.0 if total_statements else 100.0
+        candidate_percent = (
+            (total_covered / total_statements) * 100.0 if total_statements else 100.0
+        )
 
         low_files = [
             {
@@ -217,17 +226,23 @@ def render_markdown(report: dict[str, Any]) -> str:
     lines: list[str] = []
     lines.append("# Migration Candidate Test Coverage (P0-05)")
     lines.append("")
-    lines.append("Dieser Report dokumentiert die Test-Coverage der P0-04 Migrations-Kandidaten.")
+    lines.append(
+        "Dieser Report dokumentiert die Test-Coverage der P0-04 Migrations-Kandidaten."
+    )
     lines.append("")
     lines.append("Konventionen:")
     lines.append("")
-    lines.append(f"- Candidate-Warnschwelle: {candidate_warn:.0f}% (gewichtete Statements)")
+    lines.append(
+        f"- Candidate-Warnschwelle: {candidate_warn:.0f}% (gewichtete Statements)"
+    )
     lines.append(f"- File-Warnschwelle: {file_warn:.0f}%")
     lines.append("")
 
     lines.append("## Summary")
     lines.append("")
-    lines.append("| Kandidat | Priority | Target | Coverage% | Statements | Gemessen | Fehlend |")
+    lines.append(
+        "| Kandidat | Priority | Target | Coverage% | Statements | Gemessen | Fehlend |"
+    )
     lines.append("|---|---:|---|---:|---:|---:|---:|")
 
     for r in report.get("candidates", []):
@@ -251,7 +266,9 @@ def render_markdown(report: dict[str, Any]) -> str:
     lines.append("")
     lines.append("## Gap-Analyse")
     lines.append("")
-    lines.append("Fokus: Kandidaten mit niedriger Coverage oder fehlenden Coverage-Daten.")
+    lines.append(
+        "Fokus: Kandidaten mit niedriger Coverage oder fehlenden Coverage-Daten."
+    )
     lines.append("")
 
     for r in report.get("candidates", []):
@@ -259,7 +276,9 @@ def render_markdown(report: dict[str, Any]) -> str:
         missing: list[str] = list(r.get("missing_files") or [])
         low_files: list[dict[str, Any]] = list(r.get("low_files") or [])
 
-        needs_attention = cov < float(candidate_warn) or bool(missing) or bool(low_files)
+        needs_attention = (
+            cov < float(candidate_warn) or bool(missing) or bool(low_files)
+        )
         if not needs_attention:
             continue
 
@@ -267,7 +286,9 @@ def render_markdown(report: dict[str, Any]) -> str:
         lines.append("")
         lines.append(f"- Coverage: {cov:.1f}%")
         if missing:
-            lines.append("- Fehlende Coverage-Einträge (evtl. nicht importiert/ausgeführt):")
+            lines.append(
+                "- Fehlende Coverage-Einträge (evtl. nicht importiert/ausgeführt):"
+            )
             for p in missing[:15]:
                 lines.append(f"  - `{p}`")
             if len(missing) > 15:
@@ -291,7 +312,9 @@ def render_markdown(report: dict[str, Any]) -> str:
     lines.append("- JSON: `tools/migration_test_coverage.py --format json`")
     lines.append("- Markdown: `tools/migration_test_coverage.py --format md`")
     lines.append("")
-    lines.append("Hinweis: Standardmäßig werden Integrationstests via Marker ausgeschlossen: `-m not integration`.")
+    lines.append(
+        "Hinweis: Standardmäßig werden Integrationstests via Marker ausgeschlossen: `-m not integration`."
+    )
 
     return "\n".join(lines)
 

@@ -4,8 +4,7 @@ import signal
 import subprocess
 import threading
 import time
-from typing import Any, Dict
-from typing import TypedDict
+from typing import Any, Dict, TypedDict
 
 import psutil
 import requests

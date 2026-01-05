@@ -84,6 +84,7 @@ REFINED_DATA_JITTER_ATR = 14
 REFINED_DATA_JITTER_SIGMA_ATR = 0.1
 REFINED_DATA_JITTER_FRAQ = 0.15
 
+
 @dataclass
 class YearlyColumns:
     years: List[str]
@@ -2652,19 +2653,24 @@ def _load_snapshot_base_config(run_id: str) -> Dict[str, Any]:
 def _standard_mean_rev_reporting() -> Optional[Dict[str, Any]]:
     """
     Liefert die zentralen Reporting-Defaults für Backfill-Backtests.
-    
+
     Diese sind in analysis/backfill_reporting_defaults.py definiert und werden
     als Referenz benutzt, um fehlende oder abweichende Reporting-Einträge in
     Walkforward-Run-Snapshots zu ergänzen.
-    
+
     Returns:
         Dict mit Reporting-Defaults oder None bei Fehler
     """
     try:
-        from src.backtest_engine.analysis.backfill_reporting_defaults import BACKFILL_REPORTING_DEFAULTS
+        from src.backtest_engine.analysis.backfill_reporting_defaults import (
+            BACKFILL_REPORTING_DEFAULTS,
+        )
+
         return deepcopy(BACKFILL_REPORTING_DEFAULTS)
     except ImportError as exc:
-        print(f"[WF-Analyzer] Warnung: Konnte Backfill-Reporting-Defaults nicht laden: {exc}")
+        print(
+            f"[WF-Analyzer] Warnung: Konnte Backfill-Reporting-Defaults nicht laden: {exc}"
+        )
         return None
 
 
@@ -2708,7 +2714,7 @@ def _infer_meta_from_run_id(
 def _upgrade_base_config(base_cfg: Dict[str, Any], *, run_id: str) -> Dict[str, Any]:
     """
     Ergänzt fehlende Felder in base_config:
-      - Reporting auf zentrale Backfill-Defaults setzen (aus backfill_reporting_defaults.py), 
+      - Reporting auf zentrale Backfill-Defaults setzen (aus backfill_reporting_defaults.py),
         falls abweichend/fehlend.
       - direction_filter, enabled_scenarios, use_position_manager aus Run-Namen ableiten,
         falls nicht im Snapshot gesetzt.
@@ -3510,9 +3516,13 @@ def _refine_top50_with_robustness(
         if "B" in data_jitter_vals:
             top.at[idx, "data_jitter_score_leg_B"] = data_jitter_vals["B"]
         if "A" in data_jitter_num_samples_vals:
-            top.at[idx, "data_jitter_num_samples_leg_A"] = data_jitter_num_samples_vals["A"]
+            top.at[idx, "data_jitter_num_samples_leg_A"] = data_jitter_num_samples_vals[
+                "A"
+            ]
         if "B" in data_jitter_num_samples_vals:
-            top.at[idx, "data_jitter_num_samples_leg_B"] = data_jitter_num_samples_vals["B"]
+            top.at[idx, "data_jitter_num_samples_leg_B"] = data_jitter_num_samples_vals[
+                "B"
+            ]
 
         # Cost Shock Metriken
         if "A" in cost_shock_vals:
