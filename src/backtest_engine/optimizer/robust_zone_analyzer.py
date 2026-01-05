@@ -239,7 +239,7 @@ def run_robust_zone_analysis(
 
 def _load_oos_dataset(root: Path) -> Tuple[pd.DataFrame, Dict[str, Any]]:
     all_top = root / "all_top_out_of_sample.csv"
-    src = {"used": None, "files": []}
+    src: Dict[str, Any] = {"used": None, "files": []}
     if all_top.exists():
         df = pd.read_csv(all_top)
         src["used"] = str(all_top)
@@ -296,8 +296,8 @@ def _compute_min_total_trades_threshold(options: Dict[str, Any]) -> Optional[flo
 # ---------- Step 1: Clean & round ---------------------------------------------
 
 
-def _step1_clean_and_round(df: pd.DataFrame, param_grid: Dict[str, Dict[str, Any]]):
-    meta = {
+def _step1_clean_and_round(df: pd.DataFrame, param_grid: Dict[str, Dict[str, Any]]) -> Tuple[pd.DataFrame, Dict[str, Any]]:
+    meta: Dict[str, Any] = {
         "rows_in": int(len(df)),
         "rows_out": 0,
         "dropped_cols": [],
@@ -326,21 +326,21 @@ def _step1_clean_and_round(df: pd.DataFrame, param_grid: Dict[str, Dict[str, Any
             df[p] = pd.to_numeric(df[p], errors="coerce")
             spec = param_grid[p]
             if spec["type"] == "int":
-                step = int(spec.get("step", 1))
-                low, high = int(spec["low"]), int(spec["high"])
+                step_int = int(spec.get("step", 1) or 1)
+                low_int, high_int = int(spec["low"]), int(spec["high"])
                 df[p] = (
-                    ((np.round((df[p] - low) / step) * step) + low)
-                    .clip(low, high)
+                    ((np.round((df[p] - low_int) / step_int) * step_int) + low_int)
+                    .clip(low_int, high_int)
                     .astype("Int64")
                 )
             elif spec["type"] == "float":
-                step = spec.get("step")
-                low, high = float(spec["low"]), float(spec["high"])
-                if step:
-                    step = float(step)
+                step_val = spec.get("step")
+                low_f, high_f = float(spec["low"]), float(spec["high"])
+                if step_val:
+                    step_f = float(step_val)
                     df[p] = (
-                        ((np.round((df[p] - low) / step) * step) + low)
-                        .clip(low, high)
+                        ((np.round((df[p] - low_f) / step_f) * step_f) + low_f)
+                        .clip(low_f, high_f)
                         .round(6)
                     )
                 else:
@@ -398,13 +398,13 @@ def _step1_clean_and_round(df: pd.DataFrame, param_grid: Dict[str, Dict[str, Any
 
 def _step2_apply_hard_gates(
     df: pd.DataFrame, *, min_total_trades_threshold: Optional[float] = None
-):
-    meta = {"rows_in": int(len(df)), "rows_out": 0, "drop_reason_counts": {}}
+) -> Tuple[pd.DataFrame, Dict[str, Any]]:
+    meta: Dict[str, Any] = {"rows_in": int(len(df)), "rows_out": 0, "drop_reason_counts": {}}
     if df.empty:
         return df, meta
     df = df.copy()
 
-    reasons = []
+    reasons: List[Tuple[str, int]] = []
 
     def _format_threshold(value: float) -> str:
         if not isfinite(value):
@@ -413,7 +413,7 @@ def _step2_apply_hard_gates(
             return str(int(value))
         return f"{value:.2f}".rstrip("0").rstrip(".")
 
-    def _mark(mask, name):
+    def _mark(mask: "pd.Series[bool]", name: str) -> pd.DataFrame:
         reasons.append((name, int((~mask).sum())))
         return df.loc[mask].copy()
 
@@ -453,7 +453,7 @@ def _step2_apply_hard_gates(
     return df, meta
 
 
-def _plot_histograms_step2(df: pd.DataFrame, plot_dir: Optional[Path]):
+def _plot_histograms_step2(df: pd.DataFrame, plot_dir: Optional[Path]) -> None:
     if df.empty or plot_dir is None:
         return
     for col in ["Net Profit", "Drawdown", "Commission", "Sharpe (trade)"]:
@@ -569,7 +569,7 @@ def _step3_build_param_metric_zones(
     alpha: float,
     min_coverage: float,
     plot_dir: Optional[Path],
-):
+) -> Tuple[Dict[str, Dict[str, List[Dict[str, Any]]]], Dict[str, Any]]:
     param_cols = [p for p in param_grid.keys() if p in df.columns]
     total_windows = _infer_total_windows(df)
     results: Dict[str, Dict[str, List[Dict[str, Any]]]] = {}
@@ -600,7 +600,7 @@ def _step3_build_param_metric_zones(
                 continue
 
             sel_df = pd.DataFrame(selected_rows)
-            vals = pd.to_numeric(sel_df[p], errors="coerce").dropna().values
+            vals = np.asarray(pd.to_numeric(sel_df[p], errors="coerce").dropna().values)
             if vals.size == 0:
                 continue
 
@@ -621,7 +621,7 @@ def _step3_build_param_metric_zones(
                 )
                 # keep region only if coverage >= threshold
                 if coverage >= min_coverage:
-                    vals_in = sel_df.loc[mask, p].astype(float).values
+                    vals_in = np.asarray(sel_df.loc[mask, p].astype(float).values)
                     zones_for_metric.append(
                         {
                             "metric": metric,
@@ -643,7 +643,7 @@ def _step3_build_param_metric_zones(
             # Artifact: histogram + shaded regions
             if zones_for_metric and plot_dir is not None:
                 _plot_param_metric_histogram(
-                    sel_df[p].values,
+                    np.asarray(sel_df[p].values),
                     zones_for_metric,
                     plot_dir / f"03_hist_{p}__{metric}.png",
                 )
@@ -654,11 +654,11 @@ def _step3_build_param_metric_zones(
 
 
 def _plot_param_metric_histogram(
-    x: np.ndarray, zones: List[Dict[str, Any]], out_path: Path
-):
+    x: Any, zones: List[Dict[str, Any]], out_path: Path
+) -> None:
     try:
         fig = plt.figure(figsize=(6, 4), dpi=130)
-        plt.hist(x, bins=_fd_bins(x), alpha=0.7)
+        plt.hist(x, bins=_fd_bins(np.asarray(x)), alpha=0.7)
         for z in zones:
             plt.axvspan(z["low"], z["high"], alpha=0.25)
         ttl = f"Param distribution with performant zones"
@@ -767,7 +767,7 @@ def _step4_overlay_to_robust_zones(
     min_coverage: float,
     artifacts_dir: Path,
     plot_dir: Optional[Path],
-):
+) -> Tuple[Dict[str, List[Dict[str, Any]]], Dict[str, Any]]:
     robust: Dict[str, List[Dict[str, Any]]] = {}
     meta = {"weights": weights, "min_weight_sum": 0.50, "min_coverage": min_coverage}
 
@@ -836,13 +836,13 @@ def _plot_overlay(
     zones: List[Dict[str, Any]],
     out_path: Path,
     weights: Dict[str, float],
-):
+) -> None:
     try:
         fig = plt.figure(figsize=(7, 2.8), dpi=140)
         # plot metric zones as colored bands (stacked vertically)
         y = 0
-        yticks = []
-        ylabels = []
+        yticks: List[float] = []
+        ylabels: List[str] = []
         for m, lst in by_metric.items():
             for z in lst or []:
                 plt.plot([z["low"], z["high"]], [y, y], linewidth=6)
@@ -925,7 +925,7 @@ def _render_report(
 # ---------- Helpers ------------------------------------------------------------
 
 
-def _save_df(df: pd.DataFrame, path: Path):
+def _save_df(df: pd.DataFrame, path: Path) -> None:
     """
     Schreibe Artefakte immer als Parquet **und** als CSV (gleicher Basename).
     - Parquet: schneller & kompakt
@@ -945,7 +945,7 @@ def _save_df(df: pd.DataFrame, path: Path):
         print(f"❌ CSV-Export fehlgeschlagen ({csv_path.name}): {e}")
 
 
-def _save_json(obj: Any, path: Path):
+def _save_json(obj: Any, path: Path) -> None:
     with open(path, "w", encoding="utf-8") as f:
         json.dump(obj, f, indent=2, ensure_ascii=False)
 
@@ -1042,7 +1042,7 @@ def _robust_zones_grid(
         w_small = min(a["high"] - a["low"], b["high"] - b["low"])
         if w_small <= 0:
             return 0.0
-        return inter / w_small
+        return float(inter / w_small)
 
     best: Dict[str, Any] = {}
     rejected: Dict[str, List[Dict[str, Any]]] = {}
@@ -1115,7 +1115,8 @@ def _robust_zones_grid(
                         tmp.append(t)
                 if tmp:
                     kept = tmp
-                    meta.setdefault("relaxed", []).append({name: newv})
+                    relaxed_list: List[Dict[str, float]] = meta.setdefault("relaxed", [])  # type: ignore[assignment]
+                    relaxed_list.append({name: newv})
                     break
         kept = _merge_nearby(kept, R)
         for z in kept:

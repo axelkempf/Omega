@@ -1,4 +1,4 @@
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Iterator, KeysView, Optional
 
 
 class MultiSymbolSlice:
@@ -20,6 +20,16 @@ class MultiSymbolSlice:
         self.candle_lookups = candle_lookups
         self.timestamp = timestamp
         self.primary_tf = primary_tf
+        self._index: int = 0
+
+    @property
+    def slices(self) -> KeysView[str]:
+        """Alias for keys() for backward compatibility."""
+        return self.candle_lookups.keys()
+
+    def set_index(self, index: int) -> None:
+        """Speichert den aktuellen Index (für Index-basierte Iteration)."""
+        self._index = index
 
     def get(self, symbol: str, price_type: str = "bid") -> Optional[Any]:
         """
@@ -38,45 +48,45 @@ class MultiSymbolSlice:
             .get(self.timestamp, None)
         )
 
-    def __getitem__(self, symbol: str):
+    def __getitem__(self, symbol: str) -> "SliceView":
         """
         Ermöglicht dict-ähnlichen Zugriff: slice[symbol]
         Gibt eine SliceView zurück.
         """
-
-        class SliceView:
-            """
-            Kapselt Candle und bietet Zugriff auf latest().
-            """
-
-            def __init__(self, candle):
-                self.candle = candle
-
-            def latest(self, tf: str = None, price_type: str = "bid"):
-                """
-                Gibt die aktuelle Candle zurück.
-                """
-                return self.candle
-
         return SliceView(self.get(symbol))
 
     def set_timestamp(self, timestamp: Any) -> None:
         self.timestamp = timestamp
 
-    def keys(self):
+    def keys(self) -> KeysView[str]:
         """
         Gibt alle Symbol-Keys zurück.
         """
         return self.candle_lookups.keys()
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[str]:
         """
         Ermöglicht Iteration über alle Symbol-Keys.
         """
         return iter(self.candle_lookups.keys())
 
-    def __len__(self):
+    def __len__(self) -> int:
         """
         Gibt die Anzahl der Symbole zurück.
         """
         return len(self.candle_lookups)
+
+
+class SliceView:
+    """
+    Kapselt Candle und bietet Zugriff auf latest().
+    """
+
+    def __init__(self, candle: Optional[Any]) -> None:
+        self.candle = candle
+
+    def latest(self, tf: Optional[str] = None, price_type: str = "bid") -> Optional[Any]:
+        """
+        Gibt die aktuelle Candle zurück.
+        """
+        return self.candle

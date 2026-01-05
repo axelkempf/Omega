@@ -1,4 +1,4 @@
-from typing import Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 from backtest_engine.optimizer.grid_searcher import run_grid_search
 
@@ -6,12 +6,12 @@ from backtest_engine.optimizer.grid_searcher import run_grid_search
 def run_grid_search_multi_symbol(
     symbols: List[str],
     config_template_path: str,
-    param_grid: Dict,
+    param_grid: Dict[str, Any],
     output_root: str = "multi_symbol_results",
-    min_criteria: Optional[Dict] = None,
+    min_criteria: Optional[Dict[str, Any]] = None,
     sort_by: str = "Avg R-Multiple",
     top_n: int = 5,
-    config_overwrite: Optional[Callable[[Dict], Dict]] = None,
+    config_overwrite: Optional[Callable[[Dict[str, Any]], Dict[str, Any]]] = None,
 ) -> None:
     """
     Führt für mehrere Symbole eine Grid Search durch und speichert die Ergebnisse separat.
@@ -32,7 +32,7 @@ def run_grid_search_multi_symbol(
         result_csv = f"{output_dir}/summary.csv"
 
         # Dynamische Überschreibung: Symbol in Config setzen (wird jedem Symbol individuell übergeben)
-        def default_overwrite(cfg: Dict) -> Dict:
+        def default_overwrite(cfg: Dict[str, Any]) -> Dict[str, Any]:
             cfg["symbol"] = symbol
             return cfg
 

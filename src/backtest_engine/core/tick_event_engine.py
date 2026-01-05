@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 from backtest_engine.core.execution_simulator import ExecutionSimulator
 from backtest_engine.core.portfolio import Portfolio
@@ -27,7 +27,7 @@ class TickEventEngine:
         strategy: StrategyWrapper,
         executor: ExecutionSimulator,
         portfolio: Portfolio,
-        multi_candle_data: Dict[str, Dict[str, List]],
+        multi_candle_data: Dict[str, Dict[str, List[Any]]],
         on_progress: Optional[Callable[[int, int], None]] = None,
     ):
         self.ticks = ticks
@@ -37,11 +37,12 @@ class TickEventEngine:
         self.multi_candle_data = multi_candle_data
         self.on_progress = on_progress
 
-        self.symbol = strategy.symbol
+        # Access symbol via wrapped strategy instance (duck-typing)
+        self.symbol: str = strategy.symbol  # type: ignore[attr-defined]
         self.warmup_bars = 0
         self.original_start_dt: Optional[datetime] = None
 
-    def run(self):
+    def run(self) -> None:
         """
         Führt das Event-Loop über alle Ticks aus.
         """
@@ -88,7 +89,7 @@ class TickEventEngine:
                 self.on_progress(i + 1, total)
 
     def _find_nearest_candle_index(
-        self, multi_candle_data: Dict[str, Dict[str, List]], timestamp: datetime
+        self, multi_candle_data: Dict[str, Dict[str, List[Any]]], timestamp: datetime
     ) -> int:
         """
         Sucht im Primary Timeframe die Candle mit passendem/nahem Timestamp.

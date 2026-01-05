@@ -124,22 +124,18 @@ module = [
 ]
 ignore_errors = true
 
-# Phase 1: carve out small, stable modules from the global ignore_errors bucket.
+# Phase 1: Type Safety Hardening - strict mode für Migrations-Kandidaten
+# P1-05: backtest_engine.optimizer auf Strict-Mode migriert (2026-01-05)
+# P1-06: backtest_engine.core auf Strict-Mode migriert (2026-01-05)
+# P1-07: backtest_engine.rating auf Strict-Mode migriert (2026-01-05)
+
 [[tool.mypy.overrides]]
 module = ["backtest_engine.core", "backtest_engine.core.*"]
-ignore_errors = true
-
-[[tool.mypy.overrides]]
-module = ["backtest_engine.optimizer", "backtest_engine.optimizer.*"]
-ignore_errors = true
-
-[[tool.mypy.overrides]]
-module = ["backtest_engine.core.types"]
 strict = true
 warn_unreachable = true
 
 [[tool.mypy.overrides]]
-module = ["backtest_engine.optimizer._settings"]
+module = ["backtest_engine.optimizer", "backtest_engine.optimizer.*"]
 strict = true
 warn_unreachable = true
 

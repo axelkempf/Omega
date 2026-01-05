@@ -4,7 +4,7 @@ import os
 from contextlib import contextmanager
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, Generator, List, Tuple
 
 from hf_engine.infra.config.paths import WALKFORWARD_RESULTS_DIR
 
@@ -13,7 +13,7 @@ _BACKEND = os.getenv("WF_MASTER_INDEX_BACKEND", "jsonl").lower()  # "jsonl" | "j
 
 
 @contextmanager
-def _file_lock_advisory(lock_path: Path):
+def _file_lock_advisory(lock_path: Path) -> Generator[None, None, None]:
     """
     Sehr einfache, systemneutrale Advisory-Lock-Strategie:
     - erstellt eine .lock-Datei exklusiv; bei Kollision kurz warten/retry.
@@ -130,7 +130,7 @@ def update_master_index(strategy_name: str, run_path: Path, summary_path: Path) 
     # 2b) Kleiner Head (letzte N Einträge) für schnelle Übersicht
     try:
         # Effizient: von hinten lesen ohne volle Datei im Speicher zu laden
-        last = []
+        last: List[Dict[str, Any]] = []
         # Tail-Read: wir lesen in Blöcken rückwärts
         block_size = 1 << 14  # 16 KiB
         needed = _HEAD_MAX

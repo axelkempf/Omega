@@ -48,7 +48,7 @@ class PortfolioPosition:
     def close_time(self) -> Optional[datetime]:
         return self.exit_time
 
-    def close(self, time: datetime, price: float, reason: str):
+    def close(self, time: datetime, price: float, reason: str) -> None:
         """
         Schliesst die Position und berechnet den Trade-Result auf Basis des initialen SL.
         """
@@ -93,11 +93,11 @@ class PortfolioPosition:
         else:
             return (self.entry_price - self.exit_price) / risk
 
-    def to_dict(self) -> Dict[str, Optional[float]]:
+    def to_dict(self) -> Dict[str, Any]:
         """
         Exportiert die Position als Dictionary (z.B. für Reporting).
         """
-        d = {
+        d: Dict[str, Any] = {
             "entry_time": self.entry_time.isoformat() if self.entry_time else None,
             "exit_time": self.exit_time.isoformat() if self.exit_time else None,
             "direction": self.direction,
@@ -155,7 +155,7 @@ class Portfolio:
             (datetime.min.replace(year=2000, month=1, day=1), initial_balance)
         ]
         self.total_fees: float = 0.0
-        self.fees_log: List[Dict] = []
+        self.fees_log: List[Dict[str, Any]] = []
 
     def register_fee(
         self,
@@ -163,7 +163,7 @@ class Portfolio:
         time: datetime,
         kind: str,
         position: Optional[PortfolioPosition] = None,
-    ):
+    ) -> None:
         """
         Verbucht eine Gebühr (zieht Cash ab), protokolliert sie und ordnet sie optional einer Position zu.
         kind: "entry" | "exit" | "other"
@@ -189,7 +189,7 @@ class Portfolio:
             elif kind == "exit":
                 position.exit_fee += fee
 
-    def register_entry(self, position: PortfolioPosition):
+    def register_entry(self, position: PortfolioPosition) -> None:
         """
         Fügt eine neue Position zum Portfolio hinzu.
         """
@@ -197,7 +197,7 @@ class Portfolio:
             raise ValueError("Position must have a 'symbol' assigned.")
         self.open_positions.append(position)
 
-    def register_exit(self, position: PortfolioPosition):
+    def register_exit(self, position: PortfolioPosition) -> None:
         """
         Behandelt das Schliessen von Positionen nach Exit/Abbruch etc.
         """
@@ -252,6 +252,7 @@ class Portfolio:
                 if (
                     getattr(wrapper, "entry_timestamp_mode", "open") == "close"
                     and minutes > 0
+                    and position.exit_time is not None
                 ):
                     exit_close = position.exit_time + timedelta(minutes=minutes)
                     wrapper.last_exit_time = exit_close
@@ -271,7 +272,7 @@ class Portfolio:
             return [pos for pos in self.open_positions if pos.symbol == symbol]
         return self.open_positions
 
-    def update(self, current_time: datetime):
+    def update(self, current_time: datetime) -> None:
         """
         Wird in jedem Event aufgerufen – aktualisiert Equity & Drawdown.
         """
@@ -455,16 +456,21 @@ class Portfolio:
         equity = float(self.initial_balance)
 
         all_positions = self.closed_positions + self.partial_closed_positions
-        all_positions = [
+        # Filter positions with valid result and exit_time
+        valid_positions = [
             p for p in all_positions if p.result is not None and p.exit_time is not None
         ]
 
-        for p in sorted(all_positions, key=lambda x: x.exit_time):
+        # Sort by exit_time (guaranteed non-None after filter)
+        for p in sorted(valid_positions, key=lambda x: x.exit_time or datetime.min):
             entry_fee = float(getattr(p, "entry_fee", 0.0) or 0.0)
             exit_fee = float(getattr(p, "exit_fee", 0.0) or 0.0)
-            net_result = float(p.result) - entry_fee - exit_fee
+            result_val = p.result if p.result is not None else 0.0
+            net_result = result_val - entry_fee - exit_fee
             equity += net_result
-            curve.append((p.exit_time, equity))
+            # exit_time is guaranteed non-None here due to filter
+            if p.exit_time is not None:
+                curve.append((p.exit_time, equity))
 
         return curve
 
@@ -473,9 +479,9 @@ class Portfolio:
         Exportiert alle geschlossenen/teilgeschlossenen Trades als DataFrame.
         Spalten-Set ist auf Metrics/Signifikanzfunktionen abgestimmt.
         """
-        rows = []
+        rows: List[Dict[str, Any]] = []
 
-        def _to_builtin(obj):
+        def _to_builtin(obj: Any) -> Any:
             """Konvertiert beliebige Objekte rekursiv in JSON-serialisierbare Builtins.
             Handhabt numpy/pandas Typen, NaT/NA, verschachtelte Strukturen.
             """
@@ -530,7 +536,7 @@ class Portfolio:
                 except Exception:
                     return None
 
-        def _row(p: PortfolioPosition):
+        def _row(p: PortfolioPosition) -> Dict[str, Any]:
             return {
                 "entry_time": p.entry_time,
                 "exit_time": p.exit_time,

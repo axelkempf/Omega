@@ -55,7 +55,7 @@ class FeeModel:
         self.min_fee = float(min_fee)
 
     def calculate(
-        self, volume_lots: float, price: float, contract_size: float = None
+        self, volume_lots: float, price: float, contract_size: Optional[float] = None
     ) -> float:
         """
         Berechnet die anfallenden Gebühren für das Volumen.

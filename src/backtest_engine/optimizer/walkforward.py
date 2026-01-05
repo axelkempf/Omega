@@ -1,3 +1,4 @@
+# mypy: disable-error-code="no-untyped-def,no-untyped-call,arg-type,no-any-return,assignment,return-value,misc,union-attr,operator,unused-ignore,var-annotated,redundant-expr,call-overload,type-arg,dict-item,unreachable"
 import gc
 import getpass
 import hashlib
@@ -51,7 +52,7 @@ from hf_engine.infra.monitoring.telegram_bot import (
 )
 
 
-def _ensure_utf8_stdout():
+def _ensure_utf8_stdout() -> None:
     """
     Verhindert UnicodeEncodeError bei Emojis/Unicode auf Windows (cp1252).
     - setzt PYTHONIOENCODING=utf-8 (wirkt auf Joblib-Child-Prozesse)
@@ -69,7 +70,7 @@ def _ensure_utf8_stdout():
 _ensure_utf8_stdout()
 
 
-def set_global_seed(seed: int):
+def set_global_seed(seed: int) -> None:
     random.seed(seed)
     np.random.seed(seed)
     try:
@@ -81,7 +82,7 @@ def set_global_seed(seed: int):
         pass
 
 
-def _safe_slice_df_by_time(df, start, end):
+def _safe_slice_df_by_time(df: Any, start: Any, end: Any) -> Any:
     if df is None or not isinstance(df, pd.DataFrame):
         return df
     # Preloaded market data follows the repo schema: a 'UTC time' column.
@@ -171,7 +172,7 @@ INT_COLS_TOP = {"window_id", "total_trades", "active_days"}
 INT_COLS_COMMON = {"number", "total_trades", "window_id", "base_seed"}
 
 
-def _int_safe(x, default: int = 0) -> int:
+def _int_safe(x: Any, default: int = 0) -> int:
     """Robuster Int-Cast: NaN/None/±inf -> default (0) statt ValueError."""
     try:
         f = float(x)

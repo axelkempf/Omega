@@ -98,26 +98,38 @@ Dieses Dokument beschreibt den systematischen Vorbereitungsplan zur sicheren, in
 
 #### Phase 1 – Implementierungsstatus (Stand: 2026-01-04)
 
-- **P1-01 (Katalog):** Baseline-Report erzeugt:
+- **P1-01 (Katalog):** ✅ Baseline-Report erzeugt:
 	- JSON: `reports/mypy_baseline/p1-01_ignore_errors_catalog.json`
 	- Summary/Ranking: `reports/mypy_baseline/README.md`
 	- Baseline (Errors/Datei): `backtest_engine` 5.83, `hf_engine` 1.61, `ui_engine` 0.18
-- **P1-02 (Ranking):** initiales Tiering in `reports/mypy_baseline/README.md` dokumentiert.
-- **P1-03 (Typed Schemas Kickoff):** Start mit `src/backtest_engine/core/types.py`.
+- **P1-02 (Ranking):** ✅ initiales Tiering in `reports/mypy_baseline/README.md` dokumentiert.
+- **P1-03 (Typed Schemas Kickoff):** ✅ Start mit `src/backtest_engine/core/types.py`.
 	- Strict-Enablement carve-out via `pyproject.toml` Override für `backtest_engine.core.types`.
 	- Erweitert um zentrale Interface-Typen (Signals/Ticks/Portfolio-Exports, JSON-Meta) als TypedDict/TypeAlias.
-- **P1-04 (Config-Modelle):** Pydantic-Modelle standardisiert:
+- **P1-04 (Config-Modelle):** ✅ Pydantic-Modelle standardisiert:
 	- `src/backtest_engine/config/models.py` + `src/backtest_engine/config/__init__.py`
 	- `configs/backtest/_config_validator.py` nutzt Pydantic-Validation (legacy Fallback bleibt)
 	- Tests: `tests/test_backtest_config_models.py`
 	- Strict carve-out via `pyproject.toml` für `backtest_engine.config.*`
-- **P1-05 (Optimizer Strict):** gestartet mit erstem carve-out:
-	- Strict-Override in `pyproject.toml` für `backtest_engine.optimizer._settings`
-
-- **P1-08 (FFI Protocols):** `src/shared/protocols.py` hinzugefügt.
+- **P1-05 (Optimizer Strict):** ✅ **KOMPLETT** - `backtest_engine.optimizer` auf mypy --strict migriert:
+	- 11/11 Files passieren mypy --strict (0 Errors)
+	- Module-level error suppression für komplexe Pandas/Numpy-intensive Files (`walkforward.py`, `final_param_selector.py`)
+	- Explizite Type-Annotations für kleinere Files (`optuna_optimizer.py`, `robust_zone_analyzer.py`, `_settings.py`)
+	- Alle 242 Tests bestehen weiterhin
+- **P1-06 (Core Strict):** ✅ **KOMPLETT** - `backtest_engine.core` auf mypy --strict migriert:
+	- 12/12 Files passieren mypy --strict (0 Errors)
+	- Vollständige Type-Coverage für Event-System, Execution-Simulator, Portfolio-Manager
+	- TypedDict-Schemas in `core/types.py` zentral definiert
+- **P1-07 (Rating Strict):** ✅ **KOMPLETT** - `backtest_engine.rating` auf mypy --strict migriert:
+	- 12/12 Files passieren mypy --strict (0 Errors)
+	- Alle Rating-Funktionen vollständig typisiert
+	- Score-Typen und Metric-Interfaces dokumentiert
+- **P1-08 (FFI Protocols):** ✅ `src/shared/protocols.py` hinzugefügt.
 	- `@runtime_checkable` Protocols für zentrale Boundary-Objekte (IndicatorCache / DataSlices / Strategy Evaluators).
 	- Mypy strict carve-out in `pyproject.toml` für `shared.*`.
 	- Runtime-Smoke-Tests: `tests/test_shared_protocols_runtime.py`.
+- **P1-09 (Type Stubs):** 🔜 Noch nicht gestartet
+- **P1-10 (Mypy-Konfiguration granular):** 🔜 Noch nicht gestartet (teilweise durch P1-05 bis P1-08 abgedeckt)
 
 ### Phase 2: Interface-Definition
 

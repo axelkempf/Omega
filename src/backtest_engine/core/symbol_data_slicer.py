@@ -1,5 +1,5 @@
 from collections import deque
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Deque, Dict, List, Optional, Tuple
 
 
 class CandleSet:
@@ -77,7 +77,7 @@ class SymbolDataSlice:
             if "ask" in candles
         }
         self.indicators = indicator_cache
-        self._history_cache: Dict[Tuple[str, str, int], deque] = {}
+        self._history_cache: Dict[Tuple[str, str, int], Deque[Any]] = {}
         self._last_index: int = index
 
     def set_index(self, index: int) -> None:
@@ -147,7 +147,7 @@ class SymbolDataSlice:
 
     def history_view(
         self, timeframe: str, price_type: str = "bid", length: int = 20
-    ) -> deque:
+    ) -> Deque[Any]:
         """
         Gibt den *internen deque-Cache* zurück (keine Kopie).
         Read-only nutzen! set_index(+1) pflegt den deque automatisch.

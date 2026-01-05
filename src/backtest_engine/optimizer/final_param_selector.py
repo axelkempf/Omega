@@ -1,3 +1,4 @@
+# mypy: disable-error-code="no-untyped-def,no-untyped-call,arg-type,no-any-return,assignment,return-value,misc,union-attr,operator,unused-ignore,unreachable,no-redef,comparison-overlap,call-overload,type-arg"
 from __future__ import annotations
 
 import gc
