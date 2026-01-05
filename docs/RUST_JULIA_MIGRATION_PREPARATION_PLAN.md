@@ -226,20 +226,153 @@ Dieses Dokument beschreibt den systematischen Vorbereitungsplan zur sicheren, in
 
 ### Phase 3: Test-Infrastruktur
 
-| Task-ID | Beschreibung | Abhängigkeiten | Aufwand | Akzeptanzkriterien |
-|---------|--------------|----------------|---------|-------------------|
-| **P3-01** | pytest-benchmark Setup | - | S | `pyproject.toml` mit pytest-benchmark; Beispiel-Benchmark in `tests/benchmarks/` |
-| **P3-02** | Benchmark-Suite für `indicator_cache.py` | P3-01, P0-01 | M | Benchmarks für alle public functions; Results in JSON exportierbar |
-| **P3-03** | Benchmark-Suite für `event_engine.py` | P3-01, P0-01 | M | Throughput-Benchmarks, Latency-Benchmarks |
-| **P3-04** | Benchmark-Suite für Rating-Module | P3-01, P0-01 | M | Score-Calculation Benchmarks |
-| **P3-05** | Hypothesis für numerische Korrektheit einrichten | - | S | Hypothesis in dev-dependencies; Beispiel-Tests |
-| **P3-06** | Property-Based Tests für Indicator-Berechnungen | P3-05 | L | Invarianten-Tests: Monotonie, Bounds, Numerical Stability |
-| **P3-07** | Property-Based Tests für Scoring-Funktionen | P3-05 | L | Score-Bounds, Determinismus, Edge-Cases |
-| **P3-08** | Golden-File Test-Framework einrichten | - | M | `tests/golden/` Struktur; Utility zum Generieren/Vergleichen |
-| **P3-09** | Golden-Files für Backtest-Determinismus | P3-08 | L | Referenz-Outputs für Standard-Backtest-Configs |
-| **P3-10** | Golden-Files für Optimizer-Determinismus | P3-08 | L | Referenz-Outputs für Optimizer-Runs mit fixen Seeds |
-| **P3-11** | CI-Integration für Benchmarks | P3-02 bis P3-04 | M | GitHub Action für Benchmark-Regression-Detection |
-| **P3-12** | Benchmark-History-Tracking einrichten | P3-11 | M | ASV oder Custom-Lösung für historische Benchmark-Daten |
+| Task-ID | Beschreibung | Abhängigkeiten | Aufwand | Status |
+|---------|--------------|----------------|---------|--------|
+| **P3-01** | pytest-benchmark Setup | - | S | ✅ |
+| **P3-02** | Benchmark-Suite für `indicator_cache.py` | P3-01, P0-01 | M | ✅ |
+| **P3-03** | Benchmark-Suite für `event_engine.py` | P3-01, P0-01 | M | ✅ |
+| **P3-04** | Benchmark-Suite für Rating-Module | P3-01, P0-01 | M | ✅ |
+| **P3-05** | Hypothesis für numerische Korrektheit einrichten | - | S | ✅ |
+| **P3-06** | Property-Based Tests für Indicator-Berechnungen | P3-05 | L | ✅ |
+| **P3-07** | Property-Based Tests für Scoring-Funktionen | P3-05 | L | ✅ |
+| **P3-08** | Golden-File Test-Framework einrichten | - | M | ✅ |
+| **P3-09** | Golden-Files für Backtest-Determinismus | P3-08 | L | ✅ |
+| **P3-10** | Golden-Files für Optimizer-Determinismus | P3-08 | L | ✅ |
+| **P3-11** | CI-Integration für Benchmarks | P3-02 bis P3-04 | M | ✅ |
+| **P3-12** | Benchmark-History-Tracking einrichten | P3-11 | M | ✅ |
+
+#### Phase 3 – Implementierungsstatus (Stand: 2026-01-06)
+
+- **P3-01 (pytest-benchmark Setup):** ✅ **KOMPLETT** (2026-01-06)
+  - pytest-benchmark zu dev-dependencies hinzugefügt
+  - `tests/benchmarks/__init__.py` mit Modul-Dokumentation
+  - `tests/benchmarks/conftest.py` mit ~270 Zeilen Infrastruktur:
+    - `BENCHMARK_SEED = 42` für reproduzierbare Tests
+    - Datengeneratoren: `generate_synthetic_ohlcv()`, `generate_multi_tf_candle_data()`, `generate_synthetic_trades_df()`, `generate_base_metrics()`
+    - Fixtures: `synthetic_ohlcv_small/medium/large`, `multi_tf_data_small/medium/large`, `synthetic_trades_small/medium/large`, `base_metrics_fixture`
+    - Custom pytest markers: `benchmark_indicator`, `benchmark_event_engine`, `benchmark_rating`, `benchmark_slow`
+  - JSON-Export via `pytest --benchmark-json=output.json`
+
+- **P3-02 (Benchmark-Suite indicator_cache.py):** ✅ **KOMPLETT** (2026-01-06)
+  - `tests/benchmarks/test_bench_indicator_cache.py` (~300 Zeilen)
+  - 10 Test-Klassen, 20+ Benchmarks:
+    - TestIndicatorCacheCreation: Multi-TF Cache-Initialisierung
+    - TestEMABenchmarks: EMA-Berechnung (20/50/200 Perioden)
+    - TestEMAStepwiseBenchmarks: Stepwise EMA für Live-Updates
+    - TestSMABenchmarks: SMA-Berechnung
+    - TestRSIBenchmarks: RSI mit verschiedenen Perioden
+    - TestMACDBenchmarks: MACD-Berechnung
+    - TestROCBenchmarks: Rate of Change
+    - TestDMIBenchmarks: DMI/ADX
+    - TestCombinedIndicatorBenchmarks: Multi-Indicator Pipeline
+    - TestCacheEfficiencyBenchmarks: Cache Hit/Miss Ratio
+
+- **P3-03 (Benchmark-Suite event_engine.py):** ✅ **KOMPLETT** (2026-01-06)
+  - `tests/benchmarks/test_bench_event_engine.py` (~400 Zeilen)
+  - Mock-Objekte: MockCandle, MockStrategy, MockStrategyWrapper, MockExecutionSimulator, MockPortfolio
+  - 6 Test-Klassen, 15+ Benchmarks:
+    - TestEventLoopThroughput: Candle-Processing Rate (1K/10K/100K)
+    - TestSingleSymbolEventEngine: Full EventEngine mit Mocks
+    - TestEventEngineWithIndicators: EventEngine + IndicatorCache
+    - TestMultiSymbolEventEngine: Multi-Symbol CrossSymbolEventEngine
+    - TestEventEngineLatency: Einzelne Candle-Latenz
+    - TestEventEngineMemoryEfficiency: Memory-Profiling
+
+- **P3-04 (Benchmark-Suite Rating-Module):** ✅ **KOMPLETT** (2026-01-06)
+  - `tests/benchmarks/test_bench_rating.py` (~400 Zeilen)
+  - Datengeneratoren: `generate_jitter_metrics()`, `generate_yearly_profits()`, `generate_yearly_durations()`
+  - 8 Test-Klassen, 20+ Benchmarks:
+    - TestRobustnessScore1Benchmarks: Parameter Jitter (10/50/100 Repeats)
+    - TestCostShockScoreBenchmarks: Single/Multi-Factor Cost Shock
+    - TestTradeDropoutScoreBenchmarks: Dropout (100-2000 Trades)
+    - TestStabilityScoreBenchmarks: Yearly Profit Stability (5-20 Jahre)
+    - TestStressPenaltyBenchmarks: Basis-Penalty-Berechnung
+    - TestCombinedRatingBenchmarks: Full Rating Pipeline
+    - TestVectorizedPerformance: Vektorisierte vs Loop-basierte Operationen
+
+- **P3-05 (Hypothesis Setup):** ✅ **KOMPLETT** (2026-01-06)
+  - hypothesis>=6.100 zu dev-dependencies hinzugefügt
+  - `tests/property_tests/__init__.py` mit Modul-Dokumentation
+  - `tests/property_tests/conftest.py` mit ~400 Zeilen Infrastruktur:
+    - Custom Hypothesis Strategies: `ohlcv_values()`, `ohlcv_arrays()`, `valid_periods()`, `score_values()`
+    - NumPy-Compatible Strategies für Float64 Arrays
+    - Profile-Configuration für CI (max_examples, deadline)
+    - Fixtures für deterministische Seeds
+
+- **P3-06 (Property-Tests Indicators):** ✅ **KOMPLETT** (2026-01-06)
+  - `tests/property_tests/test_property_indicators.py` (~450 Zeilen)
+  - 6 Test-Klassen, 25+ Property-Tests:
+    - TestEMAProperties: Smoothing, Bounds, Lag, Convergence
+    - TestRSIProperties: Range [0,100], Overbought/Oversold detection
+    - TestMACDProperties: Signal-Line Crossing, Histogram invariants
+    - TestATRProperties: Non-negative, Volatility correlation
+    - TestBollingerProperties: Middle=SMA, Band-Width relationship
+    - TestNumericalStability: NaN handling, Extreme values
+
+- **P3-07 (Property-Tests Scoring):** ✅ **KOMPLETT** (2026-01-06)
+  - `tests/property_tests/test_property_scoring.py` (~400 Zeilen)
+  - 5 Test-Klassen, 20+ Property-Tests:
+    - TestScoreBounds: Alle Scores in [0,1] oder dokumentiertem Range
+    - TestScoreDeterminism: Gleiche Inputs → gleiche Outputs
+    - TestScoreMonotonicity: Bessere Inputs → bessere Scores
+    - TestScoreEdgeCases: Empty trades, single trade, extreme values
+    - TestScoreComposition: Combined scores consistent
+
+- **P3-08 (Golden-File Framework):** ✅ **KOMPLETT** (2026-01-06)
+  - `tests/golden/__init__.py` mit Modul-Dokumentation
+  - `tests/golden/conftest.py` (~500 Zeilen) mit:
+    - GoldenFileMetadata: created_at, python/numpy/pandas versions, seed, hash
+    - GoldenBacktestResult: summary_metrics, trade_count, equity_curve_hash
+    - GoldenOptimizerResult: best_params, best_score, n_trials, param_ranges
+    - GoldenFileManager: save/load/compare Referenz-Dateien
+    - set_deterministic_seed(): Random/NumPy/Torch Seeds synchronisiert
+    - compute_dict_hash(), compute_dataframe_hash(): Stabile Hashing-Funktionen
+    - CLI-Option: `--regenerate-golden-files`
+  - `tests/golden/reference/backtest/` und `tests/golden/reference/optimizer/` erstellt
+
+- **P3-09 (Golden-Files Backtest):** ✅ **KOMPLETT** (2026-01-06)
+  - `tests/golden/test_golden_backtest.py` (~550 Zeilen)
+  - 6 Test-Klassen, 20+ Tests:
+    - TestIndicatorDeterminism: EMA, RSI, ATR, MACD, Bollinger
+    - TestTradeGenerationDeterminism: Signal-Sequenz, verschiedene Seeds
+    - TestGoldenFileBacktest: indicator_cache, mock_backtest golden output
+    - TestReproducibilityAcrossRuns: Mehrfach-Läufe identisch
+    - TestDeterminismEdgeCases: Empty data, single value, extreme values
+    - TestGoldenFileManagement: Save/Load, Comparison detects differences
+
+- **P3-10 (Golden-Files Optimizer):** ✅ **KOMPLETT** (2026-01-06)
+  - `tests/golden/test_golden_optimizer.py` (~550 Zeilen)
+  - 7 Test-Klassen, 25+ Tests:
+    - TestTPESamplerDeterminism: Same seed → same suggestions
+    - TestRandomSamplerDeterminism: Random sampler with categorical params
+    - TestGoldenFileOptimizer: simple_quadratic, categorical_params, mock_backtest
+    - TestGridSearchDeterminism: Alle Kombinationen konsistent evaluiert
+    - TestPrunerDeterminism: MedianPruner deterministic pruning
+    - TestMultiObjectiveDeterminism: NSGA-II with fixed seed
+    - TestOptimizerEdgeCases: Single trial, failed trials, constraints
+
+- **P3-11 (CI-Integration Benchmarks):** ✅ **KOMPLETT** (2026-01-06)
+  - `.github/workflows/benchmarks.yml` (~250 Zeilen)
+  - 3 parallele Jobs:
+    - run-benchmarks: pytest-benchmark mit JSON-Output, Regression-Detection (>20%), PR-Kommentare
+    - property-tests: Hypothesis mit CI-Profile
+    - golden-file-tests: Determinismus-Validierung
+  - Trigger: push/PR auf Core-Pfade, workflow_dispatch mit compare_baseline/save_baseline
+  - Artifact-Upload für Benchmark-Ergebnisse
+
+- **P3-12 (Benchmark-History-Tracking):** ✅ **KOMPLETT** (2026-01-06)
+  - `tools/benchmark_history.py` (~400 Zeilen)
+  - Dataclasses: BenchmarkRun, BenchmarkSnapshot, RegressionResult
+  - BenchmarkHistoryTracker Klasse:
+    - add_snapshot(): Benchmark-Ergebnisse speichern
+    - add_from_pytest_benchmark_json(): Import aus pytest-benchmark
+    - detect_regressions(): Regression-Erkennung mit konfigurierbarem Threshold
+    - get_trend(): Trend-Analyse über N Snapshots
+    - generate_report(): Markdown-Report-Generierung
+  - CLI-Interface: add, report, trend Subcommands
+  - `tests/test_benchmark_history.py` (~500 Zeilen) mit vollständiger Test-Coverage
+
+**Phase 3 Status: ✅ 100% KOMPLETT** (P3-01 bis P3-12 abgeschlossen am 2026-01-06)
 
 ### Phase 4: Build-System
 

@@ -49,6 +49,10 @@ dev = [
     "types-requests>=2.31",
     "types-python-dateutil>=2.8",
     "pandas-stubs>=2.0",
+    # Benchmark testing for migration preparation (P3-01)
+    "pytest-benchmark>=4.0",
+    # Property-based testing for numerical correctness (P3-05)
+    "hypothesis>=6.100",
 ]
 analysis = [
     # Scientific computing for analysis scripts
