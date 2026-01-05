@@ -75,14 +75,14 @@ end
 
 
 """
-    max_drawdown(returns::Vector{Float64}) -> Float64
+    max_drawdown(returns::AbstractVector{Float64}) -> Float64
 
 Calculate the maximum drawdown from a return series.
 
 # Returns
 Maximum drawdown as a positive value (e.g., 0.15 = 15% drawdown)
 """
-function max_drawdown(returns::Vector{Float64})::Float64
+function max_drawdown(returns::AbstractVector{Float64})::Float64
     if isempty(returns)
         return 0.0
     end

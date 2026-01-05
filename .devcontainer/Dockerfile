@@ -6,8 +6,8 @@
 #
 # Build arguments:
 #   PYTHON_VERSION - Python version (default: 3.12)
-#   RUST_VERSION   - Rust version (default: 1.76.0)
-#   JULIA_VERSION  - Julia version (default: 1.10)
+#   RUST_VERSION   - Rust version (default: 1.92.0)
+#   JULIA_VERSION  - Julia version (default: 1.12)
 
 # ==============================================================================
 # Base Stage: Python + System Dependencies
@@ -16,8 +16,8 @@
 FROM mcr.microsoft.com/devcontainers/python:1-3.12-bookworm AS base
 
 ARG PYTHON_VERSION=3.12
-ARG RUST_VERSION=1.76.0
-ARG JULIA_VERSION=1.10
+ARG RUST_VERSION=1.92.0
+ARG JULIA_VERSION=1.12
 
 # System dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \

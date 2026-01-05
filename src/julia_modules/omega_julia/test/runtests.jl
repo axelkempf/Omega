@@ -103,8 +103,9 @@ using OmegaJulia
     # =========================================================================
     @testset "Risk Metrics" begin
         @testset "Sharpe Ratio" begin
-            # Constant positive returns
-            pos_returns = fill(0.01, 252)
+            # Varying positive returns with some volatility
+            Random.seed!(42)
+            pos_returns = 0.01 .+ 0.005 .* randn(252)  # Mean 1% with volatility
             sharpe = sharpe_ratio(pos_returns)
             
             @test sharpe > 0

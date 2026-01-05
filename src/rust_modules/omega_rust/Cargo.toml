@@ -9,7 +9,7 @@
 name = "omega-rust"
 version = "0.1.0"
 edition = "2021"
-rust-version = "1.75"
+rust-version = "1.85"
 authors = ["Axel Kempf"]
 description = "High-performance Rust extensions for Omega Trading System"
 license = "MIT"
@@ -26,8 +26,9 @@ crate-type = ["cdylib", "rlib"]
 # ==============================================================================
 
 [dependencies]
-# Python FFI - PyO3 with stable ABI for Python 3.10+
-pyo3 = { version = "0.20", features = ["extension-module", "abi3-py310"] }
+# Python FFI - PyO3 with stable ABI for Python 3.12+
+# Note: Using 0.24+ for Bound<> API and Rust 1.85+ compatibility
+pyo3 = { version = "0.24", features = ["extension-module", "abi3-py312"] }
 
 # Numerical Computing
 ndarray = { version = "0.15", features = ["serde", "rayon"] }
@@ -46,8 +47,8 @@ thiserror = "1.0"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 
-# Performance
-rayon = "1.8"
+# Performance - parallel iterators
+rayon = "1.11"
 
 # ==============================================================================
 # Development Dependencies

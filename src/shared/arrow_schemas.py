@@ -99,9 +99,7 @@ def get_ohlcv_schema() -> Any:
     _ensure_pyarrow()
     return pa.schema(
         [
-            pa.field(
-                "timestamp", pa.timestamp("us", tz="UTC"), nullable=False
-            ),
+            pa.field("timestamp", pa.timestamp("us", tz="UTC"), nullable=False),
             pa.field("open", pa.float64(), nullable=False),
             pa.field("high", pa.float64(), nullable=False),
             pa.field("low", pa.float64(), nullable=False),
@@ -144,9 +142,7 @@ def get_trade_signal_schema() -> Any:
     _ensure_pyarrow()
     return pa.schema(
         [
-            pa.field(
-                "timestamp", pa.timestamp("us", tz="UTC"), nullable=False
-            ),
+            pa.field("timestamp", pa.timestamp("us", tz="UTC"), nullable=False),
             pa.field(
                 "direction",
                 pa.dictionary(pa.int8(), pa.utf8()),
@@ -156,11 +152,7 @@ def get_trade_signal_schema() -> Any:
             pa.field("sl", pa.float64(), nullable=False),
             pa.field("tp", pa.float64(), nullable=False),
             pa.field("size", pa.float64(), nullable=False),
-            pa.field(
-                "symbol",
-                pa.dictionary(pa.int8(), pa.utf8()),
-                nullable=False
-            ),
+            pa.field("symbol", pa.dictionary(pa.int8(), pa.utf8()), nullable=False),
             pa.field(
                 "order_type",
                 pa.dictionary(pa.int8(), pa.utf8()),
@@ -208,35 +200,19 @@ def get_position_schema() -> Any:
     _ensure_pyarrow()
     return pa.schema(
         [
-            pa.field(
-                "entry_time", pa.timestamp("us", tz="UTC"),
-                nullable=False
-            ),
-            pa.field(
-                "exit_time", pa.timestamp("us", tz="UTC"), nullable=True),
-            pa.field(
-                "direction",
-                pa.dictionary(pa.int8(), pa.utf8()),
-                nullable=False
-            ),
-            pa.field(
-                "symbol", pa.dictionary(pa.int8(), pa.utf8()), nullable=False),
-            pa.field(
-                "entry_price", pa.float64(), nullable=False),
-            pa.field(
-                "exit_price", pa.float64(), nullable=True
-            ),
+            pa.field("entry_time", pa.timestamp("us", tz="UTC"), nullable=False),
+            pa.field("exit_time", pa.timestamp("us", tz="UTC"), nullable=True),
+            pa.field("direction", pa.dictionary(pa.int8(), pa.utf8()), nullable=False),
+            pa.field("symbol", pa.dictionary(pa.int8(), pa.utf8()), nullable=False),
+            pa.field("entry_price", pa.float64(), nullable=False),
+            pa.field("exit_price", pa.float64(), nullable=True),
             pa.field("initial_sl", pa.float64(), nullable=False),
             pa.field("current_sl", pa.float64(), nullable=False),
             pa.field("tp", pa.float64(), nullable=False),
             pa.field("size", pa.float64(), nullable=False),
             pa.field("result", pa.float64(), nullable=True),
             pa.field("r_multiple", pa.float64(), nullable=True),
-            pa.field(
-                "status",
-                pa.dictionary(pa.int8(), pa.utf8()),
-                nullable=False
-            ),
+            pa.field("status", pa.dictionary(pa.int8(), pa.utf8()), nullable=False),
         ]
     )
 
@@ -271,9 +247,7 @@ def get_indicator_schema() -> Any:
     _ensure_pyarrow()
     return pa.schema(
         [
-            pa.field(
-                "timestamp", pa.timestamp("us", tz="UTC"), nullable=False
-            ),
+            pa.field("timestamp", pa.timestamp("us", tz="UTC"), nullable=False),
             pa.field("value", pa.float64(), nullable=False),
             pa.field("valid", pa.bool_(), nullable=False),
         ]
@@ -308,9 +282,7 @@ def get_rating_score_schema() -> Any:
     return pa.schema(
         [
             pa.field(
-                "metric_name",
-                pa.dictionary(pa.int8(), pa.utf8()),
-                nullable=False
+                "metric_name", pa.dictionary(pa.int8(), pa.utf8()), nullable=False
             ),
             pa.field("raw_value", pa.float64(), nullable=False),
             pa.field("score", pa.float64(), nullable=False),
@@ -348,9 +320,7 @@ def get_equity_curve_schema() -> Any:
     _ensure_pyarrow()
     return pa.schema(
         [
-            pa.field(
-                "timestamp", pa.timestamp("us", tz="UTC"), nullable=False
-            ),
+            pa.field("timestamp", pa.timestamp("us", tz="UTC"), nullable=False),
             pa.field("equity", pa.float64(), nullable=False),
             pa.field("balance", pa.float64(), nullable=False),
             pa.field("drawdown", pa.float64(), nullable=False),
@@ -566,9 +536,7 @@ def arrow_to_numpy_zero_copy(array: Any) -> np.ndarray[Any, np.dtype[Any]]:
             f"Cannot zero-copy convert array with {array.null_count} nulls. "
             "Use array.to_numpy(zero_copy_only=False) instead."
         )
-    result: np.ndarray[Any, np.dtype[Any]] = array.to_numpy(
-        zero_copy_only=True
-    )
+    result: np.ndarray[Any, np.dtype[Any]] = array.to_numpy(zero_copy_only=True)
     return result
 
 
@@ -604,9 +572,7 @@ def get_schema(name: str) -> Any:
     if schema is None:
         if name not in SCHEMA_REGISTRY:
             available = list(SCHEMA_REGISTRY.keys())
-            raise KeyError(
-                f"Unknown schema: {name}. Available: {available}"
-            )
+            raise KeyError(f"Unknown schema: {name}. Available: {available}")
         # Schema existiert aber ist None
         # (pyarrow war beim Import nicht verfügbar)
         raise ImportError("pyarrow is required for Arrow schemas")

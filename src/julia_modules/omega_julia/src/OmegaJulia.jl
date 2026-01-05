@@ -33,8 +33,11 @@ export monte_carlo_var,
     rolling_sortino,
     rolling_calmar,
     block_bootstrap,
+    stationary_bootstrap,
+    bootstrap_confidence_interval,
     sharpe_ratio,
     sortino_ratio,
+    omega_ratio,
     max_drawdown
 
 # Export error handling (FFI boundary)

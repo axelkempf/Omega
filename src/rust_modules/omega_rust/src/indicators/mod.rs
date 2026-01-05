@@ -15,10 +15,12 @@
 //! minimal memory allocation. For large datasets, consider using
 //! the streaming variants (future feature).
 
-mod ema;
-mod rsi;
+// Internal modules (not re-exported as modules to avoid name collision)
+mod ema_impl;
+mod rsi_impl;
 mod statistics;
 
-pub use ema::{ema, exponential_moving_average};
-pub use rsi::rsi;
+// Re-export only the functions
+pub use ema_impl::{ema, exponential_moving_average};
+pub use rsi_impl::rsi;
 pub use statistics::rolling_std;

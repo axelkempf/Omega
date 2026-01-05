@@ -3,8 +3,8 @@
 //
 // This configuration provides a complete development environment with:
 // - Python 3.12 with all dev dependencies
-// - Rust toolchain (1.76+) with Maturin
-// - Julia 1.10 with required packages
+// - Rust toolchain (1.92+) with Maturin
+// - Julia 1.12 with required packages
 // - Pre-configured VS Code extensions
 //
 // Usage:
@@ -21,8 +21,8 @@
 		"context": "..",
 		"args": {
 			"PYTHON_VERSION": "3.12",
-			"RUST_VERSION": "1.76.0",
-			"JULIA_VERSION": "1.10"
+			"RUST_VERSION": "1.92.0",
+			"JULIA_VERSION": "1.12"
 		}
 	},
 
