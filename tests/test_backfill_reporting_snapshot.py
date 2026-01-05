@@ -2,7 +2,10 @@ import json
 from pathlib import Path
 
 import pytest
-from src.backtest_engine.analysis.backfill_reporting_defaults import BACKFILL_REPORTING_DEFAULTS
+
+from src.backtest_engine.analysis.backfill_reporting_defaults import (
+    BACKFILL_REPORTING_DEFAULTS,
+)
 from src.backtest_engine.analysis.backfill_walkforward_equity_curves import (
     BACKFILL_SNAPSHOT_NAME,
     _load_backfill_reporting_defaults,
