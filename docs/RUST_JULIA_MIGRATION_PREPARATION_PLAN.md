@@ -124,12 +124,25 @@ Dieses Dokument beschreibt den systematischen Vorbereitungsplan zur sicheren, in
 	- 12/12 Files passieren mypy --strict (0 Errors)
 	- Alle Rating-Funktionen vollständig typisiert
 	- Score-Typen und Metric-Interfaces dokumentiert
-- **P1-08 (FFI Protocols):** ✅ `src/shared/protocols.py` hinzugefügt.
+- **P1-08 (FFI Protocols):** ✅ **KOMPLETT** - `src/shared/protocols.py` hinzugefügt.
 	- `@runtime_checkable` Protocols für zentrale Boundary-Objekte (IndicatorCache / DataSlices / Strategy Evaluators).
 	- Mypy strict carve-out in `pyproject.toml` für `shared.*`.
 	- Runtime-Smoke-Tests: `tests/test_shared_protocols_runtime.py`.
-- **P1-09 (Type Stubs):** 🔜 Noch nicht gestartet
-- **P1-10 (Mypy-Konfiguration granular):** 🔜 Noch nicht gestartet (teilweise durch P1-05 bis P1-08 abgedeckt)
+- **P1-09 (Type Stubs):** ✅ **KOMPLETT** - Type Stubs für untyped Dependencies erstellt (2026-01-05):
+	- `stubs/joblib/__init__.pyi`: Vollständige Coverage für Parallel, Memory, delayed, dump/load
+	- `stubs/optuna/__init__.pyi`: Vollständige Coverage für Study, Trial, Samplers, Pruners
+	- `stubs/README.md`: Dokumentation und Maintenance-Guide
+	- `mypy_path = "stubs"` in `pyproject.toml` konfiguriert
+	- Validierung mit mypy --strict auf Migrations-Kandidaten: PASS
+- **P1-10 (Mypy-Konfiguration granular):** ✅ **KOMPLETT** - Granulare Mypy-Konfiguration (2026-01-05):
+	- Tiered-Ansatz implementiert: 5 Tiers (Strict/Strict/Relaxed/Permissive/UI)
+	- Kein globales `ignore_errors` mehr (nur `ignore_missing_imports` als Fallback)
+	- Alle Migrations-Kandidaten in Tier 1 (Strict Mode) konfiguriert
+	- Live-Trading-Engine in Tier 3 (Relaxed Mode) für Production Safety
+	- Vollständige Dokumentation der Rationale und Migrations-Prioritäten in `pyproject.toml`
+	- Report: `reports/phase1_p1-09_p1-10_report.md`
+
+**Phase 1 Status: ✅ 100% KOMPLETT** (P1-01 bis P1-10 abgeschlossen am 2026-01-05)
 
 ### Phase 2: Interface-Definition
 
