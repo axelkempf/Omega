@@ -6,12 +6,15 @@ import logging
 import os
 import re
 import sys
+from copy import deepcopy
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Set, Tuple
 
 import numpy as np
 import pandas as pd
 from joblib import Parallel, delayed
+
+from src.backtest_engine.analysis.backfill_reporting_defaults import BACKFILL_REPORTING_DEFAULTS
 
 # Ensure repository root and src/ are on sys.path so local modules can be imported
 REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -64,6 +67,14 @@ EXTRA_METRIC_COLS = {
 }
 BACKFILL_SNAPSHOT_NAME = "frozen_snapshot_backfill.json"
 BACKFILL_COMBINED_FILENAME = "05_final_scores_combined_backfill.csv"
+
+def _load_backfill_reporting_defaults() -> Dict[str, Any]:
+    """Liefert eine Kopie der zentral definierten Reporting-Defaults für Backfill.
+
+    Die Defaults sind in analysis/backfill_reporting_defaults.py festgelegt und
+    werden hier per deepcopy zurückgegeben, um Mutationsrisiken zu vermeiden.
+    """
+    return deepcopy(BACKFILL_REPORTING_DEFAULTS)
 
 
 def _normalize_mean_rev_module(cfg: Dict[str, Any]) -> None:
@@ -153,13 +164,14 @@ def _prepare_backfill_snapshot(
     end_date: Optional[str],
 ) -> None:
     """
-    Erzeugt eine Kopie von baseline/frozen_snapshot.json mit angepasstem
-    start_date/end_date, falls mindestens eines der Datums-Felder gesetzt ist.
-    Die Kopie wird als BACKFILL_SNAPSHOT_NAME gespeichert.
-    """
-    if not start_date and not end_date:
-        return
+    Erzeugt eine Kopie von baseline/frozen_snapshot.json als BACKFILL_SNAPSHOT_NAME
+    und überschreibt dabei das Reporting mit den zentral definierten Defaults
+    aus BACKFILL_REPORTING_DEFAULTS. Ebenfalls werden start_date/end_date angepasst,
+    falls gesetzt.
 
+    Optimierung: Schreibt nur, wenn sich tatsächlich etwas ändern würde (vermeidet
+    unnötige FS-Writes und mtime-Churn).
+    """
     snap_path = run_dir / "baseline" / "frozen_snapshot.json"
     if not snap_path.exists():
         logging.warning(
@@ -180,11 +192,49 @@ def _prepare_backfill_snapshot(
         logging.warning("base_config im Snapshot ist ungültig: %s", snap_path)
         return
 
+    # Prüfe, ob Backfill-Snapshot bereits existiert und bereits korrekt ist
+    out_path = run_dir / "baseline" / BACKFILL_SNAPSHOT_NAME
+    if out_path.exists():
+        try:
+            existing_blob = json.loads(out_path.read_text())
+            existing_cfg = existing_blob.get("base_config") or {}
+            rep_defaults = _load_backfill_reporting_defaults()
+            
+            # Check: Reporting bereits korrekt?
+            reporting_match = existing_cfg.get("reporting") == rep_defaults
+            # Check: Dates bereits korrekt?
+            start_match = (not start_date) or (existing_cfg.get("start_date") == start_date)
+            end_match = (not end_date) or (existing_cfg.get("end_date") == end_date)
+            
+            if reporting_match and start_match and end_match:
+                logging.debug(
+                    "Backfill-Snapshot bereits aktuell, kein Schreibvorgang nötig: %s",
+                    out_path
+                )
+                return
+        except Exception as exc:
+            # Wenn Lesen/Vergleich fehlschlägt, schreiben wir neu (defensive)
+            logging.debug(
+                "Existierender Backfill-Snapshot konnte nicht validiert werden (%s): %s",
+                out_path, exc
+            )
+
+    # Änderungen vornehmen
     changed = False
-    if start_date:
+    rep_defaults = _load_backfill_reporting_defaults()
+    if rep_defaults:
+        if base_cfg.get("reporting") != rep_defaults:
+            base_cfg["reporting"] = rep_defaults
+            changed = True
+    else:
+        logging.warning(
+            "[Backfill] Reporting-Defaults fehlen – verwende vorhandenes Reporting."
+        )
+
+    if start_date and base_cfg.get("start_date") != start_date:
         base_cfg["start_date"] = start_date
         changed = True
-    if end_date:
+    if end_date and base_cfg.get("end_date") != end_date:
         base_cfg["end_date"] = end_date
         changed = True
 
@@ -192,7 +242,6 @@ def _prepare_backfill_snapshot(
         return
 
     blob["base_config"] = base_cfg
-    out_path = run_dir / "baseline" / BACKFILL_SNAPSHOT_NAME
     try:
         out_path.write_text(
             json.dumps(blob, ensure_ascii=False, indent=2), encoding="utf-8"
@@ -213,8 +262,16 @@ def load_snapshot(run_dir: Path) -> tuple[Dict[str, Any], Dict[str, Any]]:
     base_cfg = blob.get("base_config") or {}
     if not isinstance(base_cfg, dict):
         raise ValueError(f"base_config fehlt oder ist ungültig in {snap_path}")
+    reporting_from_snapshot = (
+        deepcopy(base_cfg.get("reporting")) if isinstance(base_cfg.get("reporting"), dict) else None
+    )
     # Ergänze fehlende Felder (direction_filter, enabled_scenarios, Reporting ...)
     upgraded = _upgrade_base_config(base_cfg, run_id=run_dir.name)
+
+    # Reporting ausschließlich aus dem Snapshot respektieren (kein Reload aus Template)
+    if reporting_from_snapshot is not None:
+        upgraded["reporting"] = reporting_from_snapshot
+
     _normalize_mean_rev_module(upgraded)
     param_grid = blob.get("param_grid") or {}
     if not isinstance(param_grid, dict):

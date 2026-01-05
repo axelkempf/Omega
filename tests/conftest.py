@@ -3,13 +3,19 @@ from __future__ import annotations
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Callable
+from typing import Callable, Iterator
 
 import pytest
 
 # Ensure repository root is on sys.path so imports like `analysis.*` work reliably
 # across different pytest/runner configurations.
 _REPO_ROOT = Path(__file__).resolve().parents[1]
+_SRC_ROOT = _REPO_ROOT / "src"
+
+# Prefer the workspace's src/ packages (src-layout) over any globally installed
+# or externally checked-out modules with the same top-level names.
+if _SRC_ROOT.exists() and str(_SRC_ROOT) not in sys.path:
+    sys.path.insert(0, str(_SRC_ROOT))
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
@@ -19,7 +25,7 @@ from tests.utils.trading_test_utils import create_mock_position
 
 
 @pytest.fixture
-def mock_broker() -> MockBrokerInterface:
+def mock_broker() -> Iterator[MockBrokerInterface]:
     """Provide a configured MockBrokerInterface with cleanup."""
 
     broker = MockBrokerInterface()
