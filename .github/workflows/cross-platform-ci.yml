@@ -391,7 +391,8 @@ jobs:
         run: |
           pip install maturin
           cd src/rust_modules/omega_rust
-          maturin develop --release
+          maturin build --release --out dist
+          pip install dist/*.whl
 
       - name: Setup Julia FFI
         if: steps.check_julia.outputs.julia_exists == 'true'

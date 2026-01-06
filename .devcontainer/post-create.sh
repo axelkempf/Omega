@@ -39,7 +39,10 @@ if command -v rustc &> /dev/null; then
     if [ -d "src/rust_modules/omega_rust" ] && [ -f "src/rust_modules/omega_rust/Cargo.toml" ]; then
         echo "🔨 Building Rust module..."
         cd src/rust_modules/omega_rust
-        maturin develop --release
+        # Use maturin build + pip install instead of maturin develop
+        # to avoid virtual environment requirement issues
+        maturin build --release --out dist
+        pip install dist/*.whl --force-reinstall
         cd /workspaces/omega
         echo "✅ Rust module built"
     else
