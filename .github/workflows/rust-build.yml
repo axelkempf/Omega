@@ -66,6 +66,12 @@ jobs:
             echo "::notice::No Rust modules found - skipping Rust workflow"
           fi
 
+      - name: Setup Python (required for PyO3 abi3-py312)
+        if: steps.check_rust.outputs.rust_exists == 'true'
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
       - name: Setup Rust toolchain
         if: steps.check_rust.outputs.rust_exists == 'true'
         uses: dtolnay/rust-toolchain@stable
@@ -120,6 +126,12 @@ jobs:
             echo "rust_exists=false" >> $GITHUB_OUTPUT
           fi
 
+      - name: Setup Python (required for PyO3 abi3-py312)
+        if: steps.check_rust.outputs.rust_exists == 'true'
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
       - name: Setup Rust toolchain
         if: steps.check_rust.outputs.rust_exists == 'true'
         uses: dtolnay/rust-toolchain@stable
@@ -155,6 +167,12 @@ jobs:
           else
             echo "rust_exists=false" >> $GITHUB_OUTPUT
           fi
+
+      - name: Setup Python (required for PyO3 abi3-py312)
+        if: steps.check_rust.outputs.rust_exists == 'true'
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
 
       - name: Setup Rust toolchain
         if: steps.check_rust.outputs.rust_exists == 'true'
