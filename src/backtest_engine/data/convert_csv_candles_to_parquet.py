@@ -25,7 +25,9 @@ def convert_all_csv_to_parquet(
     if output_dir is None:
         output_dir = base_dir
     else:
-        output_dir = Path(output_dir) if not isinstance(output_dir, Path) else output_dir
+        output_dir = (
+            Path(output_dir) if not isinstance(output_dir, Path) else output_dir
+        )
 
     output_dir.mkdir(parents=True, exist_ok=True)
 
