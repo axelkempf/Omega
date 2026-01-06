@@ -24,7 +24,7 @@ on:
       julia_version:
         description: 'Julia version to test'
         required: false
-        default: '1.12'
+        default: '1.10'
         type: string
       run_integration:
         description: 'Run Python-Julia integration tests'
@@ -49,12 +49,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        julia-version: ['1.10', '1.12']
+        julia-version: ['1.10', '1.11']
         os: [ubuntu-latest]
         include:
-          - julia-version: '1.12'
+          - julia-version: '1.10'
             os: macos-latest
-          - julia-version: '1.12'
+          - julia-version: '1.10'
             os: windows-latest
 
     steps:

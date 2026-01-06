@@ -96,6 +96,9 @@ pretty = true
 markers = [
     "integration: Integrationstests über Komponenten hinweg",
     "trading_safety: Regressions- und Guardrail-Tests für Trading-Sicherheit",
+    "mt5: Tests die MetaTrader5 benötigen (Windows-only)",
+    "rust_integration: Tests für Rust FFI Integration",
+    "julia_integration: Tests für Julia FFI Integration",
 ]
 
 # ══════════════════════════════════════════════════════════════════════════════
