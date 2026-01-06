@@ -16,7 +16,7 @@
 FROM mcr.microsoft.com/devcontainers/python:1-3.12-bookworm AS base
 
 ARG PYTHON_VERSION=3.12
-ARG RUST_VERSION=1.83.0
+ARG RUST_VERSION=1.85
 ARG JULIA_VERSION=1.10
 
 # System dependencies

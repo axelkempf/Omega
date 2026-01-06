@@ -217,7 +217,7 @@ jobs:
         if: steps.check_rust.outputs.rust_exists == 'true'
         uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: '1.83.0'
+          toolchain: '1.85'
           targets: ${{ matrix.target }}
 
       - name: Cache Cargo
