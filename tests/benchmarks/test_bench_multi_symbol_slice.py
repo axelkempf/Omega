@@ -68,7 +68,15 @@ def generate_symbol_dataframes(
             lo = o * float(1 - rng.uniform(0.0001, 0.001))
             cl = lo + float(rng.uniform(0.3, 0.7)) * (hi - lo)
             vol = float(rng.integers(100, 10000))
-            bid = Candle(timestamp=ts, open=o, high=hi, low=lo, close=cl, volume=vol, candle_type="bid")
+            bid = Candle(
+                timestamp=ts,
+                open=o,
+                high=hi,
+                low=lo,
+                close=cl,
+                volume=vol,
+                candle_type="bid",
+            )
             # Minimaler Spread für Ask
             ask = Candle(
                 timestamp=ts,
@@ -93,7 +101,9 @@ def create_multi_symbol_slice(
     """Erstellt eine MultiSymbolSlice mit synthetischen Daten."""
     candle_lookups = generate_symbol_dataframes(symbols, candles, seed)
     start_ts = datetime(2024, 1, 1, 0, 0, 0)
-    return MultiSymbolSlice(candle_lookups=candle_lookups, timestamp=start_ts, primary_tf="H1")
+    return MultiSymbolSlice(
+        candle_lookups=candle_lookups, timestamp=start_ts, primary_tf="H1"
+    )
 
 
 def generate_timestamps(count: int) -> List[datetime]:
@@ -381,7 +391,9 @@ class TestSliceViewBenchmarks:
         """Benchmark: SliceView.latest() (1K Candles)."""
         data = generate_symbol_dataframes(SYMBOLS_SMALL, SMALL_CANDLE_COUNT)
         ts = datetime(2024, 1, 1, 0, 0, 0)
-        views = {symbol: SliceView(maps["bid"].get(ts)) for symbol, maps in data.items()}
+        views = {
+            symbol: SliceView(maps["bid"].get(ts)) for symbol, maps in data.items()
+        }
 
         def get_all_latest() -> int:
             count = 0
@@ -398,7 +410,9 @@ class TestSliceViewBenchmarks:
         """Benchmark: SliceView.latest() (10K Candles)."""
         data = generate_symbol_dataframes(SYMBOLS_MEDIUM, DEFAULT_CANDLE_COUNT)
         ts = datetime(2024, 1, 1, 0, 0, 0)
-        views = {symbol: SliceView(maps["bid"].get(ts)) for symbol, maps in data.items()}
+        views = {
+            symbol: SliceView(maps["bid"].get(ts)) for symbol, maps in data.items()
+        }
 
         def get_all_latest() -> int:
             count = 0
@@ -415,7 +429,9 @@ class TestSliceViewBenchmarks:
         """Benchmark: Concurrent SliceView-Zugriffe."""
         data = generate_symbol_dataframes(SYMBOLS_MEDIUM, DEFAULT_CANDLE_COUNT)
         ts = datetime(2024, 1, 1, 0, 0, 0)
-        views = {symbol: SliceView(maps["bid"].get(ts)) for symbol, maps in data.items()}
+        views = {
+            symbol: SliceView(maps["bid"].get(ts)) for symbol, maps in data.items()
+        }
 
         def concurrent_access() -> int:
             count = 0

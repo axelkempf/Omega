@@ -412,7 +412,9 @@ class TestPositionSizingBenchmarks:
             },
             strict=True,
         )
-        sim = ExecutionSimulator(portfolio=portfolio, risk_per_trade=100.0, rate_provider=rp)
+        sim = ExecutionSimulator(
+            portfolio=portfolio, risk_per_trade=100.0, rate_provider=rp
+        )
 
         symbols = ["EURUSD", "GBPUSD", "USDJPY", "AUDUSD", "USDCAD"] * 200
 
