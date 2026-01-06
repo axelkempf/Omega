@@ -42,7 +42,8 @@ env:
   RUST_BACKTRACE: 1
   RUSTFLAGS: "-D warnings"
   # Rust toolchain version (pinned for reproducibility)
-  RUST_VERSION: "1.89"
+  # Using latest stable - dtolnay/rust-toolchain@stable will resolve automatically
+  RUST_VERSION: "stable"
 
 jobs:
   # ============================================================================
