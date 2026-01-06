@@ -96,17 +96,18 @@ jobs:
           pip install -e .[dev]
 
       - name: Run unit tests
+        shell: bash
         run: |
           pytest tests/ -q -m "not integration and not mt5 and not rust_integration and not julia_integration" \
             --ignore=tests/benchmarks \
             --ignore=tests/golden \
-            --ignore=tests/property_tests
+            --ignore=tests/property
 
       - name: Run property-based tests (Linux only)
         if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12'
         run: |
           pip install hypothesis
-          pytest tests/property_tests/ -v --hypothesis-seed=42
+          pytest tests/property/ -v --hypothesis-seed=42
         continue-on-error: true
 
   # ============================================================================

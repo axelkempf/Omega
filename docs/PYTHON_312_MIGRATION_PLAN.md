@@ -198,7 +198,7 @@ analysis = [
 name = "omega"
 version = "1.2.0"  # Version Bump für Breaking Change
 - requires-python = ">=3.10"
-+ requires-python = ">=3.12"
++ requires-python = ">=3.11"
 
 dependencies = [
 -   "pandas>=1.5",
@@ -246,7 +246,7 @@ analysis = [
 ## Voraussetzungen
 
 - - Python **>= 3.10**
-+ - Python **>= 3.12**
++ - Python **>= 3.11**
 ```
 
 ---

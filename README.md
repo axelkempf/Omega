@@ -25,7 +25,7 @@ Ein Python-basierter Trading-Stack mit **Live-Engine (MetaTrader 5)**, **event-g
 
 ### Voraussetzungen
 
-- Python **>= 3.12**
+- Python **>= 3.11**
 - macOS/Linux: Backtests/Analyse funktionieren ohne MT5.
 - Windows: Für **Live-Trading** wird `MetaTrader5` benötigt (Dependency wird nur unter Windows installiert).
 
