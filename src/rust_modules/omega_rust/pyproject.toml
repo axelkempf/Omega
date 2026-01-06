@@ -47,8 +47,6 @@ Repository = "https://github.com/axelkempf/Omega"
 Documentation = "https://github.com/axelkempf/Omega/tree/main/docs"
 
 [tool.maturin]
-# Python source directory (for pure Python companion modules)
-python-source = "python"
 # Module name in Python namespace
 module-name = "omega._rust"
 # Build features
