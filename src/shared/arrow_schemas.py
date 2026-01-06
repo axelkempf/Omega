@@ -733,4 +733,3 @@ def validate_schema_registry(expected_fingerprints: dict[str, str]) -> list[str]
             )
 
     return errors
-

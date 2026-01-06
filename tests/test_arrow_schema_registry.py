@@ -26,7 +26,9 @@ from src.shared.arrow_schemas import (
 )
 
 # Path to golden fingerprints file
-GOLDEN_FINGERPRINTS_PATH = Path(__file__).parent.parent / "reports" / "schema_fingerprints.json"
+GOLDEN_FINGERPRINTS_PATH = (
+    Path(__file__).parent.parent / "reports" / "schema_fingerprints.json"
+)
 
 
 class TestSchemaFingerprinting:
@@ -48,13 +50,22 @@ class TestSchemaFingerprinting:
                 continue
             fp = get_schema_fingerprint(schema)
             assert len(fp) == 64, f"Invalid fingerprint length for {name}"
-            assert all(c in "0123456789abcdef" for c in fp), f"Invalid hex chars in {name}"
+            assert all(
+                c in "0123456789abcdef" for c in fp
+            ), f"Invalid hex chars in {name}"
 
     def test_all_schemas_have_fingerprints(self) -> None:
         """Alle registrierten Schemas müssen Fingerprints haben."""
         fps = get_all_schema_fingerprints()
-        expected_schemas = {"ohlcv", "trade_signal", "position", "indicator", "rating_score", "equity_curve"}
-        
+        expected_schemas = {
+            "ohlcv",
+            "trade_signal",
+            "position",
+            "indicator",
+            "rating_score",
+            "equity_curve",
+        }
+
         for schema_name in expected_schemas:
             assert schema_name in fps, f"Missing fingerprint for {schema_name}"
 
@@ -70,9 +81,16 @@ class TestSchemaRegistry:
 
     def test_all_schemas_registered(self) -> None:
         """Alle bekannten Schemas müssen registriert sein."""
-        expected = {"ohlcv", "trade_signal", "position", "indicator", "rating_score", "equity_curve"}
+        expected = {
+            "ohlcv",
+            "trade_signal",
+            "position",
+            "indicator",
+            "rating_score",
+            "equity_curve",
+        }
         actual = set(SCHEMA_REGISTRY.keys())
-        
+
         missing = expected - actual
         assert not missing, f"Missing schemas in registry: {missing}"
 
@@ -97,24 +115,28 @@ class TestSchemaValidation:
         """Validation muss Schema-Drift erkennen."""
         fake_expected = {"ohlcv": "0" * 64}  # Wrong fingerprint
         errors = validate_schema_registry(fake_expected)
-        
+
         assert any("drift detected" in e.lower() for e in errors), "Should detect drift"
 
     def test_validate_detects_missing_schema(self) -> None:
         """Validation muss fehlende Schemas erkennen."""
         expected_with_extra = get_all_schema_fingerprints()
         expected_with_extra["nonexistent_schema"] = "a" * 64
-        
+
         errors = validate_schema_registry(expected_with_extra)
-        assert any("missing schema" in e.lower() for e in errors), "Should detect missing"
+        assert any(
+            "missing schema" in e.lower() for e in errors
+        ), "Should detect missing"
 
     def test_validate_detects_new_schema(self) -> None:
         """Validation muss neue Schemas erkennen."""
         partial_expected = {"ohlcv": get_all_schema_fingerprints()["ohlcv"]}
-        
+
         errors = validate_schema_registry(partial_expected)
         # Should report new schemas not in expected
-        assert any("new schema" in e.lower() for e in errors), "Should detect new schemas"
+        assert any(
+            "new schema" in e.lower() for e in errors
+        ), "Should detect new schemas"
 
 
 class TestGoldenFingerprints:
@@ -130,7 +152,7 @@ class TestGoldenFingerprints:
 
     def test_no_schema_drift(self, golden_fingerprints: dict[str, str] | None) -> None:
         """CI-Test: Schema darf nicht von golden state abweichen.
-        
+
         Bei Fehlschlag:
         1. Prüfen ob Schema-Änderung gewollt war
         2. Wenn ja: Golden-File manuell aktualisieren
@@ -139,12 +161,12 @@ class TestGoldenFingerprints:
         if golden_fingerprints is None:
             pytest.skip(
                 f"Golden fingerprints file not found at {GOLDEN_FINGERPRINTS_PATH}. "
-                "Create with: python -c \"from src.shared.arrow_schemas import get_all_schema_fingerprints; "
-                "import json; print(json.dumps(get_all_schema_fingerprints(), indent=2))\""
+                'Create with: python -c "from src.shared.arrow_schemas import get_all_schema_fingerprints; '
+                'import json; print(json.dumps(get_all_schema_fingerprints(), indent=2))"'
             )
-        
+
         errors = validate_schema_registry(golden_fingerprints)
-        
+
         if errors:
             error_msg = (
                 "Schema drift detected!\n\n"
