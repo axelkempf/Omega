@@ -11,22 +11,34 @@ Verwendung:
         OHLCV_SCHEMA,
         TRADE_SIGNAL_SCHEMA,
         create_ohlcv_batch,
+        SCHEMA_REGISTRY,
+        get_schema_fingerprint,
     )
 
 Schemas sind optimiert für:
 - Zero-Copy Transfer (NumPy ↔ Arrow ↔ Rust ndarray)
 - Schema-Validierung an FFI-Grenzen
 - Interoperabilität mit Arrow.jl (Julia)
+- Schema-Versionierung für Drift-Detection (CI-Guardrail)
 
 Referenz: docs/adr/ADR-0002-serialization-format.md
 """
 
 from __future__ import annotations
 
+import hashlib
+import json
 from datetime import datetime, timezone
-from typing import Any, Sequence
+from typing import Any, Final, Sequence
 
 import numpy as np
+
+# =============================================================================
+# Schema Registry Version
+# =============================================================================
+# Increment MINOR on backward-compatible changes (new nullable fields)
+# Increment MAJOR on breaking changes (removed fields, type changes)
+SCHEMA_REGISTRY_VERSION: Final[str] = "1.0.0"
 
 # pyarrow ist Core-Dependency (pyproject.toml: pyarrow>=14.0)
 # Import sollte immer erfolgreich sein. PYARROW_AVAILABLE bleibt für
@@ -608,5 +620,117 @@ __all__ = [
     "arrow_to_numpy_zero_copy",
     # Registry
     "SCHEMA_REGISTRY",
+    "SCHEMA_REGISTRY_VERSION",
     "get_schema",
+    # Schema Versioning
+    "get_schema_fingerprint",
+    "get_all_schema_fingerprints",
+    "validate_schema_registry",
 ]
+
+
+# =============================================================================
+# Schema Fingerprinting (CI Guardrail for Drift Detection)
+# =============================================================================
+
+
+def get_schema_fingerprint(schema: Any) -> str:
+    """Generate a deterministic fingerprint for an Arrow schema.
+
+    Used by CI to detect schema drift between Python/Rust/Julia.
+
+    Args:
+        schema: pyarrow.Schema object
+
+    Returns:
+        SHA-256 hash (hex) of normalized schema representation
+
+    Example:
+        >>> fingerprint = get_schema_fingerprint(OHLCV_SCHEMA)
+        >>> print(fingerprint[:16])  # First 16 chars
+        'a3b9c7d8e1f2a4b5'
+    """
+    _ensure_pyarrow()
+
+    # Normalize schema to deterministic string representation
+    # Include field names, types, nullability - exclude metadata
+    schema_repr = []
+    for field in schema:
+        field_info = {
+            "name": field.name,
+            "type": str(field.type),
+            "nullable": field.nullable,
+        }
+        schema_repr.append(field_info)
+
+    # Sort for determinism
+    normalized = json.dumps(schema_repr, sort_keys=True, ensure_ascii=True)
+
+    # Generate hash
+    return hashlib.sha256(normalized.encode("utf-8")).hexdigest()
+
+
+def get_all_schema_fingerprints() -> dict[str, str]:
+    """Get fingerprints for all registered schemas.
+
+    Returns:
+        Dict mapping schema name to fingerprint
+
+    Example:
+        >>> fps = get_all_schema_fingerprints()
+        >>> print(fps["ohlcv"][:16])
+    """
+    _ensure_pyarrow()
+
+    result = {}
+    for name, schema in SCHEMA_REGISTRY.items():
+        if schema is not None:
+            result[name] = get_schema_fingerprint(schema)
+    return result
+
+
+def validate_schema_registry(expected_fingerprints: dict[str, str]) -> list[str]:
+    """Validate current schemas against expected fingerprints.
+
+    Used by CI to detect schema drift.
+
+    Args:
+        expected_fingerprints: Dict of {schema_name: expected_fingerprint}
+
+    Returns:
+        List of error messages (empty if all valid)
+
+    Example:
+        >>> expected = {"ohlcv": "a3b9c7d8..."}
+        >>> errors = validate_schema_registry(expected)
+        >>> if errors:
+        ...     raise AssertionError("\\n".join(errors))
+    """
+    _ensure_pyarrow()
+
+    errors = []
+    current = get_all_schema_fingerprints()
+
+    # Check for missing schemas
+    for name in expected_fingerprints:
+        if name not in current:
+            errors.append(f"Missing schema: {name}")
+
+    # Check for fingerprint mismatches
+    for name, expected_fp in expected_fingerprints.items():
+        if name in current and current[name] != expected_fp:
+            errors.append(
+                f"Schema drift detected for '{name}': "
+                f"expected {expected_fp[:16]}..., got {current[name][:16]}..."
+            )
+
+    # Check for new schemas not in expected
+    for name in current:
+        if name not in expected_fingerprints:
+            errors.append(
+                f"New schema '{name}' not in expected fingerprints. "
+                f"Fingerprint: {current[name]}"
+            )
+
+    return errors
+

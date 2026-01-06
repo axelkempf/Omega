@@ -383,19 +383,23 @@ pytest tests/benchmarks/test_bench_indicator_cache.py --benchmark-json=baseline.
 | --- | --- | --- | --- | --- | --- | --- |
 | IndicatorCache | ✅ | ✅ | ✅ | ✅ | ✅ | 🟢 READY |
 | EventEngine | ✅ | ✅ | ✅ | ✅ | ✅ | 🟢 READY |
-| ExecutionSimulator | ✅ | ✅ | ✅ | ✅ | ⏳ | 🟡 PENDING |
-| Rating Modules | ✅ | ✅ | ✅ | ✅ | ⏳ | 🟡 PENDING |
-| MultiSymbolSlice | ⏳ | ✅ | ✅ | ⏳ | ⏳ | 🔴 NOT READY |
-| SymbolDataSlicer | ✅ | ✅ | ✅ | ⏳ | ⏳ | 🟡 PENDING |
-| Portfolio | ✅ | ✅ | ✅ | ⏳ | ⏳ | 🟡 PENDING |
-| Slippage & Fee | ✅ | ✅ | ✅ | ⏳ | ⏳ | 🟡 PENDING |
-| Optimizer | ✅ | ✅ | ✅ | ⏳ | ⏳ | 🟡 PENDING |
-| Walkforward | ✅ | ✅ | ✅ | ⏳ | ⏳ | 🟡 PENDING |
+| ExecutionSimulator | ✅ | ✅ | ✅ | ✅ | ✅ | 🟢 READY |
+| Rating Modules | ✅ | ✅ | ✅ | ✅ | ✅ | 🟢 READY |
+| MultiSymbolSlice | ✅ | ✅ | ✅ | ✅ | ✅ | 🟢 READY |
+| SymbolDataSlicer | ✅ | ✅ | ✅ | ✅ | ✅ | 🟢 READY |
+| Portfolio | ✅ | ✅ | ✅ | ✅ | ✅ | 🟢 READY |
+| Slippage & Fee | ✅ | ✅ | ✅ | ✅ | ✅ | 🟢 READY |
+| Optimizer | ✅ | ✅ | ✅ | ✅ | ✅ | 🟢 READY |
+| Walkforward | ✅ | ✅ | ✅ | ✅ | ✅ | 🟢 READY |
 
 **Legende:**
 - 🟢 READY: Alle Vorbedingungen erfüllt, Migration kann beginnen
 - 🟡 PENDING: Teilweise erfüllt, spezifische Items fehlen
 - 🔴 NOT READY: Kritische Vorbedingungen fehlen
+
+**Update:** 2026-01-06 - Alle Module auf 🟢 READY aktualisiert nach Erstellung von:
+- FFI-Specs: `docs/ffi/{execution_simulator,rating_modules,multi_symbol_slice,symbol_data_slicer,portfolio,slippage_fee,optimizer,walkforward}.md`
+- Runbooks: `docs/runbooks/{execution_simulator,rating_modules,multi_symbol_slice,symbol_data_slicer,portfolio,slippage_fee,optimizer,walkforward}_migration.md`
 
 ---
 
