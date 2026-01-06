@@ -16,7 +16,7 @@ import os
 import random
 import warnings
 from dataclasses import asdict, dataclass, field
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, TypeVar, Union
 
@@ -111,6 +111,33 @@ class GoldenOptimizerResult:
             n_trials=data["n_trials"],
             param_ranges=data["param_ranges"],
             top_n_hashes=data["top_n_hashes"],
+        )
+
+
+@dataclass
+class GoldenRatingResult:
+    """Struktur für Rating-Module Golden-File.
+
+    Speichert bewusst keine großen Rohdaten (z.B. komplette DataFrames), sondern
+    stabile Scalar-Outputs und Hashes abgeleiteter Artefakte.
+    """
+
+    metadata: GoldenFileMetadata
+    outputs: Dict[str, Any]
+    outputs_hash: str
+
+    def to_dict(self) -> Dict[str, Any]:
+        result = asdict(self)
+        result["metadata"] = self.metadata.to_dict()
+        return result
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> GoldenRatingResult:
+        metadata = GoldenFileMetadata.from_dict(data["metadata"])
+        return cls(
+            metadata=metadata,
+            outputs=data["outputs"],
+            outputs_hash=data["outputs_hash"],
         )
 
 
@@ -216,7 +243,7 @@ def create_metadata(seed: int, description: str) -> GoldenFileMetadata:
     import sys
 
     return GoldenFileMetadata(
-        created_at=datetime.utcnow().isoformat(),
+        created_at=datetime.now(UTC).isoformat(),
         python_version=sys.version.split()[0],
         numpy_version=np.__version__,
         pandas_version=pd.__version__,
@@ -305,6 +332,103 @@ class GoldenFileManager:
             data = json.load(f)
 
         return GoldenOptimizerResult.from_dict(data)
+
+    def save_rating_reference(self, name: str, result: GoldenRatingResult) -> Path:
+        """Speichert eine Rating-Referenz."""
+        path = self._get_reference_path(name, "rating")
+
+        # Hash primär über die Outputs (ohne volatile Metadaten wie created_at).
+        result.outputs_hash = compute_dict_hash(result.outputs)
+
+        # Optional: Gesamt-Hash (inkl. Metadaten) für Debug / Datei-Integrität.
+        result.metadata.file_hash = compute_dict_hash(result.to_dict())
+
+        with open(path, "w") as f:
+            json.dump(result.to_dict(), f, indent=2)
+
+        return path
+
+    def load_rating_reference(self, name: str) -> Optional[GoldenRatingResult]:
+        """Lädt eine Rating-Referenz."""
+        path = self._get_reference_path(name, "rating")
+        if not path.exists():
+            return None
+
+        with open(path) as f:
+            data = json.load(f)
+
+        return GoldenRatingResult.from_dict(data)
+
+    def compare_rating_results(
+        self,
+        name: str,
+        current: GoldenRatingResult,
+        *,
+        metric_tolerance: float = 1e-8,
+    ) -> Dict[str, Any]:
+        """Vergleicht aktuelles Rating-Ergebnis mit Referenz."""
+        reference = self.load_rating_reference(name)
+
+        if reference is None:
+            return {
+                "status": "no_reference",
+                "message": f"No reference found for '{name}'",
+            }
+
+        # Recompute to avoid caller mistakes.
+        current.outputs_hash = compute_dict_hash(current.outputs)
+
+        differences: Dict[str, Any] = {}
+
+        if current.outputs_hash != reference.outputs_hash:
+            differences["outputs_hash"] = {
+                "expected": reference.outputs_hash,
+                "actual": current.outputs_hash,
+            }
+
+            # Minimaler, stabiler Top-Level-Diff für Debugbarkeit.
+            exp = reference.outputs or {}
+            cur = current.outputs or {}
+            keys = sorted(set(exp.keys()) | set(cur.keys()))
+            per_key: Dict[str, Any] = {}
+            for k in keys:
+                if k not in exp:
+                    per_key[k] = {"expected": "<missing>", "actual": cur.get(k)}
+                    continue
+                if k not in cur:
+                    per_key[k] = {"expected": exp.get(k), "actual": "<missing>"}
+                    continue
+                ev = exp.get(k)
+                cv = cur.get(k)
+                if isinstance(ev, (int, float)) and isinstance(cv, (int, float)):
+                    diff = abs(float(ev) - float(cv))
+                    if diff > float(metric_tolerance):
+                        per_key[k] = {
+                            "expected": float(ev),
+                            "actual": float(cv),
+                            "diff": float(diff),
+                        }
+                elif isinstance(ev, dict) and isinstance(cv, dict):
+                    eh = compute_dict_hash(ev)
+                    ch = compute_dict_hash(cv)
+                    if eh != ch:
+                        per_key[k] = {
+                            "expected_hash": eh,
+                            "actual_hash": ch,
+                        }
+                elif ev != cv:
+                    per_key[k] = {"expected": ev, "actual": cv}
+
+            if per_key:
+                differences["outputs_top_level"] = per_key
+
+        if differences:
+            raise GoldenFileComparisonError(
+                f"Golden file comparison failed for '{name}'",
+                differences,
+            )
+
+        return {"status": "match", "reference_name": name}
 
     def compare_backtest_results(
         self,
@@ -565,7 +689,9 @@ def pytest_addoption(parser):
 def assert_golden_match(
     manager: GoldenFileManager,
     name: str,
-    current_result: Union[GoldenBacktestResult, GoldenOptimizerResult],
+    current_result: Union[
+        GoldenBacktestResult, GoldenOptimizerResult, GoldenRatingResult
+    ],
     *,
     regenerate: bool = False,
 ) -> None:
@@ -596,4 +722,14 @@ def assert_golden_match(
             result = manager.compare_optimizer_results(name, current_result)
             if result["status"] == "no_reference":
                 manager.save_optimizer_reference(name, current_result)
+                warnings.warn(f"Created new golden file: {name}")
+
+    elif isinstance(current_result, GoldenRatingResult):
+        if regenerate:
+            manager.save_rating_reference(name, current_result)
+            pytest.skip(f"Regenerated golden file: {name}")
+        else:
+            result = manager.compare_rating_results(name, current_result)
+            if result["status"] == "no_reference":
+                manager.save_rating_reference(name, current_result)
                 warnings.warn(f"Created new golden file: {name}")

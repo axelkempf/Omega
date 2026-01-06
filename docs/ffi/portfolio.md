@@ -1,8 +1,9 @@
 # FFI-Spezifikation: Portfolio
 
 **Modul:** `src/backtest_engine/core/portfolio.py`  
-**Task-ID:** P2-XX  
-**Status:** Dokumentiert (2026-01-06)
+**Task-ID:** P6-04  
+**Migrations-Ziel:** Rust (via PyO3/maturin)  
+**Status:** ✅ Spezifiziert (2026-01-06, aktualisiert 2026-01-06)
 
 ---
 

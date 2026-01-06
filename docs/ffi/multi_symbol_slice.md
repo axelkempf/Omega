@@ -1,8 +1,9 @@
 # FFI-Spezifikation: MultiSymbolSlice
 
 **Modul:** `src/backtest_engine/core/multi_symbol_slice.py`  
-**Task-ID:** P2-XX  
-**Status:** Dokumentiert (2026-01-06)
+**Task-ID:** P6-01  
+**Migrations-Ziel:** Rust (via PyO3/maturin)  
+**Status:** ✅ Spezifiziert (2026-01-06, aktualisiert 2026-01-06)
 
 ---
 

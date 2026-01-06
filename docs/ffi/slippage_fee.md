@@ -1,8 +1,9 @@
 # FFI-Spezifikation: Slippage & Fee Models
 
-**Modul:** `src/backtest_engine/core/slippage.py`, `src/backtest_engine/core/fee.py`  
-**Task-ID:** P2-XX  
-**Status:** Dokumentiert (2026-01-06)
+**Modul:** `src/backtest_engine/core/slippage_and_fee.py`  
+**Task-ID:** P6-03  
+**Migrations-Ziel:** Rust (via PyO3/maturin) – **Idealer Pilot-Kandidat**  
+**Status:** ✅ Spezifiziert (2026-01-06, aktualisiert 2026-01-06)
 
 ---
 

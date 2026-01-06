@@ -8,14 +8,30 @@ Dieses Verzeichnis enthält detaillierte Interface-Spezifikationen für Module, 
 
 ## Dokumentierte Module
 
-| Modul | Datei | Zielsprache | Status |
-|-------|-------|-------------|--------|
-| `indicator_cache.py` | [indicator_cache.md](indicator_cache.md) | Rust | ✅ Spezifiziert |
-| `event_engine.py` | [event_engine.md](event_engine.md) | Rust | ✅ Spezifiziert |
-| `execution_simulator.py` | [execution_simulator.md](execution_simulator.md) | Rust | ✅ Spezifiziert |
-| Rating-Module | [rating_modules.md](rating_modules.md) | Rust/Julia | ✅ Spezifiziert |
-| Nullability-Konvention | [nullability-convention.md](nullability-convention.md) | All | ✅ Dokumentiert |
-| Data-Flow-Diagramme | [data-flow-diagrams.md](data-flow-diagrams.md) | All | ✅ Dokumentiert |
+### Phase 2 Module (Core FFI-Specs)
+
+| Modul | Datei | Zielsprache | Task-ID | Status |
+|-------|-------|-------------|---------|--------|
+| `indicator_cache.py` | [indicator_cache.md](indicator_cache.md) | Rust | P2-01 | ✅ Spezifiziert |
+| `event_engine.py` | [event_engine.md](event_engine.md) | Rust | P2-02 | ✅ Spezifiziert |
+| `execution_simulator.py` | [execution_simulator.md](execution_simulator.md) | Rust | P2-03 | ✅ Spezifiziert |
+| Rating-Module | [rating_modules.md](rating_modules.md) | Rust/Julia | P2-04 | ✅ Spezifiziert |
+
+### Phase 6 Module (Extended FFI-Specs)
+
+| Modul | Datei | Zielsprache | Task-ID | Status |
+|-------|-------|-------------|---------|--------|
+| `multi_symbol_slice.py` | [multi_symbol_slice.md](multi_symbol_slice.md) | Rust | P6-01 | ✅ Spezifiziert |
+| `symbol_data_slicer.py` | [symbol_data_slicer.md](symbol_data_slicer.md) | Rust | P6-02 | ✅ Spezifiziert |
+| `slippage_and_fee.py` | [slippage_fee.md](slippage_fee.md) | Rust | P6-03 | ✅ Spezifiziert |
+| `portfolio.py` | [portfolio.md](portfolio.md) | Rust | P6-04 | ✅ Spezifiziert |
+
+### Konventionen & Dokumentation
+
+| Dokument | Datei | Status |
+|----------|-------|--------|
+| Nullability-Konvention | [nullability-convention.md](nullability-convention.md) | ✅ Dokumentiert |
+| Data-Flow-Diagramme | [data-flow-diagrams.md](data-flow-diagrams.md) | ✅ Dokumentiert |
 
 ## ADRs (Architecture Decision Records)
 
