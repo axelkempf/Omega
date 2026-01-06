@@ -19,7 +19,9 @@ def select_best_strategies(
     Returns:
         Dict je Symbol mit Gesamtmetriken und finaler Deployment-Empfehlung.
     """
-    stats = defaultdict(lambda: {"scores": [], "deployments": 0})
+    stats: Dict[str, Dict[str, Any]] = defaultdict(
+        lambda: {"scores": [], "deployments": 0}
+    )
 
     for path in rating_files:
         symbol = os.path.basename(path).split("_")[0]

@@ -138,12 +138,12 @@ class ExecutionSimulator:
             if pos.direction == "long":
                 return ask_candle is not None and ask_candle.low <= pos.entry_price
             elif pos.direction == "short":
-                return bid_candle.high >= pos.entry_price
+                return bool(bid_candle.high >= pos.entry_price)
         elif pos.order_type == "stop":
             if pos.direction == "long":
                 return ask_candle is not None and ask_candle.high >= pos.entry_price
             elif pos.direction == "short":
-                return bid_candle.low <= pos.entry_price
+                return bool(bid_candle.low <= pos.entry_price)
         return False
 
     def trigger_entry(self, pos: PortfolioPosition, candle: Candle) -> None:

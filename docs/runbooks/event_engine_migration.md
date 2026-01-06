@@ -35,7 +35,7 @@ bei der Interface-Definition und dem Determinismus-Nachweis.
 
 ### Test-Infrastruktur
 - [x] Benchmark-Suite in `tests/benchmarks/test_bench_event_engine.py`
-- [x] Property-Based Tests in `tests/property_tests/test_property_indicators.py`
+- [x] Property-Based Tests in `tests/property/test_property_indicators.py`
 - [x] Golden-File Tests in `tests/golden/test_golden_backtest.py`
 - [x] Test-Coverage ≥ 85%
 
@@ -426,7 +426,7 @@ class EventEngine:
 pytest tests/test_event_engine.py -v
 
 # Property-Based Tests
-pytest tests/property_tests/ -v -k event
+pytest tests/property/ -v -k event
 
 # Golden-File Tests (Determinismus - KRITISCH!)
 pytest tests/golden/test_golden_backtest.py -v

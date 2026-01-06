@@ -26,12 +26,15 @@ AGG = {
 
 def _ensure_utc_index(df: pd.DataFrame) -> pd.DataFrame:
     """Sorgt dafür, dass df.index tz-aware UTC ist und sortiert."""
-    if df.index.tz is None:
+    idx = df.index
+    if not isinstance(idx, pd.DatetimeIndex):
+        raise TypeError("DataFrame index must be DatetimeIndex")
+    if idx.tz is None:
         # Naive -> als UTC interpretieren
-        df.index = df.index.tz_localize("UTC")
+        df.index = idx.tz_localize("UTC")
     else:
         # ggf. in UTC konvertieren
-        df.index = df.index.tz_convert("UTC")
+        df.index = idx.tz_convert("UTC")
     return df.sort_index()
 
 
@@ -61,8 +64,11 @@ def resample_h4(df_h1: pd.DataFrame) -> pd.DataFrame:
       2) Um 17h nach hinten schieben -> floor('4H') -> wieder 17h addieren
       3) resultierenden Startzeitpunkt nach UTC zurück und gruppieren
     """
+    idx = df_h1.index
+    if not isinstance(idx, pd.DatetimeIndex):
+        raise TypeError("DataFrame index must be DatetimeIndex")
     # 1) NY-Zeit
-    ny_index = df_h1.index.tz_convert(NY_TZ)
+    ny_index = idx.tz_convert(NY_TZ)
     # 2) Verschiebung, um 17:00 auf Mitternacht zu legen
     shifted = (ny_index - pd.Timedelta(hours=ROLLOVER_H)).floor("4h")
     # 3) Startzeit (NY) wieder auf echte Bar-Starts (zurück) +17h
@@ -83,7 +89,10 @@ def resample_d1(df_h1: pd.DataFrame) -> pd.DataFrame:
     UTC time,Open,High,Low,Close,Volume
     - UTC time = NY-Close-Zeitpunkt (21/22 UTC je nach DST)
     """
-    ny_index = df_h1.index.tz_convert(NY_TZ)
+    idx = df_h1.index
+    if not isinstance(idx, pd.DatetimeIndex):
+        raise TypeError("DataFrame index must be DatetimeIndex")
+    ny_index = idx.tz_convert(NY_TZ)
 
     # Tages-Label = Schlussdatum (Shift +7h)
     session_close_date = (ny_index + pd.Timedelta(hours=24 - ROLLOVER_H)).date

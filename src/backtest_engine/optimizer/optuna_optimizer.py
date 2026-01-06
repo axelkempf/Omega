@@ -36,10 +36,10 @@ def visualize_pareto(study: optuna.Study) -> None:
 
     print("📊 Öffne Pareto-Visualisierung...")
     plot_pareto_front(
-        study, target_names=["Profit", "Avg R", "Winrate", "Drawdown"]
+        study, target_names=["Profit", "Avg R", "Winrate", "Drawdown"]  # type: ignore[arg-type]
     ).show()
-    plot_parallel_coordinate(study).show()
-    plot_optimization_history(study).show()
+    plot_parallel_coordinate(study).show()  # type: ignore[arg-type]
+    plot_optimization_history(study).show()  # type: ignore[arg-type]
 
 
 # =========================
@@ -69,9 +69,13 @@ def _configure_optuna_experimental_warnings() -> None:
         return
 
     try:
-        from optuna._experimental import (
-            ExperimentalWarning,  # type: ignore[attr-defined]
-        )
+        # optuna._experimental kann ExperimentalWarning nicht immer exportieren
+        # (abhängig von optuna-Version). Wir nutzen getattr für Kompatibilität.
+        import optuna._experimental as _exp_mod
+
+        ExperimentalWarning = getattr(_exp_mod, "ExperimentalWarning", None)
+        if ExperimentalWarning is None:
+            return
     except Exception:
         return
 
@@ -245,7 +249,7 @@ def _evaluate_config(
     portfolio, entry_df = run_backtest_and_return_portfolio(
         conf, preloaded_data=preloaded_data, prealigned=prealigned
     )
-    return calculate_metrics(portfolio)
+    return dict(calculate_metrics(portfolio))
 
 
 def _jitter_value(
@@ -422,7 +426,7 @@ def optimize_strategy_with_optuna_pareto(
 
     study = optuna.create_study(
         directions=directions,
-        sampler=NSGAIISampler(seed=seed, constraints_func=_constraints_func),
+        sampler=NSGAIISampler(seed=seed, constraints_func=_constraints_func),  # type: ignore[arg-type]
         study_name=f"opt_{int(time.time())}",
     )
 
@@ -448,9 +452,10 @@ def optimize_strategy_with_optuna_pareto(
         np.random.seed(base_seed)
 
         # Parameter vorschlagen
-        params = {}
+        params: Dict[str, Any] = {}
         for param, space in param_space.items():
             typ = space["type"]
+            value: Any
             if typ == "float":
                 step = space.get("step")
                 is_log = bool(space.get("log", False))
@@ -638,7 +643,7 @@ def optimize_strategy_with_optuna_pareto(
     # Optimize (mit optionalem Pruning)
     study.optimize(objective, n_trials=n_trials)
 
-    if visualize and len(study.directions) <= 3:
+    if visualize and len(study.directions) <= 3:  # type: ignore[attr-defined]
         visualize_pareto(study)
 
     return study

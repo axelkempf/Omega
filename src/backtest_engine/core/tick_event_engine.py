@@ -38,7 +38,7 @@ class TickEventEngine:
         self.on_progress = on_progress
 
         # Access symbol via wrapped strategy instance (duck-typing)
-        self.symbol: str = strategy.symbol  # type: ignore[attr-defined]
+        self.symbol: str = strategy.symbol
         self.warmup_bars = 0
         self.original_start_dt: Optional[datetime] = None
 

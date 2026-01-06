@@ -31,7 +31,7 @@ JULIA_DIR := src/julia_modules/omega_julia
 PYTHON_SRC := src
 TESTS_DIR := tests
 BENCHMARKS_DIR := tests/benchmarks
-PROPERTY_TESTS_DIR := tests/property_tests
+PROPERTY_TESTS_DIR := tests/property
 GOLDEN_TESTS_DIR := tests/golden
 
 # Tools

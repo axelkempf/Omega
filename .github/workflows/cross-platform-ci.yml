@@ -75,10 +75,8 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
         python-version: ['3.12']
-        include:
-          # Extended matrix for main branch or manual trigger
-          - os: ubuntu-latest
-            python-version: '3.11'
+        # Note: Python 3.11 matrix removed - project requires >=3.12
+        # FFI modules (Rust abi3-py312) require Python 3.12+
 
     steps:
       - name: Checkout code

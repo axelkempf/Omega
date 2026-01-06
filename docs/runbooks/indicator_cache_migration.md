@@ -34,7 +34,7 @@ Die Migration zu Rust soll einen **5-10x Speedup** für Indikator-Berechnungen e
 
 ### Test-Infrastruktur
 - [x] Benchmark-Suite in `tests/benchmarks/test_bench_indicator_cache.py`
-- [x] Property-Based Tests in `tests/property_tests/test_property_indicators.py`
+- [x] Property-Based Tests in `tests/property/test_property_indicators.py`
 - [x] Golden-File Tests in `tests/golden/test_golden_backtest.py`
 - [x] Test-Coverage ≥ 85%
 
@@ -340,7 +340,7 @@ class IndicatorCache:
 pytest tests/test_indicator_cache.py -v
 
 # Property-Based Tests
-pytest tests/property_tests/test_property_indicators.py -v --hypothesis-show-statistics
+pytest tests/property/test_property_indicators.py -v --hypothesis-show-statistics
 
 # Golden-File Tests (Determinismus)
 pytest tests/golden/test_golden_backtest.py -v -k indicator

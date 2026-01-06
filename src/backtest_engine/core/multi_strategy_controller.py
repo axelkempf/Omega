@@ -57,7 +57,7 @@ class StrategyEnvironment:
 
         # Cast to expected dict type for strategy.evaluate
         slice_map: Dict[str, SymbolDataSlice] = {
-            sym: self.multi_candle_data.get(sym)  # type: ignore[misc]
+            sym: self.multi_candle_data.get(sym)
             for sym in self.multi_candle_data.slices
             if self.multi_candle_data.get(sym) is not None
         }
@@ -74,7 +74,7 @@ class StrategyEnvironment:
         """
         # Build slice_map for tick evaluation
         slice_map: Dict[str, SymbolDataSlice] = {
-            sym: self.multi_candle_data.get(sym)  # type: ignore[misc]
+            sym: self.multi_candle_data.get(sym)
             for sym in self.multi_candle_data.slices
             if self.multi_candle_data.get(sym) is not None
         }
@@ -141,7 +141,7 @@ class MultiStrategyController:
         """
         # Build slice_map compatible with strategy.evaluate signature
         slice_map: Dict[str, SymbolDataSlice] = {
-            sym: multi_slice.get(sym)  # type: ignore[misc]
+            sym: multi_slice.get(sym)
             for sym in multi_slice.slices
             if multi_slice.get(sym) is not None
         }

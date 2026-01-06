@@ -6,7 +6,7 @@ Dieses Repository ist ein produktionsnaher Trading-Stack (Live-Execution + Backt
 
 ## Development setup
 
-- Python: `>= 3.11`
+- Python: `>= 3.12`
 - Empfehlung: virtuelle Umgebung + editable install
 
 **Hinweis:** Alle Dependencies sind zentral in `pyproject.toml` definiert (Single Source of Truth).

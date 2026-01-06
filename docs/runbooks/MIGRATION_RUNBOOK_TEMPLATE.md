@@ -49,7 +49,7 @@ Jedes Runbook dokumentiert den vollständigen Prozess zur Migration eines Python
 
 ### Test-Infrastruktur
 - [ ] Benchmark-Suite in `tests/benchmarks/test_bench_[modul].py`
-- [ ] Property-Based Tests in `tests/property_tests/test_property_[modul].py`
+- [ ] Property-Based Tests in `tests/property/test_property_[modul].py`
 - [ ] Golden-File Tests in `tests/golden/test_golden_[modul].py`
 - [ ] Test-Coverage ≥ 85%
 

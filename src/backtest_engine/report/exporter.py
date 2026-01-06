@@ -1,12 +1,13 @@
 import csv
 from pathlib import Path
+from typing import Optional
 
 from backtest_engine.core.portfolio import Portfolio
 from hf_engine.infra.config.paths import TRADE_LOGS_DIR
 
 
 def export_trades_to_csv(
-    portfolio: Portfolio, strategy_name: str, export_dir: Path = None
+    portfolio: Portfolio, strategy_name: str, export_dir: Optional[Path] = None
 ) -> None:
     """
     Exportiert alle abgeschlossenen Trades eines Portfolios als CSV-File.

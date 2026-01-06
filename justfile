@@ -33,7 +33,7 @@ julia_dir := project_root / "src/julia_modules/omega_julia"
 python_src := project_root / "src"
 tests_dir := project_root / "tests"
 benchmarks_dir := tests_dir / "benchmarks"
-property_tests_dir := tests_dir / "property_tests"
+property_tests_dir := tests_dir / "property"
 golden_tests_dir := tests_dir / "golden"
 
 # Tool commands

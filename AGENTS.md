@@ -163,7 +163,7 @@ python -m build
 
 - Workflow: `.github/workflows/ci.yml`
 - Trigger: Push auf `main`, Pull Requests
-- Steps: Setup Python 3.11, Install Dependencies, Run Tests
+- Steps: Setup Python 3.12, Install Dependencies, Run Tests
 
 ### Deployment Checklist
 

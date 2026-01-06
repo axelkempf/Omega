@@ -204,8 +204,8 @@ Jeder Abschnitt muss vollständig erfüllt sein, bevor mit der eigentlichen Migr
 ### P3-05 bis P3-07: Property-Based Tests
 
 - [x] Hypothesis installiert und konfiguriert
-- [x] `tests/property_tests/test_property_indicators.py`
-- [x] `tests/property_tests/test_property_scoring.py`
+- [x] `tests/property/test_property_indicators.py`
+- [x] `tests/property/test_property_scoring.py`
 
 ### P3-08 bis P3-10: Golden-File Tests
 

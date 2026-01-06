@@ -164,4 +164,4 @@ def compute_timing_jitter_score(
     penalty = compute_penalty_profit_drawdown_sharpe(
         base_metrics, jitter_metrics, penalty_cap=penalty_cap
     )
-    return score_from_penalty(penalty, penalty_cap=penalty_cap)
+    return float(score_from_penalty(penalty, penalty_cap=penalty_cap))

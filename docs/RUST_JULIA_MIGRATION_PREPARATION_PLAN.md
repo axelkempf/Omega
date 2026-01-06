@@ -292,15 +292,15 @@ Dieses Dokument beschreibt den systematischen Vorbereitungsplan zur sicheren, in
 
 - **P3-05 (Hypothesis Setup):** ✅ **KOMPLETT** (2026-01-06)
   - hypothesis>=6.100 zu dev-dependencies hinzugefügt
-  - `tests/property_tests/__init__.py` mit Modul-Dokumentation
-  - `tests/property_tests/conftest.py` mit ~400 Zeilen Infrastruktur:
+  - `tests/property/__init__.py` mit Modul-Dokumentation
+  - `tests/property/conftest.py` mit ~400 Zeilen Infrastruktur:
     - Custom Hypothesis Strategies: `ohlcv_values()`, `ohlcv_arrays()`, `valid_periods()`, `score_values()`
     - NumPy-Compatible Strategies für Float64 Arrays
     - Profile-Configuration für CI (max_examples, deadline)
     - Fixtures für deterministische Seeds
 
 - **P3-06 (Property-Tests Indicators):** ✅ **KOMPLETT** (2026-01-06)
-  - `tests/property_tests/test_property_indicators.py` (~450 Zeilen)
+  - `tests/property/test_property_indicators.py` (~450 Zeilen)
   - 6 Test-Klassen, 25+ Property-Tests:
     - TestEMAProperties: Smoothing, Bounds, Lag, Convergence
     - TestRSIProperties: Range [0,100], Overbought/Oversold detection
@@ -310,7 +310,7 @@ Dieses Dokument beschreibt den systematischen Vorbereitungsplan zur sicheren, in
     - TestNumericalStability: NaN handling, Extreme values
 
 - **P3-07 (Property-Tests Scoring):** ✅ **KOMPLETT** (2026-01-06)
-  - `tests/property_tests/test_property_scoring.py` (~400 Zeilen)
+  - `tests/property/test_property_scoring.py` (~400 Zeilen)
   - 5 Test-Klassen, 20+ Property-Tests:
     - TestScoreBounds: Alle Scores in [0,1] oder dokumentiertem Range
     - TestScoreDeterminism: Gleiche Inputs → gleiche Outputs
@@ -440,10 +440,11 @@ Dieses Dokument beschreibt den systematischen Vorbereitungsplan zur sicheren, in
   - Python-Julia FFI Validation: Bidirektionale Callable-Tests
   - Documentation Build für Main Branch
 
-- **P4-05 (Cross-Platform Matrix):** ✅ **KOMPLETT** (2026-01-05)
+- **P4-05 (Cross-Platform Matrix):** ✅ **KOMPLETT** (2026-01-05, updated 2026-01-06)
   - Workflow-Datei: `.github/workflows/cross-platform-ci.yml` (~400 Zeilen)
   - Path-Filter für Conditional Execution: Python, Rust, Julia, MT5
-  - Python Tests: Matrix (Ubuntu/macOS/Windows × Python 3.11/3.12)
+  - Python Tests: Matrix (Ubuntu/macOS/Windows × Python 3.12)
+  - **Hinweis:** Python 3.11 Support entfernt (FFI abi3-py312 erfordert 3.12+)
   - MT5 Integration: Windows-only mit MetaTrader5 Package Check
   - Rust Cross-Platform: Linux (x86_64), macOS (Intel + ARM64), Windows (MSVC)
   - Julia Cross-Platform: Ubuntu, macOS, Windows mit Julia 1.10
