@@ -400,9 +400,19 @@ class TestPositionSizingBenchmarks:
     def test_unit_value_calculation_batch(self, benchmark: Any) -> None:
         """Benchmark: Unit-Value-Berechnung (1000 Iterationen)."""
         from backtest_engine.core.execution_simulator import ExecutionSimulator
+        from backtest_engine.sizing.rate_provider import StaticRateProvider
 
         portfolio = Portfolio(initial_balance=10000.0)
-        sim = ExecutionSimulator(portfolio=portfolio, risk_per_trade=100.0)
+        # Deterministic FX rates for quote->account conversions.
+        # Only pairs needed by this benchmark are provided.
+        rp = StaticRateProvider(
+            rates={
+                "JPYUSD": 0.0091,
+                "CADUSD": 0.74,
+            },
+            strict=True,
+        )
+        sim = ExecutionSimulator(portfolio=portfolio, risk_per_trade=100.0, rate_provider=rp)
 
         symbols = ["EURUSD", "GBPUSD", "USDJPY", "AUDUSD", "USDCAD"] * 200
 

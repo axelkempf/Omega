@@ -73,7 +73,7 @@ def generate_mock_positions(
         pos.initial_take_profit = take_profit
 
         if closed:
-            exit_time = entry_time + timedelta(hours=rng.integers(1, 48))
+            exit_time = entry_time + timedelta(hours=int(rng.integers(1, 48)))
             # Random outcome: win (40%), loss (40%), BE (20%)
             outcome = rng.random()
             if outcome < 0.4:

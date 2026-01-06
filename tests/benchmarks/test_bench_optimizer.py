@@ -171,7 +171,7 @@ def param_space_medium() -> Dict[str, List[Any]]:
 
 @pytest.fixture
 def param_space_large() -> Dict[str, List[Any]]:
-    """Große Parameter-Space (~33000 Kombinationen)."""
+    """Große Parameter-Space (~66000 Kombinationen)."""
     return generate_param_space_large()
 
 
@@ -263,8 +263,8 @@ class TestParamCombinationBenchmarks:
             return list(generate_param_combinations(param_space_large))
 
         result = benchmark(generate)
-        # 11 * 15 * 4 * 4 * 5 * 5 = 33000 combinations
-        assert len(result) == 33000
+        # 11 * 15 * 4 * 4 * 5 * 5 = 66000 combinations
+        assert len(result) == 66000
 
     def test_combination_iteration_small(
         self, benchmark: Any, param_space_small: Dict[str, List[Any]]
@@ -317,7 +317,7 @@ class TestOptunaUtilityBenchmarks:
             pytest.skip("optuna_optimizer not available")
 
         def snap() -> float:
-            return _snap_to_step(14.7, 5)
+            return _snap_to_step(14.7, 0.0, 5.0)
 
         result = benchmark(snap)
         assert result == 15.0
@@ -334,7 +334,7 @@ class TestOptunaUtilityBenchmarks:
         def snap_all() -> int:
             count = 0
             for v in values:
-                _ = _snap_to_step(v, 5)
+                _ = _snap_to_step(float(v), 0.0, 5.0)
                 count += 1
             return count
 
@@ -347,14 +347,15 @@ class TestOptunaUtilityBenchmarks:
         if _split_train_period is None:
             pytest.skip("optuna_optimizer not available")
 
-        start = datetime(2024, 1, 1)
-        end = datetime(2024, 3, 1)  # 2 Monate
+        start_s = "2024-01-01"
+        end_s = "2024-03-01"  # 2 Monate
 
-        def split() -> Tuple[datetime, datetime, datetime, datetime]:
-            return _split_train_period(start, end, validation_ratio=0.2)
+        def split() -> List[Tuple[str, str]]:
+            return _split_train_period(start_s, end_s, k=5)
 
         result = benchmark(split)
-        assert result is not None
+        assert result
+        assert result[-1][1] == end_s
 
     def test_split_train_period_medium(self, benchmark: Any) -> None:
         """Benchmark: _split_train_period (mittlere Periode)."""
@@ -362,14 +363,15 @@ class TestOptunaUtilityBenchmarks:
         if _split_train_period is None:
             pytest.skip("optuna_optimizer not available")
 
-        start = datetime(2022, 1, 1)
-        end = datetime(2024, 1, 1)  # 2 Jahre
+        start_s = "2022-01-01"
+        end_s = "2024-01-01"  # 2 Jahre
 
-        def split() -> Tuple[datetime, datetime, datetime, datetime]:
-            return _split_train_period(start, end, validation_ratio=0.2)
+        def split() -> List[Tuple[str, str]]:
+            return _split_train_period(start_s, end_s, k=10)
 
         result = benchmark(split)
-        assert result is not None
+        assert result
+        assert result[-1][1] == end_s
 
     def test_split_train_period_repeated(self, benchmark: Any) -> None:
         """Benchmark: _split_train_period wiederholte Aufrufe."""
@@ -377,14 +379,14 @@ class TestOptunaUtilityBenchmarks:
         if _split_train_period is None:
             pytest.skip("optuna_optimizer not available")
 
-        start = datetime(2023, 1, 1)
-        end = datetime(2024, 1, 1)
+        start_s = "2023-01-01"
+        end_s = "2024-01-01"
 
         def split_many() -> int:
             count = 0
-            for ratio in [0.1, 0.15, 0.2, 0.25, 0.3]:
+            for k in [2, 3, 4, 5, 6]:
                 for _ in range(200):
-                    _ = _split_train_period(start, end, validation_ratio=ratio)
+                    _ = _split_train_period(start_s, end_s, k=k)
                     count += 1
             return count
 

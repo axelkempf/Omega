@@ -58,9 +58,9 @@ class ExecutionSimulator:
             self.symbol_specs = symbol_specs or {}
         self.lot_sizer = lot_sizer
         self.commission_model = commission_model
-        self._rate_provider: Optional[RateProvider] = rate_provider or (
-            RateProvider() if RateProvider is not None else None
-        )
+        # `RateProvider` ist eine abstrakte Basisklasse. Wenn kein Provider
+        # injiziert wird, bleiben FX-Fallbacks deaktiviert (robuster Default).
+        self._rate_provider: Optional[RateProvider] = rate_provider
         self._unit_value_cache: Dict[str, float] = {}
 
     def _pip_size_for_symbol(self, symbol: str) -> float:

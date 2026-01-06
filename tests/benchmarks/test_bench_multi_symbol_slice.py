@@ -20,10 +20,10 @@ from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
 
 import numpy as np
-import pandas as pd
 import pytest
 
 from backtest_engine.core.multi_symbol_slice import MultiSymbolSlice, SliceView
+from backtest_engine.data.candle import Candle
 
 from .conftest import (
     BENCHMARK_SEED,
@@ -39,41 +39,50 @@ from .conftest import (
 
 def generate_symbol_dataframes(
     symbols: List[str], candles_per_symbol: int, seed: int = BENCHMARK_SEED
-) -> Dict[str, pd.DataFrame]:
-    """Generiert OHLCV-DataFrames für mehrere Symbole."""
+) -> Dict[str, Dict[str, Dict[datetime, Candle]]]:
+    """Generiert Candle-Lookups (timestamp -> Candle) für mehrere Symbole.
+
+    MultiSymbolSlice arbeitet timestamp-basiert und liefert pro Symbol/price_type
+    genau eine Candle für den aktuellen Timestamp.
+    """
     rng = np.random.default_rng(seed)
-    data = {}
+    data: Dict[str, Dict[str, Dict[datetime, Candle]]] = {}
 
     for symbol in symbols:
-        base_price = (
+        base_price = float(
             rng.uniform(1.0, 2.0) if "USD" in symbol else rng.uniform(100.0, 200.0)
         )
         base_time = datetime(2024, 1, 1, 0, 0, 0)
 
-        opens = [base_price]
-        for _ in range(candles_per_symbol - 1):
-            change = rng.normal(0, 0.0001 * base_price)
+        opens: List[float] = [base_price]
+        for _ in range(int(candles_per_symbol) - 1):
+            change = float(rng.normal(0, 0.0001 * base_price))
             opens.append(opens[-1] + change)
 
-        opens = np.array(opens)
-        highs = opens * (1 + rng.uniform(0.0001, 0.001, candles_per_symbol))
-        lows = opens * (1 - rng.uniform(0.0001, 0.001, candles_per_symbol))
-        closes = lows + rng.uniform(0.3, 0.7, candles_per_symbol) * (highs - lows)
-        volumes = rng.integers(100, 10000, candles_per_symbol)
+        bid_map: Dict[datetime, Candle] = {}
+        ask_map: Dict[datetime, Candle] = {}
+        for i in range(int(candles_per_symbol)):
+            ts = base_time + timedelta(hours=i)
+            o = float(opens[i])
+            hi = o * float(1 + rng.uniform(0.0001, 0.001))
+            lo = o * float(1 - rng.uniform(0.0001, 0.001))
+            cl = lo + float(rng.uniform(0.3, 0.7)) * (hi - lo)
+            vol = float(rng.integers(100, 10000))
+            bid = Candle(timestamp=ts, open=o, high=hi, low=lo, close=cl, volume=vol, candle_type="bid")
+            # Minimaler Spread für Ask
+            ask = Candle(
+                timestamp=ts,
+                open=o * 1.00001,
+                high=hi * 1.00001,
+                low=lo * 1.00001,
+                close=cl * 1.00001,
+                volume=vol,
+                candle_type="ask",
+            )
+            bid_map[ts] = bid
+            ask_map[ts] = ask
 
-        dates = pd.date_range(start=base_time, periods=candles_per_symbol, freq="1h")
-
-        df = pd.DataFrame(
-            {
-                "Open": opens,
-                "High": highs,
-                "Low": lows,
-                "Close": closes,
-                "Volume": volumes,
-            },
-            index=dates,
-        )
-        data[symbol] = df
+        data[symbol] = {"bid": bid_map, "ask": ask_map}
 
     return data
 
@@ -82,14 +91,14 @@ def create_multi_symbol_slice(
     symbols: List[str], candles: int, seed: int = BENCHMARK_SEED
 ) -> MultiSymbolSlice:
     """Erstellt eine MultiSymbolSlice mit synthetischen Daten."""
-    dataframes = generate_symbol_dataframes(symbols, candles, seed)
-    slice_obj = MultiSymbolSlice(symbols)
+    candle_lookups = generate_symbol_dataframes(symbols, candles, seed)
+    start_ts = datetime(2024, 1, 1, 0, 0, 0)
+    return MultiSymbolSlice(candle_lookups=candle_lookups, timestamp=start_ts, primary_tf="H1")
 
-    # Initialize with dataframes
-    for symbol, df in dataframes.items():
-        slice_obj._data[symbol] = df
 
-    return slice_obj
+def generate_timestamps(count: int) -> List[datetime]:
+    base = datetime(2024, 1, 1, 0, 0, 0)
+    return [base + timedelta(hours=i) for i in range(int(count))]
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -155,24 +164,24 @@ class TestSymbolLookupBenchmarks:
     ) -> None:
         """Benchmark: Single Symbol Lookup (1K Candles)."""
 
-        def get_symbol() -> Optional[pd.DataFrame]:
-            return slice_small.get("EURUSD")
+        def get_symbol() -> Optional[Candle]:
+            return slice_small.get("EURUSD", price_type="bid")
 
         result = benchmark(get_symbol)
         assert result is not None
-        assert len(result) == SMALL_CANDLE_COUNT
+        assert isinstance(result, Candle)
 
     def test_get_single_symbol_medium(
         self, benchmark: Any, slice_medium: MultiSymbolSlice
     ) -> None:
         """Benchmark: Single Symbol Lookup (10K Candles)."""
 
-        def get_symbol() -> Optional[pd.DataFrame]:
-            return slice_medium.get("EURUSD")
+        def get_symbol() -> Optional[Candle]:
+            return slice_medium.get("EURUSD", price_type="bid")
 
         result = benchmark(get_symbol)
         assert result is not None
-        assert len(result) == DEFAULT_CANDLE_COUNT
+        assert isinstance(result, Candle)
 
     @pytest.mark.benchmark_slow
     def test_get_single_symbol_large(
@@ -180,20 +189,20 @@ class TestSymbolLookupBenchmarks:
     ) -> None:
         """Benchmark: Single Symbol Lookup (100K Candles)."""
 
-        def get_symbol() -> Optional[pd.DataFrame]:
-            return slice_large.get("EURUSD")
+        def get_symbol() -> Optional[Candle]:
+            return slice_large.get("EURUSD", price_type="bid")
 
         result = benchmark(get_symbol)
         assert result is not None
-        assert len(result) == LARGE_CANDLE_COUNT
+        assert isinstance(result, Candle)
 
     def test_get_all_symbols_small(
         self, benchmark: Any, slice_small: MultiSymbolSlice
     ) -> None:
         """Benchmark: Alle Symbole abfragen (3 Symbole)."""
 
-        def get_all() -> List[pd.DataFrame]:
-            return [slice_small.get(s) for s in SYMBOLS_SMALL]
+        def get_all() -> List[Optional[Candle]]:
+            return [slice_small.get(s, price_type="bid") for s in SYMBOLS_SMALL]
 
         result = benchmark(get_all)
         assert len(result) == 3
@@ -203,8 +212,8 @@ class TestSymbolLookupBenchmarks:
     ) -> None:
         """Benchmark: Alle Symbole abfragen (10 Symbole)."""
 
-        def get_all() -> List[pd.DataFrame]:
-            return [slice_medium.get(s) for s in SYMBOLS_MEDIUM]
+        def get_all() -> List[Optional[Candle]]:
+            return [slice_medium.get(s, price_type="bid") for s in SYMBOLS_MEDIUM]
 
         result = benchmark(get_all)
         assert len(result) == 10
@@ -214,8 +223,8 @@ class TestSymbolLookupBenchmarks:
     ) -> None:
         """Benchmark: Nicht-existentes Symbol abfragen."""
 
-        def get_missing() -> Optional[pd.DataFrame]:
-            return slice_medium.get("XAUUSD")
+        def get_missing() -> Optional[Candle]:
+            return slice_medium.get("XAUUSD", price_type="bid")
 
         result = benchmark(get_missing)
         assert result is None
@@ -278,15 +287,15 @@ class TestIterationBenchmarks:
         """Benchmark: Vollständige Iteration mit Daten-Zugriff."""
 
         def iterate_with_data() -> int:
-            total_rows = 0
+            total = 0
             for symbol in slice_medium:
-                df = slice_medium.get(symbol)
-                if df is not None:
-                    total_rows += len(df)
-            return total_rows
+                c = slice_medium.get(symbol, price_type="bid")
+                if c is not None:
+                    total += 1
+            return total
 
         result = benchmark(iterate_with_data)
-        assert result == 10 * DEFAULT_CANDLE_COUNT
+        assert result == 10
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -302,9 +311,7 @@ class TestTimestampBenchmarks:
         self, benchmark: Any, slice_small: MultiSymbolSlice
     ) -> None:
         """Benchmark: Timestamp setzen (1K Candles, sequentiell)."""
-        timestamps = pd.date_range(
-            start=datetime(2024, 1, 1), periods=SMALL_CANDLE_COUNT, freq="1h"
-        )
+        timestamps = generate_timestamps(SMALL_CANDLE_COUNT)
 
         def set_timestamps() -> int:
             for ts in timestamps:
@@ -318,9 +325,7 @@ class TestTimestampBenchmarks:
         self, benchmark: Any, slice_medium: MultiSymbolSlice
     ) -> None:
         """Benchmark: Timestamp setzen (10K Candles, sequentiell)."""
-        timestamps = pd.date_range(
-            start=datetime(2024, 1, 1), periods=DEFAULT_CANDLE_COUNT, freq="1h"
-        )
+        timestamps = generate_timestamps(DEFAULT_CANDLE_COUNT)
 
         def set_timestamps() -> int:
             for ts in timestamps:
@@ -335,11 +340,9 @@ class TestTimestampBenchmarks:
     ) -> None:
         """Benchmark: Random Timestamp-Zugriff."""
         rng = np.random.default_rng(BENCHMARK_SEED)
-        timestamps = pd.date_range(
-            start=datetime(2024, 1, 1), periods=DEFAULT_CANDLE_COUNT, freq="1h"
-        )
+        timestamps = generate_timestamps(DEFAULT_CANDLE_COUNT)
         random_indices = rng.choice(len(timestamps), size=1000, replace=True)
-        random_timestamps = [timestamps[i] for i in random_indices]
+        random_timestamps = [timestamps[int(i)] for i in random_indices]
 
         def random_access() -> int:
             for ts in random_timestamps:
@@ -362,11 +365,12 @@ class TestSliceViewBenchmarks:
     def test_slice_view_creation(self, benchmark: Any) -> None:
         """Benchmark: SliceView-Erstellung."""
         data = generate_symbol_dataframes(SYMBOLS_MEDIUM, DEFAULT_CANDLE_COUNT)
+        ts = datetime(2024, 1, 1, 0, 0, 0)
 
         def create_views() -> int:
             views = []
-            for symbol, df in data.items():
-                view = SliceView(df)
+            for symbol, maps in data.items():
+                view = SliceView(maps["bid"].get(ts))
                 views.append(view)
             return len(views)
 
@@ -376,7 +380,8 @@ class TestSliceViewBenchmarks:
     def test_slice_view_latest_small(self, benchmark: Any) -> None:
         """Benchmark: SliceView.latest() (1K Candles)."""
         data = generate_symbol_dataframes(SYMBOLS_SMALL, SMALL_CANDLE_COUNT)
-        views = {symbol: SliceView(df) for symbol, df in data.items()}
+        ts = datetime(2024, 1, 1, 0, 0, 0)
+        views = {symbol: SliceView(maps["bid"].get(ts)) for symbol, maps in data.items()}
 
         def get_all_latest() -> int:
             count = 0
@@ -392,7 +397,8 @@ class TestSliceViewBenchmarks:
     def test_slice_view_latest_medium(self, benchmark: Any) -> None:
         """Benchmark: SliceView.latest() (10K Candles)."""
         data = generate_symbol_dataframes(SYMBOLS_MEDIUM, DEFAULT_CANDLE_COUNT)
-        views = {symbol: SliceView(df) for symbol, df in data.items()}
+        ts = datetime(2024, 1, 1, 0, 0, 0)
+        views = {symbol: SliceView(maps["bid"].get(ts)) for symbol, maps in data.items()}
 
         def get_all_latest() -> int:
             count = 0
@@ -408,7 +414,8 @@ class TestSliceViewBenchmarks:
     def test_slice_view_concurrent_access(self, benchmark: Any) -> None:
         """Benchmark: Concurrent SliceView-Zugriffe."""
         data = generate_symbol_dataframes(SYMBOLS_MEDIUM, DEFAULT_CANDLE_COUNT)
-        views = {symbol: SliceView(df) for symbol, df in data.items()}
+        ts = datetime(2024, 1, 1, 0, 0, 0)
+        views = {symbol: SliceView(maps["bid"].get(ts)) for symbol, maps in data.items()}
 
         def concurrent_access() -> int:
             count = 0
@@ -435,15 +442,15 @@ class TestCombinedOperationsBenchmarks:
         self, benchmark: Any, slice_medium: MultiSymbolSlice
     ) -> None:
         """Benchmark: Typisches Backtest-Zugriffsmuster."""
-        timestamps = pd.date_range(start=datetime(2024, 1, 1), periods=1000, freq="1h")
+        timestamps = generate_timestamps(1000)
 
         def backtest_pattern() -> int:
             count = 0
             for ts in timestamps:
                 slice_medium.set_timestamp(ts)
                 for symbol in SYMBOLS_MEDIUM[:3]:  # Nur primäre Symbole
-                    df = slice_medium.get(symbol)
-                    if df is not None:
+                    c = slice_medium.get(symbol, price_type="bid")
+                    if c is not None:
                         count += 1
             return count
 
@@ -459,9 +466,9 @@ class TestCombinedOperationsBenchmarks:
             pairs_checked = 0
             for i, sym1 in enumerate(SYMBOLS_MEDIUM[:-1]):
                 for sym2 in SYMBOLS_MEDIUM[i + 1 :]:
-                    df1 = slice_medium.get(sym1)
-                    df2 = slice_medium.get(sym2)
-                    if df1 is not None and df2 is not None:
+                    c1 = slice_medium.get(sym1, price_type="bid")
+                    c2 = slice_medium.get(sym2, price_type="bid")
+                    if c1 is not None and c2 is not None:
                         pairs_checked += 1
             return pairs_checked
 
@@ -488,7 +495,7 @@ class TestThroughputBaselines:
             count = 0
             for _ in range(1000):
                 for symbol in SYMBOLS_MEDIUM:
-                    _ = slice_medium.get(symbol)
+                    _ = slice_medium.get(symbol, price_type="bid")
                     count += 1
             return count
 
@@ -499,7 +506,7 @@ class TestThroughputBaselines:
         self, benchmark: Any, slice_medium: MultiSymbolSlice
     ) -> None:
         """Baseline: Timestamp-Updates pro Sekunde."""
-        timestamps = pd.date_range(start=datetime(2024, 1, 1), periods=5000, freq="1h")
+        timestamps = generate_timestamps(5000)
 
         def many_updates() -> int:
             for ts in timestamps:
@@ -513,7 +520,7 @@ class TestThroughputBaselines:
         self, benchmark: Any, slice_medium: MultiSymbolSlice
     ) -> None:
         """Baseline: Vollständiger Zugriffs-Zyklus."""
-        timestamps = pd.date_range(start=datetime(2024, 1, 1), periods=500, freq="1h")
+        timestamps = generate_timestamps(500)
 
         def full_cycle() -> int:
             ops = 0
@@ -521,9 +528,9 @@ class TestThroughputBaselines:
                 slice_medium.set_timestamp(ts)
                 ops += 1
                 for symbol in SYMBOLS_MEDIUM:
-                    df = slice_medium.get(symbol)
-                    if df is not None:
-                        _ = df.iloc[-1] if len(df) > 0 else None
+                    c = slice_medium.get(symbol, price_type="bid")
+                    if c is not None:
+                        _ = c.close
                         ops += 1
             return ops
 
