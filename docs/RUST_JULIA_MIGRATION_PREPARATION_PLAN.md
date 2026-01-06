@@ -55,6 +55,12 @@ Dieses Dokument beschreibt den systematischen Vorbereitungsplan zur sicheren, in
 ║  ├─ Migrations-Runbooks pro Modul                                           ║
 ║  └─ Ready-for-Migration Assessment                                          ║
 ║                                                                              ║
+║  Phase 6: Vollständige backtest_engine Coverage (Woche 19-28)                ║
+║  ├─ FFI-Specs für fehlende Module (multi_symbol_slice, etc.)                ║
+║  ├─ Benchmarks für alle Tier-1/Tier-2 Module                                ║
+║  ├─ Runbooks für alle Migrations-Kandidaten                                 ║
+║  └─ Validierung: 100% backtest_engine coverage                              ║
+║                                                                              ║
 ║  ════════════════════════════════════════════════════════════════════════    ║
 ║  Meilensteine:                                                               ║
 ║  [M1] Woche 2:  Baseline-Dokumentation vollständig                          ║
@@ -63,6 +69,7 @@ Dieses Dokument beschreibt den systematischen Vorbereitungsplan zur sicheren, in
 ║  [M4] Woche 13: Test-Infrastruktur vollständig                              ║
 ║  [M5] Woche 16: CI/CD für Rust/Julia funktional                             ║
 ║  [M6] Woche 18: "Ready for Migration" Zertifizierung                        ║
+║  [M7] Woche 28: 100% backtest_engine Migration-Readiness                    ║
 ║                                                                              ║
 ╚══════════════════════════════════════════════════════════════════════════════╝
 ```
@@ -712,6 +719,68 @@ Dieses Dokument beschreibt den systematischen Vorbereitungsplan zur sicheren, in
 
 ---
 
+### Phase 6: Vollständige backtest_engine Migration-Readiness (NEU)
+
+Diese Phase schließt die Lücken für die vollständige Migration-Readiness aller backtest_engine Module.
+
+| Task-ID | Beschreibung | Abhängigkeiten | Aufwand | Status |
+|---------|--------------|----------------|---------|--------|
+| **P6-01** | FFI-Spec für `multi_symbol_slice.py` | P2-08 | M | ⏳ Offen |
+| **P6-02** | FFI-Spec für `symbol_data_slicer.py` | P2-08 | M | ⏳ Offen |
+| **P6-03** | FFI-Spec für `slippage_and_fee.py` | P2-08 | S | ⏳ Offen |
+| **P6-04** | FFI-Spec für `portfolio.py` | P2-08 | L | ⏳ Offen |
+| **P6-05** | Benchmark-Suite für `execution_simulator.py` | P3-01 | M | ⏳ Offen |
+| **P6-06** | Benchmark-Suite für `portfolio.py` | P3-01 | M | ⏳ Offen |
+| **P6-07** | Benchmark-Suite für `multi_symbol_slice.py` | P3-01 | M | ⏳ Offen |
+| **P6-08** | Benchmark-Suite für `symbol_data_slicer.py` | P3-01 | M | ⏳ Offen |
+| **P6-09** | Benchmark-Suite für Optimizer-Module | P3-01 | L | ⏳ Offen |
+| **P6-10** | Golden-Files für Rating-Module Determinismus | P3-08 | M | ⏳ Offen |
+| **P6-11** | Migrations-Runbook: `execution_simulator.py` | P5-05, P6-05 | L | ⏳ Offen |
+| **P6-12** | Migrations-Runbook: `portfolio.py` | P5-05, P6-04, P6-06 | L | ⏳ Offen |
+| **P6-13** | Migrations-Runbook: `multi_symbol_slice.py` | P5-05, P6-01, P6-07 | L | ⏳ Offen |
+| **P6-14** | Migrations-Runbook: `slippage_and_fee.py` (Pilot) | P5-05, P6-03 | M | ⏳ Offen |
+| **P6-15** | Migrations-Runbook: Rating-Module (Batch) | P5-05, P6-10 | L | ⏳ Offen |
+| **P6-16** | Migrations-Runbook: Optimizer-Module (Julia) | P5-05, P6-09 | XL | ⏳ Offen |
+| **P6-17** | Type-Strict Migration: `strategy/strategy_wrapper.py` | P1-10 | M | ⏳ Offen |
+| **P6-18** | Type-Strict Migration: `sizing/lot_sizer.py` | P1-10 | S | ⏳ Offen |
+| **P6-19** | Vollständige Migration-Readiness Validierung | P6-01 bis P6-18 | M | ⏳ Offen |
+| **P6-20** | Final Documentation Review & Update | P6-19 | S | ⏳ Offen |
+
+#### Phase 6 – Detaillierte Beschreibungen
+
+**P6-01 bis P6-04 (FFI-Specs für fehlende Core-Module):**
+- `multi_symbol_slice.py`: Höchster Performance-Impact (7.24s); Multi-Symbol-Zugriff, Candle-Lookups
+- `symbol_data_slicer.py`: Candle-Zugriff über Timeframes; History-Cache-Logik
+- `slippage_and_fee.py`: Reine Mathematik; idealer früher Rust-Pilot (einfache Typen)
+- `portfolio.py`: Stateful Position-Tracking; Ownership-Semantik kritisch
+
+**P6-05 bis P6-09 (Benchmark-Suiten):**
+- Erweitern der pytest-benchmark Infrastruktur auf alle Tier-1 und Tier-2 Kandidaten
+- Gleiche Struktur wie P3-02 bis P3-04 (Small/Medium/Large Datasets)
+- Latenz- und Throughput-Messungen
+
+**P6-10 (Golden-Files Rating):**
+- Determinismus-Validierung für alle 12 Rating-Module
+- Besonders wichtig: `robustness_score_1.py`, `cost_shock_score.py` (stochastische Komponenten)
+
+**P6-11 bis P6-16 (Migrations-Runbooks):**
+- Gleiche Struktur wie P5-06/P5-07 (7 Phasen, Rollback-Plan, Akzeptanzkriterien)
+- **P6-14 (slippage_and_fee.py)**: Empfohlen als erster "echter" Rust-Pilot nach Templates
+
+**P6-17/P6-18 (Type-Strict für tertiäre Module):**
+- Strategy Wrapper und Lot Sizer auf mypy --strict migrieren
+- Niedrige Priorität, aber erforderlich für vollständige Coverage
+
+**P6-19 (Validierung):**
+- Prüfung aller Ready-for-Migration Checklisten für alle Kandidaten
+- Go/No-Go für Migration-Start
+
+**Phase 6 Status: ⏳ 0% (20 Tasks offen)**
+
+**Geschätzter Aufwand Phase 6:** 8-10 Wochen
+
+---
+
 ## 3. Risiko-Matrix
 
 | Risiko | Wahrscheinlichkeit | Impact | Mitigation |
@@ -726,6 +795,7 @@ Dieses Dokument beschreibt den systematischen Vorbereitungsplan zur sicheren, in
 | **Dependency-Konflikte (PyO3, maturin, pyjulia)** | Niedrig | Mittel | Pinned Versions; Virtual Environments; Docker-Isolation |
 | **Live-Trading-Regression durch Shared-Code-Changes** | Niedrig | Kritisch | `hf_engine/` bleibt isoliert; Strict Interface-Separation; Trading-Safety-Tests |
 | **Memory-Leaks an FFI-Grenzen** | Mittel | Mittel | Ownership-Konventionen dokumentieren; Memory-Profiling in Benchmarks |
+| **Multi-Symbol-Slice Komplexität** | Hoch | Hoch | Inkrementelle Migration; Extensive Tests vor Production |
 
 ---
 
@@ -882,25 +952,44 @@ Ein Modul gilt als "Ready for Migration" wenn:
 
 Hinweis: Die **kanonische**, datenbasierte Priorisierung (aus P0-01 + P0-02) liegt in
 `reports/migration_candidates/README.md`. Die Tabellen unten sind eine fachliche
-Kategorisierung (Rust vs. Julia) und bleiben bewusst „high level“.
+Kategorisierung (Rust vs. Julia) und bleiben bewusst „high level".
 
-### Primäre Kandidaten (Rust)
+### Primäre Kandidaten (Rust) – Tier 1
 
-| Modul | Pfad | Priorität | Begründung |
-|-------|------|-----------|------------|
-| Indicator Cache | `src/backtest_engine/core/indicator_cache.py` | High | Hot-Path; numerische Berechnungen; Cache-Logik |
-| Event Engine | `src/backtest_engine/core/event_engine.py` | High | Core-Loop; Event-Dispatch; Performance-kritisch |
-| Execution Simulator | `src/backtest_engine/core/execution_simulator.py` | Medium | Trade-Matching; Slippage-Berechnung |
-| Rating Scores | `src/backtest_engine/rating/*.py` | Medium | Numerische Scoring-Funktionen |
-| Portfolio | `src/backtest_engine/core/portfolio.py` | Medium | Position-Tracking; P&L-Berechnung |
+| Modul | Pfad | Priorität | Impact (s) | Begründung |
+|-------|------|-----------|------------|------------|
+| Multi-Symbol Slice | `src/backtest_engine/core/multi_symbol_slice.py` | **High** | **7.24** | Höchster Performance-Impact; Multi-Symbol-Zugriff im Core-Loop |
+| Indicator Cache | `src/backtest_engine/core/indicator_cache.py` | High | 1.14 | Hot-Path; numerische Berechnungen; Cache-Logik |
+| Event Engine | `src/backtest_engine/core/event_engine.py` | High | 0.34 | Core-Loop; Event-Dispatch; Performance-kritisch |
 
-### Sekundäre Kandidaten (Julia)
+### Primäre Kandidaten (Rust) – Tier 2
 
-| Modul | Pfad | Priorität | Begründung |
-|-------|------|-----------|------------|
-| Monte Carlo | `src/backtest_engine/optimizer/` | Medium | Stochastische Simulationen |
-| Analysis Pipelines | `src/backtest_engine/analysis/*.py` | Low | Research-Workflows; Flexibilität wichtiger als Speed |
-| Metric Adjustments | `src/backtest_engine/analysis/metric_adjustments.py` | Low | Bayesian-Methoden; wissenschaftliches Computing |
+| Modul | Pfad | Priorität | Impact (s) | Begründung |
+|-------|------|-----------|------------|------------|
+| Symbol Data Slicer | `src/backtest_engine/core/symbol_data_slicer.py` | Medium | 0.73 | Hohe Call-Frequenz; Candle/TF-Zugriff; Rust-Indexing |
+| Slippage & Fee | `src/backtest_engine/core/slippage_and_fee.py` | Medium | 0.74 | Reine Mathematik; idealer früher Rust-Pilot |
+| Execution Simulator | `src/backtest_engine/core/execution_simulator.py` | Medium | 0.17 | Trade-Matching; Entry/Exit-Logik |
+| Portfolio | `src/backtest_engine/core/portfolio.py` | Medium | 0.25 | Position-Tracking; P&L-Berechnung; Stateful |
+| Rating Scores | `src/backtest_engine/rating/*.py` | Medium | 0.08 | 12 numerische Scoring-Funktionen |
+
+### Sekundäre Kandidaten (Julia/Rust)
+
+| Modul | Pfad | Target | Priorität | Begründung |
+|-------|------|--------|-----------|------------|
+| Optimizer Core | `src/backtest_engine/optimizer/` | Julia | Medium | Grid-Search, Optuna, Walkforward |
+| Final Param Selector | `src/backtest_engine/optimizer/final_param_selector.py` | Julia | Medium | Stochastische Simulationen; Dropout/Stress |
+| Robust Zone Analyzer | `src/backtest_engine/optimizer/robust_zone_analyzer.py` | Julia | Medium | Clustering; wissenschaftliches Computing |
+| Analysis Pipelines | `src/backtest_engine/analysis/*.py` | Julia | Low | Research-Workflows; 7 Module |
+| Metric Adjustments | `src/backtest_engine/analysis/metric_adjustments.py` | Julia | Low | Bayesian-Methoden |
+
+### Tertiäre Kandidaten (Review nach Phase 5)
+
+| Modul | Pfad | Bemerkung |
+|-------|------|-----------|
+| Strategy Wrapper | `src/backtest_engine/strategy/strategy_wrapper.py` | Interface-abhängig |
+| Lot Sizer | `src/backtest_engine/sizing/lot_sizer.py` | Einfache Mathematik |
+| Report Metrics | `src/backtest_engine/report/metrics.py` | Post-Processing |
+| Deployment Selector | `src/backtest_engine/deployment/deployment_selector.py` | Orchestrierung |
 
 ### Ausschlüsse (bleiben Python)
 
@@ -910,6 +999,7 @@ Kategorisierung (Rust vs. Julia) und bleiben bewusst „high level“.
 | UI-Engine | `src/ui_engine/*` | FastAPI-Stack; kein Performance-Bottleneck |
 | Strategies | `src/strategies/*` | User-facing; Flexibilität wichtiger |
 | Data Handler | `src/backtest_engine/data/*` | Pandas-Integration; I/O-bound |
+| Config/Logging | `src/backtest_engine/config/*`, `bt_logging/*` | Infrastruktur |
 
 ---
 
@@ -917,6 +1007,7 @@ Kategorisierung (Rust vs. Julia) und bleiben bewusst „high level“.
 
 | Version | Datum | Autor | Änderungen |
 |---------|-------|-------|------------|
+| 1.1 | 2026-01-06 | GitHub Copilot | Vollständige backtest_engine Coverage; fehlende Module (multi_symbol_slice, symbol_data_slicer, slippage_and_fee) hinzugefügt; Tiered Prioritization; Phase 6 hinzugefügt |
 | 1.0 | 2026-01-03 | GitHub Copilot | Initiale Version |
 
 ---
