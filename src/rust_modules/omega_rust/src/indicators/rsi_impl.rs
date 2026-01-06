@@ -48,6 +48,7 @@ use crate::error::{OmegaError, Result};
 /// - `prices` has fewer than `period + 1` elements
 #[pyfunction]
 #[pyo3(signature = (prices, period = 14))]
+#[allow(clippy::needless_pass_by_value)]
 pub fn rsi(prices: Vec<f64>, period: usize) -> PyResult<Vec<f64>> {
     rsi_impl(&prices, period).map_err(Into::into)
 }
@@ -69,6 +70,11 @@ pub fn rsi_impl(prices: &[f64], period: usize) -> Result<Vec<f64>> {
         });
     }
 
+    let period_u32 = u32::try_from(period).map_err(|_| OmegaError::InvalidParameter {
+        reason: "period is too large".to_string(),
+    })?;
+    let period_as_f64 = f64::from(period_u32);
+
     let n = prices.len();
     let mut result = vec![f64::NAN; n];
 
@@ -88,19 +94,19 @@ pub fn rsi_impl(prices: &[f64], period: usize) -> Result<Vec<f64>> {
     }
 
     // Calculate initial average gain and loss (SMA for first period)
-    let mut avg_gain: f64 = gains[..period].iter().sum::<f64>() / period as f64;
-    let mut avg_loss: f64 = losses[..period].iter().sum::<f64>() / period as f64;
+    let mut avg_gain: f64 = gains[..period].iter().sum::<f64>() / period_as_f64;
+    let mut avg_loss: f64 = losses[..period].iter().sum::<f64>() / period_as_f64;
 
     // Calculate first RSI value
     result[period] = calculate_rsi_value(avg_gain, avg_loss);
 
     // Calculate remaining RSI values using smoothed averages
-    let smoothing_factor = (period - 1) as f64 / period as f64;
-    let new_value_factor = 1.0 / period as f64;
+    let smoothing_factor = (period_as_f64 - 1.0) / period_as_f64;
+    let new_value_factor = 1.0 / period_as_f64;
 
     for i in period..gains.len() {
-        avg_gain = avg_gain * smoothing_factor + gains[i] * new_value_factor;
-        avg_loss = avg_loss * smoothing_factor + losses[i] * new_value_factor;
+        avg_gain = avg_gain.mul_add(smoothing_factor, gains[i] * new_value_factor);
+        avg_loss = avg_loss.mul_add(smoothing_factor, losses[i] * new_value_factor);
         result[i + 1] = calculate_rsi_value(avg_gain, avg_loss);
     }
 
@@ -130,31 +136,31 @@ mod tests {
     #[test]
     fn test_rsi_basic() {
         // Generate a simple trending series
-        let prices: Vec<f64> = (0..20).map(|i| 100.0 + i as f64).collect();
+        let prices: Vec<f64> = (0..20).map(|i| 100.0 + f64::from(i)).collect();
         let result = rsi_impl(&prices, 14).unwrap();
 
         assert_eq!(result.len(), 20);
 
         // First 14 values should be NaN
-        for i in 0..14 {
-            assert!(result[i].is_nan(), "Expected NaN at index {i}");
+        for (idx, val) in result.iter().take(14).enumerate() {
+            assert!(val.is_nan(), "Expected NaN at index {idx}");
         }
 
         // RSI should be 100 for pure uptrend
-        for i in 14..20 {
-            assert_relative_eq!(result[i], 100.0, epsilon = 1e-10);
+        for val in result.iter().take(20).skip(14) {
+            assert_relative_eq!(*val, 100.0, epsilon = 1e-10);
         }
     }
 
     #[test]
     fn test_rsi_downtrend() {
         // Generate a simple downtrending series
-        let prices: Vec<f64> = (0..20).map(|i| 200.0 - i as f64).collect();
+        let prices: Vec<f64> = (0..20).map(|i| 200.0 - f64::from(i)).collect();
         let result = rsi_impl(&prices, 14).unwrap();
 
         // RSI should be 0 for pure downtrend
-        for i in 14..20 {
-            assert_relative_eq!(result[i], 0.0, epsilon = 1e-10);
+        for val in result.iter().take(20).skip(14) {
+            assert_relative_eq!(*val, 0.0, epsilon = 1e-10);
         }
     }
 
@@ -165,8 +171,8 @@ mod tests {
         let result = rsi_impl(&prices, 14).unwrap();
 
         // RSI should be 50 for no movement
-        for i in 14..20 {
-            assert_relative_eq!(result[i], 50.0, epsilon = 1e-10);
+        for val in result.iter().take(20).skip(14) {
+            assert_relative_eq!(*val, 50.0, epsilon = 1e-10);
         }
     }
 

@@ -2,7 +2,7 @@
 //!
 //! High-performance Rust implementations for the Omega Trading System.
 //!
-//! This crate provides Python bindings via PyO3 for performance-critical
+//! This crate provides Python bindings via `PyO3` for performance-critical
 //! numerical algorithms, including:
 //!
 //! - Technical indicators (EMA, RSI, etc.)
@@ -33,7 +33,7 @@ use indicators::{ema, exponential_moving_average, rolling_std, rsi};
 /// Omega Rust Extension Module
 ///
 /// This module is the entry point for Python bindings.
-/// All public functions are exposed to Python via PyO3.
+/// All public functions are exposed to Python via `PyO3`.
 #[pymodule]
 fn omega_rust(m: &Bound<'_, PyModule>) -> PyResult<()> {
     // Register indicator functions
@@ -47,15 +47,4 @@ fn omega_rust(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add("__author__", "Axel Kempf")?;
 
     Ok(())
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_module_loads() {
-        // Basic sanity check - module structure is valid
-        assert!(true);
-    }
 }

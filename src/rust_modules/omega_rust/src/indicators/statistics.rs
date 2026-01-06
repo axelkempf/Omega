@@ -27,8 +27,15 @@ use crate::error::{OmegaError, Result};
 /// returns = [0.01, -0.02, 0.015, -0.005, 0.02, ...]
 /// volatility = rolling_std(returns, window=20)
 /// ```
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - `window` is less than 2
+/// - `values` has fewer than `window` elements
 #[pyfunction]
 #[pyo3(signature = (values, window))]
+#[allow(clippy::needless_pass_by_value)]
 pub fn rolling_std(values: Vec<f64>, window: usize) -> PyResult<Vec<f64>> {
     rolling_std_impl(&values, window).map_err(Into::into)
 }
@@ -43,6 +50,12 @@ pub fn rolling_std_impl(values: &[f64], window: usize) -> Result<Vec<f64>> {
             reason: "window must be at least 2".to_string(),
         });
     }
+
+    let window_size_u32 = u32::try_from(window).map_err(|_| OmegaError::InvalidParameter {
+        reason: "window is too large".to_string(),
+    })?;
+    let window_size_as_f64 = f64::from(window_size_u32);
+    let window_size_minus_one_f64 = f64::from(window_size_u32 - 1);
 
     if values.len() < window {
         return Err(OmegaError::InsufficientData {
@@ -60,14 +73,14 @@ pub fn rolling_std_impl(values: &[f64], window: usize) -> Result<Vec<f64>> {
         let window_values = &values[window_start..=i];
 
         // Calculate mean
-        let mean: f64 = window_values.iter().sum::<f64>() / window as f64;
+        let mean: f64 = window_values.iter().sum::<f64>() / window_size_as_f64;
 
         // Calculate variance using two-pass algorithm for stability
         let variance: f64 = window_values
             .iter()
             .map(|&x| (x - mean).powi(2))
             .sum::<f64>()
-            / (window - 1) as f64;
+            / window_size_minus_one_f64;
 
         result[i] = variance.sqrt();
     }
@@ -103,16 +116,19 @@ pub fn rolling_mean_impl(values: &[f64], window: usize) -> Result<Vec<f64>> {
 
     let n = values.len();
     let mut result = vec![f64::NAN; n];
-    let window_f64 = window as f64;
+    let window_size_u32 = u32::try_from(window).map_err(|_| OmegaError::InvalidParameter {
+        reason: "window is too large".to_string(),
+    })?;
+    let window_size_as_f64 = f64::from(window_size_u32);
 
     // Initialize with first window
     let mut sum: f64 = values[..window].iter().sum();
-    result[window - 1] = sum / window_f64;
+    result[window - 1] = sum / window_size_as_f64;
 
     // Rolling calculation
     for i in window..n {
         sum = sum - values[i - window] + values[i];
-        result[i] = sum / window_f64;
+        result[i] = sum / window_size_as_f64;
     }
 
     Ok(result)

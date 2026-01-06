@@ -1,7 +1,7 @@
 //! Error types for Omega Rust extensions.
 //!
 //! Provides structured error handling with automatic conversion
-//! to Python exceptions via PyO3.
+//! to Python exceptions via `PyO3`.
 
 use pyo3::exceptions::{PyRuntimeError, PyValueError};
 use pyo3::PyErr;
@@ -32,7 +32,7 @@ pub type Result<T> = std::result::Result<T, OmegaError>;
 
 // Automatic conversion from OmegaError to PyErr
 impl From<OmegaError> for PyErr {
-    fn from(err: OmegaError) -> PyErr {
+    fn from(err: OmegaError) -> Self {
         match err {
             OmegaError::InvalidParameter { .. } | OmegaError::InsufficientData { .. } => {
                 PyValueError::new_err(err.to_string())
@@ -60,6 +60,6 @@ mod tests {
             actual: 5,
         };
         assert!(err.to_string().contains("10"));
-        assert!(err.to_string().contains("5"));
+        assert!(err.to_string().contains('5'));
     }
 }

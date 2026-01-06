@@ -43,6 +43,7 @@ use crate::error::{OmegaError, Result};
 /// - `prices` is empty
 #[pyfunction]
 #[pyo3(signature = (prices, period))]
+#[allow(clippy::needless_pass_by_value)]
 pub fn ema(prices: Vec<f64>, period: usize) -> PyResult<Vec<f64>> {
     exponential_moving_average_impl(&prices, period).map_err(Into::into)
 }
@@ -50,15 +51,20 @@ pub fn ema(prices: Vec<f64>, period: usize) -> PyResult<Vec<f64>> {
 /// Full name alias for EMA function.
 ///
 /// Identical to [`ema`], provided for API clarity.
+///
+/// # Errors
+///
+/// See [`ema`].
 #[pyfunction]
 #[pyo3(signature = (prices, period))]
+#[allow(clippy::needless_pass_by_value)]
 pub fn exponential_moving_average(prices: Vec<f64>, period: usize) -> PyResult<Vec<f64>> {
     exponential_moving_average_impl(&prices, period).map_err(Into::into)
 }
 
 /// Internal EMA implementation.
 ///
-/// Separated from PyO3 wrapper for easier testing and potential reuse.
+/// Separated from `PyO3` wrapper for easier testing and potential reuse.
 pub fn exponential_moving_average_impl(prices: &[f64], period: usize) -> Result<Vec<f64>> {
     // Validate inputs
     if period == 0 {
@@ -81,8 +87,12 @@ pub fn exponential_moving_average_impl(prices: &[f64], period: usize) -> Result<
         });
     }
 
+    let period_u32 = u32::try_from(period).map_err(|_| OmegaError::InvalidParameter {
+        reason: "period is too large".to_string(),
+    })?;
+
     // Calculate smoothing factor (alpha)
-    let alpha = 2.0 / (period as f64 + 1.0);
+    let alpha = 2.0 / (f64::from(period_u32) + 1.0);
 
     // Pre-allocate result vector
     let mut result = Vec::with_capacity(prices.len());
@@ -93,7 +103,7 @@ pub fn exponential_moving_average_impl(prices: &[f64], period: usize) -> Result<
 
     // Calculate EMA for remaining prices
     for &price in &prices[1..] {
-        ema_value = alpha * price + (1.0 - alpha) * ema_value;
+        ema_value = alpha.mul_add(price, (1.0 - alpha) * ema_value);
         result.push(ema_value);
     }
 

@@ -262,9 +262,13 @@ class TestIndicatorDeterminism:
         hist1 = macd1 - sig1
         hist2 = macd2 - sig2
 
-        assert np.allclose(macd1.to_numpy(), macd2.to_numpy(), equal_nan=True, atol=1e-12)
+        assert np.allclose(
+            macd1.to_numpy(), macd2.to_numpy(), equal_nan=True, atol=1e-12
+        )
         assert np.allclose(sig1.to_numpy(), sig2.to_numpy(), equal_nan=True, atol=1e-12)
-        assert np.allclose(hist1.to_numpy(), hist2.to_numpy(), equal_nan=True, atol=1e-12)
+        assert np.allclose(
+            hist1.to_numpy(), hist2.to_numpy(), equal_nan=True, atol=1e-12
+        )
 
     def test_bollinger_determinism(self, minimal_ohlcv_data: pd.DataFrame):
         """Bollinger Bands Berechnung ist deterministisch."""
@@ -281,9 +285,13 @@ class TestIndicatorDeterminism:
             tf=tf, price_type="bid", period=20, std_factor=2.0
         )
 
-        assert np.allclose(upper1.to_numpy(), upper2.to_numpy(), equal_nan=True, atol=1e-12)
+        assert np.allclose(
+            upper1.to_numpy(), upper2.to_numpy(), equal_nan=True, atol=1e-12
+        )
         assert np.allclose(mid1.to_numpy(), mid2.to_numpy(), equal_nan=True, atol=1e-12)
-        assert np.allclose(lower1.to_numpy(), lower2.to_numpy(), equal_nan=True, atol=1e-12)
+        assert np.allclose(
+            lower1.to_numpy(), lower2.to_numpy(), equal_nan=True, atol=1e-12
+        )
 
 
 # ==============================================================================
@@ -306,6 +314,7 @@ class TestTradeGenerationDeterminism:
         Dieser Test simuliert eine einfache EMA-Crossover Strategie
         und prüft dass die Signal-Sequenz deterministisch ist.
         """
+
         def generate_signals(data: pd.DataFrame, seed: int) -> List[int]:
             """Generiert Signal-Sequenz: 1=Long, -1=Short, 0=Neutral."""
             set_deterministic_seed(seed)
@@ -532,6 +541,7 @@ class TestReproducibilityAcrossRuns:
         self, minimal_ohlcv_data: pd.DataFrame
     ):
         """Mehrere Durchläufe mit gleichem Seed liefern identische Ergebnisse."""
+
         def run_simulation(seed: int) -> Dict[str, Any]:
             set_deterministic_seed(seed)
             tf = "M15"
@@ -572,7 +582,9 @@ class TestReproducibilityAcrossRuns:
         for i, (r1, r2) in enumerate(zip(results1, results2)):
             if np.isnan(r1) and np.isnan(r2):
                 continue
-            assert abs(float(r1) - float(r2)) < 1e-12, f"Mismatch at index {i}: {r1} vs {r2}"
+            assert (
+                abs(float(r1) - float(r2)) < 1e-12
+            ), f"Mismatch at index {i}: {r1} vs {r2}"
 
 
 # ==============================================================================
