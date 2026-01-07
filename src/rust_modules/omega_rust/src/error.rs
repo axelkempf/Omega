@@ -5,12 +5,12 @@
 //!
 //! ## FFI Error Code Synchronization
 //!
-//! This module defines ErrorCode constants that are synchronized with:
+//! This module defines `ErrorCode` constants that are synchronized with:
 //! - Python: `src/shared/error_codes.py`
 //! - Julia: `src/julia_modules/omega_julia/src/error.jl` (planned)
 //!
-//! The primary error handling mechanism is PyO3 exceptions (see ADR-0003),
-//! but ErrorCodes are included in error messages for cross-language
+//! The primary error handling mechanism is `PyO3` exceptions (see ADR-0003),
+//! but `ErrorCode` values are included in error messages for cross-language
 //! auditability and debugging.
 //!
 //! Reference: docs/adr/ADR-0003-error-handling.md
@@ -18,6 +18,7 @@
 use pyo3::exceptions::{PyRuntimeError, PyValueError};
 use pyo3::prelude::*;
 use pyo3::PyErr;
+use std::collections::HashMap;
 use thiserror::Error;
 
 // =============================================================================
@@ -105,12 +106,12 @@ pub enum ErrorCode {
 
 impl ErrorCode {
     /// Returns the numeric value of the error code.
-    pub fn as_i32(self) -> i32 {
+    pub const fn as_i32(self) -> i32 {
         self as i32
     }
 
     /// Returns the error category name.
-    pub fn category(&self) -> &'static str {
+    pub const fn category(&self) -> &'static str {
         let code = self.as_i32();
         match code {
             0 => "OK",
@@ -125,15 +126,15 @@ impl ErrorCode {
     }
 
     /// Returns whether this error is recoverable.
-    pub fn is_recoverable(&self) -> bool {
+    pub const fn is_recoverable(&self) -> bool {
         let code = self.as_i32();
-        matches!(code, 0 | 1000..=1999 | 3000..=3999)
-            || matches!(
+        match code {
+            0 | 1000..=1999 | 3000..=3999 => true,
+            _ => matches!(
                 self,
-                ErrorCode::InsufficientData
-                    | ErrorCode::ResourceBusy
-                    | ErrorCode::ResourceLimitExceeded
-            )
+                Self::InsufficientData | Self::ResourceBusy | Self::ResourceLimitExceeded
+            ),
+        }
     }
 }
 
@@ -159,13 +160,13 @@ pub enum OmegaError {
 }
 
 impl OmegaError {
-    /// Returns the ErrorCode associated with this error.
-    pub fn error_code(&self) -> ErrorCode {
+    /// Returns the `ErrorCode` associated with this error.
+    pub const fn error_code(&self) -> ErrorCode {
         match self {
-            OmegaError::InvalidParameter { .. } => ErrorCode::InvalidArgument,
-            OmegaError::InsufficientData { .. } => ErrorCode::InsufficientData,
-            OmegaError::NumericalError(_) => ErrorCode::ComputationFailed,
-            OmegaError::InternalError(_) => ErrorCode::InternalError,
+            Self::InvalidParameter { .. } => ErrorCode::InvalidArgument,
+            Self::InsufficientData { .. } => ErrorCode::InsufficientData,
+            Self::NumericalError(_) => ErrorCode::ComputationFailed,
+            Self::InternalError(_) => ErrorCode::InternalError,
         }
     }
 }
@@ -195,147 +196,80 @@ impl From<OmegaError> for PyErr {
 /// Get all error code constants as a Python dict.
 /// Used for cross-language synchronization verification.
 #[pyfunction]
-pub fn get_error_code_constants() -> std::collections::HashMap<String, i32> {
-    let mut codes = std::collections::HashMap::new();
+pub fn get_error_code_constants() -> HashMap<String, i32> {
+    const SUCCESS_CODES: &[(&str, ErrorCode)] = &[("OK", ErrorCode::Ok)];
+    const VALIDATION_CODES: &[(&str, ErrorCode)] = &[
+        ("VALIDATION_FAILED", ErrorCode::ValidationFailed),
+        ("INVALID_ARGUMENT", ErrorCode::InvalidArgument),
+        ("NULL_POINTER", ErrorCode::NullPointer),
+        ("OUT_OF_BOUNDS", ErrorCode::OutOfBounds),
+        ("TYPE_MISMATCH", ErrorCode::TypeMismatch),
+        ("SCHEMA_VIOLATION", ErrorCode::SchemaViolation),
+        ("CONSTRAINT_VIOLATION", ErrorCode::ConstraintViolation),
+        ("INVALID_STATE", ErrorCode::InvalidState),
+        ("MISSING_REQUIRED_FIELD", ErrorCode::MissingRequiredField),
+        ("INVALID_FORMAT", ErrorCode::InvalidFormat),
+        ("EMPTY_INPUT", ErrorCode::EmptyInput),
+        ("SIZE_MISMATCH", ErrorCode::SizeMismatch),
+    ];
+    const COMPUTATION_CODES: &[(&str, ErrorCode)] = &[
+        ("COMPUTATION_FAILED", ErrorCode::ComputationFailed),
+        ("DIVISION_BY_ZERO", ErrorCode::DivisionByZero),
+        ("OVERFLOW", ErrorCode::Overflow),
+        ("UNDERFLOW", ErrorCode::Underflow),
+        ("NAN_RESULT", ErrorCode::NanResult),
+        ("INF_RESULT", ErrorCode::InfResult),
+        ("CONVERGENCE_FAILED", ErrorCode::ConvergenceFailed),
+        ("NUMERICAL_INSTABILITY", ErrorCode::NumericalInstability),
+        ("INSUFFICIENT_DATA", ErrorCode::InsufficientData),
+    ];
+    const IO_CODES: &[(&str, ErrorCode)] = &[
+        ("IO_ERROR", ErrorCode::IoError),
+        ("FILE_NOT_FOUND", ErrorCode::FileNotFound),
+        ("PERMISSION_DENIED", ErrorCode::PermissionDenied),
+        ("SERIALIZATION_FAILED", ErrorCode::SerializationFailed),
+        ("DESERIALIZATION_FAILED", ErrorCode::DeserializationFailed),
+        ("NETWORK_ERROR", ErrorCode::NetworkError),
+        ("TIMEOUT", ErrorCode::Timeout),
+        ("DISK_FULL", ErrorCode::DiskFull),
+    ];
+    const INTERNAL_CODES: &[(&str, ErrorCode)] = &[
+        ("INTERNAL_ERROR", ErrorCode::InternalError),
+        ("NOT_IMPLEMENTED", ErrorCode::NotImplemented),
+        ("ASSERTION_FAILED", ErrorCode::AssertionFailed),
+        ("UNREACHABLE", ErrorCode::Unreachable),
+        ("INVARIANT_VIOLATED", ErrorCode::InvariantViolated),
+    ];
+    const FFI_CODES: &[(&str, ErrorCode)] = &[
+        ("FFI_ERROR", ErrorCode::FfiError),
+        ("FFI_TYPE_CONVERSION", ErrorCode::FfiTypeConversion),
+        ("FFI_BUFFER_OVERFLOW", ErrorCode::FfiBufferOverflow),
+        ("FFI_MEMORY_ERROR", ErrorCode::FfiMemoryError),
+        ("FFI_SCHEMA_MISMATCH", ErrorCode::FfiSchemaMismatch),
+        ("FFI_PANIC_CAUGHT", ErrorCode::FfiPanicCaught),
+    ];
+    const RESOURCE_CODES: &[(&str, ErrorCode)] = &[
+        ("RESOURCE_ERROR", ErrorCode::ResourceError),
+        ("OUT_OF_MEMORY", ErrorCode::OutOfMemory),
+        ("RESOURCE_EXHAUSTED", ErrorCode::ResourceExhausted),
+        ("RESOURCE_BUSY", ErrorCode::ResourceBusy),
+        ("RESOURCE_LIMIT_EXCEEDED", ErrorCode::ResourceLimitExceeded),
+    ];
 
-    // Success
-    codes.insert("OK".to_string(), ErrorCode::Ok as i32);
+    fn insert_codes(codes: &mut HashMap<String, i32>, items: &[(&str, ErrorCode)]) {
+        for (name, code) in items {
+            codes.insert(String::from(*name), code.as_i32());
+        }
+    }
 
-    // Validation Errors
-    codes.insert(
-        "VALIDATION_FAILED".to_string(),
-        ErrorCode::ValidationFailed as i32,
-    );
-    codes.insert(
-        "INVALID_ARGUMENT".to_string(),
-        ErrorCode::InvalidArgument as i32,
-    );
-    codes.insert("NULL_POINTER".to_string(), ErrorCode::NullPointer as i32);
-    codes.insert("OUT_OF_BOUNDS".to_string(), ErrorCode::OutOfBounds as i32);
-    codes.insert("TYPE_MISMATCH".to_string(), ErrorCode::TypeMismatch as i32);
-    codes.insert(
-        "SCHEMA_VIOLATION".to_string(),
-        ErrorCode::SchemaViolation as i32,
-    );
-    codes.insert(
-        "CONSTRAINT_VIOLATION".to_string(),
-        ErrorCode::ConstraintViolation as i32,
-    );
-    codes.insert("INVALID_STATE".to_string(), ErrorCode::InvalidState as i32);
-    codes.insert(
-        "MISSING_REQUIRED_FIELD".to_string(),
-        ErrorCode::MissingRequiredField as i32,
-    );
-    codes.insert(
-        "INVALID_FORMAT".to_string(),
-        ErrorCode::InvalidFormat as i32,
-    );
-    codes.insert("EMPTY_INPUT".to_string(), ErrorCode::EmptyInput as i32);
-    codes.insert("SIZE_MISMATCH".to_string(), ErrorCode::SizeMismatch as i32);
-
-    // Computation Errors
-    codes.insert(
-        "COMPUTATION_FAILED".to_string(),
-        ErrorCode::ComputationFailed as i32,
-    );
-    codes.insert(
-        "DIVISION_BY_ZERO".to_string(),
-        ErrorCode::DivisionByZero as i32,
-    );
-    codes.insert("OVERFLOW".to_string(), ErrorCode::Overflow as i32);
-    codes.insert("UNDERFLOW".to_string(), ErrorCode::Underflow as i32);
-    codes.insert("NAN_RESULT".to_string(), ErrorCode::NanResult as i32);
-    codes.insert("INF_RESULT".to_string(), ErrorCode::InfResult as i32);
-    codes.insert(
-        "CONVERGENCE_FAILED".to_string(),
-        ErrorCode::ConvergenceFailed as i32,
-    );
-    codes.insert(
-        "NUMERICAL_INSTABILITY".to_string(),
-        ErrorCode::NumericalInstability as i32,
-    );
-    codes.insert(
-        "INSUFFICIENT_DATA".to_string(),
-        ErrorCode::InsufficientData as i32,
-    );
-
-    // I/O Errors
-    codes.insert("IO_ERROR".to_string(), ErrorCode::IoError as i32);
-    codes.insert("FILE_NOT_FOUND".to_string(), ErrorCode::FileNotFound as i32);
-    codes.insert(
-        "PERMISSION_DENIED".to_string(),
-        ErrorCode::PermissionDenied as i32,
-    );
-    codes.insert(
-        "SERIALIZATION_FAILED".to_string(),
-        ErrorCode::SerializationFailed as i32,
-    );
-    codes.insert(
-        "DESERIALIZATION_FAILED".to_string(),
-        ErrorCode::DeserializationFailed as i32,
-    );
-    codes.insert("NETWORK_ERROR".to_string(), ErrorCode::NetworkError as i32);
-    codes.insert("TIMEOUT".to_string(), ErrorCode::Timeout as i32);
-    codes.insert("DISK_FULL".to_string(), ErrorCode::DiskFull as i32);
-
-    // Internal Errors
-    codes.insert(
-        "INTERNAL_ERROR".to_string(),
-        ErrorCode::InternalError as i32,
-    );
-    codes.insert(
-        "NOT_IMPLEMENTED".to_string(),
-        ErrorCode::NotImplemented as i32,
-    );
-    codes.insert(
-        "ASSERTION_FAILED".to_string(),
-        ErrorCode::AssertionFailed as i32,
-    );
-    codes.insert("UNREACHABLE".to_string(), ErrorCode::Unreachable as i32);
-    codes.insert(
-        "INVARIANT_VIOLATED".to_string(),
-        ErrorCode::InvariantViolated as i32,
-    );
-
-    // FFI Errors
-    codes.insert("FFI_ERROR".to_string(), ErrorCode::FfiError as i32);
-    codes.insert(
-        "FFI_TYPE_CONVERSION".to_string(),
-        ErrorCode::FfiTypeConversion as i32,
-    );
-    codes.insert(
-        "FFI_BUFFER_OVERFLOW".to_string(),
-        ErrorCode::FfiBufferOverflow as i32,
-    );
-    codes.insert(
-        "FFI_MEMORY_ERROR".to_string(),
-        ErrorCode::FfiMemoryError as i32,
-    );
-    codes.insert(
-        "FFI_SCHEMA_MISMATCH".to_string(),
-        ErrorCode::FfiSchemaMismatch as i32,
-    );
-    codes.insert(
-        "FFI_PANIC_CAUGHT".to_string(),
-        ErrorCode::FfiPanicCaught as i32,
-    );
-
-    // Resource Errors
-    codes.insert(
-        "RESOURCE_ERROR".to_string(),
-        ErrorCode::ResourceError as i32,
-    );
-    codes.insert("OUT_OF_MEMORY".to_string(), ErrorCode::OutOfMemory as i32);
-    codes.insert(
-        "RESOURCE_EXHAUSTED".to_string(),
-        ErrorCode::ResourceExhausted as i32,
-    );
-    codes.insert("RESOURCE_BUSY".to_string(), ErrorCode::ResourceBusy as i32);
-    codes.insert(
-        "RESOURCE_LIMIT_EXCEEDED".to_string(),
-        ErrorCode::ResourceLimitExceeded as i32,
-    );
-
+    let mut codes = HashMap::new();
+    insert_codes(&mut codes, SUCCESS_CODES);
+    insert_codes(&mut codes, VALIDATION_CODES);
+    insert_codes(&mut codes, COMPUTATION_CODES);
+    insert_codes(&mut codes, IO_CODES);
+    insert_codes(&mut codes, INTERNAL_CODES);
+    insert_codes(&mut codes, FFI_CODES);
+    insert_codes(&mut codes, RESOURCE_CODES);
     codes
 }
 
@@ -362,8 +296,7 @@ mod tests {
         let msg = err.to_string();
         assert!(
             msg.contains("[1001]"),
-            "Error message should contain error code: {}",
-            msg
+            "Error message should contain error code: {msg}"
         );
         assert!(msg.contains("period must be positive"));
 
@@ -374,8 +307,7 @@ mod tests {
         let msg = err.to_string();
         assert!(
             msg.contains("[2008]"),
-            "Error message should contain error code: {}",
-            msg
+            "Error message should contain error code: {msg}"
         );
         assert!(msg.contains("10"));
         assert!(msg.contains('5'));
