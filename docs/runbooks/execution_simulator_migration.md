@@ -1,10 +1,22 @@
-# Migrations-Runbook: ExecutionSimulator (Rust)
+---
+module: execution_simulator
+phase: 6
+prerequisites:
+    - docs/MIGRATION_READINESS_VALIDATION.md
+    - docs/ffi/execution_simulator.md
+    - tests/benchmarks/
+    - tests/golden/
+    - tests/property/
+rollback_procedure: docs/runbooks/rollback_generic.md
+---
+
+## Migrations-Runbook: ExecutionSimulator (Rust)
 
 **Modul:** `src/backtest_engine/core/execution_simulator.py`  
 **Target-Sprache:** Rust  
 **Priorität:** Wave 3 (Core Loop)  
 **Aufwand:** L (Large)  
-**Status:** 🟢 READY FOR MIGRATION
+**Status:** TEMPLATE (Readiness/Go-No-Go: `docs/MIGRATION_READINESS_VALIDATION.md`)
 
 ---
 
@@ -41,28 +53,28 @@ Der ExecutionSimulator ist die zentrale Komponente für Trade-Matching und Portf
 
 ## 2. Vorbereitungs-Checkliste
 
-### 2.1 Type Safety ✅
+### 2.1 Type Safety
 
 - [x] Modul ist mypy --strict compliant
 - [x] Alle öffentlichen APIs haben Type Hints
 - [x] TypedDict-Schemas in `core/types.py` definiert
 - [x] Protocol-Klassen in `shared/protocols.py`
 
-### 2.2 Test Coverage ✅
+### 2.2 Test Coverage
 
 - [x] Unit Tests: `tests/test_execution_simulator*.py`
-- [x] Integration Tests: `tests/integration/test_backtest_e2e.py`
-- [x] Property-Based Tests: `tests/property/test_execution_properties.py`
+- [x] Integration Tests: `tests/integration/test_backtest_e2e.py` (docs-lint:planned)
+- [x] Property-Based Tests: `tests/property/test_execution_properties.py` (docs-lint:planned)
 - [x] Golden-File Tests: `tests/golden/test_golden_backtest.py`
 - [x] Coverage ≥ 87%
 
-### 2.3 Performance Baseline ✅
+### 2.3 Performance Baseline
 
-- [x] Benchmark: `tests/benchmarks/test_bench_execution.py`
+- [x] Benchmark: `tests/benchmarks/test_bench_execution_simulator.py`
 - [x] Baseline gespeichert: `reports/performance_baselines/execution_simulator.json`
 - [x] Improvement-Target definiert: 8x Speedup
 
-### 2.4 FFI-Dokumentation ✅
+### 2.4 FFI-Dokumentation
 
 - [x] Interface-Spec: `docs/ffi/execution_simulator.md`
 - [x] Arrow-Schema: PortfolioPosition, TradeSignal (in `shared/arrow_schemas.py`)
@@ -165,7 +177,7 @@ impl ExecutionSimulatorRust {
 
 ### Phase 1: Rust Scaffold (1-2 Tage)
 
-1. Create `src/rust_modules/omega_rust/src/execution/` directory
+1. Create `src/rust_modules/omega_rust/src/execution/` directory (docs-lint:planned)
 2. Define core types in `position.rs`, `signal.rs`
 3. Implement basic `ExecutionSimulatorRust` struct
 4. Add PyO3 bindings and module registration
@@ -202,7 +214,7 @@ impl ExecutionSimulatorRust {
 
 ### Phase 6: Benchmarking (1-2 Tage)
 
-1. Run `pytest tests/benchmarks/test_bench_execution.py`
+1. Run `pytest tests/benchmarks/test_bench_execution_simulator.py`
 2. Compare Python vs Rust performance
 3. Document results in `reports/performance_baselines/`
 4. Verify 8x speedup target

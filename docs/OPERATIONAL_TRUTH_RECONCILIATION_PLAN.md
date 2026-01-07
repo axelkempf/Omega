@@ -80,8 +80,8 @@ Ziel: eine Tabelle (oder JSON) erzeugen, die pro Doc-Kapitel alle Claims mit Evi
 
 **Bekannte Findings (bereits verifiziert):**
 
-- `docs/runbooks/rollback_generic.md` wird referenziert, existiert aber nicht (mehrere Runbooks).
-- `docs/runbooks/slippage_fee_migration.md` referenziert `tests/test_slippage_fee.py`, existiert aber nicht.
+- ✅ **Resolved (Phase A):** `docs/runbooks/rollback_generic.md` existiert und wird in Runbooks als `rollback_procedure` referenziert.
+- ✅ **Resolved (Phase A):** `docs/runbooks/slippage_fee_migration.md` enthält keine Referenz mehr auf eine veraltete, nicht-existente Slippage/Fee-Testdatei.
 
 **Akzeptanzkriterium:**
 
@@ -118,7 +118,7 @@ Ziel: eine Tabelle (oder JSON) erzeugen, die pro Doc-Kapitel alle Claims mit Evi
 
 **Bekannte Inkonsistenzen (bereits verifiziert):**
 
-- `MIGRATION_READINESS_VALIDATION.md` behauptet CI strict-mypy wäre teils `|| true`, aber `ci.yml` hat strikte Gates für `shared` und `backtest_engine core/config/optimizer/rating`.
+- `MIGRATION_READINESS_VALIDATION.md` und CI-Gates müssen deckungsgleich sein: „READY“ ist nur zulässig, wenn die zugehörigen Checks **hart** failen (kein `continue-on-error`, kein `|| true`).
 
 **Schritte:**
 
@@ -149,9 +149,28 @@ Ziel: eine Tabelle (oder JSON) erzeugen, die pro Doc-Kapitel alle Claims mit Evi
    - Läuft lokal reproduzierbar?
    - Ist es `continue-on-error`?
 
-**Bekannte Finding-Kandidaten:**
+### C1.1 Gate-Matrix (Snapshot)
 
-- Rust-Integrationstep ist aktuell soft-fail (`continue-on-error: true`) und Marker `rust_integration` scheint nicht vorhanden.
+| Gate | CI Evidence | Hard-fail? | Lokal reproduzierbar? | Notes |
+|------|------------|-----------:|-----------------------:|-------|
+| Python Unit Suite | `.github/workflows/ci.yml` → job `test` | ✅ | ✅ | Läuft mit `-m "not integration"` + Coverage |
+| Python Integration Suite | `.github/workflows/ci.yml` → job `integration-tests` | ✅ | ✅ | Läuft nur unter `tests/integration` |
+| mypy strict (migration-critical) | `.github/workflows/ci.yml` → job `type-check` | ✅ | ✅ | `shared/` + `backtest_engine/core|config|optimizer|rating` |
+| Rust wheel Import-Truth | `.github/workflows/rust-build.yml` → job `integration` | ✅ | ✅ | `python -c "import omega._rust"` nach Wheel-Install |
+| Rust FFI pytest marker | `tests/test_rust_integration.py` + `rust-build.yml` | ✅ | ✅ | In CI mit `OMEGA_REQUIRE_RUST_FFI=1` (kein Skip) |
+| Julia Package Tests | `.github/workflows/julia-tests.yml` → job `test` | ✅ | ✅ | `Pkg.instantiate()` + `Pkg.test()` |
+| Julia FFI pytest marker | `tests/test_julia_integration.py` + `julia-tests.yml` | ✅ | ✅ | In CI mit `OMEGA_REQUIRE_JULIA_FFI=1` + `JULIA_PROJECT` |
+| Cross-platform property tests | `.github/workflows/cross-platform-ci.yml` | ✅ | ✅ | Linux-only; läuft als harter Gate |
+| Cross-platform hybrid integration | `.github/workflows/cross-platform-ci.yml` → job `hybrid-integration` | ✅ | ✅ | Hard gate (FFI required nur wenn Module existieren) |
+| Benchmarks | `.github/workflows/benchmarks.yml` → `run-benchmarks` | ✅ | ✅ | PRs: Regressionen (>20% vs main-baseline) failen. Push main: Baseline-Vergleich aus (Bootstrap), Artefakt wird erzeugt. |
+
+**Bekannte Findings (aktuelle Repo-Realität):**
+
+- ✅ **Resolved:** `rust_integration` Marker ist implementiert (siehe `tests/test_rust_integration.py`) und wird in `.github/workflows/rust-build.yml` als hard gate ausgeführt.
+- ✅ **Resolved:** Rust Import-Truth Gate (`import omega._rust`) ist als hard gate in `.github/workflows/rust-build.yml` vorhanden.
+- ✅ **Resolved:** `julia_integration` Marker ist implementiert (siehe `tests/test_julia_integration.py`) und wird in `.github/workflows/julia-tests.yml` als hard gate ausgeführt.
+- ✅ **Resolved:** Hybrid FFI Integration in `.github/workflows/cross-platform-ci.yml` ist ein hard gate (FFI wird nur erzwungen, wenn Module vorhanden sind).
+- ✅ **Resolved:** Cross-platform property tests laufen als hard gate (kein `continue-on-error`).
 
 **Akzeptanzkriterium:** „READY“ setzt voraus, dass alle Gates, die „READY“ begründen, **hard-fail** sind.
 
@@ -206,6 +225,11 @@ Ziel: eine Tabelle (oder JSON) erzeugen, die pro Doc-Kapitel alle Claims mit Evi
 2. In CI einhängen (Docs-Lint Job).
 
 **Akzeptanzkriterium:** CI blockiert PRs mit gebrochenen Doc-Referenzen.
+
+**Evidence (implementiert 2026-01-07):**
+
+- pytest Validator: `tests/test_docs_reference_linter.py`
+- CI hard gate: `.github/workflows/ci.yml` → job `docs-lint`
 
 ---
 

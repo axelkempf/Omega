@@ -36,7 +36,7 @@ use indicators::{ema, exponential_moving_average, rolling_std, rsi};
 /// This module is the entry point for Python bindings.
 /// All public functions are exposed to Python via `PyO3`.
 #[pymodule]
-fn omega_rust(m: &Bound<'_, PyModule>) -> PyResult<()> {
+fn _rust(m: &Bound<'_, PyModule>) -> PyResult<()> {
     // Register indicator functions
     m.add_function(wrap_pyfunction!(ema, m)?)?;
     m.add_function(wrap_pyfunction!(exponential_moving_average, m)?)?;

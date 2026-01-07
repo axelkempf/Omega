@@ -248,8 +248,8 @@ Weitere Details: `docs/RUST_JULIA_MIGRATION_PREPARATION_PLAN.md` und `docs/runbo
 - Architekturübersicht: `architecture.md`
 - Technische Zusammenfassung: `SUMMARY.md`
 - Änderungen/Versionen: `CHANGELOG.md`
-- Performance-/Refactoring-Report: `docs/CATEGORICAL_RANKING_OPTIMIZATION.md`
-- Beginner-Guide (Copilot Agents & Prompts): `docs/USER_GUIDE_COPILOT_AGENTS_AND_PROMPTS.md`
+- Performance-/Baseline-Report: `reports/performance_baselines/README.md`
+- Copilot Agents & Prompts: `AGENTS.md` und `prompts.md`
 - **Rust/Julia Migration:** `docs/RUST_JULIA_MIGRATION_PREPARATION_PLAN.md`
 - **FFI-Spezifikationen:** `docs/ffi/`
 - **Migrations-Runbooks:** `docs/runbooks/`

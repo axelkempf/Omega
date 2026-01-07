@@ -40,7 +40,7 @@ pre-commit run flake8 --all-files
 
 ## Strategie für die Zukunft
 
-### Phase 1: Stabil (DONE ✅)
+### Phase 1: Stabil (abgeschlossen)
 
 - `.flake8` Konfiguration erstellt
 - Absturz-Problem behoben
@@ -55,7 +55,7 @@ Wenn Zeit/Budget verfügbar ist, können schrittweise Fehlerklassen "entignorier
 3. **F821** (undefined names): Fehlende Imports hinzufügen
 4. **C901** (complexity): Große Funktionen refactoren (z.B. Extract Method)
 
-### Phase 3: Migration-Ready (Vorbereitung für Rust/Julia)
+### Phase 3: Migration-Vorbereitung (Rust/Julia)
 
 Für FFI-Grenzen (Rust/Julia Migration) sind strengere Checks sinnvoll:
 

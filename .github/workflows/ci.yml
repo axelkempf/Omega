@@ -24,6 +24,19 @@ jobs:
       - name: Lint with flake8 (critical errors only)
         run: flake8 src/ tests/ --max-line-length=120 --extend-ignore=E203,W503,F824 --select=E9,F63,F7,F82
 
+  docs-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - name: Install pytest
+        run: |
+          python -m pip install -U pip
+          pip install pytest
+      - name: Validate docs references (hard gate)
+        run: pytest -q tests/test_docs_reference_linter.py
+
   security:
     runs-on: ubuntu-latest
     steps:
@@ -38,7 +51,7 @@ jobs:
       - name: Security scan with bandit
         run: bandit -r src/ -ll -ii --skip B101
       - name: Audit dependencies with pip-audit
-        run: pip-audit --ignore-vuln PYSEC-2024-48 || true
+        run: pip-audit --ignore-vuln PYSEC-2024-48
 
   type-check:
     runs-on: ubuntu-latest
@@ -74,20 +87,6 @@ jobs:
                --ignore-missing-imports \
                --strict \
                --no-error-summary
-      - name: Type check - standard (typed strategies)
-        run: |
-          mypy src/strategies/mean_reversion_z_score/ \
-               src/strategies/ema_rsi_trend_follow/ \
-               --ignore-missing-imports \
-               --no-error-summary || true
-      - name: Type check - relaxed (other modules)
-        run: |
-          mypy src/hf_engine/ \
-               src/backtest_engine/analysis/ \
-               src/backtest_engine/data/ \
-               src/ui_engine/ \
-               --ignore-missing-imports \
-               --no-error-summary || true
       - name: Type coverage report
         run: python tools/type_coverage.py
 

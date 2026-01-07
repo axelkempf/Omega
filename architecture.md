@@ -456,7 +456,6 @@ Ordner-für-Ordner-Übersicht der Codebasis (ohne `results`-Ordner und ohne Aufl
   - `requires.txt`
   - `SOURCES.txt`
   - `top_level.txt`
-- `src/watchdog/`
 
 ---
 
@@ -569,7 +568,7 @@ Der `docs/` Ordner enthält technische Dokumentation und Migrationspläne:
   - **`indicator_cache_migration.md`**: Runbook für IndicatorCache → Rust
   - **`event_engine_migration.md`**: Runbook für EventEngine → Rust
   - **`performance_baseline_documentation.md`**: Baseline-Dokumentation aller Kandidaten
-  - **`ready_for_migration_checklist.md`**: Finale Go/No-Go Checkliste
+  - **`ready_for_migration_checklist.md`**: Go/No-Go Checkliste (Template; kanonischer Status: `docs/MIGRATION_READINESS_VALIDATION.md`)
 
 ---
 

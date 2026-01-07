@@ -10,7 +10,18 @@
 
 This document validates the Phase 6 preparation tasks for the Rust/Julia migration. Core infrastructure is in place, with some components requiring additional work before full migration can begin.
 
+**Single Source of Truth:** This file is the **canonical** readiness status source. Other plans/runbooks may describe steps and artifacts, but must not contradict the status stated here.
+
 **Overall Readiness Score: ~85%**
+
+### Operational Definition (Docs ↔ System Truth)
+
+This repository distinguishes between **documented readiness** and **operational readiness**.
+
+- **READY** means: the referenced artifacts exist **and** the supporting checks are enforced as **hard CI gates** (i.e. no `continue-on-error` / no `|| true`) for the relevant scope.
+- **READY WITH CONDITIONS** means: core artifacts exist, but one or more migration prerequisites are still **partial / planned** (e.g. incomplete Rust parity, remaining runbook corrections) even though CI gates are enforced.
+
+Reference: `docs/OPERATIONAL_TRUTH_RECONCILIATION_PLAN.md`.
 
 ### Go/No-Go Status
 
@@ -20,7 +31,9 @@ This document validates the Phase 6 preparation tasks for the Rust/Julia migrati
 | Error Codes (Python) | ✅ Ready | Full ErrorCode enum implemented |
 | Error Codes (Rust) | ⚠️ Partial | ErrorCode enum PLANNED, PyO3 exceptions work |
 | FFI Specifications | ✅ Ready | Documented in docs/ffi/ |
-| Type Safety (mypy) | ⚠️ Partial | Not all modules strict-enforced in CI |
+| Type Safety (mypy) | ✅ Ready | Strict is enforced for migration-critical modules in `.github/workflows/ci.yml` (type-check job) |
+| Benchmarks (performance) | ✅ Ready | PRs hard-gated in `.github/workflows/benchmarks.yml` (suite must run; regressions vs main-baseline fail) |
+| Property tests | ✅ Ready | Hard-gated in `.github/workflows/benchmarks.yml` and cross-platform CI (Linux-only) |
 | Build Infrastructure | ✅ Ready | Cargo.toml, maturin configured |
 
 ---
@@ -29,15 +42,15 @@ This document validates the Phase 6 preparation tasks for the Rust/Julia migrati
 
 ### 1.1 Core Module Specifications
 
-| Module | FFI Spec | Arrow Schema | Error Codes | Performance Targets |
+| Module | FFI Spec | Arrow Schema | Error Codes | Performance Targets (documented) |
 |--------|----------|--------------|-------------|---------------------|
-| `execution_simulator.py` | ✅ | ✅ | ✅ | ✅ 8x speedup |
-| `portfolio.py` | ✅ | ✅ | ✅ | ✅ 7-10x speedup |
-| `multi_symbol_slice.py` | ✅ | ✅ | ✅ | ✅ 18x speedup |
-| `symbol_data_slicer.py` | ✅ | ✅ | ✅ | ✅ 8-15x speedup |
-| `slippage_and_fee.py` | ✅ | ✅ | ✅ | ✅ 20-30x speedup |
-| Rating Modules (6x) | ✅ | ✅ | ✅ | ✅ 8x speedup |
-| Optimizer Modules | ✅ | ✅ | ✅ | ✅ 5-12x speedup |
+| `execution_simulator.py` | ✅ | ✅ | ✅ | 🎯 8x |
+| `portfolio.py` | ✅ | ✅ | ✅ | 🎯 7-10x |
+| `multi_symbol_slice.py` | ✅ | ✅ | ✅ | 🎯 18x |
+| `symbol_data_slicer.py` | ✅ | ✅ | ✅ | 🎯 8-15x |
+| `slippage_and_fee.py` | ✅ | ✅ | ✅ | 🎯 20-30x |
+| Rating Modules (6x) | ✅ | ✅ | ✅ | 🎯 8x |
+| Optimizer Modules | ✅ | ✅ | ✅ | 🎯 5-12x |
 
 **Validation:** All FFI specifications are complete with:
 - Arrow IPC schemas defined
@@ -66,21 +79,30 @@ Location: `src/shared/arrow_schemas.py`
 
 ### 2.1 Performance Baselines
 
-| Component | Baseline Captured | Metric Type | CI Integration |
+This repo uses **two baseline layers**:
+
+1. **Performance snapshots** (human-facing, not used by the CI regression gate): `reports/performance_baselines/p0-01_*.json`
+2. **CI regression baseline** (machine-facing, blocking on PRs): `pytest-benchmark` JSON from the **latest successful main run** of `.github/workflows/benchmarks.yml` (downloaded as an artifact).
+
+| Component | Baseline Captured | Metric Type | CI Integration (blocking?) |
 |-----------|-------------------|-------------|----------------|
-| `execution_simulator` | ✅ | Latency (ms) | ✅ |
-| `portfolio` | ✅ | Ops/sec | ✅ |
-| `multi_symbol_slice` | ✅ | Iterator step (µs) | ✅ |
-| `symbol_data_slicer` | ✅ | Lookup time (µs) | ✅ |
-| Optimizer Modules | ✅ | Trial time (s) | ✅ |
-| Rating Modules | ✅ | Batch time (ms) | ✅ |
+| `execution_simulator` | ✅ (`reports/performance_baselines/p0-01_*.json`) | Latency (ms) | ⚠️ Snapshot only |
+| `portfolio` | ✅ (`reports/performance_baselines/p0-01_*.json`) | Ops/sec | ⚠️ Snapshot only |
+| `multi_symbol_slice` | ✅ (`reports/performance_baselines/p0-01_*.json`) | Iterator step (µs) | ⚠️ Snapshot only |
+| `symbol_data_slicer` | ✅ (`reports/performance_baselines/p0-01_*.json`) | Lookup time (µs) | ⚠️ Snapshot only |
+| Optimizer Modules | ✅ (`reports/performance_baselines/p0-01_*.json`) | Trial time (s) | ⚠️ Snapshot only |
+| Rating Modules | ✅ (`reports/performance_baselines/p0-01_*.json`) | Batch time (ms) | ⚠️ Snapshot only |
 
 ### 2.2 Benchmark Infrastructure
 
 - **pytest-benchmark integration:** ✅ Configured
-- **Historical tracking:** ✅ JSON storage in `reports/performance_baselines/`
-- **Regression detection:** ✅ 10% threshold configured
-- **CI/CD gates:** ✅ GitHub Actions workflow ready
+- **Historical tracking:** ✅ Artifact storage per successful main run (baseline source for PRs)
+- **Regression detection:** ✅ Enforced as hard gate on PRs (>20% slower vs main baseline)
+- **CI/CD gates:** ✅ Workflow is blocking on PRs (no `continue-on-error`)
+
+Evidence:
+
+- `.github/workflows/benchmarks.yml`
 
 ---
 
@@ -101,7 +123,7 @@ Location: `src/shared/arrow_schemas.py`
 
 - **Seed-controlled randomness:** ✅ All modules
 - **Floating-point reproducibility:** ✅ Validated
-- **Cross-platform consistency:** ✅ macOS/Linux tested
+- **Cross-platform consistency:** ⚠️ Cross-platform unit tests exist, but golden/property suites are not enforced on all OSes
 
 ---
 
@@ -109,19 +131,21 @@ Location: `src/shared/arrow_schemas.py`
 
 ### 4.1 Runbook Completeness
 
-| Runbook | 7-Phase Structure | Rollback Plan | Acceptance Criteria | Sign-off Matrix |
-|---------|-------------------|---------------|---------------------|-----------------|
-| `execution_simulator` | ✅ | ✅ | ✅ | ✅ |
-| `portfolio` | ✅ | ✅ | ✅ | ✅ |
-| `multi_symbol_slice` | ✅ | ✅ | ✅ | ✅ |
-| `slippage_fee` (Pilot) | ✅ | ✅ | ✅ | ✅ |
-| `rating_modules` (Batch) | ✅ | ✅ | ✅ | ✅ |
-| `optimizer` (Julia) | ✅ | ✅ | ✅ | ✅ |
+| Runbook | 7-Phase Structure | Rollback Plan | Acceptance Criteria | Sign-off Matrix | Notes |
+|---------|-------------------|---------------|---------------------|-----------------|-------|
+| `indicator_cache` | ⚠️ Draft | ⚠️ Mixed | ⚠️ Mixed | ⚠️ Mixed | Runbook exists but is marked "Nicht begonnen" |
+| `event_engine` | ⚠️ Draft | ⚠️ Mixed | ⚠️ Mixed | ⚠️ Mixed | Runbook exists but is marked "Nicht begonnen" |
+| `execution_simulator` | ✅ | ✅ | ✅ | ✅ | Content-complete, but not a hard CI gate by itself |
+| `portfolio` | ✅ | ✅ | ✅ | ✅ | YAML front matter present |
+| `multi_symbol_slice` | ✅ | ✅ | ✅ | ✅ | Content-complete, but not a hard CI gate by itself |
+| `slippage_fee` (Pilot) | ✅ | ✅ | ✅ | ✅ | YAML front matter present |
+| `rating_modules` (Batch) | ✅ | ✅ | ✅ | ✅ | Content-complete, but not a hard CI gate by itself |
+| `optimizer` (Julia) | ✅ | ✅ | ✅ | ✅ | YAML front matter present |
 
 ### 4.2 Runbook Quality Checklist
 
 - [x] Each runbook follows the 7-phase template
-- [ ] ⚠️ Some runbooks reference non-existent paths (e.g., slippage.py, fee.py → use slippage_and_fee.py)
+- [ ] ⚠️ Some runbooks are still marked as "Nicht begonnen" and should not be treated as executed readiness evidence
 - [x] Clear rollback triggers defined
 - [x] Feature flags documented (`OMEGA_USE_RUST_*`)
 - [ ] ⚠️ Performance tables contain placeholder data (marked as PLANNED)
@@ -136,14 +160,16 @@ Location: `src/shared/arrow_schemas.py`
 
 | Module | mypy Status | CI Enforced | Notes |
 |--------|-------------|-------------|-------|
-| `src/shared/*` | ✅ PASS | ⚠️ Partial | Should be strict-gated in CI |
+| `src/shared/*` | ✅ PASS | ✅ Yes | Enforced as strict in `.github/workflows/ci.yml` |
 | `src/strategies/_base/*` | ✅ PASS | ✅ Yes | Strict in CI |
-| `src/backtest_engine/core/*` | ⚠️ Partial | ❌ No | CI uses `\|\| true` |
-| `src/backtest_engine/optimizer/*` | ⚠️ Partial | ❌ No | CI uses `\|\| true` |
-| `src/backtest_engine/rating/*` | ⚠️ Partial | ❌ No | CI uses `\|\| true` |
-| Rating Modules | ⚠️ Partial | ❌ No | Should be migration-ready |
+| `src/backtest_engine/core/*` | ✅ PASS | ✅ Yes | Enforced as strict (migration-critical) |
+| `src/backtest_engine/optimizer/*` | ✅ PASS | ✅ Yes | Enforced as strict (migration-critical) |
+| `src/backtest_engine/rating/*` | ✅ PASS | ✅ Yes | Enforced as strict (migration-critical) |
+| Rating Modules | ✅ PASS | ✅ Yes | Included via `src/backtest_engine/rating/*` strict gate |
 
-**Action Required:** CI workflow needs to enforce mypy --strict for migration-critical modules.
+Evidence:
+
+- `.github/workflows/ci.yml` → job `type-check` → "Type check - strict (shared modules - migration critical)" and "Type check - strict (backtest_engine migration modules)"
 
 ### 5.2 Type Annotation Quality
 
@@ -161,9 +187,10 @@ Location: `src/shared/arrow_schemas.py`
 | Component | Status | Location |
 |-----------|--------|----------|
 | `Cargo.toml` template | ✅ | `src/rust_modules/` |
-| PyO3 bindings scaffold | ✅ | `src/rust_modules/omega_core/` |
-| maturin configuration | ✅ | `pyproject.toml` |
-| CI build workflow | ✅ | `.github/workflows/` |
+| PyO3 bindings scaffold | ✅ | `src/rust_modules/omega_rust/` |
+| maturin configuration | ✅ | `src/rust_modules/omega_rust/pyproject.toml` |
+| CI build workflow | ✅ | `.github/workflows/rust-build.yml` |
+| Import-Truth gate (`import omega._rust`) | ✅ | `.github/workflows/rust-build.yml` → job `integration` |
 
 ### 6.2 Julia Build Infrastructure
 
@@ -172,6 +199,7 @@ Location: `src/shared/arrow_schemas.py`
 | Julia project template | ✅ | `src/julia_modules/` |
 | PythonCall.jl integration | ✅ | Documented |
 | Environment management | ✅ | `Project.toml` |
+| CI test workflow | ✅ | `.github/workflows/julia-tests.yml` |
 
 ---
 
@@ -256,7 +284,7 @@ Location: `src/shared/arrow_schemas.py`
 - [x] Benchmark suite validated
 - [x] Golden files verified
 - [ ] ⚠️ Runbooks need path corrections (slippage.py → slippage_and_fee.py)
-- [ ] ⚠️ Type safety not CI-enforced for all migration-critical modules
+- [x] Type safety enforced in CI (strict for migration-critical modules)
 - [x] Build system tested
 
 ### Go/No-Go Criteria
@@ -266,8 +294,10 @@ Location: `src/shared/arrow_schemas.py`
 | Arrow schemas defined | ✅ | Yes |
 | Error codes (Python) | ✅ | Yes |
 | Error codes (Rust sync) | ⚠️ PLANNED | Recommended |
-| mypy strict in CI | ⚠️ Partial | Yes (fix pending) |
-| Runbook paths accurate | ⚠️ Fix needed | Yes |
+| mypy strict in CI (migration-critical) | ✅ | Yes |
+| Benchmarks hard-gated in CI | ✅ | Recommended |
+| Property tests hard-gated in CI | ✅ | Recommended |
+| Runbooks complete for all candidates | ⚠️ Partial | Yes |
 | Performance baselines | ✅ | Yes |
 
 ### Migration Authorization
@@ -276,9 +306,8 @@ Location: `src/shared/arrow_schemas.py`
 
 **Blockers for Pilot Start:**
 
-1. Fix CI to enforce mypy --strict for migration modules (backtest_engine.core/rating/optimizer)
-2. Correct runbook file paths (slippage.py/fee.py → slippage_and_fee.py)
-3. Implement Rust ErrorCode enum sync (strongly recommended)
+1. Ensure pilot module has a hard, reproducible correctness gate beyond unit tests (e.g. golden + determinism for the pilot path)
+2. Implement Rust ErrorCode enum sync (strongly recommended)
 
 **Next Steps:**
 

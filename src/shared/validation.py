@@ -60,7 +60,10 @@ def validate_no_nan(array: np.ndarray, field: str) -> None:
     if arr.size == 0:
         return
 
-    if not (np.issubdtype(arr.dtype, np.floating) or np.issubdtype(arr.dtype, np.complexfloating)):
+    if not (
+        np.issubdtype(arr.dtype, np.floating)
+        or np.issubdtype(arr.dtype, np.complexfloating)
+    ):
         raise ValidationError(
             f"Field '{field}' must be a floating array to validate NaN values (dtype={arr.dtype})",
             field=field,

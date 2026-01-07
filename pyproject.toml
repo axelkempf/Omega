@@ -102,6 +102,7 @@ markers = [
     "mt5: Tests die MetaTrader5 benötigen (Windows-only)",
     "rust_integration: Tests für Rust FFI Integration",
     "julia_integration: Tests für Julia FFI Integration",
+    "hybrid_integration: Full-stack Tests für Python↔Rust↔Julia Integration",
 ]
 
 # ══════════════════════════════════════════════════════════════════════════════

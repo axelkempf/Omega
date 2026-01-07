@@ -111,7 +111,6 @@ jobs:
               coverage = process_folder("src/julia_modules/omega_julia/src")
               LCOV.writefile("lcov.info", coverage)
           end
-        continue-on-error: true
 
   # ============================================================================
   # Code Quality (Format & Lint)
@@ -166,7 +165,6 @@ jobs:
               exit(1)
           end
           println("✓ All Julia files are properly formatted")
-        continue-on-error: true  # Soft fail until formatter is enforced
 
   # ============================================================================
   # Python-Julia Integration Tests
@@ -231,15 +229,19 @@ jobs:
           pytest tests/ -v -m "julia_integration" --tb=short
         env:
           JULIA_PROJECT: src/julia_modules/omega_julia
-        continue-on-error: true  # Until integration tests are created
+          OMEGA_REQUIRE_JULIA_FFI: "1"
 
       - name: Validate Julia callable from Python
         if: steps.check_julia.outputs.julia_exists == 'true'
         run: |
           python << 'EOF'
           import sys
+          import os
           try:
               from juliacall import Main as jl
+
+              # Ensure the OmegaJulia package can be loaded in this project.
+              jl.seval("using OmegaJulia")
               
               # Basic Julia functionality check
               result = jl.seval("1 + 1")
@@ -253,11 +255,13 @@ jobs:
               print("✓ Julia callable from Python - validation passed")
               
           except Exception as e:
-              print(f"⚠ Julia integration validation failed: {e}")
-              sys.exit(0)  # Soft fail - module may not exist yet
+              require = os.environ.get("OMEGA_REQUIRE_JULIA_FFI") == "1"
+              print(f"✗ Julia integration validation failed: {e}")
+              sys.exit(1 if require else 0)
           EOF
         env:
           JULIA_PROJECT: src/julia_modules/omega_julia
+          OMEGA_REQUIRE_JULIA_FFI: "1"
 
   # ============================================================================
   # Documentation Build (Optional)
@@ -309,7 +313,6 @@ jobs:
           else
               println("::notice::No documentation script found at $docs_script")
           end
-        continue-on-error: true
 
       - name: Upload documentation artifact
         if: steps.check_julia.outputs.julia_exists == 'true'

@@ -20,17 +20,27 @@ on:
         default: true
         type: boolean
       save_baseline:
-        description: 'Save results as new baseline'
+        description: 'Save current results as new baseline'
         required: false
         default: false
         type: boolean
 
 permissions:
   contents: read
+  actions: read
   pull-requests: write
 
 env:
   BENCHMARK_OUTPUT_DIR: .benchmark_results
+  # Baseline-Vergleich ist per default aktiv. Workflow-Dispatch kann ihn explizit deaktivieren.
+  # - pull_request: immer "true" (harte Gate-Policy)
+  # - push (main): "false" (Bootstrap/Artefakt-Erzeugung ohne Catch-22)
+  # - workflow_dispatch: input (default: true)
+  COMPARE_BASELINE: ${{ github.event_name == 'pull_request' && 'true' || github.event_name == 'push' && 'false' || (github.event.inputs.compare_baseline && 'true' || 'false') }}
+  # Optional: repo-gepinnte Baseline (falls ihr sie versionieren wollt)
+  REPO_BASELINE_FILE: reports/performance_baselines/benchmark_baseline.json
+  # Default-Baseline aus dem letzten erfolgreichen main-Run (Artifact)
+  MAIN_BASELINE_FILE: .benchmark_results/main_baseline_benchmark_results.json
 
 jobs:
   run-benchmarks:
@@ -60,6 +70,92 @@ jobs:
       - name: Create output directory
         run: mkdir -p ${{ env.BENCHMARK_OUTPUT_DIR }}
 
+      - name: Download baseline from latest successful main run (artifact)
+        if: env.COMPARE_BASELINE == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PYTHON_VERSION: ${{ matrix.python-version }}
+        run: |
+          python << 'EOF'
+          from __future__ import annotations
+
+          import io
+          import json
+          import os
+          import sys
+          import zipfile
+          from pathlib import Path
+          from urllib.request import Request, urlopen
+
+          compare = os.environ.get("COMPARE_BASELINE") == "true"
+          if not compare:
+            print("Baseline compare disabled")
+            sys.exit(0)
+
+          token = os.environ.get("GH_TOKEN")
+          if not token:
+            print("::error::Missing token for GitHub API (GITHUB_TOKEN)")
+            sys.exit(1)
+
+          repo = os.environ.get("GITHUB_REPOSITORY")
+          if not repo:
+            print("::error::Missing GITHUB_REPOSITORY")
+            sys.exit(1)
+
+          python_version = os.environ.get("PYTHON_VERSION", "3.12")
+          artifact_name = f"benchmark-results-{python_version}"
+          baseline_target = Path(os.environ.get("MAIN_BASELINE_FILE", ".benchmark_results/main_baseline_benchmark_results.json"))
+          baseline_target.parent.mkdir(parents=True, exist_ok=True)
+
+          def api_get_json(url: str) -> dict:
+            req = Request(url)
+            req.add_header("Authorization", f"Bearer {token}")
+            req.add_header("Accept", "application/vnd.github+json")
+            with urlopen(req) as resp:  # noqa: S310
+              return json.loads(resp.read().decode("utf-8"))
+
+          def api_get_bytes(url: str) -> bytes:
+            req = Request(url)
+            req.add_header("Authorization", f"Bearer {token}")
+            req.add_header("Accept", "application/vnd.github+json")
+            with urlopen(req) as resp:  # noqa: S310
+              return resp.read()
+
+          # Latest successful run of this workflow on main
+          runs_url = f"https://api.github.com/repos/{repo}/actions/workflows/benchmarks.yml/runs?branch=main&status=success&per_page=5"
+          runs = api_get_json(runs_url).get("workflow_runs", [])
+          if not runs:
+            print("::error::No successful baseline run found on main for benchmarks.yml. Run Benchmarks on main once to establish a baseline.")
+            sys.exit(1)
+
+          run_id = runs[0]["id"]
+          artifacts_url = f"https://api.github.com/repos/{repo}/actions/runs/{run_id}/artifacts?per_page=100"
+          artifacts = api_get_json(artifacts_url).get("artifacts", [])
+
+          artifact = next((a for a in artifacts if a.get("name") == artifact_name), None)
+          if not artifact:
+            names = ", ".join(sorted(a.get("name", "") for a in artifacts))
+            print(f"::error::Baseline artifact '{artifact_name}' not found on latest successful main run. Available artifacts: {names}")
+            sys.exit(1)
+
+          artifact_id = artifact["id"]
+          zip_url = f"https://api.github.com/repos/{repo}/actions/artifacts/{artifact_id}/zip"
+          zip_bytes = api_get_bytes(zip_url)
+
+          with zipfile.ZipFile(io.BytesIO(zip_bytes)) as zf:
+            # The uploaded artifact contains the contents of BENCHMARK_OUTPUT_DIR.
+            candidates = [n for n in zf.namelist() if n.endswith("benchmark_results.json")]
+            if not candidates:
+              print("::error::Baseline artifact does not contain benchmark_results.json")
+              sys.exit(1)
+            # Prefer the shortest path (usually root-level)
+            candidates.sort(key=len)
+            with zf.open(candidates[0]) as f:
+              baseline_target.write_bytes(f.read())
+
+          print(f"✓ Baseline downloaded from main: run_id={run_id}, artifact={artifact_name} -> {baseline_target}")
+          EOF
+
       - name: Run benchmark suite
         id: benchmarks
         run: |
@@ -70,7 +166,6 @@ jobs:
             --benchmark-columns=min,max,mean,stddev,rounds \
             --benchmark-sort=name \
             -v
-        continue-on-error: true
 
       - name: Process benchmark results
         id: process
@@ -83,16 +178,16 @@ jobs:
           results_file = Path("${{ env.BENCHMARK_OUTPUT_DIR }}/benchmark_results.json")
 
           if not results_file.exists():
-              print("::warning::No benchmark results found")
-              exit(0)
+              print("::error::No benchmark results found (expected JSON output from pytest-benchmark)")
+              exit(1)
 
           with open(results_file) as f:
               data = json.load(f)
 
           benchmarks = data.get("benchmarks", [])
           if not benchmarks:
-              print("::warning::No benchmarks in results")
-              exit(0)
+              print("::error::No benchmarks in results (no evidence produced)")
+              exit(1)
 
           # Generate summary
           summary = []
@@ -120,10 +215,38 @@ jobs:
           print(f"benchmark_count={len(benchmarks)}")
 
           # Check for regressions (>20% slower than baseline)
-          baseline_file = Path("reports/performance_baselines/benchmark_baseline.json")
-          regressions = []
+          compare_baseline = os.environ.get("COMPARE_BASELINE") == "true"
+
+          repo_baseline_file = Path(
+              os.environ.get(
+                  "REPO_BASELINE_FILE", "reports/performance_baselines/benchmark_baseline.json"
+              )
+          )
+          main_baseline_file = Path(
+              os.environ.get(
+                  "MAIN_BASELINE_FILE", ".benchmark_results/main_baseline_benchmark_results.json"
+              )
+          )
+
+          baseline_file = repo_baseline_file if repo_baseline_file.exists() else main_baseline_file
+          regressions: list[dict] = []
+
+          baseline_source = "none"
+
+          if compare_baseline and not baseline_file.exists():
+              print(
+                  "::error::Baseline compare enabled, but no baseline available.\n"
+                  f"Checked: {repo_baseline_file} (repo) and {main_baseline_file} (downloaded from main).\n"
+                  "Fix: run Benchmarks on main once (to produce the artifact baseline), or pin a repo baseline file."
+              )
+              raise SystemExit(1)
 
           if baseline_file.exists():
+              baseline_source = (
+                  "repo"
+                  if baseline_file.resolve() == repo_baseline_file.resolve()
+                  else "main-artifact"
+              )
               with open(baseline_file) as f:
                   baseline_data = json.load(f)
 
@@ -137,22 +260,33 @@ jobs:
                       change_pct = ((current_mean - baseline_mean) / baseline_mean) * 100
 
                       if change_pct > 20:
-                          regressions.append({
-                              "name": name,
-                              "baseline_ms": baseline_mean * 1000,
-                              "current_ms": current_mean * 1000,
-                              "change_pct": change_pct
-                          })
+                          regressions.append(
+                              {
+                                  "name": name,
+                                  "baseline_ms": baseline_mean * 1000,
+                                  "current_ms": current_mean * 1000,
+                                  "change_pct": change_pct,
+                              }
+                          )
 
           if regressions:
               print("::warning::Performance regressions detected!")
               for r in regressions:
                   print(f"  - {r['name']}: {r['baseline_ms']:.3f}ms -> {r['current_ms']:.3f}ms (+{r['change_pct']:.1f}%)")
 
+              regressions_txt = Path("${{ env.BENCHMARK_OUTPUT_DIR }}/benchmark_regressions.txt")
+              lines = [
+                f"{r['name']}: {r['baseline_ms']:.3f}ms -> {r['current_ms']:.3f}ms (+{r['change_pct']:.1f}%)"
+                for r in regressions
+              ]
+              regressions_txt.write_text("\n".join(lines) + "\n")
+
           # Write regressions to output
           with open(os.environ["GITHUB_OUTPUT"], "a") as f:
               f.write(f"regression_count={len(regressions)}\n")
               f.write(f"benchmark_count={len(benchmarks)}\n")
+              f.write(f"baseline_source={baseline_source}\n")
+              f.write(f"compare_baseline={'true' if compare_baseline else 'false'}\n")
 
           EOF
 
@@ -177,14 +311,24 @@ jobs:
             }
 
             const summary = fs.readFileSync(summaryPath, 'utf8');
-            const regressionCount = ${{ steps.process.outputs.regression_count || 0 }};
+            const regressionCount = parseInt('${{ steps.process.outputs.regression_count }}' || '0', 10);
+            const compareBaseline = ('${{ steps.process.outputs.compare_baseline }}' || 'false') === 'true';
+            const baselineSource = '${{ steps.process.outputs.baseline_source }}' || 'none';
 
             let body = summary;
 
-            if (regressionCount > 0) {
+            if (!compareBaseline) {
+              body += '\n\nℹ️ Baseline comparison disabled for this run.';
+            } else if (baselineSource === 'none') {
+              body += '\n\n❌ Baseline comparison was enabled but no baseline was available (job should fail).';
+            } else if (regressionCount > 0) {
               body += '\n\n⚠️ **Warning:** ' + regressionCount + ' performance regression(s) detected (>20% slower than baseline)';
             } else {
               body += '\n\n✅ No significant performance regressions detected';
+            }
+
+            if (compareBaseline && baselineSource !== 'none') {
+              body += `\n\nBaseline source: **${baselineSource}**`;
             }
 
             body += '\n\n---\n*Generated by benchmark workflow*';
@@ -224,11 +368,13 @@ jobs:
           echo "Baseline saved at $(date -u +%Y-%m-%dT%H:%M:%SZ)" > reports/performance_baselines/baseline_info.txt
 
       - name: Check for regressions
-        if: steps.process.outputs.regression_count > 0
+        if: steps.process.outputs.regression_count != '0'
         run: |
-          echo "::warning::${{ steps.process.outputs.regression_count }} performance regression(s) detected"
-          # Don't fail the build, just warn
-          exit 0
+          echo "::error::${{ steps.process.outputs.regression_count }} performance regression(s) detected (>20% slower than baseline)"
+          if [ -f "${{ env.BENCHMARK_OUTPUT_DIR }}/benchmark_regressions.txt" ]; then
+            cat "${{ env.BENCHMARK_OUTPUT_DIR }}/benchmark_regressions.txt"
+          fi
+          exit 1
 
 
   property-tests:

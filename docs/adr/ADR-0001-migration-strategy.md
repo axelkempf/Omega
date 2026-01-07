@@ -1,4 +1,12 @@
-# ADR-0001: Rust und Julia Migrations-Strategie
+---
+title: "ADR-0001: Rust und Julia Migrations-Strategie"
+status: Accepted
+date: 2026-01-05
+deciders:
+  - Axel Kempf
+consulted:
+  - Omega Maintainers
+---
 
 ## Status
 
@@ -113,25 +121,27 @@ Vor der eigentlichen Migration erfolgt eine **18-wöchige Vorbereitungsphase**:
 
 Die Module werden in folgender Reihenfolge migriert, basierend auf Performance-Impact und Komplexität:
 
+**Hinweis (Status-Quelle):** Diese ADR beschreibt *Strategie und Priorisierung*. Der operative Go/No-Go bzw. „READY“-Status wird ausschließlich in `docs/MIGRATION_READINESS_VALIDATION.md` gepflegt.
+
 ### Priorität 1: High Performance Impact (Rust)
 
-| Modul | Sprache | Erwarteter Speedup | Komplexität | Status |
+| Modul | Sprache | Erwarteter Speedup | Komplexität | Plan-Status |
 |-------|---------|-------------------|-------------|--------|
-| `indicator_cache.py` | Rust | 8-15x | Mittel | Ready for Migration |
-| `rating/score_calculator.py` | Rust | 5-10x | Niedrig | Ready for Migration |
-| `rating/metric_adjustments.py` | Rust | 5-8x | Niedrig | Ready for Migration |
+| `indicator_cache.py` | Rust | 8-15x | Mittel | Priorisiert (Candidate) |
+| `rating/score_calculator.py` | Rust | 5-10x | Niedrig | Priorisiert (Candidate) |
+| `rating/metric_adjustments.py` | Rust | 5-8x | Niedrig | Priorisiert (Candidate) |
 
 ### Priorität 2: Medium Performance Impact (Rust/Julia)
 
-| Modul | Sprache | Erwarteter Speedup | Komplexität | Status |
+| Modul | Sprache | Erwarteter Speedup | Komplexität | Plan-Status |
 |-------|---------|-------------------|-------------|--------|
-| `core/event_engine.py` | Rust | 3-5x | Hoch | Ready for Migration |
-| `core/execution_simulator.py` | Rust | 4-7x | Mittel | Ready for Migration |
-| `optimizer/monte_carlo.py` | Julia | 10-20x | Mittel | Ready for Migration |
+| `core/event_engine.py` | Rust | 3-5x | Hoch | Priorisiert (Candidate) |
+| `core/execution_simulator.py` | Rust | 4-7x | Mittel | Priorisiert (Candidate) |
+| `optimizer/monte_carlo.py` | Julia | 10-20x | Mittel | Priorisiert (Candidate) |
 
 ### Priorität 3: Research/Analysis (Julia)
 
-| Modul | Sprache | Erwarteter Speedup | Komplexität | Status |
+| Modul | Sprache | Erwarteter Speedup | Komplexität | Plan-Status |
 |-------|---------|-------------------|-------------|--------|
 | `analysis/statistical_tests.py` | Julia | 5-10x | Niedrig | Vorbereitung |
 | `analysis/regime_detection.py` | Julia | 8-15x | Mittel | Vorbereitung |
@@ -184,12 +194,14 @@ Basierend auf den Performance-Baselines aus Phase 3:
 
 ## Implementierungs-Checkliste (Vorbereitungsphase)
 
-- [x] Phase 0: Foundation (Baselines, ADRs)
-- [x] Phase 1: Type Safety Hardening (Mypy-Strict für Kandidaten)
-- [x] Phase 2: Interface-Definition (FFI-Typen, Arrow-Schemas)
-- [x] Phase 3: Test-Infrastruktur (Benchmarks, Property-Tests, Golden-Files)
-- [x] Phase 4: Build-System (CI/CD für Rust/Julia)
-- [x] Phase 5: Dokumentation (Runbooks, Validation)
+Diese ADR hält nur die *Ziel-Phasenstruktur* fest. Der aktuelle Erfüllungsgrad (inkl. CI-Hard-Gates) wird in `docs/MIGRATION_READINESS_VALIDATION.md` geführt.
+
+- Phase 0: Foundation (Baselines, ADRs)
+- Phase 1: Type Safety Hardening (Mypy-Strict für Kandidaten)
+- Phase 2: Interface-Definition (FFI-Typen, Arrow-Schemas)
+- Phase 3: Test-Infrastruktur (Benchmarks, Property-Tests, Golden-Files)
+- Phase 4: Build-System (CI/CD für Rust/Julia)
+- Phase 5: Dokumentation (Runbooks, Validation)
 
 ## Referenzen
 

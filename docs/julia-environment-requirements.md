@@ -348,7 +348,7 @@ src/julia_modules/omega_julia/
     └── demo.jl
 ```
 
-### 3. Example Module (`src/OmegaJulia.jl`)
+### 3. Example Module (`src/julia_modules/omega_julia/src/OmegaJulia.jl`)
 
 ```julia
 module OmegaJulia

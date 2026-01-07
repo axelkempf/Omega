@@ -1,4 +1,14 @@
-# ADR-Template
+---
+title: "ADR-TEMPLATE: Architecture Decision Record"
+status: Draft
+date: 2026-01-05
+deciders:
+  - Axel Kempf
+consulted:
+  - Omega Maintainers
+---
+
+## ADR-Template
 
 Verwende dieses Template für alle Architecture Decision Records (ADRs).
 
@@ -8,7 +18,7 @@ Dateiname: `ADR-NNNN-kurzer-titel.md` (z.B. `ADR-0001-migration-strategy.md`)
 
 ---
 
-# ADR-NNNN: [Titel der Entscheidung]
+## ADR-NNNN: [Titel der Entscheidung]
 
 ## Status
 

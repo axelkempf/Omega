@@ -200,5 +200,5 @@ impl WalkforwardValidatorRust {
 ## 8. Referenzen
 
 - Optimizer: `docs/ffi/optimizer.md`
-- Julia Walkforward: `src/julia_modules/omega_julia/src/walkforward.jl`
+- Julia Walkforward: `src/julia_modules/omega_julia/src/walkforward.jl` (docs-lint:planned)
 - Arrow-Schemas: `src/shared/arrow_schemas.py`

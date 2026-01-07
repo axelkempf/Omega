@@ -35,7 +35,7 @@ bei der Interface-Definition und dem Determinismus-Nachweis.
 
 ### Test-Infrastruktur
 - [x] Benchmark-Suite in `tests/benchmarks/test_bench_event_engine.py`
-- [x] Property-Based Tests in `tests/property/test_property_indicators.py`
+- [x] Property-Based Tests in `tests/property/test_prop_indicators.py`
 - [x] Golden-File Tests in `tests/golden/test_golden_backtest.py`
 - [x] Test-Coverage ≥ 85%
 
@@ -568,7 +568,7 @@ EventEngine (dieses Modul)
 - FFI-Spezifikation: `docs/ffi/event_engine.md`
 - Performance-Baseline: `reports/performance_baselines/p0-01_event_engine.json`
 - Arrow-Schemas: `src/shared/arrow_schemas.py`
-- Rust-Modul: `src/rust_modules/omega_rust/src/event/`
+- Rust-Modul: `src/rust_modules/omega_rust/src/event/` (docs-lint:planned)
 - ADR-0001: Migration Strategy
 - ADR-0002: Serialization Format
 - ADR-0003: Error Handling

@@ -1,10 +1,22 @@
-# Migrations-Runbook: Rating Modules (Rust)
+---
+module: rating_modules
+phase: 6
+prerequisites:
+    - docs/MIGRATION_READINESS_VALIDATION.md
+    - docs/ffi/rating_modules.md
+    - tests/benchmarks/
+    - tests/golden/
+    - tests/property/
+rollback_procedure: docs/runbooks/rollback_generic.md
+---
+
+## Migrations-Runbook: Rating Modules (Rust)
 
 **Module:** `src/backtest_engine/rating/*.py`  
 **Target-Sprache:** Rust  
 **Priorität:** Wave 1 (Pilot-Module)  
 **Aufwand:** M (Medium)  
-**Status:** 🟢 READY FOR MIGRATION
+**Status:** TEMPLATE (Readiness/Go-No-Go: `docs/MIGRATION_READINESS_VALIDATION.md`)
 
 ---
 
@@ -42,27 +54,27 @@ Die Rating-Module berechnen Qualitäts- und Robustheits-Scores für Backtest-Erg
 
 ## 2. Vorbereitungs-Checkliste
 
-### 2.1 Type Safety ✅
+### 2.1 Type Safety
 
 - [x] Alle Module mypy --strict compliant
 - [x] Score-Typen in `core/types.py` definiert
 - [x] MetricsDict TypedDict vorhanden
 - [x] Keine `# type: ignore` ohne Begründung
 
-### 2.2 Test Coverage ✅
+### 2.2 Test Coverage
 
 - [x] Unit Tests: `tests/test_rating_*.py`
-- [x] Property-Based Tests: `tests/property/test_property_scoring.py`
+- [x] Property-Based Tests: `tests/property/test_prop_scoring.py`
 - [x] Edge-Case Tests (empty trades, single trade, extreme values)
 - [x] Coverage ≥ 90%
 
-### 2.3 Performance Baseline ✅
+### 2.3 Performance Baseline
 
 - [x] Benchmark: `tests/benchmarks/test_bench_rating.py`
 - [x] Baseline gespeichert: `reports/performance_baselines/rating_modules.json`
 - [x] Improvement-Target: 8x Speedup
 
-### 2.4 FFI-Dokumentation ✅
+### 2.4 FFI-Dokumentation
 
 - [x] Interface-Spec: `docs/ffi/rating_modules.md`
 - [x] Arrow-Schema: MetricsDict, RatingScore
@@ -165,7 +177,7 @@ pub fn cost_shock_score_batch(
 
 ### Phase 1: Rust Scaffold (0.5-1 Tag)
 
-1. Create `src/rust_modules/omega_rust/src/rating/` directory
+1. Create `src/rust_modules/omega_rust/src/rating/` directory (docs-lint:planned)
 2. Define core types in `mod.rs`
 3. Add PyO3 module registration
 4. Verify build with `maturin develop`

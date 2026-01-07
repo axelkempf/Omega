@@ -22,7 +22,7 @@ JSON-Quelle: `reports/mypy_baseline/p1-01_ignore_errors_catalog.json`
 **Interpretation (kurz):**
 
 - `backtest_engine` ist der dominante Typing-Hotspot (ca. 86% der Errors im Katalog).
-- `ui_engine` ist fast „ready“ (nur `controller.py` fällt auf).
+- `ui_engine` ist bereits weitgehend typisiert (nur `controller.py` fällt auf).
 - `hf_engine` bleibt gemäß Plan **pure Python** und wird in Phase 1 nicht in strict migriert
   (Typing nur opportunistisch/defensiv an klaren Boundaries).
 

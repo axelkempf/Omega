@@ -1,10 +1,22 @@
-# Migrations-Runbook: MultiSymbolSlice (Rust)
+---
+module: multi_symbol_slice
+phase: 6
+prerequisites:
+    - docs/MIGRATION_READINESS_VALIDATION.md
+    - docs/ffi/multi_symbol_slice.md
+    - tests/benchmarks/
+    - tests/golden/
+    - tests/property/
+rollback_procedure: docs/runbooks/rollback_generic.md
+---
+
+## Migrations-Runbook: MultiSymbolSlice (Rust)
 
 **Modul:** `src/backtest_engine/core/multi_symbol_slice.py`  
 **Target-Sprache:** Rust  
 **Priorität:** Wave 6 (Performance Cleanup)  
 **Aufwand:** L (Large)  
-**Status:** 🟢 READY FOR MIGRATION
+**Status:** TEMPLATE (Readiness/Go-No-Go: `docs/MIGRATION_READINESS_VALIDATION.md`)
 
 ---
 
@@ -45,27 +57,27 @@ MultiSymbolSlice ist die Datenstruktur für synchronisierte Multi-Symbol-Candle-
 
 ## 2. Vorbereitungs-Checkliste
 
-### 2.1 Type Safety ✅
+### 2.1 Type Safety
 
 - [x] Core types in `core/types.py` definiert
 - [x] Mypy --strict für Modul aktiviert
 - [x] Protocol-Klassen für Iterator-Interface
 - [x] TypedDict für Snapshot-Daten
 
-### 2.2 Test Coverage ✅
+### 2.2 Test Coverage
 
 - [x] Unit Tests vorhanden
 - [x] Iterator-Edge-Cases getestet
 - [x] Multi-Symbol-Synchronisation getestet
 - [x] Coverage ≥ 85%
 
-### 2.3 Performance Baseline ✅
+### 2.3 Performance Baseline
 
 - [x] Benchmark-Suite vorhanden
 - [x] Baselines dokumentiert
 - [x] Scaling-Verhalten (10/50/100 Symbole) gemessen
 
-### 2.4 FFI-Dokumentation ✅
+### 2.4 FFI-Dokumentation
 
 - [x] Interface-Spec: `docs/ffi/multi_symbol_slice.md`
 - [x] Arrow-Schema definiert
@@ -154,7 +166,7 @@ pub struct MultiSymbolDataIterator {
 
 ### Phase 2: Rust Scaffold (1-2 Tage)
 
-1. Erstelle `src/rust_modules/omega_rust/src/data/` Verzeichnis
+1. Erstelle `src/rust_modules/omega_rust/src/data/` Verzeichnis (docs-lint:planned)
 2. Definiere Core Types in Rust
 3. Implementiere Arrow Schema Parsing
 4. PyO3 Bindings für MultiSymbolSliceRust

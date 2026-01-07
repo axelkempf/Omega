@@ -1,4 +1,12 @@
-# ADR-0004: Build-System Architecture für Hybrid Python/Rust/Julia Stack
+---
+title: "ADR-0004: Build-System Architecture für Hybrid Python/Rust/Julia Stack"
+status: Accepted
+date: 2026-01-05
+deciders:
+  - Axel Kempf
+consulted:
+  - Omega Maintainers
+---
 
 ## Status
 

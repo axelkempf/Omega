@@ -1,4 +1,12 @@
-# ADR-0003: Fehlerbehandlungs-Konvention für FFI-Grenzen
+---
+title: "ADR-0003: Fehlerbehandlungs-Konvention für FFI-Grenzen"
+status: Accepted
+date: 2026-01-05
+deciders:
+    - Axel Kempf
+consulted:
+    - Omega Maintainers
+---
 
 ## Status
 

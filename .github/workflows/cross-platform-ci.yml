@@ -106,9 +106,6 @@ jobs:
         run: |
           pip install hypothesis
           pytest tests/property/ -v --hypothesis-seed=42
-        # TODO(governance): Remove continue-on-error once property tests are stabilized
-        # Ticket: https://github.com/axelkempf/Omega/issues/TBD - Property test stabilization
-        continue-on-error: true
 
   # ============================================================================
   # MT5 Integration Tests (Windows Only)
@@ -152,9 +149,6 @@ jobs:
       - name: Run MT5 mock tests
         run: |
           pytest tests/ -q -m "mt5" --ignore=tests/benchmarks
-        # TODO(governance): Remove continue-on-error once MT5 mocking is complete
-        # Ticket: https://github.com/axelkempf/Omega/issues/TBD - MT5 test stabilization
-        continue-on-error: true
 
       - name: Generate MT5 compatibility report
         shell: powershell
@@ -407,15 +401,16 @@ jobs:
       - name: Run hybrid integration tests
         run: |
           pytest tests/ -v -m "hybrid_integration or rust_integration or julia_integration" --tb=short
-        # TODO(governance): Remove continue-on-error once FFI modules are stable
-        # Ticket: https://github.com/axelkempf/Omega/issues/TBD - Hybrid integration hardening
-        # Priority: HIGH - FFI failures should block once migration phase 5 complete
-        continue-on-error: true
+        env:
+          JULIA_PROJECT: src/julia_modules/omega_julia
+          OMEGA_REQUIRE_RUST_FFI: ${{ steps.check_rust.outputs.rust_exists == 'true' && '1' || '0' }}
+          OMEGA_REQUIRE_JULIA_FFI: ${{ steps.check_julia.outputs.julia_exists == 'true' && '1' || '0' }}
 
       - name: Validate FFI bridges
         run: |
           python << 'EOF'
           import sys
+          import os
           
           results = {"rust": "skipped", "julia": "skipped"}
           
@@ -436,6 +431,8 @@ jobs:
           # Test Julia FFI
           try:
               from juliacall import Main as jl
+              # Ensure the project-local OmegaJulia package can be loaded.
+              jl.seval("using OmegaJulia")
               jl.seval("1 + 1")
               results["julia"] = "passed"
               print("✓ Julia FFI validation passed")
@@ -446,7 +443,18 @@ jobs:
               print(f"✗ Julia FFI validation failed: {e}")
           
           print(f"\n📊 FFI Validation Results: {results}")
+
+          require_rust = os.environ.get("OMEGA_REQUIRE_RUST_FFI") == "1"
+          require_julia = os.environ.get("OMEGA_REQUIRE_JULIA_FFI") == "1"
+          if (require_rust and results["rust"].startswith("failed")) or (
+              require_julia and results["julia"].startswith("failed")
+          ):
+              sys.exit(1)
           EOF
+          env:
+            JULIA_PROJECT: src/julia_modules/omega_julia
+            OMEGA_REQUIRE_RUST_FFI: ${{ steps.check_rust.outputs.rust_exists == 'true' && '1' || '0' }}
+            OMEGA_REQUIRE_JULIA_FFI: ${{ steps.check_julia.outputs.julia_exists == 'true' && '1' || '0' }}
 
       - name: Generate integration report
         run: |

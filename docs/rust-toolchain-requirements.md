@@ -322,7 +322,7 @@ src/rust_modules/omega_rust/
     └── integration_test.rs
 ```
 
-### 3. Example Module (`src/lib.rs`)
+### 3. Example Module (`src/rust_modules/omega_rust/src/lib.rs`)
 
 ```rust
 use pyo3::prelude::*;

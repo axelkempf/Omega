@@ -122,7 +122,7 @@ make rust-bench
 - [ ] `cargo fmt --all -- --check` grün
 - [ ] `cargo clippy --all-targets -- -D warnings` grün
 - [ ] `cargo test` grün
-- [ ] Python-Bindings funktionieren (`maturin develop && pytest tests/rust/`)
+- [ ] Python-Bindings funktionieren (`maturin develop && pytest -q -m rust_integration tests/test_rust_integration.py`)
 - [ ] Benchmark zeigt erwarteten Speedup
 - [ ] FFI-Interface dokumentiert in `docs/ffi/`
 
@@ -182,8 +182,8 @@ Für den Datenaustausch zwischen Python ↔ Rust/Julia:
 Arrow-Schemas sind in `src/shared/arrow_schemas.py` definiert. Änderungen an Schemas erfordern:
 
 1. Update in Python (`arrow_schemas.py`)
-2. Update in Rust (`src/rust_modules/omega_rust/src/schemas.rs`)
-3. Update in Julia (`src/julia_modules/omega_julia/src/schemas.jl`)
+2. Update in Rust (PLANNED): `src/rust_modules/omega_rust/src/schemas.rs` <!-- docs-lint:planned -->
+3. Update in Julia (PLANNED): `src/julia_modules/omega_julia/src/schemas.jl` <!-- docs-lint:planned -->
 4. Golden-File Tests aktualisieren
 
 ### Build-Kommandos (Zusammenfassung)

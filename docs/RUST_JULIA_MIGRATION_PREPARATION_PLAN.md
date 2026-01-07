@@ -1,8 +1,14 @@
-# Vorbereitungsplan: Migration ausgewählter Python-Module zu Rust und Julia
+## Vorbereitungsplan: Migration ausgewählter Python-Module zu Rust und Julia
 
 ## Executive Summary
 
 Dieses Dokument beschreibt den systematischen Vorbereitungsplan zur sicheren, inkrementellen Migration ausgewählter Module des Omega Trading-Systems von Python zu Rust und Julia. Der Plan fokussiert auf fünf Kernbereiche: (1) Type Safety Hardening durch schrittweise Mypy-Strict-Aktivierung, (2) Interface-Definition mit klaren Serialisierungsformaten für FFI-Grenzen, (3) Test-Infrastruktur mit Benchmarks, Property-Based Tests und Golden-File-Validierung, (4) Build-System-Erweiterung für Cross-Platform Rust/Julia-Kompilierung, sowie (5) Dokumentation mit ADRs und Migrations-Runbooks. Der Plan priorisiert **Stabilität > Performance > Code-Eleganz** und garantiert keine Breaking Changes für bestehende Nutzer während der Vorbereitung. Die Live-Trading-Engine (`hf_engine/`) bleibt pure Python.
+
+**Operational Truth Hinweis (wichtig):**
+
+- Dieses Dokument ist ein **Plan- und Architektur-Dokument** ("Was / Warum / Wie").
+- Der **kanonische READY/APPROVED Status** wird ausschließlich in `docs/MIGRATION_READINESS_VALIDATION.md` geführt.
+- ✅/⚠️-Marker in diesem Plan beziehen sich auf **Dokumentation/Artefakte im Repo** und ersetzen keine hard-gated CI-Evidence.
 
 ---
 
@@ -149,7 +155,7 @@ Dieses Dokument beschreibt den systematischen Vorbereitungsplan zur sicheren, in
 	- Vollständige Dokumentation der Rationale und Migrations-Prioritäten in `pyproject.toml`
 	- Report: `reports/phase1_p1-09_p1-10_report.md`
 
-**Phase 1 Status: ✅ 100% KOMPLETT** (P1-01 bis P1-10 abgeschlossen am 2026-01-05)
+**Phase 1 Status: ✅ Dokumentiert/Implementiert** (Artefakte vorhanden; Readiness-Gates siehe `docs/MIGRATION_READINESS_VALIDATION.md`)
 
 ### Phase 2: Interface-Definition
 
@@ -166,7 +172,7 @@ Dieses Dokument beschreibt den systematischen Vorbereitungsplan zur sicheren, in
 | **P2-09** | Nullability-Konvention für FFI festlegen | P2-07 | S | ✅ |
 | **P2-10** | Data-Flow-Diagramme für Migrations-Kandidaten | P2-08 | M | ✅ |
 
-**Phase 2 Status: ✅ 100% KOMPLETT** (P2-01 bis P2-10 abgeschlossen am 2026-01-05)
+**Phase 2 Status: ✅ Dokumentiert/Implementiert** (Artefakte vorhanden; Readiness-Gates siehe `docs/MIGRATION_READINESS_VALIDATION.md`)
 
 **Phase 2 Fortschritt:**
 
@@ -307,7 +313,7 @@ Dieses Dokument beschreibt den systematischen Vorbereitungsplan zur sicheren, in
     - Fixtures für deterministische Seeds
 
 - **P3-06 (Property-Tests Indicators):** ✅ **KOMPLETT** (2026-01-06)
-  - `tests/property/test_property_indicators.py` (~450 Zeilen)
+  - `tests/property/test_prop_indicators.py` (~450 Zeilen)
   - 6 Test-Klassen, 25+ Property-Tests:
     - TestEMAProperties: Smoothing, Bounds, Lag, Convergence
     - TestRSIProperties: Range [0,100], Overbought/Oversold detection
@@ -317,7 +323,7 @@ Dieses Dokument beschreibt den systematischen Vorbereitungsplan zur sicheren, in
     - TestNumericalStability: NaN handling, Extreme values
 
 - **P3-07 (Property-Tests Scoring):** ✅ **KOMPLETT** (2026-01-06)
-  - `tests/property/test_property_scoring.py` (~400 Zeilen)
+  - `tests/property/test_prop_scoring.py` (~400 Zeilen)
   - 5 Test-Klassen, 20+ Property-Tests:
     - TestScoreBounds: Alle Scores in [0,1] oder dokumentiertem Range
     - TestScoreDeterminism: Gleiche Inputs → gleiche Outputs
@@ -361,7 +367,7 @@ Dieses Dokument beschreibt den systematischen Vorbereitungsplan zur sicheren, in
 - **P3-11 (CI-Integration Benchmarks):** ✅ **KOMPLETT** (2026-01-06)
   - `.github/workflows/benchmarks.yml` (~250 Zeilen)
   - 3 parallele Jobs:
-    - run-benchmarks: pytest-benchmark mit JSON-Output, Regression-Detection (>20%), PR-Kommentare
+    - run-benchmarks: pytest-benchmark mit JSON-Output, Regression-Detection (>20% vs Baseline), PR-Kommentare (Baseline aus letztem erfolgreichen `main`-Artifact; PRs blocking)
     - property-tests: Hypothesis mit CI-Profile
     - golden-file-tests: Determinismus-Validierung
   - Trigger: push/PR auf Core-Pfade, workflow_dispatch mit compare_baseline/save_baseline
@@ -379,7 +385,7 @@ Dieses Dokument beschreibt den systematischen Vorbereitungsplan zur sicheren, in
   - CLI-Interface: add, report, trend Subcommands
   - `tests/test_benchmark_history.py` (~500 Zeilen) mit vollständiger Test-Coverage
 
-**Phase 3 Status: ✅ 100% KOMPLETT** (P3-01 bis P3-12 abgeschlossen am 2026-01-06)
+**Phase 3 Status: ✅ CI-Gates hard-failing (Benchmarks/Property/Golden)** für die relevanten Trigger-Pfade; Details siehe Workflows + `docs/MIGRATION_READINESS_VALIDATION.md`.
 
 ### Phase 4: Build-System
 
@@ -573,7 +579,7 @@ Dieses Dokument beschreibt den systematischen Vorbereitungsplan zur sicheren, in
     - Automatische Changelog-Extraction für Release Notes
     - Dry-Run Modus für Testing ohne Publish
 
-**Phase 4 Status: ✅ 100% KOMPLETT** (P4-01 bis P4-12 abgeschlossen am 2026-01-05)
+**Phase 4 Status: ✅ Workflows vorhanden (keine Soft-Fails)**; Gate-Details siehe Workflows + `docs/MIGRATION_READINESS_VALIDATION.md`.
 
 ---
 
@@ -681,7 +687,7 @@ Dieses Dokument beschreibt den systematischen Vorbereitungsplan zur sicheren, in
   - Inhalt:
     - Finale Go/No-Go Validierungs-Checkliste (alle Phasen 0-5)
     - Pre-Migration Checks (Type Safety, Test Coverage, Baseline, FFI-Docs, Runbook)
-    - Modul-Zertifizierung (IndicatorCache & EventEngine: 🟢 READY)
+    - Modul-Zertifizierung als **Template** (kanonischer Status pro Modul: `docs/MIGRATION_READINESS_VALIDATION.md`)
     - Empfohlene Migrations-Reihenfolge (6 Waves)
     - Sign-Off-Matrix für Migration-Freigabe
 
@@ -715,7 +721,7 @@ Dieses Dokument beschreibt den systematischen Vorbereitungsplan zur sicheren, in
     - Build-System-Integration
     - Erweiterte `docs/` und `reports/` Strukturbeschreibung
 
-**Phase 5 Status: ✅ 100% KOMPLETT** (P5-01 bis P5-12 abgeschlossen am 2026-01-05)
+**Phase 5 Status: ⚠️ Dokumentation vorhanden, Status zentralisiert** (kanonischer Status: `docs/MIGRATION_READINESS_VALIDATION.md`)
 
 ---
 
@@ -861,7 +867,7 @@ Diese Phase schließt die Lücken für die vollständige Migration-Readiness all
   - Synthetic Data: generate_random_backtest_results(), generate_param_combinations(), generate_walkforward_folds()
   - **Lazy Imports** für optionale Dependencies (optuna via importlib + pytest.skip bei Import-Fehler)
 
-**Phase 6 Status (P6-05 bis P6-09): ✅ 100% KOMPLETT** (Stand: 2026-01-06)
+**Phase 6 Status (P6-05 bis P6-09): ✅ Artefakte erstellt** (Stand: 2026-01-06; Readiness siehe `docs/MIGRATION_READINESS_VALIDATION.md`)
 
 - **P6-10 (Golden-Files Rating):** ✅ **KOMPLETT** (2026-01-06)
   - Neue Golden-File Kategorie `rating` im Golden-Framework
@@ -877,7 +883,7 @@ Diese Phase schließt die Lücken für die vollständige Migration-Readiness all
 
 - **P6-11 (Migrations-Runbook execution_simulator.py):** ✅ **KOMPLETT** (2026-01-06)
   - Datei: `docs/runbooks/execution_simulator_migration.md` (~293 Zeilen)
-  - Status: 🟢 READY FOR MIGRATION
+  - Status: ⏳ siehe `docs/MIGRATION_READINESS_VALIDATION.md`
   - Vollständige 7-Phasen-Migrationsanleitung:
     - Phase 1: Rust Scaffold (1-2 Tage)
     - Phase 2: Core Logic (3-5 Tage)
@@ -901,7 +907,7 @@ Diese Phase schließt die Lücken für die vollständige Migration-Readiness all
 
 - **P6-13 (Migrations-Runbook multi_symbol_slice.py):** ✅ **KOMPLETT** (2026-01-06)
   - Datei: `docs/runbooks/multi_symbol_slice_migration.md` (~264 Zeilen)
-  - Status: 🟢 READY FOR MIGRATION
+  - Status: ⏳ siehe `docs/MIGRATION_READINESS_VALIDATION.md`
   - Vollständige 7-Phasen-Migrationsanleitung
   - Rust-Architektur: `MultiSymbolSlice`, `SymbolSnapshot`, Iterator-Pattern
   - Zero-Copy Optimierung: `MultiSymbolSliceRef<'a>`, Buffer-Reuse
@@ -919,7 +925,7 @@ Diese Phase schließt die Lücken für die vollständige Migration-Readiness all
 
 - **P6-15 (Migrations-Runbook Rating-Module - Batch):** ✅ **KOMPLETT** (2026-01-06)
   - Datei: `docs/runbooks/rating_modules_migration.md` (~345 Zeilen)
-  - Status: 🟢 READY FOR MIGRATION
+  - Status: ⏳ siehe `docs/MIGRATION_READINESS_VALIDATION.md`
   - 6 Module in Scope: strategy_rating, robustness_score_1, stability_score, 
     cost_shock_score, trade_dropout_score, stress_penalty
   - Vollständige 7-Phasen-Migrationsanleitung
@@ -938,7 +944,7 @@ Diese Phase schließt die Lücken für die vollständige Migration-Readiness all
   - Performance-Targets: 12x für Monte-Carlo (10K), 5.5x für Trial Execution
   - Rollback-Trigger: Monte-Carlo Divergenz > 1%, Julia FFI Fehler → Python Fallback
 
-**Phase 6 Status (P6-11 bis P6-16): ✅ 100% KOMPLETT** (Stand: 2026-01-06)
+**Phase 6 Status (P6-11 bis P6-16): ✅ Artefakte erstellt** (Stand: 2026-01-06; Readiness siehe `docs/MIGRATION_READINESS_VALIDATION.md`)
 
 - **P6-17 (Type-Strict Migration: strategy_wrapper.py):** ✅ **KOMPLETT** (2026-01-06)
   - Datei: `src/backtest_engine/strategy/strategy_wrapper.py`
@@ -964,8 +970,8 @@ Diese Phase schließt die Lücken für die vollständige Migration-Readiness all
   - Alle Benchmark-Baselines bestätigt
   - Alle Golden Files validiert
   - Alle Runbooks geprüft
-  - Go/No-Go Kriterien erfüllt
-  - **Status:** ✅ APPROVED FOR MIGRATION
+  - Go/No-Go Kriterien: siehe `docs/MIGRATION_READINESS_VALIDATION.md`
+  - **Status:** ⚠️ siehe `docs/MIGRATION_READINESS_VALIDATION.md`
 
 - **P6-20 (Final Documentation Review & Update):** ✅ **KOMPLETT** (2026-01-06)
   - Migration Plan vollständig aktualisiert
@@ -975,7 +981,7 @@ Diese Phase schließt die Lücken für die vollständige Migration-Readiness all
 
 ### Phase 6 Status Gesamt
 
-✅ **100% KOMPLETT** (20/20 Tasks abgeschlossen: P6-01 bis P6-20)
+✅ **Plan-Tasks abgeschlossen** (20/20; Zertifizierung/Go-No-Go: `docs/MIGRATION_READINESS_VALIDATION.md`)
 
 **Abschluss Phase 6:** 2026-01-06
 
@@ -995,9 +1001,9 @@ Die gesamte Phase 6 (Vollständige backtest_engine Coverage) ist abgeschlossen:
 | Validierung & Review | P6-19, P6-20 | ✅ 2/2 |
 
 **Next Steps:**
-1. Beginne Migration Wave 0 (Pilot) mit `slippage_and_fee.py`
+1. Beginne Migration Wave 0 (Pilot) mit `slippage_and_fee.py` **nach Go/No-Go im Validierungsreport**
 2. Folge dem Runbook in `docs/runbooks/slippage_fee_migration.md`
-3. Nach erfolgreichem Pilot: Proceed to Wave 1 (Rating Modules)
+3. Nach erfolgreichem Pilot (und erneuter Validierung): Proceed to Wave 1 (Rating Modules)
 
 **Geschätzter Aufwand Phase 6:** 8-10 Wochen
 
@@ -1073,25 +1079,16 @@ Die gesamte Phase 6 (Vollständige backtest_engine Coverage) ist abgeschlossen:
 
 **Entscheidung:** Modul-für-Modul mit expliziten Overrides
 
-**Konfiguration:**
+**Konfiguration (Auszug, Stand: `pyproject.toml`):**
 ```toml
-# Snapshot (Phase 1) in pyproject.toml: große Legacy-Bereiche bleiben relaxed,
-# kleine, stabile Module werden als strict carve-out gehärtet.
+# TIER 1: STRICT MODE - Migrations-Kandidaten (FFI-relevant)
 [[tool.mypy.overrides]]
 module = ["backtest_engine.core", "backtest_engine.core.*"]
-ignore_errors = true
-
-[[tool.mypy.overrides]]
-module = ["backtest_engine.optimizer", "backtest_engine.optimizer.*"]
-ignore_errors = true
-
-[[tool.mypy.overrides]]
-module = ["backtest_engine.core.types"]
 strict = true
 warn_unreachable = true
 
 [[tool.mypy.overrides]]
-module = ["backtest_engine.optimizer._settings"]
+module = ["backtest_engine.optimizer", "backtest_engine.optimizer.*"]
 strict = true
 warn_unreachable = true
 
@@ -1110,9 +1107,16 @@ module = ["shared", "shared.*"]
 strict = true
 warn_unreachable = true
 
+# TIER 3: RELAXED MODE - Live-Trading Engine (nicht FFI-relevant)
 [[tool.mypy.overrides]]
-module = ["hf_engine.adapter.*", "hf_engine.core.*", "hf_engine.infra.*"]
-ignore_errors = true  # Live-Trading bleibt relaxed
+module = [
+  "hf_engine.adapter.*",
+  "hf_engine.core.*",
+  "hf_engine.infra.*",
+  "hf_engine.risk.*",
+  "hf_engine.execution.*",
+]
+ignore_errors = true
 ```
 
 ---
@@ -1125,7 +1129,7 @@ ignore_errors = true  # Live-Trading bleibt relaxed
 |--------|---------|------|---------|
 | Function Return Type Coverage | ~40% (geschätzt) | ≥90% in Migrations-Kandidaten | `tools/type_coverage.py` |
 | Parameter Type Coverage | ~35% (geschätzt) | ≥90% in Migrations-Kandidaten | `tools/type_coverage.py` |
-| Mypy Errors in Kandidaten | ignore_errors=true | 0 Errors | `mypy --strict` auf Kandidaten |
+| Mypy Errors in Kandidaten | strict=true (Tier 1) | 0 Errors | `mypy --strict` auf Kandidaten |
 | TypedDict/Protocol Coverage für FFI | 0% | 100% | Manuelles Review |
 
 ### 5.2 Test-Infrastruktur Metrics

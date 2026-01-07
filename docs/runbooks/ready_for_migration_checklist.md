@@ -1,29 +1,42 @@
-# Ready-for-Migration Checkliste
+---
+module: migration_readiness
+phase: 5
+prerequisites:
+  - "docs/MIGRATION_READINESS_VALIDATION.md ist aktuell und widerspruchsfrei"
+  - "Hard-gated CI (mind. pytest + strict mypy für migrationskritische Module) ist grün"
+rollback_procedure: docs/runbooks/rollback_generic.md
+---
+
+## Ready-for-Migration Checkliste (Template)
 
 **Version:** 1.0  
 **Erstellt:** 2026-01-05  
 **Phase:** P5-09 (Migrations-Vorbereitung Abschluss)  
-**Status:** ✅ Dokumentiert
+**Status:** ⚠️ Template (nicht die kanonische Statusquelle)
 
 ---
 
 ## Übersicht
 
-Diese Checkliste validiert, dass alle Vorbereitungen für die Rust/Julia-Migration abgeschlossen sind.
-Jeder Abschnitt muss vollständig erfüllt sein, bevor mit der eigentlichen Migration begonnen wird.
+Diese Checkliste ist ein **Arbeits-Template** für die operativ reproduzierbare Vorbereitung.
 
-**Zertifizierung:** Ein Modul gilt als "Ready for Migration", wenn alle zutreffenden Punkte abgehakt sind.
+Wichtig: Der **kanonische READY/NOT READY-Status** wird **nicht** in dieser Checkliste festgelegt,
+sondern ausschließlich in `docs/MIGRATION_READINESS_VALIDATION.md`.
+
+**Zertifizierung (Definition):** Ein Modul gilt als "Ready for Migration" nur dann, wenn die
+zugrundeliegenden Checks als **hard CI gates** laufen (kein `continue-on-error`, kein `|| true`) und
+lokal reproduzierbar sind.
 
 ---
 
-## Phase 0: Foundation ✅
+## Phase 0: Foundation
 
 ### P0-01: Performance-Baseline
 
-- [x] Baselines für alle Kandidaten-Module generiert
-- [x] Baselines in `reports/performance_baselines/` gespeichert
-- [x] Reproduzierbar via `tools/perf_baseline.py`
-- [x] Benchmark-History-Tracking eingerichtet
+- [ ] Baselines für alle Kandidaten-Module generiert
+- [ ] Baselines in `reports/performance_baselines/` gespeichert
+- [ ] Reproduzierbar via `tools/perf_baseline.py`
+- [ ] Benchmark-History-Tracking eingerichtet
 
 **Artefakte:**
 
@@ -33,9 +46,9 @@ Jeder Abschnitt muss vollständig erfüllt sein, bevor mit der eigentlichen Migr
 
 ### P0-02: Type Coverage Analyse
 
-- [x] Type Coverage für alle Module analysiert
-- [x] Baseline dokumentiert in `reports/type_coverage/`
-- [x] Module mit `ignore_errors=true` identifiziert
+- [ ] Type Coverage für alle Module analysiert
+- [ ] Baseline dokumentiert in `reports/type_coverage/`
+- [ ] Module mit `ignore_errors=true` identifiziert
 
 **Artefakte:**
 
@@ -44,9 +57,9 @@ Jeder Abschnitt muss vollständig erfüllt sein, bevor mit der eigentlichen Migr
 
 ### P0-03: ADR-Struktur
 
-- [x] ADR-Verzeichnis `docs/adr/` eingerichtet
-- [x] ADR-Template erstellt
-- [x] ADR-0001 (Migration Strategy) erstellt
+- [ ] ADR-Verzeichnis `docs/adr/` eingerichtet
+- [ ] ADR-Template erstellt
+- [ ] ADR-0001 (Migration Strategy) erstellt
 
 **Artefakte:**
 
@@ -55,9 +68,9 @@ Jeder Abschnitt muss vollständig erfüllt sein, bevor mit der eigentlichen Migr
 
 ### P0-04: Migrations-Kandidaten
 
-- [x] Kandidaten identifiziert und priorisiert
-- [x] Dokumentiert in `reports/migration_candidates/`
-- [x] JSON für automatisierte Verarbeitung
+- [ ] Kandidaten identifiziert und priorisiert
+- [ ] Dokumentiert in `reports/migration_candidates/`
+- [ ] JSON für automatisierte Verarbeitung
 
 **Artefakte:**
 
@@ -66,9 +79,9 @@ Jeder Abschnitt muss vollständig erfüllt sein, bevor mit der eigentlichen Migr
 
 ### P0-05: Test-Coverage Analyse
 
-- [x] Test-Coverage für Kandidaten dokumentiert
-- [x] Gap-Analyse durchgeführt
-- [x] Dokumentiert in `reports/migration_test_coverage/`
+- [ ] Test-Coverage für Kandidaten dokumentiert
+- [ ] Gap-Analyse durchgeführt
+- [ ] Dokumentiert in `reports/migration_test_coverage/`
 
 **Artefakte:**
 
@@ -77,13 +90,13 @@ Jeder Abschnitt muss vollständig erfüllt sein, bevor mit der eigentlichen Migr
 
 ---
 
-## Phase 1: Type Safety Hardening ✅
+## Phase 1: Type Safety Hardening
 
 ### P1-01 bis P1-02: Katalog und Ranking
 
-- [x] Module mit `ignore_errors=true` katalogisiert
-- [x] Prioritäts-Ranking erstellt
-- [x] Dokumentiert in `reports/mypy_baseline/`
+- [ ] Module mit `ignore_errors=true` katalogisiert
+- [ ] Prioritäts-Ranking erstellt
+- [ ] Dokumentiert in `reports/mypy_baseline/`
 
 **Artefakte:**
 
@@ -92,11 +105,11 @@ Jeder Abschnitt muss vollständig erfüllt sein, bevor mit der eigentlichen Migr
 
 ### P1-03 bis P1-07: Mypy-Strict Migration
 
-- [x] `backtest_engine.core.types` definiert
-- [x] `backtest_engine.config.models` Pydantic-Modelle
-- [x] `backtest_engine.optimizer` mypy --strict (11/11 Files)
-- [x] `backtest_engine.core` mypy --strict (12/12 Files)
-- [x] `backtest_engine.rating` mypy --strict (12/12 Files)
+- [ ] `backtest_engine.core.types` definiert
+- [ ] `backtest_engine.config.models` Pydantic-Modelle
+- [ ] `backtest_engine.optimizer` mypy --strict (11/11 Files)
+- [ ] `backtest_engine.core` mypy --strict (12/12 Files)
+- [ ] `backtest_engine.rating` mypy --strict (12/12 Files)
 
 **Artefakte:**
 
@@ -106,9 +119,9 @@ Jeder Abschnitt muss vollständig erfüllt sein, bevor mit der eigentlichen Migr
 
 ### P1-08: FFI Protocols
 
-- [x] Protocol-Klassen für FFI-Boundaries definiert
-- [x] `@runtime_checkable` Decorator verwendet
-- [x] Runtime-Smoke-Tests erstellt
+- [ ] Protocol-Klassen für FFI-Boundaries definiert
+- [ ] `@runtime_checkable` Decorator verwendet
+- [ ] Runtime-Smoke-Tests erstellt
 
 **Artefakte:**
 
@@ -117,9 +130,9 @@ Jeder Abschnitt muss vollständig erfüllt sein, bevor mit der eigentlichen Migr
 
 ### P1-09: Type Stubs
 
-- [x] Type Stubs für untyped Dependencies erstellt
-- [x] joblib Stubs vollständig
-- [x] optuna Stubs vollständig
+- [ ] Type Stubs für untyped Dependencies erstellt
+- [ ] joblib Stubs vollständig
+- [ ] optuna Stubs vollständig
 
 **Artefakte:**
 
@@ -129,9 +142,9 @@ Jeder Abschnitt muss vollständig erfüllt sein, bevor mit der eigentlichen Migr
 
 ### P1-10: Granulare Mypy-Konfiguration
 
-- [x] Tiered-Ansatz implementiert
-- [x] Kein globales `ignore_errors` mehr
-- [x] Differenzierte Overrides in `pyproject.toml`
+- [ ] Tiered-Ansatz implementiert
+- [ ] Kein globales `ignore_errors` mehr
+- [ ] Differenzierte Overrides in `pyproject.toml`
 
 **Artefakte:**
 
@@ -140,14 +153,14 @@ Jeder Abschnitt muss vollständig erfüllt sein, bevor mit der eigentlichen Migr
 
 ---
 
-## Phase 2: Interface-Definition ✅
+## Phase 2: Interface-Definition
 
 ### P2-01 bis P2-04: FFI-Spezifikationen
 
-- [x] `indicator_cache.py` spezifiziert
-- [x] `event_engine.py` spezifiziert
-- [x] `execution_simulator.py` spezifiziert
-- [x] Rating-Module spezifiziert
+- [ ] `indicator_cache.py` spezifiziert
+- [ ] `event_engine.py` spezifiziert
+- [ ] `execution_simulator.py` spezifiziert
+- [ ] Rating-Module spezifiziert
 
 **Artefakte:**
 
@@ -158,9 +171,9 @@ Jeder Abschnitt muss vollständig erfüllt sein, bevor mit der eigentlichen Migr
 
 ### P2-05: Serialisierungsformat
 
-- [x] Format evaluiert (Arrow IPC gewählt)
-- [x] ADR-0002 erstellt
-- [x] Typ-Mapping dokumentiert
+- [ ] Format evaluiert (Arrow IPC gewählt)
+- [ ] ADR-0002 erstellt
+- [ ] Typ-Mapping dokumentiert
 
 **Artefakte:**
 
@@ -168,9 +181,9 @@ Jeder Abschnitt muss vollständig erfüllt sein, bevor mit der eigentlichen Migr
 
 ### P2-06: Arrow-Schemas
 
-- [x] 6 Schemas definiert
-- [x] Zero-Copy Utilities implementiert
-- [x] Tests für Schema-Validierung
+- [ ] 6 Schemas definiert
+- [ ] Zero-Copy Utilities implementiert
+- [ ] Tests für Schema-Validierung
 
 **Artefakte:**
 
@@ -178,9 +191,9 @@ Jeder Abschnitt muss vollständig erfüllt sein, bevor mit der eigentlichen Migr
 
 ### P2-07: Fehlerbehandlungs-Konvention
 
-- [x] ADR-0003 erstellt
-- [x] Hybrid-Ansatz dokumentiert
-- [x] ErrorCode Enum definiert
+- [ ] ADR-0003 erstellt
+- [ ] Hybrid-Ansatz dokumentiert
+- [ ] ErrorCode Enum definiert
 
 **Artefakte:**
 
@@ -190,9 +203,9 @@ Jeder Abschnitt muss vollständig erfüllt sein, bevor mit der eigentlichen Migr
 
 ### P2-08 bis P2-10: Dokumentation
 
-- [x] FFI-Index erstellt
-- [x] Nullability-Konvention dokumentiert
-- [x] Data-Flow-Diagramme erstellt
+- [ ] FFI-Index erstellt
+- [ ] Nullability-Konvention dokumentiert
+- [ ] Data-Flow-Diagramme erstellt
 
 **Artefakte:**
 
@@ -202,135 +215,135 @@ Jeder Abschnitt muss vollständig erfüllt sein, bevor mit der eigentlichen Migr
 
 ---
 
-## Phase 3: Test-Infrastruktur ✅
+## Phase 3: Test-Infrastruktur
 
 ### P3-01: pytest-benchmark Setup
 
-- [x] pytest-benchmark installiert
-- [x] Konfiguration in `pyproject.toml`
-- [x] JSON-Export konfiguriert
+- [ ] pytest-benchmark installiert
+- [ ] Konfiguration in `pyproject.toml`
+- [ ] JSON-Export konfiguriert
 
 ### P3-02 bis P3-04: Benchmark-Suites
 
-- [x] `tests/benchmarks/test_bench_indicator_cache.py`
-- [x] `tests/benchmarks/test_bench_event_engine.py`
-- [x] `tests/benchmarks/test_bench_rating.py`
+- [ ] `tests/benchmarks/test_bench_indicator_cache.py`
+- [ ] `tests/benchmarks/test_bench_event_engine.py`
+- [ ] `tests/benchmarks/test_bench_rating.py`
 
 ### P3-05 bis P3-07: Property-Based Tests
 
-- [x] Hypothesis installiert und konfiguriert
-- [x] `tests/property/test_prop_indicators.py`
-- [x] `tests/property/test_prop_scoring.py`
+- [ ] Hypothesis installiert und konfiguriert
+- [ ] `tests/property/test_prop_indicators.py`
+- [ ] `tests/property/test_prop_scoring.py`
 
 ### P3-08 bis P3-10: Golden-File Tests
 
-- [x] Golden-File Framework eingerichtet
-- [x] `tests/golden/test_golden_backtest.py`
-- [x] `tests/golden/test_golden_optimizer.py`
-- [x] Reference-Dateien in `tests/golden/reference/`
+- [ ] Golden-File Framework eingerichtet
+- [ ] `tests/golden/test_golden_backtest.py`
+- [ ] `tests/golden/test_golden_optimizer.py`
+- [ ] Reference-Dateien in `tests/golden/reference/`
 
 ### P3-11 bis P3-12: CI-Integration
 
-- [x] `.github/workflows/benchmarks.yml`
-- [x] Benchmark-History-Tracking (`tools/benchmark_history.py`)
-- [x] Tests für History-Tool
+- [ ] `.github/workflows/benchmarks.yml`
+- [ ] Benchmark-History-Tracking (`tools/benchmark_history.py`)
+- [ ] Tests für History-Tool
 
 ---
 
-## Phase 4: Build-System ✅
+## Phase 4: Build-System
 
 ### P4-01 bis P4-02: Toolchain-Dokumentation
 
-- [x] `docs/rust-toolchain-requirements.md`
-- [x] `docs/julia-environment-requirements.md`
+- [ ] `docs/rust-toolchain-requirements.md`
+- [ ] `docs/julia-environment-requirements.md`
 
 ### P4-03 bis P4-05: GitHub Actions Workflows
 
-- [x] `.github/workflows/rust-build.yml`
-- [x] `.github/workflows/julia-tests.yml`
-- [x] `.github/workflows/cross-platform-ci.yml`
-- [x] Cache-Strategie implementiert
+- [ ] `.github/workflows/rust-build.yml`
+- [ ] `.github/workflows/julia-tests.yml`
+- [ ] `.github/workflows/cross-platform-ci.yml`
+- [ ] Cache-Strategie implementiert
 
 ### P4-06 bis P4-07: FFI-Integration Templates
 
-- [x] PyO3/Maturin Template (`src/rust_modules/omega_rust/`)
-- [x] PythonCall Template (`src/julia_modules/omega_julia/`)
+- [ ] PyO3/Maturin Template (`src/rust_modules/omega_rust/`)
+- [ ] PythonCall Template (`src/julia_modules/omega_julia/`)
 
 ### P4-08 bis P4-10: Lokale Entwicklung
 
-- [x] `Makefile` (~400 Zeilen)
-- [x] `justfile` (~350 Zeilen)
-- [x] `.devcontainer/` für VS Code
+- [ ] `Makefile` (~400 Zeilen)
+- [ ] `justfile` (~350 Zeilen)
+- [ ] `.devcontainer/` für VS Code
 
 ### P4-12: Release-Workflow
 
-- [x] `.github/workflows/release.yml`
+- [ ] `.github/workflows/release.yml`
 
 ---
 
-## Phase 5: Dokumentation & Validation (In Progress)
+## Phase 5: Dokumentation & Validation
 
-### P5-01 bis P5-04: ADRs ✅
+### P5-01 bis P5-04: ADRs
 
-- [x] ADR-0001: Migration Strategy
-- [x] ADR-0002: Serialization Format
-- [x] ADR-0003: Error Handling
-- [x] ADR-0004: Build-System Architecture
+- [ ] ADR-0001: Migration Strategy
+- [ ] ADR-0002: Serialization Format
+- [ ] ADR-0003: Error Handling
+- [ ] ADR-0004: Build-System Architecture
 
-### P5-05: Migrations-Runbook Template ✅
+### P5-05: Migrations-Runbook Template
 
-- [x] Template erstellt
-- [x] Best Practices dokumentiert
-- [x] Verwendungsanleitung
+- [ ] Template erstellt
+- [ ] Best Practices dokumentiert
+- [ ] Verwendungsanleitung
 
 **Artefakt:** `docs/runbooks/MIGRATION_RUNBOOK_TEMPLATE.md`
 
-### P5-06: Runbook IndicatorCache ✅
+### P5-06: Runbook IndicatorCache
 
-- [x] Vollständiges Runbook
-- [x] Performance-Targets
-- [x] Rollback-Plan
+- [ ] Vollständiges Runbook
+- [ ] Performance-Targets
+- [ ] Rollback-Plan
 
 **Artefakt:** `docs/runbooks/indicator_cache_migration.md`
 
-### P5-07: Runbook EventEngine ✅
+### P5-07: Runbook EventEngine
 
-- [x] Vollständiges Runbook
-- [x] Migration Strategies
-- [x] Rollback-Plan
+- [ ] Vollständiges Runbook
+- [ ] Migration Strategies
+- [ ] Rollback-Plan
 
 **Artefakt:** `docs/runbooks/event_engine_migration.md`
 
-### P5-08: Performance-Baseline-Dokumentation ✅
+### P5-08: Performance-Baseline-Dokumentation
 
-- [x] Alle Baselines zusammengefasst
-- [x] Improvement-Targets definiert
-- [x] ROI-Analyse
+- [ ] Alle Baselines zusammengefasst
+- [ ] Improvement-Targets definiert
+- [ ] ROI-Analyse
 
 **Artefakt:** `docs/runbooks/performance_baseline_documentation.md`
 
-### P5-09: Ready-for-Migration Checkliste ✅
+### P5-09: Ready-for-Migration Checkliste
 
-- [x] Checkliste erstellt (dieses Dokument)
-- [x] Alle Phasen abgedeckt
+- [ ] Checkliste erstellt (dieses Dokument)
+- [ ] Alle Phasen abgedeckt
 
 ### P5-10: README.md Update
 
-- [x] Rust/Julia-Support dokumentiert
-- [x] Build-Anweisungen aktualisiert
-- [x] Dev-Setup erklärt
+- [ ] Rust/Julia-Support dokumentiert
+- [ ] Build-Anweisungen aktualisiert
+- [ ] Dev-Setup erklärt
 
 ### P5-11: CONTRIBUTING.md Update
 
-- [x] Rust/Julia-Contributions Guidelines
-- [x] Build-Kommandos
-- [x] Testing-Anweisungen
+- [ ] Rust/Julia-Contributions Guidelines
+- [ ] Build-Kommandos
+- [ ] Testing-Anweisungen
 
 ### P5-12: architecture.md Update
 
-- [x] Rust-Modul-Struktur
-- [x] Julia-Modul-Struktur
-- [x] Hybrid-Architektur erklärt
+- [ ] Rust-Modul-Struktur
+- [ ] Julia-Modul-Struktur
+- [ ] Hybrid-Architektur erklärt
 
 ---
 
@@ -390,22 +403,27 @@ pytest tests/benchmarks/test_bench_indicator_cache.py --benchmark-json=baseline.
 
 ---
 
-## Zertifizierung
+## Zertifizierung (Record)
 
 ### Ready-for-Migration Status pro Modul
 
-| Modul | Type Safety | Test Coverage | Baseline | FFI-Spec | Runbook | Status |
+Diese Tabelle ist ein **lokales Arbeitsprotokoll**.
+
+- Der **kanonische Status** pro Modul wird in `docs/MIGRATION_READINESS_VALIDATION.md` geführt.
+- Wenn du hier etwas abhaken willst, aktualisiere parallel den Validierungsreport mit Evidence.
+
+| Modul | Type Safety | Test Coverage | Baseline | FFI-Spec | Runbook | Status (kanonisch) |
 | --- | --- | --- | --- | --- | --- | --- |
-| IndicatorCache | ✅ | ✅ | ✅ | ✅ | ✅ | 🟢 READY |
-| EventEngine | ✅ | ✅ | ✅ | ✅ | ✅ | 🟢 READY |
-| ExecutionSimulator | ✅ | ✅ | ✅ | ✅ | ✅ | 🟢 READY |
-| Rating Modules | ✅ | ✅ | ✅ | ✅ | ✅ | 🟢 READY |
-| MultiSymbolSlice | ✅ | ✅ | ✅ | ✅ | ✅ | 🟢 READY |
-| SymbolDataSlicer | ✅ | ✅ | ✅ | ✅ | ✅ | 🟢 READY |
-| Portfolio | ✅ | ✅ | ✅ | ✅ | ✅ | 🟢 READY |
-| Slippage & Fee | ✅ | ✅ | ✅ | ✅ | ✅ | 🟢 READY |
-| Optimizer | ✅ | ✅ | ✅ | ✅ | ✅ | 🟢 READY |
-| Walkforward | ✅ | ✅ | ✅ | ✅ | ✅ | 🟢 READY |
+| IndicatorCache | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | siehe Validierungsreport |
+| EventEngine | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | siehe Validierungsreport |
+| ExecutionSimulator | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | siehe Validierungsreport |
+| Rating Modules | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | siehe Validierungsreport |
+| MultiSymbolSlice | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | siehe Validierungsreport |
+| SymbolDataSlicer | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | siehe Validierungsreport |
+| Portfolio | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | siehe Validierungsreport |
+| Slippage & Fee | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | siehe Validierungsreport |
+| Optimizer | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | siehe Validierungsreport |
+| Walkforward | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | siehe Validierungsreport |
 
 **Legende:**
 
@@ -413,26 +431,8 @@ pytest tests/benchmarks/test_bench_indicator_cache.py --benchmark-json=baseline.
 - 🟡 PENDING: Teilweise erfüllt, spezifische Items fehlen
 - 🔴 NOT READY: Kritische Vorbedingungen fehlen
 
-**Update:** 2026-01-06 - Alle Module auf 🟢 READY aktualisiert nach Erstellung von:
-
-- FFI-Specs:
-  - `docs/ffi/execution_simulator.md`
-  - `docs/ffi/rating_modules.md`
-  - `docs/ffi/multi_symbol_slice.md`
-  - `docs/ffi/symbol_data_slicer.md`
-  - `docs/ffi/portfolio.md`
-  - `docs/ffi/slippage_fee.md`
-  - `docs/ffi/optimizer.md`
-  - `docs/ffi/walkforward.md`
-- Runbooks:
-  - `docs/runbooks/execution_simulator_migration.md`
-  - `docs/runbooks/rating_modules_migration.md`
-  - `docs/runbooks/multi_symbol_slice_migration.md`
-  - `docs/runbooks/symbol_data_slicer_migration.md`
-  - `docs/runbooks/portfolio_migration.md`
-  - `docs/runbooks/slippage_fee_migration.md`
-  - `docs/runbooks/optimizer_migration.md`
-  - `docs/runbooks/walkforward_migration.md`
+Hinweis: Das bloße Vorhandensein von Specs/Runbooks ist **notwendige Dokumentation**, aber kein
+Ersatz für hard-gated Checks. Status-Claims gehören in den Validierungsreport.
 
 ---
 
