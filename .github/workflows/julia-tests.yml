@@ -240,6 +240,15 @@ jobs:
           try:
               from juliacall import Main as jl
 
+              project = os.environ.get("JULIA_PROJECT")
+              if project:
+                  project = os.path.abspath(project)
+                  # Explicitly activate the repo-local project so `using OmegaJulia` works
+                  # reliably under juliacall.
+                  jl.seval("import Pkg")
+                  jl.seval(f'Pkg.activate(raw"{project}")')
+                  jl.seval("Pkg.instantiate()")
+
               # Ensure the OmegaJulia package can be loaded in this project.
               jl.seval("using OmegaJulia")
               

@@ -32,43 +32,43 @@ function block_bootstrap(
     data::Vector{Float64},
     block_size::Int,
     n_samples::Int;
-    seed::Union{Int,Nothing}=nothing
+    seed::Union{Int,Nothing} = nothing,
 )::Matrix{Float64}
     @assert block_size > 0 "block_size must be positive"
     @assert n_samples > 0 "n_samples must be positive"
     @assert length(data) >= block_size "Data must be at least block_size long"
-    
+
     rng = isnothing(seed) ? Random.default_rng() : MersenneTwister(seed)
-    
+
     n = length(data)
     n_blocks = ceil(Int, n / block_size)
     max_start = n - block_size + 1
-    
+
     result = Matrix{Float64}(undef, n, n_samples)
-    
-    @inbounds for sample in 1:n_samples
+
+    @inbounds for sample = 1:n_samples
         # Sample random block starting positions
         block_starts = rand(rng, 1:max_start, n_blocks)
-        
+
         # Build bootstrap sample from blocks
         idx = 1
         for start in block_starts
             block_end = min(start + block_size - 1, n)
             block_len = block_end - start + 1
-            
-            for j in 0:block_len-1
+
+            for j = 0:(block_len-1)
                 if idx <= n
-                    result[idx, sample] = data[start + j]
+                    result[idx, sample] = data[start+j]
                     idx += 1
                 end
             end
-            
+
             if idx > n
                 break
             end
         end
     end
-    
+
     return result
 end
 
@@ -90,25 +90,25 @@ function stationary_bootstrap(
     data::Vector{Float64},
     mean_block_size::Float64,
     n_samples::Int;
-    seed::Union{Int,Nothing}=nothing
+    seed::Union{Int,Nothing} = nothing,
 )::Matrix{Float64}
     @assert mean_block_size > 0 "mean_block_size must be positive"
     @assert n_samples > 0 "n_samples must be positive"
-    
+
     rng = isnothing(seed) ? Random.default_rng() : MersenneTwister(seed)
-    
+
     n = length(data)
     p = 1.0 / mean_block_size  # Probability of starting new block
-    
+
     result = Matrix{Float64}(undef, n, n_samples)
-    
-    @inbounds for sample in 1:n_samples
+
+    @inbounds for sample = 1:n_samples
         # Start with random position
         pos = rand(rng, 1:n)
-        
-        for i in 1:n
+
+        for i = 1:n
             result[i, sample] = data[pos]
-            
+
             # Decide whether to continue block or start new one
             if rand(rng) < p
                 # Start new block at random position
@@ -119,7 +119,7 @@ function stationary_bootstrap(
             end
         end
     end
-    
+
     return result
 end
 
@@ -146,20 +146,20 @@ function bootstrap_confidence_interval(
     block_size::Int,
     n_samples::Int,
     confidence::Float64;
-    seed::Union{Int,Nothing}=nothing
-)::Tuple{Float64, Float64}
+    seed::Union{Int,Nothing} = nothing,
+)::Tuple{Float64,Float64}
     @assert 0.0 < confidence < 1.0 "Confidence must be between 0 and 1"
-    
+
     # Generate bootstrap samples
-    samples = block_bootstrap(data, block_size, n_samples; seed=seed)
-    
+    samples = block_bootstrap(data, block_size, n_samples; seed = seed)
+
     # Calculate statistic for each sample
-    statistics = [statistic(samples[:, i]) for i in 1:n_samples]
-    
+    statistics = [statistic(samples[:, i]) for i = 1:n_samples]
+
     # Calculate percentile confidence interval
     α = (1.0 - confidence) / 2.0
     lower = quantile(statistics, α)
     upper = quantile(statistics, 1.0 - α)
-    
+
     return (lower, upper)
 end

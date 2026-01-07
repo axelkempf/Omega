@@ -24,12 +24,7 @@ Code-Bereiche:
 """
 module ErrorCodes
 
-export ErrorCode,
-    is_recoverable,
-    error_category,
-    FfiResult,
-    ok_result,
-    error_result
+export ErrorCode, is_recoverable, error_category, FfiResult, ok_result, error_result
 
 # =============================================================================
 # Error Code Constants (synchron mit Python/Rust)
@@ -37,65 +32,65 @@ export ErrorCode,
 
 """Error code constants matching Python's ErrorCode enum."""
 module ErrorCode
-    # Success
-    const OK = 0
+# Success
+const OK = 0
 
-    # Validation Errors (1000-1999)
-    const VALIDATION_FAILED = 1000
-    const INVALID_ARGUMENT = 1001
-    const NULL_POINTER = 1002
-    const OUT_OF_BOUNDS = 1003
-    const TYPE_MISMATCH = 1004
-    const SCHEMA_VIOLATION = 1005
-    const CONSTRAINT_VIOLATION = 1006
-    const INVALID_STATE = 1007
-    const MISSING_REQUIRED_FIELD = 1008
-    const INVALID_FORMAT = 1009
-    const EMPTY_INPUT = 1010
-    const SIZE_MISMATCH = 1011
+# Validation Errors (1000-1999)
+const VALIDATION_FAILED = 1000
+const INVALID_ARGUMENT = 1001
+const NULL_POINTER = 1002
+const OUT_OF_BOUNDS = 1003
+const TYPE_MISMATCH = 1004
+const SCHEMA_VIOLATION = 1005
+const CONSTRAINT_VIOLATION = 1006
+const INVALID_STATE = 1007
+const MISSING_REQUIRED_FIELD = 1008
+const INVALID_FORMAT = 1009
+const EMPTY_INPUT = 1010
+const SIZE_MISMATCH = 1011
 
-    # Computation Errors (2000-2999)
-    const COMPUTATION_FAILED = 2000
-    const DIVISION_BY_ZERO = 2001
-    const OVERFLOW = 2002
-    const UNDERFLOW = 2003
-    const NAN_RESULT = 2004
-    const INF_RESULT = 2005
-    const CONVERGENCE_FAILED = 2006
-    const NUMERICAL_INSTABILITY = 2007
-    const INSUFFICIENT_DATA = 2008
+# Computation Errors (2000-2999)
+const COMPUTATION_FAILED = 2000
+const DIVISION_BY_ZERO = 2001
+const OVERFLOW = 2002
+const UNDERFLOW = 2003
+const NAN_RESULT = 2004
+const INF_RESULT = 2005
+const CONVERGENCE_FAILED = 2006
+const NUMERICAL_INSTABILITY = 2007
+const INSUFFICIENT_DATA = 2008
 
-    # I/O Errors (3000-3999)
-    const IO_ERROR = 3000
-    const FILE_NOT_FOUND = 3001
-    const PERMISSION_DENIED = 3002
-    const SERIALIZATION_FAILED = 3003
-    const DESERIALIZATION_FAILED = 3004
-    const NETWORK_ERROR = 3005
-    const TIMEOUT = 3006
-    const DISK_FULL = 3007
+# I/O Errors (3000-3999)
+const IO_ERROR = 3000
+const FILE_NOT_FOUND = 3001
+const PERMISSION_DENIED = 3002
+const SERIALIZATION_FAILED = 3003
+const DESERIALIZATION_FAILED = 3004
+const NETWORK_ERROR = 3005
+const TIMEOUT = 3006
+const DISK_FULL = 3007
 
-    # Internal Errors (4000-4999)
-    const INTERNAL_ERROR = 4000
-    const NOT_IMPLEMENTED = 4001
-    const ASSERTION_FAILED = 4002
-    const UNREACHABLE = 4003
-    const INVARIANT_VIOLATED = 4004
+# Internal Errors (4000-4999)
+const INTERNAL_ERROR = 4000
+const NOT_IMPLEMENTED = 4001
+const ASSERTION_FAILED = 4002
+const UNREACHABLE = 4003
+const INVARIANT_VIOLATED = 4004
 
-    # FFI Errors (5000-5999)
-    const FFI_ERROR = 5000
-    const FFI_TYPE_CONVERSION = 5001
-    const FFI_BUFFER_OVERFLOW = 5002
-    const FFI_MEMORY_ERROR = 5003
-    const FFI_SCHEMA_MISMATCH = 5004
-    const FFI_PANIC_CAUGHT = 5005
+# FFI Errors (5000-5999)
+const FFI_ERROR = 5000
+const FFI_TYPE_CONVERSION = 5001
+const FFI_BUFFER_OVERFLOW = 5002
+const FFI_MEMORY_ERROR = 5003
+const FFI_SCHEMA_MISMATCH = 5004
+const FFI_PANIC_CAUGHT = 5005
 
-    # Resource Errors (6000-6999)
-    const RESOURCE_ERROR = 6000
-    const OUT_OF_MEMORY = 6001
-    const RESOURCE_EXHAUSTED = 6002
-    const RESOURCE_BUSY = 6003
-    const RESOURCE_LIMIT_EXCEEDED = 6004
+# Resource Errors (6000-6999)
+const RESOURCE_ERROR = 6000
+const OUT_OF_MEMORY = 6001
+const RESOURCE_EXHAUSTED = 6002
+const RESOURCE_BUSY = 6003
+const RESOURCE_LIMIT_EXCEEDED = 6004
 end
 
 # =============================================================================
@@ -186,10 +181,10 @@ result.error_code  # 1001
 """
 struct FfiResult{T}
     ok::Bool
-    value::Union{T, Nothing}
+    value::Union{T,Nothing}
     error_code::Int
-    message::Union{String, Nothing}
-    context::Dict{String, Any}
+    message::Union{String,Nothing}
+    context::Dict{String,Any}
 end
 
 """
@@ -203,8 +198,8 @@ Erstellt erfolgreiches FfiResult.
 # Returns
 - FfiResult mit ok=true
 """
-function ok_result(value::T)::FfiResult{T} where T
-    FfiResult{T}(true, value, ErrorCode.OK, nothing, Dict{String, Any}())
+function ok_result(value::T)::FfiResult{T} where {T}
+    FfiResult{T}(true, value, ErrorCode.OK, nothing, Dict{String,Any}())
 end
 
 """
@@ -223,7 +218,7 @@ Erstellt Fehler-FfiResult.
 function error_result(
     error_code::Int,
     message::String;
-    context::Dict{String, Any} = Dict{String, Any}()
+    context::Dict{String,Any} = Dict{String,Any}(),
 )::FfiResult{Nothing}
     FfiResult{Nothing}(false, nothing, error_code, message, context)
 end
@@ -246,8 +241,8 @@ function error_result(
     ::Type{T},
     error_code::Int,
     message::String;
-    context::Dict{String, Any} = Dict{String, Any}()
-)::FfiResult{T} where T
+    context::Dict{String,Any} = Dict{String,Any}(),
+)::FfiResult{T} where {T}
     FfiResult{T}(false, nothing, error_code, message, context)
 end
 
@@ -260,13 +255,13 @@ end
 
 Konvertiert FfiResult zu Dict für Python-Interoperabilität.
 """
-function to_dict(result::FfiResult)::Dict{String, Any}
-    Dict{String, Any}(
+function to_dict(result::FfiResult)::Dict{String,Any}
+    Dict{String,Any}(
         "ok" => result.ok,
         "value" => result.value,
         "error_code" => result.error_code,
         "message" => result.message,
-        "context" => result.context
+        "context" => result.context,
     )
 end
 
@@ -300,17 +295,22 @@ function calculate_ema(values::Vector{Float64}, period::Int)::FfiResult{Vector{F
 end
 ```
 """
-function ffi_safe(f::Function, ::Type{T})::FfiResult{T} where T
+function ffi_safe(f::Function, ::Type{T})::FfiResult{T} where {T}
     try
         result = f()
         return ok_result(result)
     catch e
         # Map Julia exceptions to error codes
         error_code, message = _exception_to_error(e)
-        return error_result(T, error_code, message; context=Dict{String, Any}(
-            "exception_type" => string(typeof(e)),
-            "stacktrace" => sprint(showerror, e, catch_backtrace())
-        ))
+        return error_result(
+            T,
+            error_code,
+            message;
+            context = Dict{String,Any}(
+                "exception_type" => string(typeof(e)),
+                "stacktrace" => sprint(showerror, e, catch_backtrace()),
+            ),
+        )
     end
 end
 
@@ -319,7 +319,7 @@ end
 
 Mappt Julia-Exception zu Error-Code und Message.
 """
-function _exception_to_error(e::Exception)::Tuple{Int, String}
+function _exception_to_error(e::Exception)::Tuple{Int,String}
     if e isa ArgumentError
         return (ErrorCode.INVALID_ARGUMENT, string(e))
     elseif e isa BoundsError

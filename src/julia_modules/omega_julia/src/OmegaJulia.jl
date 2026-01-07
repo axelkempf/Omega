@@ -42,12 +42,7 @@ export monte_carlo_var,
 
 # Export error handling (FFI boundary)
 export ErrorCode,
-    is_recoverable,
-    error_category,
-    FfiResult,
-    ok_result,
-    error_result,
-    ffi_safe
+    is_recoverable, error_category, FfiResult, ok_result, error_result, ffi_safe
 
 # Include submodules
 include("error.jl")  # Error codes for FFI (sync with Python/Rust)

@@ -13,6 +13,7 @@ class MissingReference:
     line_no: int
     raw_ref: str
     resolved_path: Path
+    suggested_path: str | None = None
 
 
 _ALLOWED_PREFIXES: tuple[str, ...] = (
@@ -156,7 +157,11 @@ def _check_markdown_file(path: Path) -> list[MissingReference]:
             if not _looks_like_repo_path(target):
                 continue
 
-            resolved = (REPO_ROOT / target).resolve()
+            # Allow directory references with or without a trailing slash.
+            normalized_target = target.rstrip("/")
+
+            candidate = (REPO_ROOT / normalized_target)
+            resolved = candidate.resolve()
             if not resolved.exists():
                 if "docs-lint:planned" in line_lower:
                     continue
@@ -165,7 +170,29 @@ def _check_markdown_file(path: Path) -> list[MissingReference]:
                         source_file=path,
                         line_no=idx,
                         raw_ref=raw_ref,
-                        resolved_path=resolved,
+                        resolved_path=candidate,
+                    )
+                )
+                continue
+
+            # Catch case/path mismatches that only fail on case-sensitive FS
+            # (Linux CI) but can pass locally on macOS/Windows.
+            try:
+                real_rel = resolved.relative_to(REPO_ROOT).as_posix()
+            except ValueError:
+                # Not a repo-local path; nothing actionable.
+                continue
+
+            if real_rel != normalized_target:
+                if "docs-lint:planned" in line_lower:
+                    continue
+                missing.append(
+                    MissingReference(
+                        source_file=path,
+                        line_no=idx,
+                        raw_ref=raw_ref,
+                        resolved_path=candidate,
+                        suggested_path=real_rel,
                     )
                 )
 
@@ -214,8 +241,11 @@ def test_docs_references_are_resolvable() -> None:
 
     if missing:
         details = "\n".join(
-            f"- {m.source_file.relative_to(REPO_ROOT)}:{m.line_no} -> {m.raw_ref!r} "
-            f"(missing: {m.resolved_path.relative_to(REPO_ROOT)})"
+            (
+                f"- {m.source_file.relative_to(REPO_ROOT)}:{m.line_no} -> {m.raw_ref!r} "
+                f"(missing: {m.resolved_path.relative_to(REPO_ROOT)})"
+                + (" (did you mean: " + m.suggested_path + ")" if m.suggested_path else "")
+            )
             for m in missing[:50]
         )
         more = "" if len(missing) <= 50 else f"\n… plus {len(missing) - 50} more"

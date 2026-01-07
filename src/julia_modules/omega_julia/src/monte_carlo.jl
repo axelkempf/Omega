@@ -36,26 +36,26 @@ function monte_carlo_var(
     returns::Vector{Float64},
     n_simulations::Int,
     confidence::Float64;
-    seed::Union{Int,Nothing}=nothing
+    seed::Union{Int,Nothing} = nothing,
 )::Float64
     # Input validation
     @assert 0.0 < confidence < 1.0 "Confidence must be between 0 and 1"
     @assert n_simulations > 0 "n_simulations must be positive"
     @assert length(returns) > 1 "Need at least 2 returns"
-    
+
     # Set seed if provided
     rng = isnothing(seed) ? Random.default_rng() : MersenneTwister(seed)
-    
+
     # Fit distribution to historical returns
     μ = mean(returns)
     σ = std(returns)
-    
+
     # Generate simulated returns
     simulated_returns = μ .+ σ .* randn(rng, n_simulations)
-    
+
     # Calculate VaR as the (1-confidence) quantile
     var = -quantile(simulated_returns, 1.0 - confidence)
-    
+
     return var
 end
 
@@ -77,34 +77,34 @@ function monte_carlo_var_detailed(
     returns::Vector{Float64},
     n_simulations::Int,
     confidence::Float64;
-    seed::Union{Int,Nothing}=nothing
+    seed::Union{Int,Nothing} = nothing,
 )
     @assert 0.0 < confidence < 1.0 "Confidence must be between 0 and 1"
     @assert n_simulations > 0 "n_simulations must be positive"
     @assert length(returns) > 1 "Need at least 2 returns"
-    
+
     rng = isnothing(seed) ? Random.default_rng() : MersenneTwister(seed)
-    
+
     μ = mean(returns)
     σ = std(returns)
-    
+
     simulated_returns = μ .+ σ .* randn(rng, n_simulations)
-    
+
     # Calculate VaR
     var_threshold = quantile(simulated_returns, 1.0 - confidence)
     var = -var_threshold
-    
+
     # Calculate CVaR (Expected Shortfall)
     # Average of returns below VaR threshold
     tail_returns = simulated_returns[simulated_returns .<= var_threshold]
     cvar = -mean(tail_returns)
-    
+
     return (
         var = var,
         cvar = cvar,
         mean_loss = -mean(simulated_returns),
         max_loss = -minimum(simulated_returns),
-        n_simulations = n_simulations
+        n_simulations = n_simulations,
     )
 end
 
@@ -128,30 +128,30 @@ function monte_carlo_portfolio_var(
     weights::Vector{Float64},
     n_simulations::Int,
     confidence::Float64;
-    seed::Union{Int,Nothing}=nothing
+    seed::Union{Int,Nothing} = nothing,
 )::Float64
     n_assets = size(returns, 2)
     @assert length(weights) == n_assets "Weights must match number of assets"
     @assert abs(sum(weights) - 1.0) < 1e-6 "Weights must sum to 1"
-    
+
     rng = isnothing(seed) ? Random.default_rng() : MersenneTwister(seed)
-    
+
     # Calculate mean vector and covariance matrix
-    μ = vec(mean(returns, dims=1))
+    μ = vec(mean(returns, dims = 1))
     Σ = cov(returns)
-    
+
     # Cholesky decomposition for correlated sampling
     L = cholesky(Σ).L
-    
+
     # Generate correlated random returns
     Z = randn(rng, n_simulations, n_assets)
     simulated_returns = Z * L' .+ μ'
-    
+
     # Calculate portfolio returns
     portfolio_returns = simulated_returns * weights
-    
+
     # Calculate VaR
     var = -quantile(portfolio_returns, 1.0 - confidence)
-    
+
     return var
 end

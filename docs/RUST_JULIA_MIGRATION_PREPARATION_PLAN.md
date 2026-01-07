@@ -341,7 +341,7 @@ Dieses Dokument beschreibt den systematischen Vorbereitungsplan zur sicheren, in
     - set_deterministic_seed(): Random/NumPy/Torch Seeds synchronisiert
     - compute_dict_hash(), compute_dataframe_hash(): Stabile Hashing-Funktionen
     - CLI-Option: `--regenerate-golden-files`
-  - `tests/golden/reference/backtest/` und `tests/golden/reference/optimizer/` erstellt
+  - Referenz-Verzeichnisse werden beim ersten Golden-Testlauf automatisch erzeugt: `tests/golden/reference/backtest/` und `tests/golden/reference/optimizer/` (docs-lint:planned)
 
 - **P3-09 (Golden-Files Backtest):** ✅ **KOMPLETT** (2026-01-06)
   - `tests/golden/test_golden_backtest.py` (~550 Zeilen)
@@ -879,7 +879,7 @@ Diese Phase schließt die Lücken für die vollständige Migration-Readiness all
       - `stability_score.py`, `ulcer_index_score.py`, `p_values.py`, `strategy_rating.py`
       - `data_jitter_score.py` (inkl. DataFrame-Hashes für jittered OHLC)
   - Referenz-Datei:
-    - `tests/golden/reference/rating/rating_modules_v1.json`
+    - `tests/golden/reference/rating/rating_modules_v1.json` (wird beim ersten Golden-Testlauf erzeugt; docs-lint:planned)
 
 - **P6-11 (Migrations-Runbook execution_simulator.py):** ✅ **KOMPLETT** (2026-01-06)
   - Datei: `docs/runbooks/execution_simulator_migration.md` (~293 Zeilen)

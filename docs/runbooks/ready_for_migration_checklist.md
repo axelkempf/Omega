@@ -240,7 +240,7 @@ lokal reproduzierbar sind.
 - [ ] Golden-File Framework eingerichtet
 - [ ] `tests/golden/test_golden_backtest.py`
 - [ ] `tests/golden/test_golden_optimizer.py`
-- [ ] Reference-Dateien in `tests/golden/reference/`
+- [ ] Reference-Dateien werden beim ersten Golden-Testlauf unter `tests/golden/reference/` erzeugt (docs-lint:planned)
 
 ### P3-11 bis P3-12: CI-Integration
 

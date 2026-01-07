@@ -450,12 +450,7 @@ Ordner-für-Ordner-Übersicht der Codebasis (ohne `results`-Ordner und ohne Aufl
 ### Weitere `src`-Verzeichnisse
 
 - `src/engine_launcher.py`
-- `src/omega.egg-info/` *(build artifact from current distribution name)*
-  - `dependency_links.txt`
-  - `PKG-INFO`
-  - `requires.txt`
-  - `SOURCES.txt`
-  - `top_level.txt`
+- *(Build-Artefakt)* `*.egg-info/` (wird bei Installation/Build lokal erzeugt und nicht versioniert)
 
 ---
 

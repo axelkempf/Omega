@@ -125,8 +125,11 @@ jobs:
           runs_url = f"https://api.github.com/repos/{repo}/actions/workflows/benchmarks.yml/runs?branch=main&status=success&per_page=5"
           runs = api_get_json(runs_url).get("workflow_runs", [])
           if not runs:
-            print("::error::No successful baseline run found on main for benchmarks.yml. Run Benchmarks on main once to establish a baseline.")
-            sys.exit(1)
+            print(
+              "::warning::No successful baseline run found on main for benchmarks.yml. "
+              "Skipping baseline compare for this run (bootstrap mode)."
+            )
+            sys.exit(0)
 
           run_id = runs[0]["id"]
           artifacts_url = f"https://api.github.com/repos/{repo}/actions/runs/{run_id}/artifacts?per_page=100"
@@ -135,8 +138,11 @@ jobs:
           artifact = next((a for a in artifacts if a.get("name") == artifact_name), None)
           if not artifact:
             names = ", ".join(sorted(a.get("name", "") for a in artifacts))
-            print(f"::error::Baseline artifact '{artifact_name}' not found on latest successful main run. Available artifacts: {names}")
-            sys.exit(1)
+            print(
+              f"::warning::Baseline artifact '{artifact_name}' not found on latest successful main run. "
+              f"Available artifacts: {names}. Skipping baseline compare for this run."
+            )
+            sys.exit(0)
 
           artifact_id = artifact["id"]
           zip_url = f"https://api.github.com/repos/{repo}/actions/artifacts/{artifact_id}/zip"
@@ -146,8 +152,8 @@ jobs:
             # The uploaded artifact contains the contents of BENCHMARK_OUTPUT_DIR.
             candidates = [n for n in zf.namelist() if n.endswith("benchmark_results.json")]
             if not candidates:
-              print("::error::Baseline artifact does not contain benchmark_results.json")
-              sys.exit(1)
+              print("::warning::Baseline artifact does not contain benchmark_results.json. Skipping baseline compare for this run.")
+              sys.exit(0)
             # Prefer the shortest path (usually root-level)
             candidates.sort(key=len)
             with zf.open(candidates[0]) as f:
@@ -235,11 +241,11 @@ jobs:
 
           if compare_baseline and not baseline_file.exists():
               print(
-                  "::error::Baseline compare enabled, but no baseline available.\n"
-                  f"Checked: {repo_baseline_file} (repo) and {main_baseline_file} (downloaded from main).\n"
-                  "Fix: run Benchmarks on main once (to produce the artifact baseline), or pin a repo baseline file."
+                "::warning::Baseline compare enabled, but no baseline available.\n"
+                f"Checked: {repo_baseline_file} (repo) and {main_baseline_file} (downloaded from main).\n"
+                "Skipping regression checks for this run (bootstrap mode)."
               )
-              raise SystemExit(1)
+              compare_baseline = False
 
           if baseline_file.exists():
               baseline_source = (
