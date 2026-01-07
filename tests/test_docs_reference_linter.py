@@ -160,7 +160,7 @@ def _check_markdown_file(path: Path) -> list[MissingReference]:
             # Allow directory references with or without a trailing slash.
             normalized_target = target.rstrip("/")
 
-            candidate = (REPO_ROOT / normalized_target)
+            candidate = REPO_ROOT / normalized_target
             resolved = candidate.resolve()
             if not resolved.exists():
                 if "docs-lint:planned" in line_lower:
@@ -244,7 +244,11 @@ def test_docs_references_are_resolvable() -> None:
             (
                 f"- {m.source_file.relative_to(REPO_ROOT)}:{m.line_no} -> {m.raw_ref!r} "
                 f"(missing: {m.resolved_path.relative_to(REPO_ROOT)})"
-                + (" (did you mean: " + m.suggested_path + ")" if m.suggested_path else "")
+                + (
+                    " (did you mean: " + m.suggested_path + ")"
+                    if m.suggested_path
+                    else ""
+                )
             )
             for m in missing[:50]
         )
