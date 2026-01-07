@@ -34,14 +34,14 @@ mypy --strict src/backtest_engine/core/portfolio.py
 ### 2.2 Test-Coverage
 
 ```bash
-pytest tests/test_portfolio.py --cov=src/backtest_engine/core/portfolio --cov-report=term-missing
+pytest tests/test_portfolio_summary_extra_metrics.py -v --cov=src/backtest_engine/core/portfolio --cov-report=term-missing
 # Erwartete Coverage: ≥80%
 ```
 
 ### 2.3 Performance-Baseline
 
 ```bash
-pytest tests/test_portfolio.py -k benchmark --benchmark-only --benchmark-json=reports/performance_baselines/portfolio.json
+pytest tests/benchmarks/test_bench_portfolio.py --benchmark-only --benchmark-json=reports/performance_baselines/portfolio.json
 ```
 
 ---
@@ -80,14 +80,17 @@ pub struct PortfolioState {
 ### Phase 3: Testing (Day 4-5)
 
 ```bash
-# Equivalence Tests
-pytest tests/test_portfolio.py -k rust_equivalence -v
+# Funktionale Regression (bestehende Tests)
+pytest tests/test_portfolio_summary_extra_metrics.py -v
 
-# Property-Based Tests
-pytest tests/test_portfolio.py -k hypothesis -v
+# Equivalence / Property-Based Tests
+# Status: PLANNED (erst nach Rust-Implementation)
 
-# Performance Comparison
-pytest tests/test_portfolio.py -k benchmark --benchmark-compare
+# Performance-Baseline (pytest-benchmark)
+pytest tests/benchmarks/test_bench_portfolio.py --benchmark-only --benchmark-json=reports/performance_baselines/portfolio.json
+
+# Optional: Regression-Report gegen gespeicherte Historie
+python tools/benchmark_history.py report reports/performance_baselines/portfolio.json
 ```
 
 ---

@@ -212,7 +212,8 @@ pub struct MultiSymbolDataIterator {
 
 ```bash
 export OMEGA_USE_RUST_MULTI_SYMBOL=false
-pytest tests/test_multi_symbol_*.py -v
+pytest tests/test_shared_protocols_runtime.py -v -k multi_symbol
+pytest tests/benchmarks/test_bench_multi_symbol_slice.py -v
 ```
 
 ### 5.3 Validierung
@@ -249,7 +250,7 @@ pytest tests/test_multi_symbol_*.py -v
 ## 7. Sign-Off
 
 | Rolle | Name | Datum | Signatur |
-|-------|------|-------|----------|
+| ----- | ---- | ----- | -------- |
 | Tech Lead | | | ⏳ |
 | QA Lead | | | ⏳ |
 | DevOps | | | ⏳ |

@@ -17,7 +17,7 @@ Jedes Runbook dokumentiert den vollständigen Prozess zur Migration eines Python
 
 ### 1. Modul-Identifikation
 
-```markdown
+````markdown
 # Migration Runbook: [MODUL_NAME]
 
 **Python-Pfad:** `src/[pfad]/[modul].py`  
@@ -49,7 +49,7 @@ Jedes Runbook dokumentiert den vollständigen Prozess zur Migration eines Python
 
 ### Test-Infrastruktur
 - [ ] Benchmark-Suite in `tests/benchmarks/test_bench_[modul].py`
-- [ ] Property-Based Tests in `tests/property/test_property_[modul].py`
+- [ ] Property-Based Tests in `tests/property/test_prop_[modul].py`
 - [ ] Golden-File Tests in `tests/golden/test_golden_[modul].py`
 - [ ] Test-Coverage ≥ 85%
 
@@ -94,20 +94,20 @@ touch src/julia_modules/omega_julia/src/[modul].jl
 **Rust (PyO3):**
 ```rust
 #[pyfunction]
-fn [function_name](input: PyReadonlyArray1<f64>) -> PyResult<Py<PyArray1<f64>>> {
+fn function_name(input: PyReadonlyArray1<f64>) -> PyResult<Py<PyArray1<f64>>> {
     // Implementation
 }
 
 #[pymodule]
 fn omega_rust(py: Python, m: &PyModule) -> PyResult<()> {
-    m.add_function(wrap_pyfunction!([function_name], m)?)?;
+    m.add_function(wrap_pyfunction!(function_name, m)?)?;
     Ok(())
 }
 ```
 
 **Julia (PythonCall):**
 ```julia
-function [function_name](input::Vector{Float64})::Vector{Float64}
+function function_name(input::Vector{Float64})::Vector{Float64}
     # Implementation
 end
 ```
@@ -117,10 +117,10 @@ end
 ```python
 # src/[pfad]/[modul].py
 
-def [function_name](input: np.ndarray) -> np.ndarray:
+def function_name(input: np.ndarray) -> np.ndarray:
     """Python-Wrapper mit Fallback."""
     try:
-        from omega_rust import [function_name] as _rust_impl
+        from omega_rust import function_name as _rust_impl
         return _rust_impl(input)
     except ImportError:
         # Pure Python Fallback
@@ -212,13 +212,13 @@ def [function_name](input: np.ndarray) -> np.ndarray:
 |-------|---------|----------|-------|
 | YYYY-MM-DD | 1.0 | Initiale Version | [Autor] |
 
-```
+````
 
 ---
 
 ## Verwendung
 
-1. Kopiere dieses Template: `cp MIGRATION_RUNBOOK_TEMPLATE.md [modul]_migration.md`
+1. Kopiere dieses Template: `cp docs/runbooks/MIGRATION_RUNBOOK_TEMPLATE.md docs/runbooks/[modul]_migration.md`
 2. Ersetze alle `[PLATZHALTER]` mit modulspezifischen Werten
 3. Arbeite die Checklisten Schritt für Schritt ab
 4. Dokumentiere Abweichungen und Learnings
@@ -245,15 +245,8 @@ def [function_name](input: np.ndarray) -> np.ndarray:
 
 ---
 
-## Automatisierung
+## Automatisierung (optional, geplant)
 
-```bash
-# Neues Runbook erstellen
-./tools/create_runbook.sh [modul_name] [rust|julia]
-
-# Runbook-Status prüfen
-./tools/check_runbook.sh [modul_name]
-
-# Migration-Progress Report
-./tools/migration_progress.py
-```
+Aktuell existieren keine Repository-Skripte wie `tools/create_runbook.sh` oder
+`tools/migration_progress.py`. Wenn Runbook-Automatisierung ergänzt wird,
+referenziert dieser Abschnitt die dann real vorhandenen Tools.

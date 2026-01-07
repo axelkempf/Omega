@@ -422,11 +422,11 @@ class EventEngine:
 ### Step 6: Testing
 
 ```bash
-# Unit Tests
-pytest tests/test_event_engine.py -v
+# Tests (bestehende)
+pytest tests/integration/test_event_bus_integration.py -v
 
 # Property-Based Tests
-pytest tests/property/ -v -k event
+pytest tests/property/ -v
 
 # Golden-File Tests (Determinismus - KRITISCH!)
 pytest tests/golden/test_golden_backtest.py -v
@@ -438,8 +438,8 @@ pytest tests/benchmarks/test_bench_event_engine.py --benchmark-json=results.json
 cd src/rust_modules/omega_rust
 cargo test
 
-# Integration Test: Vollständiger Backtest
-python -m pytest tests/integration/test_full_backtest.py -v
+# Weitere Integration-Checks
+pytest tests/integration/test_resume_semantics.py -v
 ```
 
 - [ ] Alle Unit-Tests passieren

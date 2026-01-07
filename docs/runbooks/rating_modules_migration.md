@@ -340,5 +340,5 @@ pytest tests/test_rating_*.py -v
 
 - FFI-Spec: [rating_modules.md](../ffi/rating_modules.md)
 - Arrow-Schemas: [arrow_schemas.py](../../src/shared/arrow_schemas.py)
-- Property-Tests: [test_property_scoring.py](../../tests/property/test_property_scoring.py)
+- Property-Tests: [test_prop_scoring.py](../../tests/property/test_prop_scoring.py)
 - Benchmarks: [test_bench_rating.py](../../tests/benchmarks/test_bench_rating.py)

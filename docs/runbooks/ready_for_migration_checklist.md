@@ -26,6 +26,7 @@ Jeder Abschnitt muss vollständig erfüllt sein, bevor mit der eigentlichen Migr
 - [x] Benchmark-History-Tracking eingerichtet
 
 **Artefakte:**
+
 - `reports/performance_baselines/p0-01_*.json`
 - `tools/perf_baseline.py`
 - `tools/benchmark_history.py`
@@ -37,6 +38,7 @@ Jeder Abschnitt muss vollständig erfüllt sein, bevor mit der eigentlichen Migr
 - [x] Module mit `ignore_errors=true` identifiziert
 
 **Artefakte:**
+
 - `reports/type_coverage/README.md`
 - `tools/type_coverage.py`
 
@@ -47,6 +49,7 @@ Jeder Abschnitt muss vollständig erfüllt sein, bevor mit der eigentlichen Migr
 - [x] ADR-0001 (Migration Strategy) erstellt
 
 **Artefakte:**
+
 - `docs/adr/ADR-TEMPLATE.md`
 - `docs/adr/README.md`
 
@@ -57,6 +60,7 @@ Jeder Abschnitt muss vollständig erfüllt sein, bevor mit der eigentlichen Migr
 - [x] JSON für automatisierte Verarbeitung
 
 **Artefakte:**
+
 - `reports/migration_candidates/README.md`
 - `reports/migration_candidates/p0-04_candidates.json`
 
@@ -67,6 +71,7 @@ Jeder Abschnitt muss vollständig erfüllt sein, bevor mit der eigentlichen Migr
 - [x] Dokumentiert in `reports/migration_test_coverage/`
 
 **Artefakte:**
+
 - `reports/migration_test_coverage/README.md`
 - `reports/migration_test_coverage/p0-05_candidate_coverage.json`
 
@@ -81,6 +86,7 @@ Jeder Abschnitt muss vollständig erfüllt sein, bevor mit der eigentlichen Migr
 - [x] Dokumentiert in `reports/mypy_baseline/`
 
 **Artefakte:**
+
 - `reports/mypy_baseline/p1-01_ignore_errors_catalog.json`
 - `reports/mypy_baseline/README.md`
 
@@ -93,6 +99,7 @@ Jeder Abschnitt muss vollständig erfüllt sein, bevor mit der eigentlichen Migr
 - [x] `backtest_engine.rating` mypy --strict (12/12 Files)
 
 **Artefakte:**
+
 - `src/backtest_engine/core/types.py`
 - `src/backtest_engine/config/models.py`
 - Aktualisierte `pyproject.toml` mit Strict-Overrides
@@ -104,6 +111,7 @@ Jeder Abschnitt muss vollständig erfüllt sein, bevor mit der eigentlichen Migr
 - [x] Runtime-Smoke-Tests erstellt
 
 **Artefakte:**
+
 - `src/shared/protocols.py`
 - `tests/test_shared_protocols_runtime.py`
 
@@ -114,6 +122,7 @@ Jeder Abschnitt muss vollständig erfüllt sein, bevor mit der eigentlichen Migr
 - [x] optuna Stubs vollständig
 
 **Artefakte:**
+
 - `stubs/joblib/__init__.pyi`
 - `stubs/optuna/__init__.pyi`
 - `stubs/README.md`
@@ -125,6 +134,7 @@ Jeder Abschnitt muss vollständig erfüllt sein, bevor mit der eigentlichen Migr
 - [x] Differenzierte Overrides in `pyproject.toml`
 
 **Artefakte:**
+
 - `pyproject.toml` (aktualisiert)
 - `reports/phase1_p1-09_p1-10_report.md`
 
@@ -140,6 +150,7 @@ Jeder Abschnitt muss vollständig erfüllt sein, bevor mit der eigentlichen Migr
 - [x] Rating-Module spezifiziert
 
 **Artefakte:**
+
 - `docs/ffi/indicator_cache.md`
 - `docs/ffi/event_engine.md`
 - `docs/ffi/execution_simulator.md`
@@ -152,6 +163,7 @@ Jeder Abschnitt muss vollständig erfüllt sein, bevor mit der eigentlichen Migr
 - [x] Typ-Mapping dokumentiert
 
 **Artefakte:**
+
 - `docs/adr/ADR-0002-serialization-format.md`
 
 ### P2-06: Arrow-Schemas
@@ -161,6 +173,7 @@ Jeder Abschnitt muss vollständig erfüllt sein, bevor mit der eigentlichen Migr
 - [x] Tests für Schema-Validierung
 
 **Artefakte:**
+
 - `src/shared/arrow_schemas.py`
 
 ### P2-07: Fehlerbehandlungs-Konvention
@@ -170,6 +183,7 @@ Jeder Abschnitt muss vollständig erfüllt sein, bevor mit der eigentlichen Migr
 - [x] ErrorCode Enum definiert
 
 **Artefakte:**
+
 - `docs/adr/ADR-0003-error-handling.md`
 - `src/shared/error_codes.py`
 - `src/shared/exceptions.py`
@@ -181,6 +195,7 @@ Jeder Abschnitt muss vollständig erfüllt sein, bevor mit der eigentlichen Migr
 - [x] Data-Flow-Diagramme erstellt
 
 **Artefakte:**
+
 - `docs/ffi/README.md`
 - `docs/ffi/nullability-convention.md`
 - `docs/ffi/data-flow-diagrams.md`
@@ -204,8 +219,8 @@ Jeder Abschnitt muss vollständig erfüllt sein, bevor mit der eigentlichen Migr
 ### P3-05 bis P3-07: Property-Based Tests
 
 - [x] Hypothesis installiert und konfiguriert
-- [x] `tests/property/test_property_indicators.py`
-- [x] `tests/property/test_property_scoring.py`
+- [x] `tests/property/test_prop_indicators.py`
+- [x] `tests/property/test_prop_scoring.py`
 
 ### P3-08 bis P3-10: Golden-File Tests
 
@@ -393,13 +408,31 @@ pytest tests/benchmarks/test_bench_indicator_cache.py --benchmark-json=baseline.
 | Walkforward | ✅ | ✅ | ✅ | ✅ | ✅ | 🟢 READY |
 
 **Legende:**
+
 - 🟢 READY: Alle Vorbedingungen erfüllt, Migration kann beginnen
 - 🟡 PENDING: Teilweise erfüllt, spezifische Items fehlen
 - 🔴 NOT READY: Kritische Vorbedingungen fehlen
 
 **Update:** 2026-01-06 - Alle Module auf 🟢 READY aktualisiert nach Erstellung von:
-- FFI-Specs: `docs/ffi/{execution_simulator,rating_modules,multi_symbol_slice,symbol_data_slicer,portfolio,slippage_fee,optimizer,walkforward}.md`
-- Runbooks: `docs/runbooks/{execution_simulator,rating_modules,multi_symbol_slice,symbol_data_slicer,portfolio,slippage_fee,optimizer,walkforward}_migration.md`
+
+- FFI-Specs:
+  - `docs/ffi/execution_simulator.md`
+  - `docs/ffi/rating_modules.md`
+  - `docs/ffi/multi_symbol_slice.md`
+  - `docs/ffi/symbol_data_slicer.md`
+  - `docs/ffi/portfolio.md`
+  - `docs/ffi/slippage_fee.md`
+  - `docs/ffi/optimizer.md`
+  - `docs/ffi/walkforward.md`
+- Runbooks:
+  - `docs/runbooks/execution_simulator_migration.md`
+  - `docs/runbooks/rating_modules_migration.md`
+  - `docs/runbooks/multi_symbol_slice_migration.md`
+  - `docs/runbooks/symbol_data_slicer_migration.md`
+  - `docs/runbooks/portfolio_migration.md`
+  - `docs/runbooks/slippage_fee_migration.md`
+  - `docs/runbooks/optimizer_migration.md`
+  - `docs/runbooks/walkforward_migration.md`
 
 ---
 
@@ -414,26 +447,26 @@ Basierend auf Priorität, Abhängigkeiten und Readiness:
 
 ### Wave 2: Core Performance (Hauptgewinne)
 
-3. **IndicatorCache** - Größter Performance-Impact
-4. **SymbolDataSlicer** - Häufig aufgerufen
+1. **IndicatorCache** - Größter Performance-Impact
+2. **SymbolDataSlicer** - Häufig aufgerufen
 
 ### Wave 3: Core Loop (sensibel)
 
-5. **EventEngine** - Core-Loop, nach Stabilisierung von Wave 1+2
-6. **ExecutionSimulator** - Trade-Matching
+1. **EventEngine** - Core-Loop, nach Stabilisierung von Wave 1+2
+2. **ExecutionSimulator** - Trade-Matching
 
 ### Wave 4: State Management
 
-7. **Portfolio** - Stateful, nach stabilem Core-Loop
+1. **Portfolio** - Stateful, nach stabilem Core-Loop
 
 ### Wave 5: Orchestrierung
 
-8. **Optimizer** (Julia) - Research-lastig
-9. **Walkforward** (Julia) - Orchestrierung
+1. **Optimizer** (Julia) - Research-lastig
+2. **Walkforward** (Julia) - Orchestrierung
 
 ### Wave 6: Performance Cleanup
 
-10. **MultiSymbolSlice** - Nach Type-Hardening
+1. **MultiSymbolSlice** - Nach Type-Hardening
 
 ---
 

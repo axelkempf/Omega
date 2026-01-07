@@ -178,13 +178,15 @@ class WalkforwardValidatorJulia:
 
 ```bash
 # Julia Tests
-julia --project=src/julia_modules/omega_julia test/test_walkforward.jl
+julia --project=src/julia_modules/omega_julia -e 'using Pkg; Pkg.test()'
 
 # Integration Tests
-pytest tests/test_walkforward.py -v
+pytest tests/test_walkforward_full_preload_slicing.py -v
+pytest tests/test_walkforward_analyzer_refined_num_samples_column.py -v
+pytest tests/test_discover_walkforward_groups_snapshot_priority.py -v
 
-# Performance Comparison
-pytest tests/test_walkforward.py -k benchmark --benchmark-compare
+# Performance
+# Status: PLANNED (derzeit keine dedizierte pytest-benchmark Suite für Walkforward)
 ```
 
 ---

@@ -37,7 +37,7 @@ mypy --strict src/backtest_engine/core/symbol_data_slicer.py
 ### 2.2 Test-Coverage
 
 ```bash
-pytest tests/test_symbol_data_slicer.py --cov=src/backtest_engine/core/symbol_data_slicer --cov-report=term-missing
+pytest tests/test_shared_protocols_runtime.py -v --cov=src/backtest_engine/core/symbol_data_slicer --cov-report=term-missing
 
 # Erwartete Coverage: ≥80%
 ```
@@ -45,7 +45,7 @@ pytest tests/test_symbol_data_slicer.py --cov=src/backtest_engine/core/symbol_da
 ### 2.3 Performance-Baseline
 
 ```bash
-pytest tests/test_symbol_data_slicer.py -k benchmark --benchmark-only --benchmark-json=reports/performance_baselines/symbol_data_slicer.json
+pytest tests/benchmarks/test_bench_symbol_data_slicer.py --benchmark-only --benchmark-json=reports/performance_baselines/symbol_data_slicer.json
 ```
 
 ---
@@ -78,11 +78,14 @@ python -c "from src.shared.arrow_schemas import SYMBOL_SLICE_SCHEMA; print(SYMBO
 ### Phase 3: Testing (Day 3-4)
 
 ```bash
-# Golden-File Tests
-pytest tests/test_symbol_data_slicer.py -k rust --golden
+# Funktionale Checks (bestehende Tests)
+pytest tests/test_shared_protocols_runtime.py -v
 
-# Performance Comparison
-pytest tests/test_symbol_data_slicer.py -k benchmark --benchmark-compare=reports/performance_baselines/symbol_data_slicer.json
+# Performance-Baseline (pytest-benchmark)
+pytest tests/benchmarks/test_bench_symbol_data_slicer.py --benchmark-only --benchmark-json=reports/performance_baselines/symbol_data_slicer.json
+
+# Optional: Regression-Report gegen gespeicherte Historie
+python tools/benchmark_history.py report reports/performance_baselines/symbol_data_slicer.json
 ```
 
 ---
@@ -92,8 +95,10 @@ pytest tests/test_symbol_data_slicer.py -k benchmark --benchmark-compare=reports
 ### 4.1 Correctness Check
 
 ```bash
-# Bit-für-Bit Vergleich Python vs Rust
-pytest tests/test_symbol_data_slicer.py -k equivalence -v
+# Status: PLANNED (Equivalence/Golden-Tests erst nach Rust-Implementation)
+
+# Bestehende Smoke-Checks
+pytest tests/test_shared_protocols_runtime.py -v
 ```
 
 ### 4.2 Performance Check

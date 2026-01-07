@@ -337,10 +337,10 @@ class IndicatorCache:
 
 ```bash
 # Unit Tests
-pytest tests/test_indicator_cache.py -v
+pytest tests/test_indicator_cache_pool_cleanup.py -v
 
 # Property-Based Tests
-pytest tests/property/test_property_indicators.py -v --hypothesis-show-statistics
+pytest tests/property/test_prop_indicators.py -v --hypothesis-show-statistics
 
 # Golden-File Tests (Determinismus)
 pytest tests/golden/test_golden_backtest.py -v -k indicator

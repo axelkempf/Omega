@@ -79,10 +79,11 @@ pub fn calculate_slippage_batch_simd(
 
 ```bash
 # Unit Tests
-pytest tests/test_slippage_fee.py -v
+pytest tests/test_deterministic_dev_mode_scores.py -v
+pytest tests/test_rating_cost_shock_and_timing_jitter.py -v
 
-# Batch Performance
-pytest tests/test_slippage_fee.py -k batch_benchmark --benchmark-only
+# Performance (Proxy via ExecutionSimulator Benchmarks)
+pytest tests/benchmarks/test_bench_execution_simulator.py --benchmark-only --benchmark-json=reports/performance_baselines/execution_simulator.json
 ```
 
 ---

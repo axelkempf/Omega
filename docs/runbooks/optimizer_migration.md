@@ -153,7 +153,7 @@ julia --project=src/julia_modules/omega_julia -e '
 '
 
 # Performance vergleichen
-pytest tests/test_optimizer.py -k monte_carlo_benchmark
+pytest tests -k monte_carlo -v
 ```
 
 ### 4.2 Performance Check
