@@ -15,7 +15,7 @@ rollback_procedure: docs/runbooks/rollback_generic.md
 
 | Attribut | Wert |
 | -------- | ---- |
-| Quell-Module | `src/backtest_engine/core/slippage.py`, `fee.py` |
+| Quell-Module | `src/backtest_engine/core/slippage_and_fee.py` |
 | Ziel-Sprache | Rust (PyO3 + SIMD) |
 | Priorität | P1 - Idealer Pilot-Kandidat |
 | Geschätzter Aufwand | 2-3 Tage |
@@ -108,12 +108,14 @@ def test_slippage_equivalence():
 
 ### 4.2 Performance Check
 
+> **Status: PLANNED** - Performance-Werte sind geschätzte Ziele; tatsächliche Messungen erfolgen nach Rust-Implementierung.
+
 | Operation | Python | Rust | Target | Status |
 | --------- | ------ | ---- | ------ | ------ |
-| Slippage (single) | 0.02ms | - | 0.001ms | ⏳ |
-| Slippage (1K batch) | 15ms | - | 0.5ms | ⏳ |
-| Fee (single) | 0.03ms | - | 0.002ms | ⏳ |
-| Fee (1K batch) | 25ms | - | 1ms | ⏳ |
+| Slippage (single) | TBD | - | 0.001ms | ⏳ PLANNED |
+| Slippage (1K batch) | TBD | - | 0.5ms | ⏳ PLANNED |
+| Fee (single) | TBD | - | 0.002ms | ⏳ PLANNED |
+| Fee (1K batch) | TBD | - | 1ms | ⏳ PLANNED |
 
 ---
 

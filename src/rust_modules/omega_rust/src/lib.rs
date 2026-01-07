@@ -28,6 +28,7 @@ use pyo3::prelude::*;
 pub mod error;
 pub mod indicators;
 
+use error::get_error_code_constants;
 use indicators::{ema, exponential_moving_average, rolling_std, rsi};
 
 /// Omega Rust Extension Module
@@ -41,6 +42,9 @@ fn omega_rust(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(exponential_moving_average, m)?)?;
     m.add_function(wrap_pyfunction!(rsi, m)?)?;
     m.add_function(wrap_pyfunction!(rolling_std, m)?)?;
+
+    // Register error code constants for cross-language verification
+    m.add_function(wrap_pyfunction!(get_error_code_constants, m)?)?;
 
     // Module metadata
     m.add("__version__", env!("CARGO_PKG_VERSION"))?;

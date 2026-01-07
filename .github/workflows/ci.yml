@@ -59,6 +59,21 @@ jobs:
                --ignore-missing-imports \
                --strict \
                --no-error-summary
+      - name: Type check - strict (shared modules - migration critical)
+        run: |
+          mypy src/shared/ \
+               --ignore-missing-imports \
+               --strict \
+               --no-error-summary
+      - name: Type check - strict (backtest_engine migration modules)
+        run: |
+          mypy src/backtest_engine/core/ \
+               src/backtest_engine/config/ \
+               src/backtest_engine/optimizer/ \
+               src/backtest_engine/rating/ \
+               --ignore-missing-imports \
+               --strict \
+               --no-error-summary
       - name: Type check - standard (typed strategies)
         run: |
           mypy src/strategies/mean_reversion_z_score/ \
@@ -67,7 +82,10 @@ jobs:
                --no-error-summary || true
       - name: Type check - relaxed (other modules)
         run: |
-          mypy src/hf_engine/ src/backtest_engine/ src/ui_engine/ \
+          mypy src/hf_engine/ \
+               src/backtest_engine/analysis/ \
+               src/backtest_engine/data/ \
+               src/ui_engine/ \
                --ignore-missing-imports \
                --no-error-summary || true
       - name: Type coverage report

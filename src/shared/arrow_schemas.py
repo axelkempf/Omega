@@ -38,7 +38,9 @@ import numpy as np
 # =============================================================================
 # Increment MINOR on backward-compatible changes (new nullable fields)
 # Increment MAJOR on breaking changes (removed fields, type changes)
-SCHEMA_REGISTRY_VERSION: Final[str] = "1.0.0"
+# v2.0.0: Changed dictionary index type from int8 to int32 for scalability
+#         (int8 limited to 127 unique values, int32 supports ~2 billion)
+SCHEMA_REGISTRY_VERSION: Final[str] = "2.0.0"
 
 # pyarrow ist Core-Dependency (pyproject.toml: pyarrow>=14.0)
 # Import sollte immer erfolgreich sein. PYARROW_AVAILABLE bleibt für
@@ -79,6 +81,39 @@ def _ensure_pyarrow() -> None:
             "pyarrow is required for Arrow serialization. "
             "Install with: pip install pyarrow>=14.0"
         )
+
+
+def _datetime_to_utc_micros(t: datetime | int) -> int:
+    """Convert datetime to UTC microseconds since epoch.
+
+    Policy:
+        - Naive datetime: Interpreted as UTC (no conversion)
+        - Aware datetime: Converted to UTC via astimezone()
+        - Integer: Assumed to be microseconds, passed through
+
+    Args:
+        t: datetime object or integer microseconds
+
+    Returns:
+        Microseconds since Unix epoch (UTC)
+
+    Raises:
+        ValueError: If datetime conversion fails
+    """
+    if isinstance(t, int):
+        return t
+
+    if not isinstance(t, datetime):
+        raise ValueError(f"Expected datetime or int, got {type(t).__name__}")
+
+    if t.tzinfo is None:
+        # Naive datetime: interpret as UTC
+        utc_dt = t.replace(tzinfo=timezone.utc)
+    else:
+        # Aware datetime: convert to UTC
+        utc_dt = t.astimezone(timezone.utc)
+
+    return int(utc_dt.timestamp() * 1_000_000)
 
 
 # =============================================================================
@@ -157,17 +192,17 @@ def get_trade_signal_schema() -> Any:
             pa.field("timestamp", pa.timestamp("us", tz="UTC"), nullable=False),
             pa.field(
                 "direction",
-                pa.dictionary(pa.int8(), pa.utf8()),
+                pa.dictionary(pa.int32(), pa.utf8()),
                 nullable=False,
             ),
             pa.field("entry", pa.float64(), nullable=False),
             pa.field("sl", pa.float64(), nullable=False),
             pa.field("tp", pa.float64(), nullable=False),
             pa.field("size", pa.float64(), nullable=False),
-            pa.field("symbol", pa.dictionary(pa.int8(), pa.utf8()), nullable=False),
+            pa.field("symbol", pa.dictionary(pa.int32(), pa.utf8()), nullable=False),
             pa.field(
                 "order_type",
-                pa.dictionary(pa.int8(), pa.utf8()),
+                pa.dictionary(pa.int32(), pa.utf8()),
                 nullable=False,
             ),
             pa.field("reason", pa.utf8(), nullable=True),
@@ -214,8 +249,8 @@ def get_position_schema() -> Any:
         [
             pa.field("entry_time", pa.timestamp("us", tz="UTC"), nullable=False),
             pa.field("exit_time", pa.timestamp("us", tz="UTC"), nullable=True),
-            pa.field("direction", pa.dictionary(pa.int8(), pa.utf8()), nullable=False),
-            pa.field("symbol", pa.dictionary(pa.int8(), pa.utf8()), nullable=False),
+            pa.field("direction", pa.dictionary(pa.int32(), pa.utf8()), nullable=False),
+            pa.field("symbol", pa.dictionary(pa.int32(), pa.utf8()), nullable=False),
             pa.field("entry_price", pa.float64(), nullable=False),
             pa.field("exit_price", pa.float64(), nullable=True),
             pa.field("initial_sl", pa.float64(), nullable=False),
@@ -224,7 +259,7 @@ def get_position_schema() -> Any:
             pa.field("size", pa.float64(), nullable=False),
             pa.field("result", pa.float64(), nullable=True),
             pa.field("r_multiple", pa.float64(), nullable=True),
-            pa.field("status", pa.dictionary(pa.int8(), pa.utf8()), nullable=False),
+            pa.field("status", pa.dictionary(pa.int32(), pa.utf8()), nullable=False),
         ]
     )
 
@@ -294,7 +329,7 @@ def get_rating_score_schema() -> Any:
     return pa.schema(
         [
             pa.field(
-                "metric_name", pa.dictionary(pa.int8(), pa.utf8()), nullable=False
+                "metric_name", pa.dictionary(pa.int32(), pa.utf8()), nullable=False
             ),
             pa.field("raw_value", pa.float64(), nullable=False),
             pa.field("score", pa.float64(), nullable=False),
@@ -402,16 +437,9 @@ def create_ohlcv_batch(
     ):
         ts_array = pa.array(timestamps, type=pa.timestamp("us", tz="UTC"))
     else:
-        # datetime objects → timestamp
+        # datetime objects → timestamp (microseconds since epoch UTC)
         ts_array = pa.array(
-            [
-                (
-                    int(t.replace(tzinfo=timezone.utc).timestamp() * 1_000_000)
-                    if isinstance(t, datetime)
-                    else int(t)
-                )
-                for t in timestamps
-            ],
+            [_datetime_to_utc_micros(t) for t in timestamps],
             type=pa.timestamp("us", tz="UTC"),
         )
 
@@ -473,14 +501,7 @@ def create_indicator_batch(
         ts_array = pa.array(timestamps, type=pa.timestamp("us", tz="UTC"))
     else:
         ts_array = pa.array(
-            [
-                (
-                    int(t.replace(tzinfo=timezone.utc).timestamp() * 1_000_000)
-                    if isinstance(t, datetime)
-                    else int(t)
-                )
-                for t in timestamps
-            ],
+            [_datetime_to_utc_micros(t) for t in timestamps],
             type=pa.timestamp("us", tz="UTC"),
         )
 

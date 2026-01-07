@@ -1,16 +1,27 @@
 # Migration Readiness Validation Report
 
-**Date:** 2026-01-06  
+**Date:** 2026-01-07  
 **Phase:** 6 (Final Validation)  
-**Status:** ✅ READY FOR MIGRATION
+**Status:** ⚠️ READY WITH CONDITIONS
 
 ---
 
 ## Executive Summary
 
-This document validates the completion of all Phase 6 preparation tasks for the Rust/Julia migration. All critical components have been assessed and are ready for the migration phase.
+This document validates the Phase 6 preparation tasks for the Rust/Julia migration. Core infrastructure is in place, with some components requiring additional work before full migration can begin.
 
-**Overall Readiness Score: 100%**
+**Overall Readiness Score: ~85%**
+
+### Go/No-Go Status
+
+| Component | Status | Notes |
+|-----------|--------|-------|
+| Arrow Schemas | ✅ Ready | 6 schemas defined, drift detection active |
+| Error Codes (Python) | ✅ Ready | Full ErrorCode enum implemented |
+| Error Codes (Rust) | ⚠️ Partial | ErrorCode enum PLANNED, PyO3 exceptions work |
+| FFI Specifications | ✅ Ready | Documented in docs/ffi/ |
+| Type Safety (mypy) | ⚠️ Partial | Not all modules strict-enforced in CI |
+| Build Infrastructure | ✅ Ready | Cargo.toml, maturin configured |
 
 ---
 
@@ -36,16 +47,18 @@ This document validates the completion of all Phase 6 preparation tasks for the 
 
 ### 1.2 Arrow Schema Registry
 
-Location: `src/shared/arrow_schema_registry.py`
+Location: `src/shared/arrow_schemas.py`
 
 | Schema | Fields | Nullability | Validated |
 |--------|--------|-------------|-----------|
-| `CANDLE_SCHEMA` | 6 | Specified | ✅ |
-| `TRADE_RESULT_SCHEMA` | 12 | Specified | ✅ |
-| `POSITION_SCHEMA` | 8 | Specified | ✅ |
-| `PORTFOLIO_STATE_SCHEMA` | 5 | Specified | ✅ |
-| `EXECUTION_COSTS_SCHEMA` | 7 | Specified | ✅ |
-| `MULTI_SYMBOL_BATCH_SCHEMA` | 4 | Specified | ✅ |
+| `OHLCV_SCHEMA` | 7 | Specified | ✅ |
+| `TRADE_SIGNAL_SCHEMA` | 10 | Specified | ✅ |
+| `POSITION_SCHEMA` | 13 | Specified | ✅ |
+| `INDICATOR_SCHEMA` | 3 | Specified | ✅ |
+| `RATING_SCORE_SCHEMA` | 5 | Specified | ✅ |
+| `EQUITY_CURVE_SCHEMA` | 5 | Specified | ✅ |
+
+**Note:** Schema drift detection via fingerprints in `reports/schema_fingerprints.json`.
 
 ---
 
@@ -108,9 +121,10 @@ Location: `src/shared/arrow_schema_registry.py`
 ### 4.2 Runbook Quality Checklist
 
 - [x] Each runbook follows the 7-phase template
+- [ ] ⚠️ Some runbooks reference non-existent paths (e.g., slippage.py, fee.py → use slippage_and_fee.py)
 - [x] Clear rollback triggers defined
 - [x] Feature flags documented (`OMEGA_USE_RUST_*`)
-- [x] Performance regression thresholds specified
+- [ ] ⚠️ Performance tables contain placeholder data (marked as PLANNED)
 - [x] Resource estimation (person-days) included
 - [x] Risk assessment completed
 
@@ -120,14 +134,16 @@ Location: `src/shared/arrow_schema_registry.py`
 
 ### 5.1 mypy --strict Coverage
 
-| Module | mypy Status | Type Coverage | Notes |
-|--------|-------------|---------------|-------|
-| `lot_sizer.py` | ✅ PASS | 100% | Migrated 2026-01-06 |
-| `strategy_wrapper.py` | ✅ PASS | 100% | Migrated 2026-01-06 |
-| `execution_simulator.py` | ✅ PASS | 100% | Phase 1 |
-| `portfolio.py` | ✅ PASS | 100% | Phase 1 |
-| `slippage_and_fee.py` | ✅ PASS | 100% | Phase 1 |
-| Rating Modules | ✅ PASS | 100% | Phase 1 |
+| Module | mypy Status | CI Enforced | Notes |
+|--------|-------------|-------------|-------|
+| `src/shared/*` | ✅ PASS | ⚠️ Partial | Should be strict-gated in CI |
+| `src/strategies/_base/*` | ✅ PASS | ✅ Yes | Strict in CI |
+| `src/backtest_engine/core/*` | ⚠️ Partial | ❌ No | CI uses `\|\| true` |
+| `src/backtest_engine/optimizer/*` | ⚠️ Partial | ❌ No | CI uses `\|\| true` |
+| `src/backtest_engine/rating/*` | ⚠️ Partial | ❌ No | CI uses `\|\| true` |
+| Rating Modules | ⚠️ Partial | ❌ No | Should be migration-ready |
+
+**Action Required:** CI workflow needs to enforce mypy --strict for migration-critical modules.
 
 ### 5.2 Type Annotation Quality
 
@@ -239,20 +255,39 @@ Location: `src/shared/arrow_schema_registry.py`
 - [x] FFI specifications reviewed
 - [x] Benchmark suite validated
 - [x] Golden files verified
-- [x] Runbooks approved
-- [x] Type safety confirmed
+- [ ] ⚠️ Runbooks need path corrections (slippage.py → slippage_and_fee.py)
+- [ ] ⚠️ Type safety not CI-enforced for all migration-critical modules
 - [x] Build system tested
+
+### Go/No-Go Criteria
+
+| Criterion | Status | Required for Pilot |
+|-----------|--------|-------------------|
+| Arrow schemas defined | ✅ | Yes |
+| Error codes (Python) | ✅ | Yes |
+| Error codes (Rust sync) | ⚠️ PLANNED | Recommended |
+| mypy strict in CI | ⚠️ Partial | Yes (fix pending) |
+| Runbook paths accurate | ⚠️ Fix needed | Yes |
+| Performance baselines | ✅ | Yes |
 
 ### Migration Authorization
 
-**Status:** ✅ **APPROVED FOR MIGRATION**
+**Status:** ⚠️ **CONDITIONALLY APPROVED**
+
+**Blockers for Pilot Start:**
+
+1. Fix CI to enforce mypy --strict for migration modules (backtest_engine.core/rating/optimizer)
+2. Correct runbook file paths (slippage.py/fee.py → slippage_and_fee.py)
+3. Implement Rust ErrorCode enum sync (strongly recommended)
 
 **Next Steps:**
-1. Begin Wave 0 (Pilot) with `slippage_and_fee.py`
-2. Execute validation checklist post-pilot
-3. Proceed to Wave 1 upon successful pilot completion
+
+1. Address blockers above
+2. Begin Wave 0 (Pilot) with `slippage_and_fee.py`
+3. Execute validation checklist post-pilot
+4. Proceed to Wave 1 upon successful pilot completion
 
 ---
 
-*Document generated: 2026-01-06*  
-*Phase 6 Validation: COMPLETE*
+*Document updated: 2026-01-07*  
+*Phase 6 Validation: CONDITIONAL PASS*

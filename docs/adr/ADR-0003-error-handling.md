@@ -448,6 +448,68 @@ def ffi_call(func: Callable[..., dict[str, Any]]) -> Callable[..., Any]:
 - **Maintenance**: Error-Codes müssen synchron gehalten werden
 - **Boilerplate**: FFI-Wrapper für jede exportierte Funktion
 
+## FFI-Semantik-Klarstellung (ergänzt 2024-01)
+
+### PyO3 Exceptions als Standard für Rust-Python-Grenze
+
+**Entscheidung**: Für die Rust-Python-FFI verwenden wir primär **PyO3 native Exceptions**:
+
+```rust
+// Empfohlener Ansatz: OmegaError implementiert IntoPyObject für PyErr
+impl std::convert::From<OmegaError> for PyErr {
+    fn from(err: OmegaError) -> PyErr {
+        // Error-Code wird in Message-Präfix kodiert für Audit
+        let prefixed_msg = format!("[{}] {}", err.error_code() as i32, err.to_string());
+        PyRuntimeError::new_err(prefixed_msg)
+    }
+}
+```
+
+**Rationale**:
+1. **Python-Idiomatik**: Python-Code kann natürlich `try/except` nutzen
+2. **Weniger Boilerplate**: Kein manuelles `handle_ffi_result()` erforderlich
+3. **Stack-Traces erhalten**: PyO3 propagiert Rust-Backtraces in Debug-Builds
+4. **Error-Codes bleiben verfügbar**: Via Message-Präfix `[1001]` auditierbar
+
+**ErrorCodes dienen weiterhin für**:
+- Cross-Language-Audit (Logs können nach Code filtern)
+- Metriken/Monitoring (strukturierte Kategorien)
+- Julia-Python-FFI (wo PyO3 nicht verfügbar)
+- Serialisierte FfiResult-Structs für komplexe Rückgaben
+
+**Beispiel-Verwendung (Rust → Python)**:
+```rust
+#[pyfunction]
+fn calculate_slippage(price: f64, spread: f64) -> PyResult<f64> {
+    if price <= 0.0 {
+        // Wird automatisch zu Python RuntimeError mit "[1001] ..." Präfix
+        return Err(OmegaError::Validation {
+            message: "Price must be positive".into(),
+            code: ErrorCode::InvalidArgument,
+        }.into());
+    }
+    Ok(price * spread)
+}
+```
+
+```python
+# Python-Seite - natürliche Exception-Behandlung
+try:
+    result = omega_rust.calculate_slippage(-100.0, 0.001)
+except RuntimeError as e:
+    # Message enthält "[1001] Price must be positive"
+    error_code = int(str(e).split("]")[0][1:])  # Extrahiert 1001
+    logger.error(f"Slippage error (code={error_code}): {e}")
+```
+
+### Wann FfiResult-Structs verwenden?
+
+FfiResult-Dicts/Structs (Alternative 2 im ADR) sind weiterhin sinnvoll für:
+- Batch-Operationen mit partiellen Fehlern
+- Async-Rückgaben über Callback-Grenzen
+- Julia-Integration (kein PyO3-Äquivalent)
+- Explizite strukturierte Rückgaben mit Kontext
+
 ### Risiken
 
 | Risiko | Wahrscheinlichkeit | Impact | Mitigation |
@@ -503,3 +565,5 @@ def ffi_call(func: Callable[..., dict[str, Any]]) -> Callable[..., Any]:
 |-------|-------|----------|
 | 2026-01-05 | AI Agent | Initiale Version (P2-07) |
 | 2026-01-05 | AI Agent | Finalisiert (P5-03); Implementierungs-Checkliste aktualisiert |
+| 2025-01-15 | Migration Lead | FFI-Semantik-Klarstellung: PyO3 Exceptions als Standard |
+
