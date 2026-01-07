@@ -36,6 +36,7 @@ Ordner-für-Ordner-Übersicht der Codebasis (ohne `results`-Ordner und ohne Aufl
   - `backtest_engine/`
   - `hf_engine/`
   - `julia_modules/` *(Future: High-perf Julia extensions via PythonCall)*
+  - `omega/` *(Python-Top-Level-Package/Namespace für FFI-Module wie `omega._rust`)*
   - `omega.egg-info/` *(build artifact from pyproject.toml name)*
   - `rust_modules/` *(Future: High-perf Rust extensions via PyO3/Maturin)*
   - `shared/` *(Shared Protocols & type aliases for stable boundaries)*
