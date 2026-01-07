@@ -202,61 +202,139 @@ pub fn get_error_code_constants() -> std::collections::HashMap<String, i32> {
     codes.insert("OK".to_string(), ErrorCode::Ok as i32);
 
     // Validation Errors
-    codes.insert("VALIDATION_FAILED".to_string(), ErrorCode::ValidationFailed as i32);
-    codes.insert("INVALID_ARGUMENT".to_string(), ErrorCode::InvalidArgument as i32);
+    codes.insert(
+        "VALIDATION_FAILED".to_string(),
+        ErrorCode::ValidationFailed as i32,
+    );
+    codes.insert(
+        "INVALID_ARGUMENT".to_string(),
+        ErrorCode::InvalidArgument as i32,
+    );
     codes.insert("NULL_POINTER".to_string(), ErrorCode::NullPointer as i32);
     codes.insert("OUT_OF_BOUNDS".to_string(), ErrorCode::OutOfBounds as i32);
     codes.insert("TYPE_MISMATCH".to_string(), ErrorCode::TypeMismatch as i32);
-    codes.insert("SCHEMA_VIOLATION".to_string(), ErrorCode::SchemaViolation as i32);
-    codes.insert("CONSTRAINT_VIOLATION".to_string(), ErrorCode::ConstraintViolation as i32);
+    codes.insert(
+        "SCHEMA_VIOLATION".to_string(),
+        ErrorCode::SchemaViolation as i32,
+    );
+    codes.insert(
+        "CONSTRAINT_VIOLATION".to_string(),
+        ErrorCode::ConstraintViolation as i32,
+    );
     codes.insert("INVALID_STATE".to_string(), ErrorCode::InvalidState as i32);
-    codes.insert("MISSING_REQUIRED_FIELD".to_string(), ErrorCode::MissingRequiredField as i32);
-    codes.insert("INVALID_FORMAT".to_string(), ErrorCode::InvalidFormat as i32);
+    codes.insert(
+        "MISSING_REQUIRED_FIELD".to_string(),
+        ErrorCode::MissingRequiredField as i32,
+    );
+    codes.insert(
+        "INVALID_FORMAT".to_string(),
+        ErrorCode::InvalidFormat as i32,
+    );
     codes.insert("EMPTY_INPUT".to_string(), ErrorCode::EmptyInput as i32);
     codes.insert("SIZE_MISMATCH".to_string(), ErrorCode::SizeMismatch as i32);
 
     // Computation Errors
-    codes.insert("COMPUTATION_FAILED".to_string(), ErrorCode::ComputationFailed as i32);
-    codes.insert("DIVISION_BY_ZERO".to_string(), ErrorCode::DivisionByZero as i32);
+    codes.insert(
+        "COMPUTATION_FAILED".to_string(),
+        ErrorCode::ComputationFailed as i32,
+    );
+    codes.insert(
+        "DIVISION_BY_ZERO".to_string(),
+        ErrorCode::DivisionByZero as i32,
+    );
     codes.insert("OVERFLOW".to_string(), ErrorCode::Overflow as i32);
     codes.insert("UNDERFLOW".to_string(), ErrorCode::Underflow as i32);
     codes.insert("NAN_RESULT".to_string(), ErrorCode::NanResult as i32);
     codes.insert("INF_RESULT".to_string(), ErrorCode::InfResult as i32);
-    codes.insert("CONVERGENCE_FAILED".to_string(), ErrorCode::ConvergenceFailed as i32);
-    codes.insert("NUMERICAL_INSTABILITY".to_string(), ErrorCode::NumericalInstability as i32);
-    codes.insert("INSUFFICIENT_DATA".to_string(), ErrorCode::InsufficientData as i32);
+    codes.insert(
+        "CONVERGENCE_FAILED".to_string(),
+        ErrorCode::ConvergenceFailed as i32,
+    );
+    codes.insert(
+        "NUMERICAL_INSTABILITY".to_string(),
+        ErrorCode::NumericalInstability as i32,
+    );
+    codes.insert(
+        "INSUFFICIENT_DATA".to_string(),
+        ErrorCode::InsufficientData as i32,
+    );
 
     // I/O Errors
     codes.insert("IO_ERROR".to_string(), ErrorCode::IoError as i32);
     codes.insert("FILE_NOT_FOUND".to_string(), ErrorCode::FileNotFound as i32);
-    codes.insert("PERMISSION_DENIED".to_string(), ErrorCode::PermissionDenied as i32);
-    codes.insert("SERIALIZATION_FAILED".to_string(), ErrorCode::SerializationFailed as i32);
-    codes.insert("DESERIALIZATION_FAILED".to_string(), ErrorCode::DeserializationFailed as i32);
+    codes.insert(
+        "PERMISSION_DENIED".to_string(),
+        ErrorCode::PermissionDenied as i32,
+    );
+    codes.insert(
+        "SERIALIZATION_FAILED".to_string(),
+        ErrorCode::SerializationFailed as i32,
+    );
+    codes.insert(
+        "DESERIALIZATION_FAILED".to_string(),
+        ErrorCode::DeserializationFailed as i32,
+    );
     codes.insert("NETWORK_ERROR".to_string(), ErrorCode::NetworkError as i32);
     codes.insert("TIMEOUT".to_string(), ErrorCode::Timeout as i32);
     codes.insert("DISK_FULL".to_string(), ErrorCode::DiskFull as i32);
 
     // Internal Errors
-    codes.insert("INTERNAL_ERROR".to_string(), ErrorCode::InternalError as i32);
-    codes.insert("NOT_IMPLEMENTED".to_string(), ErrorCode::NotImplemented as i32);
-    codes.insert("ASSERTION_FAILED".to_string(), ErrorCode::AssertionFailed as i32);
+    codes.insert(
+        "INTERNAL_ERROR".to_string(),
+        ErrorCode::InternalError as i32,
+    );
+    codes.insert(
+        "NOT_IMPLEMENTED".to_string(),
+        ErrorCode::NotImplemented as i32,
+    );
+    codes.insert(
+        "ASSERTION_FAILED".to_string(),
+        ErrorCode::AssertionFailed as i32,
+    );
     codes.insert("UNREACHABLE".to_string(), ErrorCode::Unreachable as i32);
-    codes.insert("INVARIANT_VIOLATED".to_string(), ErrorCode::InvariantViolated as i32);
+    codes.insert(
+        "INVARIANT_VIOLATED".to_string(),
+        ErrorCode::InvariantViolated as i32,
+    );
 
     // FFI Errors
     codes.insert("FFI_ERROR".to_string(), ErrorCode::FfiError as i32);
-    codes.insert("FFI_TYPE_CONVERSION".to_string(), ErrorCode::FfiTypeConversion as i32);
-    codes.insert("FFI_BUFFER_OVERFLOW".to_string(), ErrorCode::FfiBufferOverflow as i32);
-    codes.insert("FFI_MEMORY_ERROR".to_string(), ErrorCode::FfiMemoryError as i32);
-    codes.insert("FFI_SCHEMA_MISMATCH".to_string(), ErrorCode::FfiSchemaMismatch as i32);
-    codes.insert("FFI_PANIC_CAUGHT".to_string(), ErrorCode::FfiPanicCaught as i32);
+    codes.insert(
+        "FFI_TYPE_CONVERSION".to_string(),
+        ErrorCode::FfiTypeConversion as i32,
+    );
+    codes.insert(
+        "FFI_BUFFER_OVERFLOW".to_string(),
+        ErrorCode::FfiBufferOverflow as i32,
+    );
+    codes.insert(
+        "FFI_MEMORY_ERROR".to_string(),
+        ErrorCode::FfiMemoryError as i32,
+    );
+    codes.insert(
+        "FFI_SCHEMA_MISMATCH".to_string(),
+        ErrorCode::FfiSchemaMismatch as i32,
+    );
+    codes.insert(
+        "FFI_PANIC_CAUGHT".to_string(),
+        ErrorCode::FfiPanicCaught as i32,
+    );
 
     // Resource Errors
-    codes.insert("RESOURCE_ERROR".to_string(), ErrorCode::ResourceError as i32);
+    codes.insert(
+        "RESOURCE_ERROR".to_string(),
+        ErrorCode::ResourceError as i32,
+    );
     codes.insert("OUT_OF_MEMORY".to_string(), ErrorCode::OutOfMemory as i32);
-    codes.insert("RESOURCE_EXHAUSTED".to_string(), ErrorCode::ResourceExhausted as i32);
+    codes.insert(
+        "RESOURCE_EXHAUSTED".to_string(),
+        ErrorCode::ResourceExhausted as i32,
+    );
     codes.insert("RESOURCE_BUSY".to_string(), ErrorCode::ResourceBusy as i32);
-    codes.insert("RESOURCE_LIMIT_EXCEEDED".to_string(), ErrorCode::ResourceLimitExceeded as i32);
+    codes.insert(
+        "RESOURCE_LIMIT_EXCEEDED".to_string(),
+        ErrorCode::ResourceLimitExceeded as i32,
+    );
 
     codes
 }
@@ -282,7 +360,11 @@ mod tests {
             reason: "period must be positive".to_string(),
         };
         let msg = err.to_string();
-        assert!(msg.contains("[1001]"), "Error message should contain error code: {}", msg);
+        assert!(
+            msg.contains("[1001]"),
+            "Error message should contain error code: {}",
+            msg
+        );
         assert!(msg.contains("period must be positive"));
 
         let err = OmegaError::InsufficientData {
@@ -290,7 +372,11 @@ mod tests {
             actual: 5,
         };
         let msg = err.to_string();
-        assert!(msg.contains("[2008]"), "Error message should contain error code: {}", msg);
+        assert!(
+            msg.contains("[2008]"),
+            "Error message should contain error code: {}",
+            msg
+        );
         assert!(msg.contains("10"));
         assert!(msg.contains('5'));
     }
@@ -298,11 +384,18 @@ mod tests {
     #[test]
     fn test_error_code_mapping() {
         assert_eq!(
-            OmegaError::InvalidParameter { reason: "test".to_string() }.error_code(),
+            OmegaError::InvalidParameter {
+                reason: "test".to_string()
+            }
+            .error_code(),
             ErrorCode::InvalidArgument
         );
         assert_eq!(
-            OmegaError::InsufficientData { required: 10, actual: 5 }.error_code(),
+            OmegaError::InsufficientData {
+                required: 10,
+                actual: 5
+            }
+            .error_code(),
             ErrorCode::InsufficientData
         );
         assert_eq!(
