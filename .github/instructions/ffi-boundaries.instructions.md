@@ -32,10 +32,11 @@ Standards for cross-language communication in the Omega hybrid architecture.
 
 ## Contract Definition
 
-- Define all FFI contracts in `src/contracts/` as: 
-  - Python:  Pydantic models
-  - Rust:  Serde structs with `#[pyclass]`
-  - Julia: Struct definitions with `@kwdef`
+- Define all FFI contracts in `src/shared/` as: 
+  - Python: Pydantic models in `src/shared/protocols.py` and domain exceptions in `src/shared/exceptions.py`
+  - Error codes: `src/shared/error_codes.py` (cross-language mapping)
+  - Rust: Serde structs with `#[pyclass]` in `src/rust_modules/omega_rust/src/`
+  - Julia: Struct definitions with `@kwdef` in `src/julia_modules/omega_julia/src/`
 
 ## Performance Requirements
 
