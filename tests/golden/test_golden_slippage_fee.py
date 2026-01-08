@@ -107,9 +107,8 @@ def generate_slippage_test_cases(seed: int) -> list[dict[str, Any]]:
 
     for price in prices:
         for direction in directions:
-            # Seed pro Testfall für Reproduzierbarkeit
-            set_deterministic_seed(seed)
-            adjusted_price = model.apply(price, direction, pip_size)
+            # Pass seed directly to apply() for determinism (supports both Python and Rust backends)
+            adjusted_price = model.apply(price, direction, pip_size, seed=seed)
 
             test_cases.append(
                 {
@@ -119,6 +118,7 @@ def generate_slippage_test_cases(seed: int) -> list[dict[str, Any]]:
                         "pip_size": pip_size,
                         "fixed_pips": fixed_pips,
                         "random_pips": random_pips,
+                        "seed": seed,
                     },
                     "output": {
                         "adjusted_price": round(adjusted_price, 8),
@@ -214,18 +214,16 @@ class TestSlippageModelDeterminism:
 
     def test_slippage_deterministic_with_fixed_seed(self) -> None:
         """SlippageModel muss bei gleichem Seed gleiche Ergebnisse liefern."""
-        set_deterministic_seed(GOLDEN_SEED)
         model = SlippageModel(fixed_pips=0.5, random_pips=1.0)
 
         results_1 = []
         for price in [1.1, 1.2, 1.3]:
-            set_deterministic_seed(GOLDEN_SEED)
-            results_1.append(model.apply(price, "long", 0.0001))
+            # Pass seed directly to apply() for determinism (supports both Python and Rust)
+            results_1.append(model.apply(price, "long", 0.0001, seed=GOLDEN_SEED))
 
         results_2 = []
         for price in [1.1, 1.2, 1.3]:
-            set_deterministic_seed(GOLDEN_SEED)
-            results_2.append(model.apply(price, "long", 0.0001))
+            results_2.append(model.apply(price, "long", 0.0001, seed=GOLDEN_SEED))
 
         assert results_1 == results_2, "SlippageModel nicht deterministisch!"
 
