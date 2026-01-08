@@ -119,7 +119,7 @@ def _monitor_stop_file(
         _log_exc("[Launcher] Fehler in _monitor_stop_file", level="WARNING")
 
 
-def _start_heartbeat(account_id: str, stop_event: threading.Event, interval_sec: int):
+def _start_heartbeat(account_id: str, stop_event: threading.Event, interval_sec: float):
     """
     Schreibt kompatibel weiterhin NUR den Unix-Timestamp in die Heartbeat-Datei,
     um bestehende Konsumenten nicht zu brechen.
@@ -143,11 +143,11 @@ def _start_heartbeat(account_id: str, stop_event: threading.Event, interval_sec:
 
 
 def start_heartbeat(
-    account_id: str, interval_sec: int | None = None
+    account_id: str, interval_sec: float | None = None
 ) -> threading.Event:
     """Öffentliches API (Tests/UI) für einfachen Heartbeat ohne separaten Stop-Event."""
     stop_event = threading.Event()
-    interval = int(interval_sec or DEFAULT_HEARTBEAT_INTERVAL_SEC)
+    interval = float(interval_sec) if interval_sec is not None else DEFAULT_HEARTBEAT_INTERVAL_SEC
     threading.Thread(
         target=_monitor_stop_file,
         args=(_shutdown_paths(account_id)["stop_file"], stop_event, 1.0),
