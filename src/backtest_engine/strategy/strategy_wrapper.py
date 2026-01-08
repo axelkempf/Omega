@@ -14,8 +14,8 @@ from typing import Any, Dict, Final, List, Optional, Protocol, Union, runtime_ch
 from backtest_engine.core.portfolio import Portfolio
 from backtest_engine.core.symbol_data_slicer import SymbolDataSlice
 from backtest_engine.data.tick import Tick
-from backtest_engine.logging.entry_log import EntryLogger
-from backtest_engine.logging.trade_logger import TradeLogger
+from backtest_engine.bt_logging.entry_log import EntryLogger
+from backtest_engine.bt_logging.trade_logger import TradeLogger
 
 # Type aliases for clarity
 SignalDict = Dict[str, Any]
