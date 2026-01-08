@@ -341,7 +341,9 @@ jobs:
       - name: Verify wheel importability (truth gate)
         if: steps.check_rust.outputs.rust_exists == 'true'
         run: |
-          python -c "import omega._rust as m; print('omega._rust import OK, version=', getattr(m, '__version__', 'unknown'))"
+          # Test both: direct import (omega_rust) and re-export (omega._rust)
+          python -c "import omega_rust as m; print('omega_rust import OK, version=', getattr(m, '__version__', 'unknown'))"
+          python -c "from omega import _rust as m; print('omega._rust re-export OK, version=', getattr(m, '__version__', 'unknown'))"
 
       - name: Run integration tests
         if: steps.check_rust.outputs.rust_exists == 'true'
