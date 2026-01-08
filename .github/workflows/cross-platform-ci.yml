@@ -388,7 +388,10 @@ jobs:
           pip install maturin
           cd src/rust_modules/omega_rust
           maturin build --release --out dist
-          pip install dist/*.whl
+          # Use --force-reinstall --no-deps to ensure the wheel is properly installed
+          # without conflicting with the already installed omega package
+          pip install --force-reinstall --no-deps dist/*.whl
+          pip show omega-rust
 
       - name: Setup Julia FFI
         if: steps.check_julia.outputs.julia_exists == 'true'

@@ -46,7 +46,9 @@ Documentation = "https://github.com/axelkempf/Omega/tree/main/docs"
 
 [tool.maturin]
 # Module name in Python namespace
-module-name = "omega._rust"
+# Using 'omega_rust' as a standalone module name (not 'omega._rust')
+# The main 'omega' package re-exports this as 'omega._rust' via __getattr__
+module-name = "omega_rust"
 # Build features
 features = []
 # Strip debug symbols in release

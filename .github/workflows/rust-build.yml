@@ -335,15 +335,23 @@ jobs:
       - name: Install wheel and dependencies
         if: steps.check_rust.outputs.rust_exists == 'true'
         run: |
-          pip install dist/*.whl
+          # Install main omega package FIRST, then the Rust wheel
+          # This order is critical: editable install must come before wheel
+          # to prevent the wheel from being overwritten
           pip install -e .[dev]
+          pip install --force-reinstall --no-deps dist/*.whl
+          # Verify the Rust module is installed correctly
+          pip show omega-rust
 
       - name: Verify wheel importability (truth gate)
         if: steps.check_rust.outputs.rust_exists == 'true'
         run: |
-          # Test both: direct import (omega_rust) and re-export (omega._rust)
+          # Test direct import of omega_rust module
           python -c "import omega_rust as m; print('omega_rust import OK, version=', getattr(m, '__version__', 'unknown'))"
+          # Test re-export via omega package (omega._rust)
           python -c "from omega import _rust as m; print('omega._rust re-export OK, version=', getattr(m, '__version__', 'unknown'))"
+          # List site-packages to verify installation
+          python -c "import site; import os; sp = site.getsitepackages()[0]; print('omega_rust in site-packages:', any('omega_rust' in f for f in os.listdir(sp) if os.path.isdir(os.path.join(sp, f)) or f.endswith('.so') or f.endswith('.pyd')))"
 
       - name: Run integration tests
         if: steps.check_rust.outputs.rust_exists == 'true'

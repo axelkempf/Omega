@@ -97,7 +97,25 @@ def test_rust_indicator_smoke() -> None:
         pytest.skip(f"omega._rust not installed ({exc}).")
         return
 
-    prices = [100.0, 101.5, 99.8, 102.3, 103.1]
+    # Use enough data points for RSI (need at least period + 1)
+    prices = [
+        100.0,
+        101.5,
+        99.8,
+        102.3,
+        103.1,
+        102.0,
+        104.5,
+        103.8,
+        105.2,
+        104.0,
+        106.1,
+        105.5,
+        107.0,
+        106.3,
+        108.2,
+        107.5,
+    ]
 
     ema_out = ema(prices, period=3)
     assert len(ema_out) == len(prices)
