@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import sys
 import threading
-from types import SimpleNamespace
+import types
 from typing import Any, Dict
 
 import pytest
@@ -54,18 +54,20 @@ def patched_runner(monkeypatch, mock_strategy, mock_broker, mock_data_provider):
         pre_existing = pre_existing or {}
 
         # Patch MetaTrader5 import before importing StrategyRunner
-        mt5_stub = SimpleNamespace(
-            TIMEFRAME_M1=1,
-            TIMEFRAME_M5=5,
-            TIMEFRAME_M15=15,
-            TIMEFRAME_M30=30,
-            TIMEFRAME_H1=60,
-            TIMEFRAME_H4=240,
-            TIMEFRAME_D1=1440,
-            TIMEFRAME_W1=10080,
-            TIMEFRAME_MN1=43200,
-        )
-        sys.modules.setdefault("MetaTrader5", mt5_stub)
+        # Important: Hypothesis (and other tooling) assumes sys.modules values are hashable.
+        # Using ModuleType avoids leaving an unhashable SimpleNamespace in sys.modules.
+        mt5_stub = types.ModuleType("MetaTrader5")
+        mt5_stub.TIMEFRAME_M1 = 1
+        mt5_stub.TIMEFRAME_M5 = 5
+        mt5_stub.TIMEFRAME_M15 = 15
+        mt5_stub.TIMEFRAME_M30 = 30
+        mt5_stub.TIMEFRAME_H1 = 60
+        mt5_stub.TIMEFRAME_H4 = 240
+        mt5_stub.TIMEFRAME_D1 = 1440
+        mt5_stub.TIMEFRAME_W1 = 10080
+        mt5_stub.TIMEFRAME_MN1 = 43200
+
+        monkeypatch.setitem(sys.modules, "MetaTrader5", mt5_stub)
 
         from hf_engine.core.controlling import strategy_runner as sr
         from strategies._base import base_position_manager as bpm

@@ -14,7 +14,7 @@ PrimaryCandleArrays = Dict[str, np.ndarray]
 
 
 def align_primary_candles(
-    bid_df: pd.DataFrame, ask_df: pd.DataFrame
+    bid_df: pd.DataFrame | None, ask_df: pd.DataFrame | None
 ) -> Optional[PrimaryCandleArrays]:
     """
     Align bid/ask candle DataFrames on UTC timestamps and expose arrays for fast lookups.
@@ -158,7 +158,7 @@ def compute_tp_sl_stress_score(
         return 1.0
 
     _dbg(f"starting loop: trades={len(trades_df)} n_candles={n_candles}")
-    skip_counts = defaultdict(int)
+    skip_counts: defaultdict[str, int] = defaultdict(int)
     logged_skips: Set[str] = set()
 
     def _ts_to_ns(val: Any) -> Optional[int]:
@@ -215,6 +215,10 @@ def compute_tp_sl_stress_score(
             sl_val = getattr(trade, "stop_loss", None)
             if sl_val is None:
                 sl_val = getattr(trade, "initial_stop_loss", None)
+
+            if tp_val is None or sl_val is None:
+                skip_counts["missing_tp_sl"] += 1
+                continue
             try:
                 tp = float(tp_val)
                 sl = float(sl_val)

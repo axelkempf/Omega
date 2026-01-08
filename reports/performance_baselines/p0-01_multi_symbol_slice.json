@@ -1,0 +1,14 @@
+{
+  "meta": {
+    "generated_at": "2026-01-03T21:37:31Z",
+    "symbols": 5,
+    "timeframes": 3,
+    "bars": 50000,
+    "seed": 777
+  },
+  "results": {
+    "seconds": 7.235017,
+    "peak_mb": 0.502346,
+    "ops_per_sec": 34554.17
+  }
+}

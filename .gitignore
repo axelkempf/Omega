@@ -48,6 +48,32 @@ coverage.xml
 pytest.log
 
 # ------------------------------------------------------------------------------
+# Rust (Cargo/PyO3)
+# ------------------------------------------------------------------------------
+**/target/
+Cargo.lock
+*.rlib
+*.rmeta
+*.d
+
+# ------------------------------------------------------------------------------
+# Julia
+# ------------------------------------------------------------------------------
+**/Manifest.toml
+
+# ------------------------------------------------------------------------------
+# Hypothesis (property testing)
+# ------------------------------------------------------------------------------
+.hypothesis/
+
+# ------------------------------------------------------------------------------
+# Golden test reference files (generated, but tracked for migration validation)
+# ------------------------------------------------------------------------------
+# Note: Golden reference files are committed to enable determinism validation
+# during the Rust/Julia migration. See docs/MIGRATION_READINESS_VALIDATION.md
+# tests/golden/reference/  # Disabled - files are now tracked for migration
+
+# ------------------------------------------------------------------------------
 # Secrets & Credentials (never commit!)
 # ------------------------------------------------------------------------------
 *.key

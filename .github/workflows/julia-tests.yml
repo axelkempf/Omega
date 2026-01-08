@@ -1,0 +1,333 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+# GitHub Actions Workflow for Julia Package Tests
+# Task-ID: P4-04 | Phase: 4 – Build-System | Status: Active
+# Handles: Julia setup, Package instantiation, Tests, Python-Julia FFI validation
+
+name: Julia Tests
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/julia_modules/**'
+      - 'Project.toml'
+      - 'Manifest.toml'
+      - '.github/workflows/julia-tests.yml'
+  pull_request:
+    paths:
+      - 'src/julia_modules/**'
+      - 'Project.toml'
+      - 'Manifest.toml'
+      - '.github/workflows/julia-tests.yml'
+  workflow_dispatch:
+    inputs:
+      julia_version:
+        description: 'Julia version to test'
+        required: false
+        default: '1.10'
+        type: string
+      run_integration:
+        description: 'Run Python-Julia integration tests'
+        required: false
+        default: true
+        type: boolean
+
+permissions:
+  contents: read
+
+env:
+  JULIA_NUM_THREADS: 2
+  JULIA_DEPOT_PATH: ~/.julia
+
+jobs:
+  # ============================================================================
+  # Julia Unit Tests
+  # ============================================================================
+  test:
+    name: Test Julia ${{ matrix.julia-version }} (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        julia-version: ['1.10', '1.11']
+        os: [ubuntu-latest]
+        include:
+          - julia-version: '1.10'
+            os: macos-latest
+          - julia-version: '1.10'
+            os: windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check for Julia modules
+        id: check_julia
+        shell: bash
+        run: |
+          if [ -d "src/julia_modules/omega_julia" ] && [ -f "src/julia_modules/omega_julia/Project.toml" ]; then
+            echo "julia_exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "julia_exists=false" >> $GITHUB_OUTPUT
+            echo "::notice::No Julia modules found - skipping Julia workflow"
+          fi
+
+      - name: Setup Julia
+        if: steps.check_julia.outputs.julia_exists == 'true'
+        uses: julia-actions/setup-julia@v2
+        with:
+          version: ${{ matrix.julia-version }}
+
+      - name: Cache Julia depot
+        if: steps.check_julia.outputs.julia_exists == 'true'
+        uses: julia-actions/cache@v2
+        with:
+          cache-name: julia-cache-${{ matrix.os }}-${{ matrix.julia-version }}
+
+      - name: Install package dependencies
+        if: steps.check_julia.outputs.julia_exists == 'true'
+        shell: julia --color=yes --project=src/julia_modules/omega_julia {0}
+        run: |
+          using Pkg
+          Pkg.instantiate()
+          Pkg.precompile()
+
+      - name: Run unit tests
+        if: steps.check_julia.outputs.julia_exists == 'true'
+        shell: julia --color=yes --project=src/julia_modules/omega_julia {0}
+        run: |
+          using Pkg
+          Pkg.test()
+
+      - name: Generate test coverage
+        if: steps.check_julia.outputs.julia_exists == 'true' && matrix.os == 'ubuntu-latest' && matrix.julia-version == '1.10'
+        shell: julia --color=yes --project=src/julia_modules/omega_julia {0}
+        run: |
+          using Pkg
+          Pkg.add("Coverage")
+          using Coverage
+          # Process coverage data if available
+          if isdir("src/julia_modules/omega_julia/src")
+              coverage = process_folder("src/julia_modules/omega_julia/src")
+              LCOV.writefile("lcov.info", coverage)
+          end
+
+  # ============================================================================
+  # Code Quality (Format & Lint)
+  # ============================================================================
+  format:
+    name: Format Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check for Julia modules
+        id: check_julia
+        run: |
+          if [ -d "src/julia_modules/omega_julia" ] && [ -f "src/julia_modules/omega_julia/Project.toml" ]; then
+            echo "julia_exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "julia_exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Setup Julia
+        if: steps.check_julia.outputs.julia_exists == 'true'
+        uses: julia-actions/setup-julia@v2
+        with:
+          version: '1.10'
+
+      - name: Cache Julia depot
+        if: steps.check_julia.outputs.julia_exists == 'true'
+        uses: julia-actions/cache@v2
+
+      - name: Install JuliaFormatter
+        if: steps.check_julia.outputs.julia_exists == 'true'
+        shell: julia --color=yes {0}
+        run: |
+          using Pkg
+          Pkg.add("JuliaFormatter")
+
+      - name: Check formatting
+        if: steps.check_julia.outputs.julia_exists == 'true'
+        shell: julia --color=yes {0}
+        run: |
+          using JuliaFormatter
+          
+          result = format(
+              "src/julia_modules/omega_julia",
+              verbose=true,
+              overwrite=false
+          )
+          
+          if !result
+              @error "Julia code is not formatted. Run: julia -e 'using JuliaFormatter; format(\"src/julia_modules/omega_julia\")'"
+              exit(1)
+          end
+          println("✓ All Julia files are properly formatted")
+
+  # ============================================================================
+  # Python-Julia Integration Tests
+  # ============================================================================
+  integration:
+    name: Python-Julia Integration
+    runs-on: ubuntu-latest
+    needs: [test]
+    if: github.event.inputs.run_integration != 'false'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check for Julia modules
+        id: check_julia
+        run: |
+          if [ -d "src/julia_modules/omega_julia" ] && [ -f "src/julia_modules/omega_julia/Project.toml" ]; then
+            echo "julia_exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "julia_exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Setup Julia
+        if: steps.check_julia.outputs.julia_exists == 'true'
+        uses: julia-actions/setup-julia@v2
+        with:
+          version: '1.10'
+
+      - name: Setup Python
+        if: steps.check_julia.outputs.julia_exists == 'true'
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Cache Julia depot
+        if: steps.check_julia.outputs.julia_exists == 'true'
+        uses: julia-actions/cache@v2
+
+      - name: Install Python dependencies
+        if: steps.check_julia.outputs.julia_exists == 'true'
+        run: |
+          pip install -e .[dev]
+          pip install juliacall
+
+      - name: Install Julia packages including PythonCall
+        if: steps.check_julia.outputs.julia_exists == 'true'
+        shell: julia --color=yes --project=src/julia_modules/omega_julia {0}
+        run: |
+          using Pkg
+          Pkg.add("PythonCall")
+          Pkg.instantiate()
+          Pkg.precompile()
+        env:
+          # Use system Python for PythonCall
+          JULIA_CONDAPKG_BACKEND: "Null"
+          JULIA_PYTHONCALL_EXE: python
+
+      - name: Run Python-Julia integration tests
+        if: steps.check_julia.outputs.julia_exists == 'true'
+        run: |
+          pytest tests/ -v -m "julia_integration" --tb=short
+        env:
+          JULIA_PROJECT: src/julia_modules/omega_julia
+          OMEGA_REQUIRE_JULIA_FFI: "1"
+
+      - name: Validate Julia callable from Python
+        if: steps.check_julia.outputs.julia_exists == 'true'
+        run: |
+          python << 'EOF'
+          import sys
+          import os
+          try:
+              from juliacall import Main as jl
+
+              project = os.environ.get("JULIA_PROJECT")
+              if project:
+                  project = os.path.abspath(project)
+                  # Explicitly activate the repo-local project so `using OmegaJulia` works
+                  # reliably under juliacall.
+                  jl.seval("import Pkg")
+                  jl.seval(f'Pkg.activate(raw"{project}")')
+                  jl.seval("Pkg.instantiate()")
+
+              # Ensure the OmegaJulia package can be loaded in this project.
+              jl.seval("using OmegaJulia")
+              
+              # Basic Julia functionality check
+              result = jl.seval("1 + 1")
+              assert result == 2, f"Expected 2, got {result}"
+              
+              # Check Statistics stdlib
+              jl.seval("using Statistics")
+              mean_result = jl.mean([1.0, 2.0, 3.0, 4.0, 5.0])
+              assert abs(mean_result - 3.0) < 1e-10, f"Expected 3.0, got {mean_result}"
+              
+              print("✓ Julia callable from Python - validation passed")
+              
+          except Exception as e:
+              require = os.environ.get("OMEGA_REQUIRE_JULIA_FFI") == "1"
+              print(f"✗ Julia integration validation failed: {e}")
+              sys.exit(1 if require else 0)
+          EOF
+        env:
+          JULIA_PROJECT: src/julia_modules/omega_julia
+          OMEGA_REQUIRE_JULIA_FFI: "1"
+
+  # ============================================================================
+  # Documentation Build (Optional)
+  # ============================================================================
+  docs:
+    name: Build Documentation
+    runs-on: ubuntu-latest
+    needs: [test]
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check for Julia modules
+        id: check_julia
+        run: |
+          if [ -d "src/julia_modules/omega_julia" ] && [ -f "src/julia_modules/omega_julia/Project.toml" ]; then
+            echo "julia_exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "julia_exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Setup Julia
+        if: steps.check_julia.outputs.julia_exists == 'true'
+        uses: julia-actions/setup-julia@v2
+        with:
+          version: '1.10'
+
+      - name: Cache Julia depot
+        if: steps.check_julia.outputs.julia_exists == 'true'
+        uses: julia-actions/cache@v2
+
+      - name: Install documentation dependencies
+        if: steps.check_julia.outputs.julia_exists == 'true'
+        shell: julia --color=yes --project=src/julia_modules/omega_julia {0}
+        run: |
+          using Pkg
+          Pkg.add("Documenter")
+          Pkg.instantiate()
+
+      - name: Build documentation
+        if: steps.check_julia.outputs.julia_exists == 'true'
+        shell: julia --color=yes --project=src/julia_modules/omega_julia {0}
+        run: |
+          # Only build docs if docs/make.jl exists
+          docs_script = joinpath("src", "julia_modules", "omega_julia", "docs", "make.jl")
+          if isfile(docs_script)
+              include(docs_script)
+          else
+              println("::notice::No documentation script found at $docs_script")
+          end
+
+      - name: Upload documentation artifact
+        if: steps.check_julia.outputs.julia_exists == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: julia-docs
+          path: src/julia_modules/omega_julia/docs/build/
+          retention-days: 7
+          if-no-files-found: warn

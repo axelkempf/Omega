@@ -2,7 +2,7 @@ import os
 from collections import OrderedDict
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import pandas as pd
 
@@ -13,13 +13,13 @@ from backtest_engine.data.market_hours import (
 )
 from hf_engine.infra.config.paths import PARQUET_DIR, RAW_DATA_DIR
 
-_PARQUET_BUILD_CACHE = OrderedDict()
-_DF_BUILD_CACHE = OrderedDict()
+_PARQUET_BUILD_CACHE: OrderedDict[str, Any] = OrderedDict()
+_DF_BUILD_CACHE: OrderedDict[str, Any] = OrderedDict()
 _CACHE_MAX_PARQUET = int(os.getenv("HF_CACHE_MAX_PARQUET_BUILDS", "16"))
 _CACHE_MAX_DF = int(os.getenv("HF_CACHE_MAX_DF_BUILDS", "32"))
 
 
-def _evict_lru(cache, max_len: int):
+def _evict_lru(cache: OrderedDict[str, Any], max_len: int) -> None:
     try:
         while len(cache) > max_len > 0:
             cache.popitem(last=False)
@@ -27,7 +27,9 @@ def _evict_lru(cache, max_len: int):
         pass
 
 
-def trim_candle_build_caches(keep_parquet: int = None, keep_df: int = None) -> None:
+def trim_candle_build_caches(
+    keep_parquet: Optional[int] = None, keep_df: Optional[int] = None
+) -> None:
     """
     LRU-Trim der Candle-Build-Caches (speicherschonend statt full reset).
     """
@@ -88,7 +90,7 @@ class CSVDataHandler:
         self,
         symbol: str,
         timeframe: str = "M1",
-        preloaded_data: Optional[Dict] = None,
+        preloaded_data: Optional[Dict[str, pd.DataFrame]] = None,
         normalize_to_timeframe: bool = False,
     ):
         self.symbol = symbol

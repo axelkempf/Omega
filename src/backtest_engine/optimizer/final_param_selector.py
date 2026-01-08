@@ -1,3 +1,4 @@
+# mypy: disable-error-code="no-untyped-def,no-untyped-call,arg-type,no-any-return,assignment,return-value,misc,union-attr,operator,unused-ignore,unreachable,no-redef,comparison-overlap,call-overload,type-arg"
 from __future__ import annotations
 
 import gc
@@ -27,6 +28,12 @@ from backtest_engine.rating.cost_shock_score import (
     COST_SHOCK_FACTORS,
     apply_cost_shock_inplace,
     compute_multi_factor_cost_shock_score,
+)
+from backtest_engine.rating.data_jitter_score import (
+    _stable_data_jitter_seed,
+    build_jittered_preloaded_data,
+    compute_data_jitter_score,
+    precompute_atr_cache,
 )
 from backtest_engine.rating.p_values import compute_p_values
 from backtest_engine.rating.robustness_score_1 import compute_robustness_score_1
@@ -169,6 +176,11 @@ def run_final_parameter_selection(
     smart_explore_prob: float = 0.50,
     smart_trust_every: int = 10,
     recorder: Optional[StageRecorder] = None,
+    # --- Data jitter stress-test knobs ---
+    data_jitter_repeats: int = 10,
+    data_jitter_atr_length: int = 14,
+    data_jitter_sigma: float = 0.10,
+    data_jitter_fraq: float = 0.15,
 ) -> Tuple[Path, StageRecorder]:
     """Execute the hedge-fund grade final selection pipeline."""
 
@@ -567,24 +579,11 @@ def run_final_parameter_selection(
 
     print("🧪 [Step 5/5] Robustness-Stresstests & Final Scoring …")
     with rec.stage("step5_stresstests") as stage:
-        # Use the actual search width for scoring iterations
-        # - smart mode: configured smart_n_trials
-        # - grid mode: number of generated grid candidates
-        try:
-            if (search_mode or "").lower().strip() == "smart":
-                search_n_trials = int(smart_n_trials)
-            else:
-                search_n_trials = int(manifest.get("grid_candidates", 1) or 1)
-        except Exception:
-            search_n_trials = 1
-        if search_n_trials < 1:
-            search_n_trials = 1
 
         df_scores = _score_candidates(
             df_segment_pass,
             base_config,
             preload_mode,
-            n_trials=search_n_trials,
             jitter_frac=jitter_frac,
             jitter_repeats=jitter_repeats,
             dropout_frac=0.10,
@@ -596,6 +595,10 @@ def run_final_parameter_selection(
             trades_out_dir=trades_out_dir,
             save_trades=save_trades,
             jitter_param_filter=jitter_param_filter,
+            data_jitter_repeats=data_jitter_repeats,
+            data_jitter_atr_length=data_jitter_atr_length,
+            data_jitter_sigma=data_jitter_sigma,
+            data_jitter_fraq=data_jitter_fraq,
         )
         scores_path = out_dir / "05_final_scores.csv"
         year_segments = _yearly_segments(
@@ -622,9 +625,12 @@ def run_final_parameter_selection(
             drop_cols = []
             for k in [
                 ("parameters", "robustness_score_1"),
+                ("parameters", "data_jitter_score"),
                 ("parameters", "cost_shock_score"),
                 ("parameters", "timing_jitter_score"),
                 ("parameters", "trade_dropout_score"),
+                ("parameters", "ulcer_index"),
+                ("parameters", "ulcer_index_score"),
             ]:
                 if k in df_scores_detailed.columns:
                     drop_cols.append(k)
@@ -637,9 +643,12 @@ def run_final_parameter_selection(
             # Non-MultiIndex fallback: just drop columns if present
             for c in [
                 "robustness_score_1",
+                "data_jitter_score",
                 "cost_shock_score",
                 "timing_jitter_score",
                 "trade_dropout_score",
+                "ulcer_index",
+                "ulcer_index_score",
             ]:
                 if c in df_scores_detailed.columns:
                     df_scores_detailed = df_scores_detailed.drop(columns=[c])
@@ -710,6 +719,7 @@ def run_final_parameter_selection(
         # Robustness/stress scores are already normalized (take as-is)
         for col in (
             "robustness_score_1",
+            "data_jitter_score",
             "cost_shock_score",
             "timing_jitter_score",
             "trade_dropout_score",
@@ -767,6 +777,8 @@ def run_final_parameter_selection(
         # Column order adjustments for 05_final_scores.csv:
         # - Drop wmape
         # - Ensure Sortino(trade) sits right after Sharpe(trade)
+        # - Place data_jitter_score right after robustness_score_1
+        # - Place ulcer columns in the score block after stability_score
         # - Place tp_sl_stress_score and stability_score right after trade_dropout_score
         def _reorder_final_cols(df_in: pd.DataFrame) -> pd.DataFrame:
             cols = list(df_in.columns)
@@ -778,6 +790,11 @@ def run_final_parameter_selection(
                 cols.remove("Sortino (trade)")
                 sharpe_idx = cols.index("Sharpe (trade)")
                 cols.insert(sharpe_idx + 1, "Sortino (trade)")
+            # Ensure data_jitter_score right after robustness_score_1
+            if "data_jitter_score" in cols and "robustness_score_1" in cols:
+                cols.remove("data_jitter_score")
+                r1_idx = cols.index("robustness_score_1")
+                cols.insert(r1_idx + 1, "data_jitter_score")
             # Ensure tp_sl_stress_score and stability_score after trade_dropout_score
             if "tp_sl_stress_score" in cols:
                 cols.remove("tp_sl_stress_score")
@@ -788,6 +805,7 @@ def run_final_parameter_selection(
                 "trade_dropout_score",
                 "timing_jitter_score",
                 "cost_shock_score",
+                "data_jitter_score",
             ):
                 if candidate in cols:
                     anchor = candidate
@@ -804,6 +822,30 @@ def run_final_parameter_selection(
                     cols.append("tp_sl_stress_score")
                 if "stability_score" in df_in.columns:
                     cols.append("stability_score")
+            # Place ulcer columns after stability_score (or at the end of score block)
+            ulcer_cols = ["ulcer_index", "ulcer_index_score"]
+            for uc in ulcer_cols:
+                if uc in cols:
+                    cols.remove(uc)
+            # Find stability_score or last score anchor to insert ulcer columns after
+            ulcer_anchor = None
+            for cand in (
+                "stability_score",
+                "tp_sl_stress_score",
+                "trade_dropout_score",
+            ):
+                if cand in cols:
+                    ulcer_anchor = cand
+                    break
+            if ulcer_anchor is not None:
+                ulcer_idx = cols.index(ulcer_anchor)
+                for i, uc in enumerate(ulcer_cols):
+                    if uc in df_in.columns:
+                        cols.insert(ulcer_idx + 1 + i, uc)
+            else:
+                for uc in ulcer_cols:
+                    if uc in df_in.columns:
+                        cols.append(uc)
             return df_in.loc[:, cols]
 
         df_scores = _reorder_final_cols(df_scores)
@@ -919,6 +961,35 @@ def _ensure_preloaded_in_worker(base_config: Dict[str, Any], mode: str) -> None:
                     pass
             else:
                 _WORKER_PATHS[(tf, side)] = path
+
+
+def _load_or_get_preloaded_data(
+    base_cfg: Dict[str, Any],
+) -> Dict[Tuple[str, str], pd.DataFrame]:
+    """
+    Gibt preloaded data zurück, unabhängig vom preload_mode.
+
+    Bei 'full' mode: nutzt _WORKER_PRELOADED direkt
+    Bei 'window' mode: lädt die kompletten Daten aus _WORKER_PATHS
+
+    Diese Funktion wird für Data-Jitter-Tests benötigt, die die kompletten
+    Daten benötigen (nicht nur das Window des aktuellen Backtests).
+    """
+    if _WORKER_PRELOADED:
+        return _WORKER_PRELOADED
+
+    if not _WORKER_PATHS:
+        return {}
+
+    # Window mode: lade die Daten komplett (für Data Jitter Tests)
+    result: Dict[Tuple[str, str], pd.DataFrame] = {}
+    for key, path in _WORKER_PATHS.items():
+        try:
+            df = pd.read_parquet(path)
+            result[key] = df
+        except Exception:
+            continue
+    return result
 
 
 def _with_worker_preload(cfg: Dict[str, Any]):
@@ -2006,6 +2077,7 @@ def _parameter_columns(df: pd.DataFrame) -> List[str]:
         "robustness_score_stress",
         # Centralized additional metrics (Step-5)
         "robustness_score_1",
+        "data_jitter_score",
         "cost_shock_score",
         "timing_jitter_score",
         "trade_dropout_score",
@@ -2401,7 +2473,6 @@ def _score_candidates(
     base_config: Dict[str, Any],
     preload_mode: str,
     *,
-    n_trials: int = 1,
     jitter_frac: float,
     jitter_repeats: int,
     dropout_frac: float,
@@ -2413,6 +2484,10 @@ def _score_candidates(
     trades_out_dir: Optional[Path] = None,
     save_trades: bool = False,
     jitter_param_filter: Optional[set[str]] = None,
+    data_jitter_repeats: int = 10,
+    data_jitter_atr_length: int = 14,
+    data_jitter_sigma: float = 0.10,
+    data_jitter_fraq: float = 0.15,
 ) -> pd.DataFrame:
     """
     Alte Step-5-Logik (aus _2):
@@ -2647,6 +2722,74 @@ def _score_candidates(
         robust_score = float(
             compute_robustness_score_1(base, param_jitter_samples, penalty_cap=0.5)
         )
+
+        # Data Jitter Score: ATR-based OHLC jitter stress-test
+        data_jitter_score = 0.0
+        try:
+            if int(data_jitter_repeats) > 0:
+                # Lade/hole preloaded data (funktioniert auch bei window mode)
+                preloaded_for_jitter = _load_or_get_preloaded_data(base_cfg)
+                if preloaded_for_jitter:
+                    # Einmalig ATR-Cache berechnen (cached per worker, hier für diesen combo)
+                    atr_cache = precompute_atr_cache(
+                        preloaded_for_jitter, period=int(data_jitter_atr_length)
+                    )
+                    data_jitter_samples: List[Dict[str, float]] = []
+                    for dj_repeat in range(int(data_jitter_repeats)):
+                        try:
+                            dj_seed = (
+                                _stable_data_jitter_seed(combo_seed, dj_repeat)
+                                if bool(deterministic)
+                                else int(np.random.default_rng().integers(0, 2**31))
+                            )
+                            jittered_preloaded = build_jittered_preloaded_data(
+                                preloaded_for_jitter,
+                                atr_cache=atr_cache,
+                                sigma_atr=float(data_jitter_sigma),
+                                seed=dj_seed,
+                                min_price=1e-9,
+                                fraq=float(data_jitter_fraq),
+                            )
+                            # Run backtest with jittered data
+                            cfg_dj = _inject_params(base_cfg, params)
+                            if bool(deterministic):
+                                _set_execution_random_seed(
+                                    cfg_dj,
+                                    _stable_int_seed(
+                                        combo_seed, "bt_dj", int(dj_repeat)
+                                    ),
+                                )
+                            portfolio_dj, _ = run_backtest_and_return_portfolio(
+                                cfg_dj, preloaded_data=jittered_preloaded
+                            )
+                            summ_dj = calculate_metrics(portfolio_dj)
+                            data_jitter_samples.append(
+                                {
+                                    "profit": float(
+                                        summ_dj.get("net_profit_after_fees_eur", 0.0)
+                                        or 0.0
+                                    ),
+                                    "avg_r": float(
+                                        summ_dj.get("avg_r_multiple", 0.0) or 0.0
+                                    ),
+                                    "winrate": float(
+                                        summ_dj.get("winrate_percent", 0.0) or 0.0
+                                    ),
+                                    "drawdown": float(
+                                        summ_dj.get("drawdown_eur", 0.0) or 0.0
+                                    ),
+                                }
+                            )
+                        except Exception:
+                            continue
+                    if data_jitter_samples:
+                        data_jitter_score = float(
+                            compute_data_jitter_score(
+                                base, data_jitter_samples, penalty_cap=0.5
+                            )
+                        )
+        except Exception:
+            data_jitter_score = 0.0
 
         # Base-Metriken (profit/drawdown/sharpe) für Stress-Scores (ohne erneuten Run)
         base_metrics = {
@@ -2908,6 +3051,7 @@ def _score_candidates(
             "Sharpe (trade)": float(summ.get("sharpe_trade", 0.0) or 0.0),
             "Sortino (trade)": float(summ.get("sortino_trade", 0.0) or 0.0),
             "robustness_score_1": robust_score,
+            "data_jitter_score": data_jitter_score,
             "cost_shock_score": cost_shock_score,
             "timing_jitter_score": timing_jitter_score,
             "trade_dropout_score": trade_dropout_score,

@@ -1,12 +1,9 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
-from typing import Any, Dict, Mapping, Sequence
+from typing import Any, Mapping, Sequence
 
-try:
-    from dateutil.relativedelta import relativedelta  # type: ignore
-except ImportError:  # Spezifischer als Exception
-    relativedelta = None  # type: ignore
+from dateutil.relativedelta import relativedelta
 
 from backtest_engine.rating.stress_penalty import (
     compute_penalty_profit_drawdown_sharpe,
@@ -38,19 +35,18 @@ def _window_months(start: datetime, end: datetime) -> int:
       - 2020-01-01 -> 2024-12-31 => 60 months (4y11m + leftover days => +1)
     """
     try:
-        if relativedelta is not None:
-            rd = relativedelta(end, start)
-            months = int(rd.years) * 12 + int(rd.months)
-            has_remainder = bool(
-                getattr(rd, "days", 0)
-                or getattr(rd, "hours", 0)
-                or getattr(rd, "minutes", 0)
-                or getattr(rd, "seconds", 0)
-                or getattr(rd, "microseconds", 0)
-            )
-            if has_remainder:
-                months += 1
-            return max(0, months)
+        rd = relativedelta(end, start)
+        months = int(rd.years) * 12 + int(rd.months)
+        has_remainder = bool(
+            getattr(rd, "days", 0)
+            or getattr(rd, "hours", 0)
+            or getattr(rd, "minutes", 0)
+            or getattr(rd, "seconds", 0)
+            or getattr(rd, "microseconds", 0)
+        )
+        if has_remainder:
+            months += 1
+        return max(0, months)
     except (TypeError, ValueError, AttributeError):
         pass
 
@@ -82,8 +78,6 @@ def get_timing_jitter_backward_shift_months(
     The caller typically runs 3 additional backtests, each with start/end shifted
     BACKWARD by one of the returned month values.
     """
-    if not isinstance(start_date, str) or not isinstance(end_date, str):
-        return []
     try:
         start = _parse_date_string(start_date)
         end = _parse_date_string(end_date)
@@ -107,7 +101,7 @@ def get_timing_jitter_backward_shift_months(
 
 
 def apply_timing_jitter_month_shift_inplace(
-    cfg: Dict[str, Any],
+    cfg: Any,
     *,
     shift_months_backward: int,
 ) -> None:
@@ -121,10 +115,8 @@ def apply_timing_jitter_month_shift_inplace(
     """
     if not isinstance(cfg, dict):
         return
-    try:
-        m = int(shift_months_backward)
-    except (TypeError, ValueError):
-        return
+
+    m = shift_months_backward
     if m <= 0:
         return
 
@@ -143,14 +135,14 @@ def apply_timing_jitter_month_shift_inplace(
         start = _parse_date_string(start_s)
         end = _parse_date_string(end_s)
 
-        if relativedelta is not None:
-            offset = relativedelta(months=-m)
-            new_start = start + offset
-            new_end = end + offset
-        else:
-            offset = timedelta(days=30 * m)
-            new_start = start - offset
-            new_end = end - offset
+        try:
+            rd_offset = relativedelta(months=-m)
+            new_start = start + rd_offset
+            new_end = end + rd_offset
+        except Exception:
+            td_offset = timedelta(days=30 * m)
+            new_start = start - td_offset
+            new_end = end - td_offset
 
         if date_only:
             cfg["start_date"] = new_start.strftime("%Y-%m-%d")
@@ -172,4 +164,4 @@ def compute_timing_jitter_score(
     penalty = compute_penalty_profit_drawdown_sharpe(
         base_metrics, jitter_metrics, penalty_cap=penalty_cap
     )
-    return score_from_penalty(penalty, penalty_cap=penalty_cap)
+    return float(score_from_penalty(penalty, penalty_cap=penalty_cap))

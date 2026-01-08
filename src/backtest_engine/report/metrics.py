@@ -1,4 +1,4 @@
-from typing import Any, Dict
+from typing import Any, Dict, Iterable, Set
 
 import numpy as np
 import pandas as pd
@@ -15,8 +15,8 @@ def calculate_metrics(portfolio: Portfolio) -> Dict[str, Any]:
     partial_closed_positions = portfolio.partial_closed_positions
 
     # Hilfsfunktion für aktive Tage
-    def _active_days_from_positions(pos_list):
-        days = set()
+    def _active_days_from_positions(pos_list: Iterable[Any]) -> Set[Any]:
+        days: Set[Any] = set()
         for p in pos_list:
             for attr in ("open_time", "close_time", "entry_time", "exit_time"):
                 if hasattr(p, attr):

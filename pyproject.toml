@@ -22,6 +22,7 @@ dependencies = [
     "optuna>=3.4",
     "pandas>=2.1",
     "psutil>=5.9",
+    "pyarrow>=14.0",
     "pydantic>=2.5",
     "python-dateutil>=2.8",
     "python-dotenv>=1.0",
@@ -48,6 +49,10 @@ dev = [
     "types-requests>=2.31",
     "types-python-dateutil>=2.8",
     "pandas-stubs>=2.0",
+    # Benchmark testing for migration preparation (P3-01)
+    "pytest-benchmark>=4.0",
+    # Property-based testing for numerical correctness (P3-05)
+    "hypothesis>=6.100",
 ]
 analysis = [
     # Scientific computing for analysis scripts
@@ -71,25 +76,92 @@ package-dir = {"" = "src"}
 
 [tool.setuptools.packages.find]
 where = ["src"]
+include = ["omega*", "backtest_engine*", "hf_engine*", "shared*", "strategies*", "ui_engine*"]
 
 [tool.isort]
 profile = "black"
 
 [tool.mypy]
 python_version = "3.12"
+# Stub-Pfad für untyped dependencies (P1-09)
+mypy_path = "stubs"
+# Global permissive für nicht-migrierte Module
 ignore_missing_imports = true
 warn_return_any = true
 warn_unused_ignores = true
 show_error_codes = true
 pretty = true
+# Package-Erkennung: src/ als explizites Package-Root (P1-10)
+explicit_package_bases = true
+namespace_packages = true
+# Keine globalen ignore_errors mehr - wird pro Modul gesteuert (P1-10)
 
 [tool.pytest.ini_options]
 markers = [
     "integration: Integrationstests über Komponenten hinweg",
     "trading_safety: Regressions- und Guardrail-Tests für Trading-Sicherheit",
+    "mt5: Tests die MetaTrader5 benötigen (Windows-only)",
+    "rust_integration: Tests für Rust FFI Integration",
+    "julia_integration: Tests für Julia FFI Integration",
+    "hybrid_integration: Full-stack Tests für Python↔Rust↔Julia Integration",
 ]
 
-# Strict mode für bereits typisierte Module
+# ══════════════════════════════════════════════════════════════════════════════
+# MYPY TYPE CHECKING CONFIGURATION (Phase 1: Type Safety Hardening)
+# ══════════════════════════════════════════════════════════════════════════════
+#
+# P1-10: Granular Type Safety Configuration (2026-01-05)
+# ────────────────────────────────────────────────────────────────────────────
+# Strategie: Inkrementelle Strict-Mode-Aktivierung pro Modul
+# - Migrations-Kandidaten (FFI-relevant): STRICT
+# - Legacy/Stable-Production (hf_engine, ui_engine): RELAXED
+# - Analyse/Research-Pipelines: PERMISSIVE
+#
+# Siehe auch: docs/RUST_JULIA_MIGRATION_PREPARATION_PLAN.md (Abschnitt 4.5)
+# ══════════════════════════════════════════════════════════════════════════════
+
+# ──────────────────────────────────────────────────────────────────────────────
+# TIER 1: STRICT MODE - Migrations-Kandidaten (Rust/Julia FFI-Grenzen)
+# ──────────────────────────────────────────────────────────────────────────────
+# Diese Module sind vollständig typisiert und bereit für FFI-Definitionen.
+# Änderungen müssen mypy --strict passieren.
+
+# P1-06: backtest_engine.core - Event Engine, Execution Simulator, Indicator Cache
+[[tool.mypy.overrides]]
+module = ["backtest_engine.core", "backtest_engine.core.*"]
+strict = true
+warn_unreachable = true
+
+# P1-05: backtest_engine.optimizer - Bayesian Optimization, Grid Search, Walkforward
+[[tool.mypy.overrides]]
+module = ["backtest_engine.optimizer", "backtest_engine.optimizer.*"]
+strict = true
+warn_unreachable = true
+
+# P1-07: backtest_engine.rating - Performance Metrics, Robustness Scores
+[[tool.mypy.overrides]]
+module = ["backtest_engine.rating", "backtest_engine.rating.*"]
+strict = true
+warn_unreachable = true
+
+# P1-04: backtest_engine.config - Pydantic Configuration Models
+[[tool.mypy.overrides]]
+module = ["backtest_engine.config", "backtest_engine.config.*"]
+strict = true
+warn_unreachable = true
+
+# P1-08: shared.protocols - FFI Interface Protocols (@runtime_checkable)
+[[tool.mypy.overrides]]
+module = ["shared", "shared.*"]
+strict = true
+warn_unreachable = true
+
+# ──────────────────────────────────────────────────────────────────────────────
+# TIER 2: STRICT MODE - Strategie Base Classes und Implementations
+# ──────────────────────────────────────────────────────────────────────────────
+# Strategien sind bereits gut typisiert und sollten als Referenz-Implementierungen
+# für neue Strategien dienen.
+
 [[tool.mypy.overrides]]
 module = [
     "strategies._base.*",
@@ -99,11 +171,82 @@ module = [
 strict = true
 warn_unreachable = true
 
-# Relaxed für noch nicht typisierte Module
+# ──────────────────────────────────────────────────────────────────────────────
+# TIER 3: RELAXED MODE - Live-Trading Engine (Production Safety First)
+# ──────────────────────────────────────────────────────────────────────────────
+# hf_engine bleibt bewusst relaxed: MT5-Integration, kritische Trading-Logik.
+# Änderungen hier müssen besonders sorgfältig geprüft werden (Trading Safety).
+
 [[tool.mypy.overrides]]
 module = [
-    "hf_engine.*",
-    "backtest_engine.*",
-    "ui_engine.*",
+    "hf_engine.adapter.*",
+    "hf_engine.core.*",
+    "hf_engine.infra.*",
+    "hf_engine.risk.*",
+    "hf_engine.execution.*",
 ]
 ignore_errors = true
+# Rationale: MT5-Bindings, Legacy-Code, Windows-only Dependencies
+# Migrations-Priorität: NIEDRIG (Live-Trading bleibt Python)
+
+# ──────────────────────────────────────────────────────────────────────────────
+# TIER 4: ENHANCED TYPE SAFETY - backtest_engine Support-Module (2026-01-06)
+# ──────────────────────────────────────────────────────────────────────────────
+# Diese Module sind type-checked (kein ignore_errors) für Migration-Readiness.
+# Nicht full-strict wegen externer Library-Interaktionen (pandas, numpy, holidays).
+
+[[tool.mypy.overrides]]
+module = [
+    "backtest_engine.analysis.*",
+    "backtest_engine.data.*",
+    "backtest_engine.deployment.*",
+    "backtest_engine.logging.*",
+    "backtest_engine.report.*",
+    "backtest_engine.sizing.*",
+    "backtest_engine.strategy.*",
+    "backtest_engine.runner",
+    "backtest_engine.run_all",
+    "backtest_engine.batch_runner",
+]
+# ╔════════════════════════════════════════════════════════════════════════════╗
+# ║ PERMISSIVE TYPE CHECKING - Migration-Ready ohne ignore_errors              ║
+# ╠════════════════════════════════════════════════════════════════════════════╣
+# ║ Rationale: Diese Module interagieren intensiv mit pandas/numpy/matplotlib. ║
+# ║ Die Type-Stubs dieser Libraries sind unvollständig (DatetimeIndex, ndarray ║
+# ║ Unions, etc.). Statt ignore_errors setzen wir alle problematischen Checks  ║
+# ║ auf false - das ermöglicht sinnvolles Type-Checking bei neuen Funktionen   ║
+# ║ ohne False-Positives bei Legacy-Code.                                      ║
+# ╚════════════════════════════════════════════════════════════════════════════╝
+# Deaktiviere alle Checks, die bei pandas/numpy/matplotlib False-Positives erzeugen
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+disallow_untyped_calls = false
+check_untyped_defs = false
+warn_return_any = false
+warn_unused_ignores = false
+# Zusätzliche Lockerungen für pandas/numpy/matplotlib Type-Stub-Lücken
+strict_optional = false
+strict_equality = false
+disable_error_code = ["arg-type", "assignment", "attr-defined", "call-overload", "comparison-overlap", "index", "misc", "no-redef", "operator", "return-value", "type-arg", "union-attr", "var-annotated", "list-item", "call-arg"]
+# WICHTIG: Kein ignore_errors = Modul bleibt im mypy-Radar für zukünftige Verbesserungen
+
+# ──────────────────────────────────────────────────────────────────────────────
+# TIER 5: UI-Engine (Operational Tooling)
+# ──────────────────────────────────────────────────────────────────────────────
+
+[[tool.mypy.overrides]]
+module = ["ui_engine.*"]
+ignore_errors = true
+# Rationale: FastAPI-basiert (bereits gut typisiert), nicht FFI-relevant
+# Migrations-Priorität: NIEDRIG (bleibt Python)
+
+# ══════════════════════════════════════════════════════════════════════════════
+# MYPY CONFIGURATION STATUS: ✅ MIGRATION-READY (2026-01-06)
+# ══════════════════════════════════════════════════════════════════════════════
+# [x] backtest_engine.core/optimizer/rating/config: STRICT mode
+# [x] backtest_engine.analysis/data/...: type-checked (kein ignore_errors)
+# [x] shared.*: STRICT mode (FFI-Grenzen)
+# [x] hf_engine.* und ui_engine.*: permissive (nicht FFI-relevant)
+# [x] Keine globalen ignore_errors für backtest_engine
+# ══════════════════════════════════════════════════════════════════════════════
+

@@ -79,6 +79,10 @@ STAR_PROFIT_OVER_DD_MIN = 2.0
 # Robustness settings for refined Top-50 re-evaluation
 REFINED_ROBUST_JITTER_REPEATS = 80
 REFINED_ROBUST_JITTER_FRAC = 0.05
+REFINED_DATA_JITTER_REPEATS = 80
+REFINED_DATA_JITTER_ATR = 14
+REFINED_DATA_JITTER_SIGMA_ATR = 0.1
+REFINED_DATA_JITTER_FRAQ = 0.15
 
 
 @dataclass
@@ -2156,6 +2160,8 @@ def _expand_pairs_for_display(
         "robustness_score_1_jittered_80",
         "robustness_1_num_samples",
         "robustness_score_1",
+        "data_jitter_score_jittered_80",
+        "data_jitter_num_samples",
         "cost_shock_score",
         "timing_jitter_score",
         "trade_dropout_score",
@@ -2168,7 +2174,7 @@ def _expand_pairs_for_display(
         "same_trades_absolut_percentage",
     ]
 
-    # Bedingte Anzeige: robustness_score_1_jittered_80 nur wenn include_leg_robustness=True
+    # Bedingte Anzeige: robustness_score_1_jittered_80 und data_jitter_score_jittered_80 nur wenn include_leg_robustness=True
     per_leg_metric_display = per_leg_metric_display_base.copy()
     if not include_leg_robustness:
         per_leg_metric_display = [
@@ -2176,6 +2182,12 @@ def _expand_pairs_for_display(
         ]
         per_leg_metric_display = [
             m for m in per_leg_metric_display if m != "robustness_1_num_samples"
+        ]
+        per_leg_metric_display = [
+            m for m in per_leg_metric_display if m != "data_jitter_score_jittered_80"
+        ]
+        per_leg_metric_display = [
+            m for m in per_leg_metric_display if m != "data_jitter_num_samples"
         ]
     # comp_score_combined und stability_score_combined sollen in der Anzeige
     # direkt nach den per-Leg-Metriken (also nach p_net_profit_gt_0) erscheinen.
@@ -2367,6 +2379,64 @@ def _expand_pairs_for_display(
             else:
                 leg_row["robustness_1_num_samples"] = pd.NA
 
+            # Leg-spezifischer Data Jitter Score aus den Paar-Spalten übernehmen
+            leg_data_jitter_col = f"data_jitter_score_leg_{leg_label}"
+            if include_leg_robustness and leg_data_jitter_col in row:
+                leg_row["data_jitter_score_jittered_80"] = _round_value(
+                    row.get(leg_data_jitter_col, pd.NA), 5
+                )
+            else:
+                leg_row["data_jitter_score_jittered_80"] = pd.NA
+
+            # Leg-spezifische Data Jitter Sample-Anzahl
+            leg_data_jitter_samples_col = f"data_jitter_num_samples_leg_{leg_label}"
+            if include_leg_robustness and leg_data_jitter_samples_col in row:
+                raw_dj_samples = row.get(leg_data_jitter_samples_col, pd.NA)
+                if pd.isna(raw_dj_samples):
+                    leg_row["data_jitter_num_samples"] = pd.NA
+                else:
+                    try:
+                        leg_row["data_jitter_num_samples"] = int(raw_dj_samples)
+                    except Exception:
+                        leg_row["data_jitter_num_samples"] = pd.NA
+            else:
+                leg_row["data_jitter_num_samples"] = pd.NA
+
+            # Leg-spezifische Cost Shock, Timing Jitter und Trade Dropout Scores
+            # aus den Paar-Spalten übernehmen (nur wenn include_leg_robustness=True)
+            if include_leg_robustness:
+                # Cost Shock Score
+                leg_cost_shock_col = f"cost_shock_score_leg_{leg_label}"
+                if leg_cost_shock_col in row:
+                    leg_row["cost_shock_score"] = _round_value(
+                        row.get(leg_cost_shock_col, pd.NA), 5
+                    )
+                else:
+                    leg_row["cost_shock_score"] = pd.NA
+
+                # Timing Jitter Score
+                leg_timing_jitter_col = f"timing_jitter_score_leg_{leg_label}"
+                if leg_timing_jitter_col in row:
+                    leg_row["timing_jitter_score"] = _round_value(
+                        row.get(leg_timing_jitter_col, pd.NA), 5
+                    )
+                else:
+                    leg_row["timing_jitter_score"] = pd.NA
+
+                # Trade Dropout Score
+                leg_trade_dropout_col = f"trade_dropout_score_leg_{leg_label}"
+                if leg_trade_dropout_col in row:
+                    leg_row["trade_dropout_score"] = _round_value(
+                        row.get(leg_trade_dropout_col, pd.NA), 5
+                    )
+                else:
+                    leg_row["trade_dropout_score"] = pd.NA
+            else:
+                # Wenn nicht verfeinert, versuche aus metric_map zu lesen (Fallback auf pd.NA)
+                leg_row["cost_shock_score"] = pd.NA
+                leg_row["timing_jitter_score"] = pd.NA
+                leg_row["trade_dropout_score"] = pd.NA
+
             # Parameterwerte pro Leg aus combined_base übernehmen
             if param_map is not None and param_cols:
                 combo_key_val = str(row.get(f"combo_key_{suffix}", "")).strip()
@@ -2378,11 +2448,21 @@ def _expand_pairs_for_display(
                     for p in param_cols:
                         leg_row[p] = pd.NA
             # Per-Leg-Metriken aus combined_base übernehmen
+            # WICHTIG: Neu berechnete Metriken aus refined Top-50 nicht überschreiben!
             if metric_map is not None and metric_cols:
                 combo_key_val = str(row.get(f"combo_key_{suffix}", "")).strip()
                 if combo_key_val and combo_key_val in metric_map.index:
                     base_metrics = metric_map.loc[combo_key_val]
                     for m in metric_cols:
+                        # Überschreibe nicht bereits gesetzte refined Metriken
+                        if include_leg_robustness and m in (
+                            "cost_shock_score",
+                            "timing_jitter_score",
+                            "trade_dropout_score",
+                        ):
+                            # Diese wurden bereits aus den Paar-Spalten übernommen
+                            continue
+
                         val = base_metrics.get(m, pd.NA)
                         if m == "profit_over_dd":
                             leg_row[m] = _round_value(val, 2)
@@ -2399,7 +2479,9 @@ def _expand_pairs_for_display(
                             leg_row[m] = val
                 else:
                     for m in metric_cols:
-                        leg_row[m] = pd.NA
+                        # Setze nur, wenn noch nicht gesetzt (refined Werte haben Vorrang)
+                        if m not in leg_row or pd.isna(leg_row.get(m)):
+                            leg_row[m] = pd.NA
             # Trades gesamt pro Leg (Summe über alle Jahres-Trades)
             leg_trades_total = pd.NA
             combo_key_val_for_trades = str(row.get(f"combo_key_{suffix}", "")).strip()
@@ -2570,25 +2652,26 @@ def _load_snapshot_base_config(run_id: str) -> Dict[str, Any]:
 @lru_cache(maxsize=1)
 def _standard_mean_rev_reporting() -> Optional[Dict[str, Any]]:
     """
-    Lädt das aktuelle Standard-Reporting aus configs/backtest/mean_reversion_z_score.json.
-    Wird als Referenz benutzt, um fehlende oder abweichende Reporting-Einträge zu ergänzen.
+    Liefert die zentralen Reporting-Defaults für Backfill-Backtests.
+
+    Diese sind in analysis/backfill_reporting_defaults.py definiert und werden
+    als Referenz benutzt, um fehlende oder abweichende Reporting-Einträge in
+    Walkforward-Run-Snapshots zu ergänzen.
+
+    Returns:
+        Dict mit Reporting-Defaults oder None bei Fehler
     """
-    cfg_path = (
-        Path(__file__).resolve().parents[3]
-        / "configs"
-        / "backtest"
-        / "mean_reversion_z_score.json"
-    )
     try:
-        with cfg_path.open("r", encoding="utf-8") as fh:
-            default_cfg = json.load(fh)
-        rep = default_cfg.get("reporting")
-        if isinstance(rep, dict):
-            return rep
-        print(f"[WF-Analyzer] Warnung: Kein Reporting in {cfg_path} gefunden.")
-    except Exception as exc:
-        print(f"[WF-Analyzer] Warnung: Konnte Standard-Reporting nicht laden: {exc}")
-    return None
+        from src.backtest_engine.analysis.backfill_reporting_defaults import (
+            BACKFILL_REPORTING_DEFAULTS,
+        )
+
+        return deepcopy(BACKFILL_REPORTING_DEFAULTS)
+    except ImportError as exc:
+        print(
+            f"[WF-Analyzer] Warnung: Konnte Backfill-Reporting-Defaults nicht laden: {exc}"
+        )
+        return None
 
 
 def _infer_meta_from_run_id(
@@ -2631,7 +2714,8 @@ def _infer_meta_from_run_id(
 def _upgrade_base_config(base_cfg: Dict[str, Any], *, run_id: str) -> Dict[str, Any]:
     """
     Ergänzt fehlende Felder in base_config:
-      - Reporting auf Standard setzen (mean_reversion_z_score.json), falls abweichend/fehlend.
+      - Reporting auf zentrale Backfill-Defaults setzen (aus backfill_reporting_defaults.py),
+        falls abweichend/fehlend.
       - direction_filter, enabled_scenarios, use_position_manager aus Run-Namen ableiten,
         falls nicht im Snapshot gesetzt.
     """
@@ -2659,8 +2743,8 @@ def _upgrade_base_config(base_cfg: Dict[str, Any], *, run_id: str) -> Dict[str, 
         if current_reporting != standard_reporting:
             cfg["reporting"] = deepcopy(standard_reporting)
             print(
-                f"[WF-Analyzer] Reporting für Run '{run_id}' auf Standard gesetzt "
-                "(mean_reversion_z_score.json)."
+                f"[WF-Analyzer] Reporting für Run '{run_id}' auf zentrale Backfill-Defaults gesetzt "
+                "(backfill_reporting_defaults.py)."
             )
 
     strat_cfg = cfg.get("strategy") or {}
@@ -3121,7 +3205,7 @@ def _build_config_for_combo(
         rep = {}
     rep["enable_backtest_robust_metrics"] = True
     # Nur Robustness 1 für die Walkforward-Re-Evals berechnen, um Laufzeit zu sparen
-    rep["robust_metrics_mode"] = "r1_only"
+    rep["robust_metrics_mode"] = "full"
     rep["jitter_frac"] = REFINED_ROBUST_JITTER_FRAC
     rep["robust_jitter_frac"] = REFINED_ROBUST_JITTER_FRAC
     rep["robust_jitter_repeats"] = REFINED_ROBUST_JITTER_REPEATS
@@ -3130,7 +3214,10 @@ def _build_config_for_combo(
     cfg["enable_backtest_robust_metrics"] = True
     cfg["robust_jitter_frac"] = REFINED_ROBUST_JITTER_FRAC
     cfg["robust_jitter_repeats"] = REFINED_ROBUST_JITTER_REPEATS
-
+    cfg["robust_data_jitter_repeats"] = REFINED_DATA_JITTER_REPEATS
+    cfg["robust_data_jitter_atr_period"] = REFINED_DATA_JITTER_ATR
+    cfg["robust_data_jitter_sigma_atr"] = REFINED_DATA_JITTER_SIGMA_ATR
+    cfg["robust_data_jitter_fraq"] = REFINED_DATA_JITTER_FRAQ
     # Auch auf Strategie-Parameter spiegeln (für _resolve_robust_setting)
     # Hard-Override für konsistente Übersteuerung
     params["jitter_frac"] = REFINED_ROBUST_JITTER_FRAC
@@ -3292,6 +3379,18 @@ def _refine_top50_with_robustness(
     top["robustness_1_mean"] = np.nan
     top["comp_score_final_refined"] = np.nan
 
+    # Zusätzliche Robustness-Metriken pro Leg
+    top["data_jitter_score_leg_A"] = np.nan
+    top["data_jitter_score_leg_B"] = np.nan
+    top["data_jitter_num_samples_leg_A"] = np.nan
+    top["data_jitter_num_samples_leg_B"] = np.nan
+    top["cost_shock_score_leg_A"] = np.nan
+    top["cost_shock_score_leg_B"] = np.nan
+    top["timing_jitter_score_leg_A"] = np.nan
+    top["timing_jitter_score_leg_B"] = np.nan
+    top["trade_dropout_score_leg_A"] = np.nan
+    top["trade_dropout_score_leg_B"] = np.nan
+
     top["robust_direction_A"] = pd.NA
     top["robust_direction_B"] = pd.NA
     top["robust_scenario_A"] = pd.NA
@@ -3369,6 +3468,11 @@ def _refine_top50_with_robustness(
     for idx, row in top.iterrows():
         robustness_vals: Dict[str, float] = {}
         num_samples_vals: Dict[str, int] = {}
+        data_jitter_vals: Dict[str, float] = {}
+        data_jitter_num_samples_vals: Dict[str, int] = {}
+        cost_shock_vals: Dict[str, float] = {}
+        timing_jitter_vals: Dict[str, float] = {}
+        trade_dropout_vals: Dict[str, float] = {}
         meta_vals: Dict[str, Dict[str, Any]] = {}
 
         for leg_label, suffix in (("A", "1"), ("B", "2")):
@@ -3385,6 +3489,13 @@ def _refine_top50_with_robustness(
                 num_samples_vals[leg_label] = int(
                     metrics.get("robustness_1_num_samples", 0) or 0
                 )
+                data_jitter_vals[leg_label] = metrics.get("data_jitter_score", 0.0)
+                data_jitter_num_samples_vals[leg_label] = int(
+                    metrics.get("data_jitter_num_samples", 0) or 0
+                )
+                cost_shock_vals[leg_label] = metrics.get("cost_shock_score", 0.0)
+                timing_jitter_vals[leg_label] = metrics.get("timing_jitter_score", 0.0)
+                trade_dropout_vals[leg_label] = metrics.get("trade_dropout_score", 0.0)
             meta = meta_cache.get(key)
             if meta:
                 meta_vals[leg_label] = meta
@@ -3398,6 +3509,38 @@ def _refine_top50_with_robustness(
             top.at[idx, "robustness_1_num_samples_leg_A"] = num_samples_vals["A"]
         if "B" in num_samples_vals:
             top.at[idx, "robustness_1_num_samples_leg_B"] = num_samples_vals["B"]
+
+        # Data Jitter Metriken
+        if "A" in data_jitter_vals:
+            top.at[idx, "data_jitter_score_leg_A"] = data_jitter_vals["A"]
+        if "B" in data_jitter_vals:
+            top.at[idx, "data_jitter_score_leg_B"] = data_jitter_vals["B"]
+        if "A" in data_jitter_num_samples_vals:
+            top.at[idx, "data_jitter_num_samples_leg_A"] = data_jitter_num_samples_vals[
+                "A"
+            ]
+        if "B" in data_jitter_num_samples_vals:
+            top.at[idx, "data_jitter_num_samples_leg_B"] = data_jitter_num_samples_vals[
+                "B"
+            ]
+
+        # Cost Shock Metriken
+        if "A" in cost_shock_vals:
+            top.at[idx, "cost_shock_score_leg_A"] = cost_shock_vals["A"]
+        if "B" in cost_shock_vals:
+            top.at[idx, "cost_shock_score_leg_B"] = cost_shock_vals["B"]
+
+        # Timing Jitter Metriken
+        if "A" in timing_jitter_vals:
+            top.at[idx, "timing_jitter_score_leg_A"] = timing_jitter_vals["A"]
+        if "B" in timing_jitter_vals:
+            top.at[idx, "timing_jitter_score_leg_B"] = timing_jitter_vals["B"]
+
+        # Trade Dropout Metriken
+        if "A" in trade_dropout_vals:
+            top.at[idx, "trade_dropout_score_leg_A"] = trade_dropout_vals["A"]
+        if "B" in trade_dropout_vals:
+            top.at[idx, "trade_dropout_score_leg_B"] = trade_dropout_vals["B"]
 
         # Mittelwert, nur über vorhandene Legs
         if robustness_vals:

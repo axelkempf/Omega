@@ -3,6 +3,21 @@ description: 'Prompt and workflow for generating conventional commit messages us
 tools: ['runCommands/runInTerminal', 'runCommands/getTerminalOutput']
 ---
 
+## ⚠️ Safety Gate (Read First)
+
+**Default Mode: Read-Only / No Commands**
+
+This prompt generates commit messages but does NOT automatically execute git commands.
+
+- **Phase 1 (Default):** Generate commit message text only – no terminal commands.
+- **Phase 2 (Opt-in):** If user explicitly requests execution, ask for confirmation first.
+- **Dry-run first:** Before any git write operation, show the exact command and wait for approval.
+- **No auto-commit:** Never run `git commit` without explicit user confirmation.
+
+If operating in a restricted environment (CI, audit, compliance), skip all command execution entirely.
+
+---
+
 ### Instructions
 
 ```xml
@@ -14,17 +29,14 @@ tools: ['runCommands/runInTerminal', 'runCommands/getTerminalOutput']
 
 **Follow these steps:**
 
-1. Run `git status` to review changed files.
-2. Run `git diff` or `git diff --cached` to inspect changes.
-3. Stage your changes with `git add <file>`.
-4. Construct your commit message using the following XML structure.
-5. After generating your commit message, Copilot will automatically run the following command in your integrated terminal (no confirmation needed):
+1. **Review changes** (read-only): Use `git status` and `git diff` to understand the changeset.
+2. **Generate message** (Phase 1): Construct a commit message using the XML structure below.
+3. **User confirmation required** (Phase 2): If the user requests execution:
+   - Show the exact `git commit -m "..."` command.
+   - Wait for explicit approval before running.
+4. Only after confirmation, stage and commit changes.
 
-```bash
-git commit -m "type(scope): description"
-```
-
-6. Just execute this prompt and Copilot will handle the commit for you in the terminal.
+> **Note:** This prompt defaults to message generation only. Command execution requires explicit opt-in.
 
 ### Commit Message Structure
 

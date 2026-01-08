@@ -1,6 +1,6 @@
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 import pandas as pd
 
@@ -23,11 +23,11 @@ class TradeLogger:
             log_dir: Zielverzeichnis für Logs (default: TRADE_LOGS_DIR).
         """
         self.fields: List[str] = fields or []
-        self.records: List[Dict] = []
+        self.records: List[Dict[str, Any]] = []
         self.log_dir: Path = log_dir or TRADE_LOGS_DIR
         self.log_dir.mkdir(parents=True, exist_ok=True)
 
-    def log(self, data: Dict):
+    def log(self, data: Dict[str, Any]) -> None:
         """
         Fügt einen Trade-Datensatz dem Log hinzu.
 

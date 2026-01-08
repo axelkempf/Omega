@@ -7,7 +7,7 @@ from copy import deepcopy
 from datetime import datetime, timedelta
 from decimal import ROUND_HALF_UP, Decimal, getcontext
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import optuna
@@ -36,10 +36,10 @@ def visualize_pareto(study: optuna.Study) -> None:
 
     print("📊 Öffne Pareto-Visualisierung...")
     plot_pareto_front(
-        study, target_names=["Profit", "Avg R", "Winrate", "Drawdown"]
+        study, target_names=["Profit", "Avg R", "Winrate", "Drawdown"]  # type: ignore[arg-type]
     ).show()
-    plot_parallel_coordinate(study).show()
-    plot_optimization_history(study).show()
+    plot_parallel_coordinate(study).show()  # type: ignore[arg-type]
+    plot_optimization_history(study).show()  # type: ignore[arg-type]
 
 
 # =========================
@@ -69,7 +69,13 @@ def _configure_optuna_experimental_warnings() -> None:
         return
 
     try:
-        from optuna._experimental import ExperimentalWarning
+        # optuna._experimental kann ExperimentalWarning nicht immer exportieren
+        # (abhängig von optuna-Version). Wir nutzen getattr für Kompatibilität.
+        import optuna._experimental as _exp_mod
+
+        ExperimentalWarning = getattr(_exp_mod, "ExperimentalWarning", None)
+        if ExperimentalWarning is None:
+            return
     except Exception:
         return
 
@@ -80,7 +86,7 @@ def _configure_optuna_experimental_warnings() -> None:
     )
 
 
-def _set_thread_env_once():
+def _set_thread_env_once() -> None:
     global _THREADS_SET
     if _THREADS_SET:
         return
@@ -203,7 +209,9 @@ def _build_trial_config(
 def _evaluate_config(
     conf: Dict[str, Any],
     preloaded_data: Optional[Dict[str, Any]] = None,
-    _prealigned_cache: Optional[Dict[Tuple[str, str, str, str], Tuple]] = None,
+    _prealigned_cache: Optional[
+        Dict[Tuple[Optional[str], str, str, str], Tuple[Any, ...]]
+    ] = None,
 ) -> Dict[str, Any]:
     """Führt Backtest aus und gibt Metrik-Dict zurück (mit sicheren Defaults)."""
     prealigned = None
@@ -241,12 +249,15 @@ def _evaluate_config(
     portfolio, entry_df = run_backtest_and_return_portfolio(
         conf, preloaded_data=preloaded_data, prealigned=prealigned
     )
-    return calculate_metrics(portfolio)
+    return dict(calculate_metrics(portfolio))
 
 
 def _jitter_value(
-    val, space: Dict[str, Any], frac: float, rnd: Optional[callable] = None
-):
+    val: Any,
+    space: Dict[str, Any],
+    frac: float,
+    rnd: Optional[Callable[[], float]] = None,
+) -> Any:
     """Jitter für float/int Parameter innerhalb der Bounds."""
     if rnd is None:
         rnd = random.random
@@ -298,7 +309,7 @@ def _aggregate_folds(fold_metrics: List[Dict[str, Any]]) -> Dict[str, float]:
     dd_list = [m.get("drawdown_eur", 0.0) for m in fold_metrics]
     fees_list = [m.get("fees_total_eur", 0.0) for m in fold_metrics]
 
-    def _trades(m):
+    def _trades(m: Dict[str, Any]) -> int:
         return int(m.get("total_trades", m.get("trades", 0)) or 0)
 
     trades = sum(_trades(m) for m in fold_metrics)
@@ -337,7 +348,7 @@ def _robustness_penalty(
     drops = []
     for s in samples:
         # Schutz gegen 0-Division
-        def pct_drop(b, x, invert=False):
+        def pct_drop(b: float, x: float, invert: bool = False) -> float:
             if invert:  # Drawdown: je größer desto schlechter → Zuwachs ist "Drop"
                 b = max(b, 1e-9)
                 x = max(x, 1e-9)
@@ -380,9 +391,12 @@ def optimize_strategy_with_optuna_pareto(
     Ziele: Profit, AvgR, Winrate = maximize | Drawdown = minimize
     """
     # Lade ggf. JSON-Konfig
+    config_dict: Dict[str, Any]
     if isinstance(config_template, str):
         with open(config_template, "r") as f:
-            config_template = json.load(f)
+            config_dict = json.load(f)
+    else:
+        config_dict = config_template
 
     # Threads begrenzen
     _set_thread_env_once()
@@ -396,7 +410,7 @@ def optimize_strategy_with_optuna_pareto(
     if use_pruner and not is_multi_objective:
         pruner = MedianPruner(n_warmup_steps=max(1, int(pruner_warmup_folds)))
 
-    def _constraints_func(ft):
+    def _constraints_func(ft: optuna.trial.FrozenTrial) -> Tuple[float, float, float]:
         inv = (
             1.0
             if ft.user_attrs.get("invalid", False)
@@ -412,35 +426,36 @@ def optimize_strategy_with_optuna_pareto(
 
     study = optuna.create_study(
         directions=directions,
-        sampler=NSGAIISampler(seed=seed, constraints_func=_constraints_func),
+        sampler=NSGAIISampler(seed=seed, constraints_func=_constraints_func),  # type: ignore[arg-type]
         study_name=f"opt_{int(time.time())}",
     )
 
     # Vorbereiten CV-Splits
-    train_start_s = config_template.get("start_date")
-    train_end_s = config_template.get("end_date")
+    train_start_s = config_dict.get("start_date", "")
+    train_end_s = config_dict.get("end_date", "")
     cv_splits = _split_train_period(
         train_start_s, train_end_s, max(1, int(kfold_splits))
     )
 
     # Base-Fixed Teil der Config einmal erstellen (spart deepcopy im Loop)
-    base_fixed, _ = _split_base_config(config_template)
+    base_fixed, _ = _split_base_config(config_dict)
 
     EARLY_MIN_TRADES_FOLD0 = max(2, int(min_trades_threshold))  # konservativ
     EARLY_MAX_NEG_DD_FOLD0 = float(
         os.getenv("EARLY_MAX_NEG_DD_FOLD0", "1e9")
     )  # optionaler Guard
 
-    def objective(trial: optuna.Trial):
+    def objective(trial: optuna.Trial) -> List[float]:
         # reproduzierbarer RNG & Seeds pro Trial (wichtig bei Parallelisierung)
         base_seed = seed + trial.number
         random.seed(base_seed)
         np.random.seed(base_seed)
 
         # Parameter vorschlagen
-        params = {}
+        params: Dict[str, Any] = {}
         for param, space in param_space.items():
             typ = space["type"]
+            value: Any
             if typ == "float":
                 step = space.get("step")
                 is_log = bool(space.get("log", False))
@@ -469,7 +484,9 @@ def optimize_strategy_with_optuna_pareto(
 
         # === CV-Auswertung
         fold_metrics = []
-        prealigned_cache: Dict[Tuple[str, str, str, str], Tuple] = {}
+        prealigned_cache: Dict[Tuple[Optional[str], str, str, str], Tuple[Any, ...]] = (
+            {}
+        )
         try:
             for fold_idx, (s, e) in enumerate(cv_splits):
                 conf_fold = _build_trial_config(
@@ -600,9 +617,13 @@ def optimize_strategy_with_optuna_pareto(
         avg_r = base_scores["avg_r"]
         winrate = base_scores["winrate"]
         drawdown = base_scores["drawdown"]
+
         # Für konsistente Darstellung downstream runden wir die im Study gespeicherten User-Attribute
-        r2 = lambda x: float(round(float(x), 2))
-        r3 = lambda x: float(round(float(x), 3))
+        def r2(x: float) -> float:
+            return float(round(float(x), 2))
+
+        def r3(x: float) -> float:
+            return float(round(float(x), 3))
 
         # User-Attribute für spätere Auswahl/Reporting
         # trial.set_user_attr("cv_profit_mean", float(agg.get("profit", 0.0)))
@@ -622,7 +643,7 @@ def optimize_strategy_with_optuna_pareto(
     # Optimize (mit optionalem Pruning)
     study.optimize(objective, n_trials=n_trials)
 
-    if visualize and len(study.directions) <= 3:
+    if visualize and len(study.directions) <= 3:  # type: ignore[attr-defined]
         visualize_pareto(study)
 
     return study

@@ -1,53 +1,76 @@
-import os
-from datetime import datetime
+from __future__ import annotations
+
+from typing import Any
 
 
-def validate_config(config: dict) -> list[str]:
-    errors = []
+def _legacy_validate_config(config: dict[str, Any]) -> list[str]:
+    """Legacy validation kept as a fallback if Pydantic models are unavailable."""
 
-    # Pflichtfelder
+    errors: list[str] = []
+
     if "start_date" not in config:
         errors.append("🟥 'start_date' fehlt")
-    else:
-        try:
-            datetime.strptime(config["start_date"], "%Y-%m-%d")
-        except ValueError:
-            errors.append("🟥 'start_date' muss Format 'YYYY-MM-DD' haben")
-
     if "end_date" not in config:
         errors.append("🟥 'end_date' fehlt")
-    else:
-        try:
-            datetime.strptime(config["end_date"], "%Y-%m-%d")
-        except ValueError:
-            errors.append("🟥 'end_date' muss Format 'YYYY-MM-DD' haben")
 
-    # Backtest-Modus
     mode = config.get("mode", "candle")
     if mode not in ["candle", "tick"]:
         errors.append("🟥 'mode' muss 'tick' oder 'candle' sein")
 
-    # Datenpfad prüfen
-    data_path = config.get("data", {}).get("path")
-    if not data_path:
-        errors.append("🟥 'data.path' fehlt")
-    elif not os.path.isdir(data_path):
-        errors.append(f"🟥 Datenpfad nicht gefunden: {data_path}")
-
-    # Strategie(n)
     if "strategy" not in config and "strategies" not in config:
         errors.append("🟥 Weder 'strategy' noch 'strategies' definiert")
 
-    # Gebühren/Slippage optional, aber prüfen wenn vorhanden
-    if "fees" in config:
-        if not isinstance(config["fees"].get("per_million", 0), (int, float)):
-            errors.append("🟥 'fees.per_million' muss eine Zahl sein")
+    # Optional: fees/slippage sanity checks
+    fees = config.get("fees")
+    if (
+        isinstance(fees, dict)
+        and "per_million" in fees
+        and not isinstance(fees.get("per_million"), (int, float))
+    ):
+        errors.append("🟥 'fees.per_million' muss eine Zahl sein")
 
-    if "slippage" in config:
+    slippage = config.get("slippage")
+    if isinstance(slippage, dict):
         for key in ["fixed_pips", "random_pips"]:
-            if key in config["slippage"] and not isinstance(
-                config["slippage"][key], (int, float)
-            ):
+            if key in slippage and not isinstance(slippage.get(key), (int, float)):
                 errors.append(f"🟥 'slippage.{key}' muss eine Zahl sein")
 
+    # Historical field: allow but do not require it (data path is handled by the data handler).
     return errors
+
+
+def validate_config(config: dict[str, Any]) -> list[str]:
+    """Validate a backtest config dict.
+
+    New-style validation is implemented via Pydantic models (Phase 1 / P1-04).
+    Unknown keys remain supported to keep configs forward-compatible.
+    """
+
+    try:
+        from pydantic import ValidationError
+
+        from backtest_engine.config.models import BacktestConfig
+
+        BacktestConfig.model_validate(config)
+        return []
+    except Exception as e:
+        # If the config fails Pydantic validation, surface structured errors.
+        try:
+            from pydantic import ValidationError
+
+            if isinstance(e, ValidationError):
+                errors: list[str] = []
+                for err in e.errors():
+                    loc = ".".join(str(p) for p in (err.get("loc") or []))
+                    msg = str(err.get("msg") or "Invalid value")
+                    errors.append(f"🟥 {loc}: {msg}")
+                return errors
+        except Exception:
+            pass
+
+        # Fallback: minimal legacy validation (never hard-fail because of missing optional fields).
+        errors = _legacy_validate_config(config)
+        if errors:
+            return errors
+
+        return [f"🟥 Konfiguration konnte nicht validiert werden: {e}"]

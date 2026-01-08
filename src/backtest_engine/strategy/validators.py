@@ -1,9 +1,9 @@
 import importlib
-from typing import Dict, List
+from typing import Any, Dict, List
 
 
 def validate_strategy_config(
-    strat_conf: Dict[str, any], mode: str = "candle"
+    strat_conf: Dict[str, Any], mode: str = "candle"
 ) -> List[str]:
     """
     Validates a single strategy configuration dictionary.

@@ -11,8 +11,9 @@ from __future__ import annotations
 import asyncio
 import threading
 import time
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, TypeAlias
 
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
@@ -21,11 +22,13 @@ from fastapi.responses import PlainTextResponse
 from hf_engine.infra.config.paths import TMP_DIR
 from ui_engine.config import CONFIG_DIR, LOG_DIR
 from ui_engine.controller import (
+    ResourceUsageData,
     check_datafeed_health,
     get_resource_usage,
     restart_unresponsive_strategies,
     start_datafeed_server,
 )
+from ui_engine.datafeeds.base import BaseDatafeedManager
 from ui_engine.datafeeds.factory import get_datafeed_manager
 from ui_engine.models import (
     DatafeedActionResponse,
@@ -34,12 +37,21 @@ from ui_engine.models import (
     StrategyResponse,
 )
 from ui_engine.registry.strategy_alias import resolve_alias
+from ui_engine.strategies.base import BaseStrategyManager
 from ui_engine.strategies.factory import get_strategy_manager
 from ui_engine.utils import read_log_tail
 
+Manager: TypeAlias = BaseDatafeedManager | BaseStrategyManager
+
+
+def _get_manager(name: str) -> Manager:
+    return (
+        get_datafeed_manager(name) if name == "datafeed" else get_strategy_manager(name)
+    )
+
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     print("🚀 Lifespan Start")
     threading.Thread(target=restart_unresponsive_strategies, daemon=True).start()
     yield
@@ -66,10 +78,7 @@ def index() -> dict[str, str]:
 
 @app.post("/start/{name}", response_model=StrategyResponse)
 def start(name: str) -> StrategyResponse:
-    if name == "datafeed":
-        manager = get_datafeed_manager(name)
-    else:
-        manager = get_strategy_manager(name)
+    manager = _get_manager(name)
     if not manager.start():
         return StrategyResponse(
             name=name, status="Konfig fehlerhaft oder Start fehlgeschlagen."
@@ -80,10 +89,7 @@ def start(name: str) -> StrategyResponse:
 
 @app.post("/stop/{name}", response_model=StrategyResponse)
 def stop(name: str) -> StrategyResponse:
-    if name == "datafeed":
-        manager = get_datafeed_manager(name)
-    else:
-        manager = get_strategy_manager(name)
+    manager = _get_manager(name)
     if not manager.stop():
         raise HTTPException(
             status_code=400, detail=f"{name} konnte nicht gestoppt werden."
@@ -93,10 +99,7 @@ def stop(name: str) -> StrategyResponse:
 
 @app.get("/status/{name}", response_model=StrategyResponse)
 def status(name: str) -> StrategyResponse:
-    if name == "datafeed":
-        manager = get_datafeed_manager(name)
-    else:
-        manager = get_strategy_manager(name)
+    manager = _get_manager(name)
     return StrategyResponse(name=name, status=manager.status())
 
 
@@ -166,10 +169,7 @@ async def log_stream(websocket: WebSocket, account_id: str) -> None:
 
 @app.post("/restart/{name}", response_model=StrategyResponse)
 def restart(name: str) -> StrategyResponse:
-    if name == "datafeed":
-        manager = get_datafeed_manager(name)
-    else:
-        manager = get_strategy_manager(name)
+    manager = _get_manager(name)
 
     if not manager.stop():
         raise HTTPException(
@@ -188,7 +188,7 @@ def restart(name: str) -> StrategyResponse:
 
 @app.get("/resource/{name}", response_model=ResourceUsage)
 def resource_usage(name: str) -> ResourceUsage:
-    data = get_resource_usage(name)
+    data: ResourceUsageData = get_resource_usage(name)
     return ResourceUsage(
         status=data.get("status", "unknown"),
         cpu_percent=data.get("cpu_percent"),

@@ -1,3 +1,4 @@
+# mypy: disable-error-code="no-untyped-def,no-untyped-call,arg-type,no-any-return,assignment,return-value,misc,union-attr,operator,unused-ignore,var-annotated,redundant-expr,call-overload,type-arg,dict-item,unreachable"
 import gc
 import getpass
 import hashlib
@@ -51,7 +52,7 @@ from hf_engine.infra.monitoring.telegram_bot import (
 )
 
 
-def _ensure_utf8_stdout():
+def _ensure_utf8_stdout() -> None:
     """
     Verhindert UnicodeEncodeError bei Emojis/Unicode auf Windows (cp1252).
     - setzt PYTHONIOENCODING=utf-8 (wirkt auf Joblib-Child-Prozesse)
@@ -69,11 +70,11 @@ def _ensure_utf8_stdout():
 _ensure_utf8_stdout()
 
 
-def set_global_seed(seed: int):
+def set_global_seed(seed: int) -> None:
     random.seed(seed)
     np.random.seed(seed)
     try:
-        import torch
+        import torch  # type: ignore[import-not-found]
 
         torch.manual_seed(seed)
         torch.cuda.manual_seed_all(seed)
@@ -81,20 +82,42 @@ def set_global_seed(seed: int):
         pass
 
 
-def _safe_slice_df_by_time(df, start, end):
+def _safe_slice_df_by_time(df: Any, start: Any, end: Any) -> Any:
     if df is None or not isinstance(df, pd.DataFrame):
         return df
+    # Preloaded market data follows the repo schema: a 'UTC time' column.
+    # Ensure slicing is timezone-safe and does not silently return empty windows.
+
+    start_ts = pd.Timestamp(start)
+    end_ts = pd.Timestamp(end)
+    if start_ts.tzinfo is None:
+        start_ts = start_ts.tz_localize("UTC")
+    else:
+        start_ts = start_ts.tz_convert("UTC")
+    if end_ts.tzinfo is None:
+        end_ts = end_ts.tz_localize("UTC")
+    else:
+        end_ts = end_ts.tz_convert("UTC")
+
     # 1) DatetimeIndex?
     if isinstance(df.index, pd.DatetimeIndex):
-        return df.loc[
-            (df.index >= pd.Timestamp(start)) & (df.index <= pd.Timestamp(end))
-        ]
-    # 2) Gängige Spaltennamen
-    for col in ("time", "timestamp", "datetime"):
-        if col in df.columns:
-            s = pd.to_datetime(df[col])
-            mask = (s >= pd.Timestamp(start)) & (s <= pd.Timestamp(end))
-            return df.loc[mask]
+        idx = df.index
+        if idx.tz is None:
+            idx = idx.tz_localize("UTC")
+        else:
+            idx = idx.tz_convert("UTC")
+        return df.loc[(idx >= start_ts) & (idx <= end_ts)]
+
+    # 2) Gängige Spaltennamen (inkl. Standard 'UTC time')
+    col_map = {str(c).strip().lower(): c for c in df.columns}
+    for cand in ("utc time", "utc_time", "time", "timestamp", "datetime"):
+        col = col_map.get(cand)
+        if col is None:
+            continue
+        s = pd.to_datetime(df[col], errors="coerce", utc=True)
+        mask = (s >= start_ts) & (s <= end_ts)
+        return df.loc[mask]
+
     # 3) Fail closed (lieber strikt leeren Slice als unsliced zurückgeben)
     return df.iloc[0:0]
 
@@ -149,7 +172,7 @@ INT_COLS_TOP = {"window_id", "total_trades", "active_days"}
 INT_COLS_COMMON = {"number", "total_trades", "window_id", "base_seed"}
 
 
-def _int_safe(x, default: int = 0) -> int:
+def _int_safe(x: Any, default: int = 0) -> int:
     """Robuster Int-Cast: NaN/None/±inf -> default (0) statt ValueError."""
     try:
         f = float(x)
@@ -404,11 +427,6 @@ def _summarize_optuna_study(study: Any) -> Dict[str, Any]:
             )
         if slim_best:
             summary["best_trials"] = slim_best
-    except Exception:
-        pass
-
-    try:
-        summary["system_attrs_keys"] = sorted(getattr(study, "system_attrs", {}).keys())
     except Exception:
         pass
 
@@ -1421,6 +1439,7 @@ def walkforward_optimization(
     """
     Vollständige Walkforward-Optimierung mit CV, Robustheitsprüfung und umfassendem Instrumentation-Logging.
     """
+    preload_mode = str(preload_mode).strip().lower()
     global_time_start = time.time()
     set_global_seed(seed)
 

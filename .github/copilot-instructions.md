@@ -2,7 +2,7 @@
 
 Dieses Repository ist ein Python-basierter Trading-Stack (MT5 Live-Adapter, event-getriebener Backtest/Optimizer, FastAPI UI). Dieses Dokument ist die verbindliche, projektspezifische “Operating Procedure” für KI-Agenten und Contributors.
 
-Zusätzlicher, tool-agnostischer Einstiegspunkt: `AGENT.md` im Repo-Root (Kurzfassung + Verweise). Für GitHub Copilot bleibt diese Datei hier die primäre Quelle, da sie automatisch geladen wird.
+Zusätzlicher, tool-agnostischer Einstiegspunkt: `AGENTS.md` im Repo-Root (Kurzfassung + Verweise). Für GitHub Copilot bleibt diese Datei hier die primäre Quelle, da sie automatisch geladen wird.
 ---
 
 ## Priority Guidelines

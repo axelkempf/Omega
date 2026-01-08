@@ -1,11 +1,12 @@
-from typing import Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 from backtest_engine.core.execution_simulator import ExecutionSimulator
 from backtest_engine.core.multi_symbol_slice import MultiSymbolSlice
 from backtest_engine.core.portfolio import Portfolio
+from backtest_engine.core.symbol_data_slicer import SymbolDataSlice
 from backtest_engine.data.candle import Candle
 from backtest_engine.data.tick import Tick
-from backtest_engine.strategy.strategy_wrapper import StrategyWrapper
+from backtest_engine.strategy.strategy_wrapper import StrategyWrapper, TradeSignal
 
 
 class StrategyEnvironment:
@@ -15,14 +16,14 @@ class StrategyEnvironment:
     Args:
         name: Name der Strategie.
         strategy: StrategyWrapper-Instanz.
-        multi_candle_data: Dict oder Slice-Objekt mit Multi-TF Candle-Daten.
+        multi_candle_data: Multi-Symbol-Slice-Objekt mit Multi-TF Candle-Daten.
     """
 
     def __init__(
         self,
         name: str,
         strategy: StrategyWrapper,
-        multi_candle_data: Dict[str, Dict[str, List[Candle]]],
+        multi_candle_data: MultiSymbolSlice,
     ):
         self.name = name
         self.strategy = strategy
@@ -30,7 +31,7 @@ class StrategyEnvironment:
         self.executor = ExecutionSimulator(self.portfolio)
         self.multi_candle_data = multi_candle_data
 
-    def evaluate_candle(self, i: int, bid_candle: Candle, ask_candle: Candle):
+    def evaluate_candle(self, i: int, bid_candle: Candle, ask_candle: Candle) -> None:
         """
         Evaluates one candle-step für diese Strategie.
         """
@@ -38,38 +39,52 @@ class StrategyEnvironment:
 
         # Sicherheitsprüfung pro Symbol/TF
         for symbol in self.multi_candle_data.slices:
-            slice = self.multi_candle_data.get(symbol)
-            for tf in slice.tf_bid_candles:
-                if i >= len(slice.tf_bid_candles[tf]):
+            slice_data = self.multi_candle_data.get(symbol)
+            if slice_data is None:
+                continue
+            for tf in slice_data.tf_bid_candles:
+                if i >= len(slice_data.tf_bid_candles[tf]):
                     print(
                         f"⚠️ Index {i} überschreitet ask-Candle-Länge für {symbol}, TF {tf}"
                     )
                     return
-            for tf in slice.tf_ask_candles:
-                if i >= len(slice.tf_ask_candles[tf]):
+            for tf in slice_data.tf_ask_candles:
+                if i >= len(slice_data.tf_ask_candles[tf]):
                     print(
                         f"⚠️ Index {i} überschreitet ask-Candle-Länge für {symbol}, TF {tf}"
                     )
                     return
 
-        signals = self.strategy.evaluate(i, self.multi_candle_data)
+        # Cast to expected dict type for strategy.evaluate
+        slice_map: Dict[str, SymbolDataSlice] = {
+            sym: self.multi_candle_data.get(sym)
+            for sym in self.multi_candle_data.slices
+            if self.multi_candle_data.get(sym) is not None
+        }
+        signals: Any = self.strategy.evaluate(i, slice_map)
         if signals:
             if not isinstance(signals, list):
                 signals = [signals]
             for signal in signals:
                 self._handle_signal(signal, bid_candle)
 
-    def evaluate_tick(self, tick: Tick):
+    def evaluate_tick(self, tick: Tick) -> None:
         """
         Evaluates einen Tick für diese Strategie.
         """
-        signal = self.strategy.evaluate_tick(tick)
+        # Build slice_map for tick evaluation
+        slice_map: Dict[str, SymbolDataSlice] = {
+            sym: self.multi_candle_data.get(sym)
+            for sym in self.multi_candle_data.slices
+            if self.multi_candle_data.get(sym) is not None
+        }
+        signal = self.strategy.evaluate_tick(tick, slice_map)
         if signal:
             self.executor.process_signal_tick(signal, tick)
         self.executor.evaluate_exits_tick(tick)
         self.portfolio.update(tick.timestamp)
 
-    def _handle_signal(self, signal, candle):
+    def _handle_signal(self, signal: TradeSignal, candle: Candle) -> None:
         """
         Verarbeitet das Signal (kann von Kindklassen überschrieben werden).
         """
@@ -88,7 +103,7 @@ class MultiStrategyController:
         self.strategy = strategy
         self.multi_candle_data: Optional[MultiSymbolSlice] = None
 
-    def set_multi_candle_data(self, data: MultiSymbolSlice):
+    def set_multi_candle_data(self, data: MultiSymbolSlice) -> None:
         """
         Setzt das Multi-Candle-Datenobjekt für die Steuerung.
         """
@@ -101,10 +116,14 @@ class MultiStrategyController:
         bid_candles: List[Candle],
         ask_candles: List[Candle],
         on_progress: Optional[Callable[[int, int], None]] = None,
-    ):
+    ) -> None:
         """
         Läuft die Strategie über alle Candle-Paare.
         """
+        if self.multi_candle_data is None:
+            raise ValueError(
+                "multi_candle_data nicht gesetzt. Rufe set_multi_candle_data() auf."
+            )
         for i, (bid, ask) in enumerate(zip(bid_candles, ask_candles)):
             if callable(on_progress):
                 on_progress(i, len(bid_candles))
@@ -116,18 +135,24 @@ class MultiStrategyController:
         bid_candle: Candle,
         ask_candle: Candle,
         multi_slice: MultiSymbolSlice,
-    ):
+    ) -> None:
         """
         Evaluates einen Candle-Step für den MultiSlice-Kontext.
         """
-        signals = self.strategy.evaluate(i, multi_slice)
+        # Build slice_map compatible with strategy.evaluate signature
+        slice_map: Dict[str, SymbolDataSlice] = {
+            sym: multi_slice.get(sym)
+            for sym in multi_slice.slices
+            if multi_slice.get(sym) is not None
+        }
+        signals: Any = self.strategy.evaluate(i, slice_map)
         if signals:
             if not isinstance(signals, list):
                 signals = [signals]
             for signal in signals:
                 self._handle_signal(signal, bid_candle)
 
-    def _handle_signal(self, signal, candle):
+    def _handle_signal(self, signal: TradeSignal, candle: Candle) -> None:
         """
         Verarbeitet das Signal (leitet weiter an die Strategie).
         """

@@ -62,7 +62,7 @@ def compute_cost_shock_score(
     penalty = compute_penalty_profit_drawdown_sharpe(
         base_metrics, [shocked_metrics], penalty_cap=penalty_cap
     )
-    return score_from_penalty(penalty, penalty_cap=penalty_cap)
+    return float(score_from_penalty(penalty, penalty_cap=penalty_cap))
 
 
 def compute_multi_factor_cost_shock_score(

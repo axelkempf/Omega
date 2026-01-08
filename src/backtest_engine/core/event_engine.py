@@ -48,7 +48,7 @@ class EventEngine:
         self.on_progress = on_progress
         self.original_start_dt = original_start_dt
 
-    def run(self):
+    def run(self) -> None:
         """
         Hauptschleife für die Event Engine (Single Symbol).
         """
@@ -159,7 +159,7 @@ class CrossSymbolEventEngine:
         self.on_progress = on_progress
         self.original_start_dt = original_start_dt
 
-    def run(self):
+    def run(self) -> None:
         """
         Hauptschleife für die Multi-Symbol Event Engine.
         """

@@ -40,7 +40,7 @@ def compute_stability_score_and_wmape_from_yearly_profits(
         d = None
         if durations_by_year is not None:
             try:
-                d = float(durations_by_year.get(y, 0.0))  # type: ignore[arg-type]
+                d = float(durations_by_year.get(y, 0.0))
             except Exception:
                 d = None
         if d is None or not np.isfinite(d) or d <= 0.0:

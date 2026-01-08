@@ -1,7 +1,7 @@
 import math
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
-from backtest_engine.core.portfolio import PortfolioPosition
+from backtest_engine.core.portfolio import Portfolio, PortfolioPosition
 from backtest_engine.core.slippage_and_fee import FeeModel, SlippageModel
 from backtest_engine.data.candle import Candle
 from backtest_engine.data.tick import Tick
@@ -32,32 +32,35 @@ class ExecutionSimulator:
 
     def __init__(
         self,
-        portfolio,
+        portfolio: Portfolio,
         risk_per_trade: float = 100.0,
         slippage_model: Optional[SlippageModel] = None,
         fee_model: Optional[FeeModel] = None,
-        symbol_specs: Optional[Dict[str, SymbolSpec]] = None,
+        symbol_specs: Optional[
+            Union[Dict[str, SymbolSpec], SymbolSpecsRegistry]
+        ] = None,
         lot_sizer: Optional[LotSizer] = None,
         commission_model: Optional[CommissionModel] = None,
         rate_provider: Optional[RateProvider] = None,
-    ):
+    ) -> None:
         self.portfolio = portfolio
         self.active_positions: List[PortfolioPosition] = []
         self.risk_per_trade = risk_per_trade
         self.slippage_model = slippage_model
         self.fee_model = fee_model
-        self.performance_mode = True  # Optional, aktuell ohne Funktion
-        self._pip_cache = {}  # symbol -> (pip_size, pip_value) (FX-Fallback)
+        self.performance_mode = True
+        self._pip_cache: Dict[str, tuple[float, float]] = {}
         # symbol_specs darf dict oder Registry sein. Intern als dict nutzen.
+        self.symbol_specs: Dict[str, SymbolSpec]
         if isinstance(symbol_specs, SymbolSpecsRegistry):
-            self.symbol_specs = symbol_specs.specs
+            self.symbol_specs = symbol_specs._specs
         else:
             self.symbol_specs = symbol_specs or {}
         self.lot_sizer = lot_sizer
         self.commission_model = commission_model
-        self._rate_provider = rate_provider or (
-            RateProvider() if RateProvider else None
-        )
+        # `RateProvider` ist eine abstrakte Basisklasse. Wenn kein Provider
+        # injiziert wird, bleiben FX-Fallbacks deaktiviert (robuster Default).
+        self._rate_provider: Optional[RateProvider] = rate_provider
         self._unit_value_cache: Dict[str, float] = {}
 
     def _pip_size_for_symbol(self, symbol: str) -> float:
@@ -133,17 +136,17 @@ class ExecutionSimulator:
             return False
         if pos.order_type == "limit":
             if pos.direction == "long":
-                return ask_candle and ask_candle.low <= pos.entry_price
+                return ask_candle is not None and ask_candle.low <= pos.entry_price
             elif pos.direction == "short":
-                return bid_candle and bid_candle.high >= pos.entry_price
+                return bool(bid_candle.high >= pos.entry_price)
         elif pos.order_type == "stop":
             if pos.direction == "long":
-                return ask_candle and ask_candle.high >= pos.entry_price
+                return ask_candle is not None and ask_candle.high >= pos.entry_price
             elif pos.direction == "short":
-                return bid_candle and bid_candle.low <= pos.entry_price
+                return bool(bid_candle.low <= pos.entry_price)
         return False
 
-    def trigger_entry(self, pos: PortfolioPosition, candle: Candle):
+    def trigger_entry(self, pos: PortfolioPosition, candle: Candle) -> None:
         """Setzt eine Pending-Position auf OPEN und berechnet Positionsgröße."""
         pip = self._pip_size_for_symbol(pos.symbol)
         stop_pips = abs(pos.entry_price - pos.stop_loss) / pip if pip > 0 else 0.0
@@ -192,7 +195,7 @@ class ExecutionSimulator:
                 fee, candle.timestamp, kind="entry", position=pos
             )
 
-    def process_signal(self, signal: TradeSignal):
+    def process_signal(self, signal: TradeSignal) -> None:
         """
         Verarbeitet ein neues Signal (Market, Limit, Stop).
         """
@@ -306,7 +309,9 @@ class ExecutionSimulator:
                 fee, signal.timestamp, kind="entry", position=position
             )
 
-    def evaluate_exits(self, bid_candle: Candle, ask_candle: Optional[Candle] = None):
+    def evaluate_exits(
+        self, bid_candle: Candle, ask_candle: Optional[Candle] = None
+    ) -> None:
         """
         Prüft, ob offene Positionen geschlossen werden müssen.
         """
@@ -317,7 +322,7 @@ class ExecutionSimulator:
         )
         cfg_factor = getattr(self, "pip_buffer_factor", 0.5)  # konfigurierbar
         pip_buffer = float(pip_size) * float(cfg_factor)
-        closed = []
+        closed: List[PortfolioPosition] = []
 
         for pos in self.active_positions:
             if pos.is_closed or bid_candle.timestamp <= pos.entry_time:
@@ -326,9 +331,10 @@ class ExecutionSimulator:
             if pos.status == "pending" and self.check_if_entry_triggered(
                 pos, bid_candle, ask_candle
             ):
-                self.trigger_entry(
-                    pos, ask_candle if pos.direction == "long" else bid_candle
+                entry_candle = (
+                    ask_candle if pos.direction == "long" and ask_candle else bid_candle
                 )
+                self.trigger_entry(pos, entry_candle)
 
             if pos.status != "open":
                 continue
@@ -341,8 +347,10 @@ class ExecutionSimulator:
                 sl_hit = bid_candle.low <= pos.stop_loss + pip_buffer
                 tp_hit = bid_candle.high >= pos.take_profit - pip_buffer
             else:
-                sl_hit = ask_candle.high >= pos.stop_loss - pip_buffer
-                tp_hit = ask_candle.low <= pos.take_profit + pip_buffer
+                # Short positions use ask_candle; fallback to bid_candle if unavailable
+                ref_candle = ask_candle if ask_candle is not None else bid_candle
+                sl_hit = ref_candle.high >= pos.stop_loss - pip_buffer
+                tp_hit = ref_candle.low <= pos.take_profit + pip_buffer
 
             if in_entry_candle:
                 if sl_hit:
@@ -350,10 +358,13 @@ class ExecutionSimulator:
                     reason = "stop_loss"
                 elif tp_hit:
                     if pos.order_type == "limit":
+                        ref_candle = (
+                            ask_candle if ask_candle is not None else bid_candle
+                        )
                         close_price = (
                             bid_candle.close
                             if pos.direction == "long"
-                            else ask_candle.close
+                            else ref_candle.close
                         )
                         if (
                             pos.direction == "long" and close_price > pos.take_profit
@@ -435,7 +446,7 @@ class ExecutionSimulator:
                 return True
         return False
 
-    def trigger_entry_tick(self, pos: PortfolioPosition, tick: Tick):
+    def trigger_entry_tick(self, pos: PortfolioPosition, tick: Tick) -> None:
         """Setzt Pending-Position auf OPEN und berechnet Größe im Tick-Modus."""
         pip = self._pip_size_for_symbol(pos.symbol)
         stop_pips = abs(pos.entry_price - pos.stop_loss) / pip if pip > 0 else 0.0
@@ -478,7 +489,7 @@ class ExecutionSimulator:
             )
             self.portfolio.register_fee(fee, tick.timestamp, kind="entry", position=pos)
 
-    def process_signal_tick(self, signal: TradeSignal, tick: Tick):
+    def process_signal_tick(self, signal: TradeSignal, tick: Tick) -> None:
         """
         Verarbeitet ein neues Tick-Signal (Market, Limit, Stop).
         """
@@ -580,9 +591,9 @@ class ExecutionSimulator:
             )
             self.portfolio.register_fee(fee, tick.timestamp, kind="entry", position=pos)
 
-    def evaluate_exits_tick(self, tick: Tick):
+    def evaluate_exits_tick(self, tick: Tick) -> None:
         """Prüft Exits im Tick-Modus."""
-        closed = []
+        closed: List[PortfolioPosition] = []
         for pos in self.active_positions:
             if pos.is_closed or tick.timestamp <= pos.entry_time:
                 continue
@@ -616,7 +627,7 @@ class ExecutionSimulator:
                     pos.direction,
                     pip_size=self._pip_size_for_symbol(pos.symbol),
                 )
-            pos.close(tick.timestamp, exit_price, reason=reason)
+            pos.close(tick.timestamp, exit_price, reason=reason or "exit")
             if self.commission_model:
                 fee = self.commission_model.fee_for_order(
                     pos.symbol,

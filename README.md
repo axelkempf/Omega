@@ -1,6 +1,8 @@
 # Omega
 
 [![CI](https://github.com/axelkempf/Omega/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/axelkempf/Omega/actions/workflows/ci.yml)
+[![Rust Build](https://github.com/axelkempf/Omega/actions/workflows/rust-build.yml/badge.svg?branch=main)](https://github.com/axelkempf/Omega/actions/workflows/rust-build.yml)
+[![Julia Tests](https://github.com/axelkempf/Omega/actions/workflows/julia-tests.yml/badge.svg?branch=main)](https://github.com/axelkempf/Omega/actions/workflows/julia-tests.yml)
 ![Python](https://img.shields.io/badge/python-%3E%3D3.12-blue)
 ![Version](https://img.shields.io/badge/version-1.2.0-blue)
 
@@ -168,13 +170,91 @@ Schema:
 - `configs/` – Live-/Backtest-Konfigurationen + zentrale YAMLs
 - `var/` – Runtime-State (gitignored): Logs/Results/tmp
 
+## Rust/Julia High-Performance Extensions (in Vorbereitung)
+
+Für performance-kritische Module wird eine Hybrid-Architektur vorbereitet:
+
+### Rust-Module (PyO3/Maturin)
+
+Numerische Berechnungen, Hot-Loops und Indicator-Caches können optional in Rust kompiliert werden.
+
+**Voraussetzungen (optional für lokale Entwicklung):**
+
+```bash
+# Rust Toolchain
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+rustup default 1.76.0
+```
+
+**Build (wenn Rust-Module aktiv):**
+
+```bash
+# Via Makefile
+make rust-build
+
+# Via justfile
+just rust-build
+
+# Oder direkt mit Maturin
+cd src/rust_modules/omega_rust && maturin develop --release
+```
+
+**Status:** `src/rust_modules/omega_rust/` enthält Template-Struktur. Migration ausgewählter Module gemäß `docs/runbooks/`.
+
+### Julia-Module (PythonCall.jl)
+
+Monte Carlo, Optimierungen und Research-Analysen können in Julia ausgeführt werden.
+
+**Voraussetzungen (optional):**
+
+```bash
+# Julia Installation (macOS)
+brew install julia
+
+# Oder via juliaup (empfohlen für Versionsmanagement)
+curl -fsSL https://install.julialang.org | sh
+juliaup add 1.10
+juliaup default 1.10
+```
+
+**Julia-Umgebung initialisieren:**
+
+```bash
+# Via Makefile
+make julia-setup
+
+# Oder manuell
+julia --project=src/julia_modules/omega_julia -e 'using Pkg; Pkg.instantiate()'
+```
+
+**Status:** `src/julia_modules/omega_julia/` enthält Template-Struktur. Aktiviert für Research-Workflows gemäß `docs/runbooks/`.
+
+### Feature-Flags
+
+Die Python-Fallbacks bleiben vollständig funktional. Rust/Julia-Module werden nur geladen, wenn verfügbar:
+
+```python
+# Automatische Detection (geplant)
+from omega.config import USE_RUST_INDICATORS, USE_JULIA_MONTE_CARLO
+
+# Defaults: False (Pure Python)
+# Wenn Module gebaut und installiert → automatisch True
+```
+
+Weitere Details: `docs/RUST_JULIA_MIGRATION_PREPARATION_PLAN.md` und `docs/runbooks/`.
+
+---
+
 ## Hilfe & Doku
 
 - Architekturübersicht: `architecture.md`
 - Technische Zusammenfassung: `SUMMARY.md`
 - Änderungen/Versionen: `CHANGELOG.md`
-- Performance-/Refactoring-Report: `docs/CATEGORICAL_RANKING_OPTIMIZATION.md`
-- Beginner-Guide (Copilot Agents & Prompts): `docs/USER_GUIDE_COPILOT_AGENTS_AND_PROMPTS.md`
+- Performance-/Baseline-Report: `reports/performance_baselines/README.md`
+- Copilot Agents & Prompts: `AGENTS.md` und `prompts.md`
+- **Rust/Julia Migration:** `docs/RUST_JULIA_MIGRATION_PREPARATION_PLAN.md`
+- **FFI-Spezifikationen:** `docs/ffi/`
+- **Migrations-Runbooks:** `docs/runbooks/`
 - Tests als lebende Spezifikation: `tests/`
 
 Fragen/Bugs:

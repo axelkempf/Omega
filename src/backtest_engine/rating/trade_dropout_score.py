@@ -13,7 +13,7 @@ from backtest_engine.rating.stress_penalty import (
 )
 
 
-def _drawdown_from_results(results: np.ndarray) -> float:
+def _drawdown_from_results(results: np.ndarray | None) -> float:
     if results is None:
         return 0.0
     res = np.asarray(results, dtype=float)
@@ -234,7 +234,7 @@ def compute_trade_dropout_score(
     penalty = compute_penalty_profit_drawdown_sharpe(
         base_metrics, [dropout_metrics], penalty_cap=penalty_cap
     )
-    return score_from_penalty(penalty, penalty_cap=penalty_cap)
+    return float(score_from_penalty(penalty, penalty_cap=penalty_cap))
 
 
 def simulate_trade_dropout_metrics_multi(

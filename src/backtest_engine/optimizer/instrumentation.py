@@ -43,7 +43,7 @@ def _to_jsonable(obj: Any) -> Any:
 def _memory_fingerprint() -> Dict[str, Any]:
     """Return a snapshot of process memory statistics in megabytes."""
     try:
-        import psutil  # type: ignore
+        import psutil
 
         proc = psutil.Process(os.getpid())
         info = proc.memory_info()
@@ -134,7 +134,12 @@ class _StageContext:
         self._memory_before = _memory_fingerprint()
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb) -> bool:
+    def __exit__(
+        self,
+        exc_type: Optional[type[BaseException]],
+        exc_val: Optional[BaseException],
+        exc_tb: Optional[Any],
+    ) -> None:
         finished_at = time.time()
         end_perf = time.perf_counter()
         duration = 0.0
@@ -151,9 +156,12 @@ class _StageContext:
             error=self._resolve_error(exc_type, exc_val),
         )
         self._recorder._append(record)
-        return False
 
-    def _resolve_error(self, exc_type, exc_val) -> Optional[str]:
+    def _resolve_error(
+        self,
+        exc_type: Optional[type[BaseException]],
+        exc_val: Optional[BaseException],
+    ) -> Optional[str]:
         if self._manual_error:
             return self._manual_error
         if exc_type is None and exc_val is None:

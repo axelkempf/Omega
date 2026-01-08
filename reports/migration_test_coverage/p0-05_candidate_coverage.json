@@ -1,0 +1,293 @@
+{
+  "meta": {
+    "generated_by": "tools/migration_test_coverage.py",
+    "scope": "P0-05",
+    "candidates_json": "reports/migration_candidates/p0-04_candidates.json",
+    "coverage_json": "var/tmp/p0-05_coverage_raw.json",
+    "pytest_marker_expression": "not integration"
+  },
+  "thresholds": {
+    "candidate_warn_percent": 80.0,
+    "file_warn_percent": 70.0
+  },
+  "candidates": [
+    {
+      "key": "indicator_cache",
+      "name": "Indicator Cache",
+      "target": "Rust",
+      "recommended_priority": "High",
+      "candidate_percent_covered": 14.3,
+      "total_statements": 610,
+      "covered_lines": 87,
+      "measured_files": 1,
+      "missing_files": [],
+      "low_files": [
+        {
+          "path": "src/backtest_engine/core/indicator_cache.py",
+          "percent_covered": 14.3,
+          "num_statements": 610
+        }
+      ]
+    },
+    {
+      "key": "optimizer",
+      "name": "Optimizer (Final Selection / Robust Zone)",
+      "target": "Julia",
+      "recommended_priority": "Medium",
+      "candidate_percent_covered": 4.2,
+      "total_statements": 4342,
+      "covered_lines": 181,
+      "measured_files": 11,
+      "missing_files": [],
+      "low_files": [
+        {
+          "path": "src/backtest_engine/optimizer/_settings.py",
+          "percent_covered": 0.0,
+          "num_statements": 12
+        },
+        {
+          "path": "src/backtest_engine/optimizer/grid_searcher.py",
+          "percent_covered": 0.0,
+          "num_statements": 54
+        },
+        {
+          "path": "src/backtest_engine/optimizer/robust_zone_analyzer.py",
+          "percent_covered": 0.0,
+          "num_statements": 650
+        },
+        {
+          "path": "src/backtest_engine/optimizer/symbol_grid.py",
+          "percent_covered": 0.0,
+          "num_statements": 12
+        },
+        {
+          "path": "src/backtest_engine/optimizer/walkforward.py",
+          "percent_covered": 0.0,
+          "num_statements": 846
+        },
+        {
+          "path": "src/backtest_engine/optimizer/walkforward_plot.py",
+          "percent_covered": 0.0,
+          "num_statements": 25
+        },
+        {
+          "path": "src/backtest_engine/optimizer/walkforward_utils.py",
+          "percent_covered": 0.0,
+          "num_statements": 152
+        },
+        {
+          "path": "src/backtest_engine/optimizer/final_param_selector.py",
+          "percent_covered": 5.0,
+          "num_statements": 2155
+        },
+        {
+          "path": "src/backtest_engine/optimizer/optuna_optimizer.py",
+          "percent_covered": 13.5,
+          "num_statements": 281
+        },
+        {
+          "path": "src/backtest_engine/optimizer/instrumentation.py",
+          "percent_covered": 22.6,
+          "num_statements": 155
+        }
+      ]
+    },
+    {
+      "key": "symbol_data_slicer",
+      "name": "Symbol Data Slicer",
+      "target": "Rust",
+      "recommended_priority": "Medium",
+      "candidate_percent_covered": 21.4,
+      "total_statements": 70,
+      "covered_lines": 15,
+      "measured_files": 1,
+      "missing_files": [],
+      "low_files": [
+        {
+          "path": "src/backtest_engine/core/symbol_data_slicer.py",
+          "percent_covered": 21.4,
+          "num_statements": 70
+        }
+      ]
+    },
+    {
+      "key": "portfolio",
+      "name": "Portfolio",
+      "target": "Rust",
+      "recommended_priority": "Medium",
+      "candidate_percent_covered": 30.2,
+      "total_statements": 265,
+      "covered_lines": 80,
+      "measured_files": 1,
+      "missing_files": [],
+      "low_files": [
+        {
+          "path": "src/backtest_engine/core/portfolio.py",
+          "percent_covered": 30.2,
+          "num_statements": 265
+        }
+      ]
+    },
+    {
+      "key": "multi_symbol_slice",
+      "name": "Multi-Symbol Slice",
+      "target": "Rust",
+      "recommended_priority": "Medium",
+      "candidate_percent_covered": 39.1,
+      "total_statements": 23,
+      "covered_lines": 9,
+      "measured_files": 1,
+      "missing_files": [],
+      "low_files": [
+        {
+          "path": "src/backtest_engine/core/multi_symbol_slice.py",
+          "percent_covered": 39.1,
+          "num_statements": 23
+        }
+      ]
+    },
+    {
+      "key": "slippage_and_fee",
+      "name": "Slippage & Fee",
+      "target": "Rust",
+      "recommended_priority": "Medium",
+      "candidate_percent_covered": 60.9,
+      "total_statements": 23,
+      "covered_lines": 14,
+      "measured_files": 1,
+      "missing_files": [],
+      "low_files": [
+        {
+          "path": "src/backtest_engine/core/slippage_and_fee.py",
+          "percent_covered": 60.9,
+          "num_statements": 23
+        }
+      ]
+    },
+    {
+      "key": "walkforward",
+      "name": "Walkforward (stubbed window)",
+      "target": "Julia",
+      "recommended_priority": "Low",
+      "candidate_percent_covered": 0.0,
+      "total_statements": 846,
+      "covered_lines": 0,
+      "measured_files": 1,
+      "missing_files": [],
+      "low_files": [
+        {
+          "path": "src/backtest_engine/optimizer/walkforward.py",
+          "percent_covered": 0.0,
+          "num_statements": 846
+        }
+      ]
+    },
+    {
+      "key": "execution_simulator",
+      "name": "Execution Simulator",
+      "target": "Rust",
+      "recommended_priority": "Low",
+      "candidate_percent_covered": 8.1,
+      "total_statements": 332,
+      "covered_lines": 27,
+      "measured_files": 1,
+      "missing_files": [],
+      "low_files": [
+        {
+          "path": "src/backtest_engine/core/execution_simulator.py",
+          "percent_covered": 8.1,
+          "num_statements": 332
+        }
+      ]
+    },
+    {
+      "key": "event_engine",
+      "name": "Event Engine",
+      "target": "Rust",
+      "recommended_priority": "Low",
+      "candidate_percent_covered": 13.9,
+      "total_statements": 101,
+      "covered_lines": 14,
+      "measured_files": 1,
+      "missing_files": [],
+      "low_files": [
+        {
+          "path": "src/backtest_engine/core/event_engine.py",
+          "percent_covered": 13.9,
+          "num_statements": 101
+        }
+      ]
+    },
+    {
+      "key": "analysis_pipelines",
+      "name": "Analysis Pipelines",
+      "target": "Julia",
+      "recommended_priority": "Low",
+      "candidate_percent_covered": 29.9,
+      "total_statements": 7139,
+      "covered_lines": 2135,
+      "measured_files": 7,
+      "missing_files": [],
+      "low_files": [
+        {
+          "path": "src/backtest_engine/analysis/combine_equity_curves.py",
+          "percent_covered": 0.0,
+          "num_statements": 621
+        },
+        {
+          "path": "src/backtest_engine/analysis/final_combo_equity_plotter.py",
+          "percent_covered": 0.0,
+          "num_statements": 598
+        },
+        {
+          "path": "src/backtest_engine/analysis/walkforward_analyzer.py",
+          "percent_covered": 15.8,
+          "num_statements": 1969
+        },
+        {
+          "path": "src/backtest_engine/analysis/backfill_walkforward_equity_curves.py",
+          "percent_covered": 35.1,
+          "num_statements": 686
+        },
+        {
+          "path": "src/backtest_engine/analysis/combined_walkforward_matrix_analyzer.py",
+          "percent_covered": 46.5,
+          "num_statements": 3129
+        }
+      ]
+    },
+    {
+      "key": "rating",
+      "name": "Rating Modules",
+      "target": "Rust",
+      "recommended_priority": "Low",
+      "candidate_percent_covered": 71.2,
+      "total_statements": 925,
+      "covered_lines": 659,
+      "measured_files": 12,
+      "missing_files": [],
+      "low_files": [
+        {
+          "path": "src/backtest_engine/rating/strategy_rating.py",
+          "percent_covered": 0.0,
+          "num_statements": 23
+        },
+        {
+          "path": "src/backtest_engine/rating/ulcer_index_score.py",
+          "percent_covered": 19.4,
+          "num_statements": 67
+        },
+        {
+          "path": "src/backtest_engine/rating/tp_sl_stress_score.py",
+          "percent_covered": 65.8,
+          "num_statements": 243
+        },
+        {
+          "path": "src/backtest_engine/rating/trade_dropout_score.py",
+          "percent_covered": 67.9,
+          "num_statements": 156
+        }
+      ]
+    }
+  ]
+}

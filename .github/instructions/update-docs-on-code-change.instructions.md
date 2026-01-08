@@ -5,6 +5,24 @@ applyTo: '**/*.{md,js,mjs,cjs,ts,tsx,jsx,py,java,cs,go,rb,php,rs,cpp,c,h,hpp}'
 
 # Update Documentation on Code Change
 
+## TL;DR Policy (Read This First)
+
+| What | When | Do | Don't |
+|------|------|-----|-------|
+| README.md | API/CLI/Config changes | Update usage examples | Rewrite unrelated sections |
+| API docs | Function signature changes | Update docstrings | Auto-generate without review |
+| Config guides | New env vars/settings | Add to relevant section | Duplicate in multiple places |
+| Architecture docs | Structural changes | Update diagrams/flow | Change without ADR |
+
+**Defaults:**
+- ✅ Suggest doc updates (propose changes)
+- ❌ Do NOT auto-commit doc changes without review
+- ❌ Do NOT run validation commands in restricted mode
+
+> For detailed configuration options, see sections below.
+
+---
+
 ## Overview
 
 Ensure documentation stays synchronized with code changes by automatically detecting when README.md,

@@ -1,0 +1,21 @@
+# Rust Toolchain Configuration
+# Task-ID: P4-06 | Phase: 4 – Build-System
+#
+# Pin Rust version for reproducible builds across CI and local development.
+# Updated: 2026-01-06 to Rust stable (pinned version)
+#
+# IMPORTANT: When updating this version:
+# 1. Update .github/workflows/rust-build.yml if it references RUST_VERSION
+# 2. Run full CI suite to verify compatibility
+# 3. Update CHANGELOG.md with toolchain update note
+
+[toolchain]
+channel = "stable"
+components = ["rustfmt", "clippy"]
+targets = [
+    "x86_64-unknown-linux-gnu",
+    "x86_64-apple-darwin",
+    "aarch64-apple-darwin",
+    "x86_64-pc-windows-msvc"
+]
+profile = "minimal"

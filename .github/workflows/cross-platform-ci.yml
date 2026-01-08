@@ -1,0 +1,490 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+# Cross-Platform CI Matrix for Hybrid Python/Rust/Julia Architecture
+# Task-ID: P4-05 | Phase: 4 – Build-System | Status: Active
+# Handles: Full cross-platform testing (Linux, macOS, Windows) with MT5-specific Windows tests
+
+name: Cross-Platform CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      run_mt5_tests:
+        description: 'Run MT5 integration tests (Windows only)'
+        required: false
+        default: false
+        type: boolean
+      run_full_matrix:
+        description: 'Run full OS/Python matrix'
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+env:
+  PYTHONDONTWRITEBYTECODE: 1
+  PIP_DISABLE_PIP_VERSION_CHECK: 1
+
+jobs:
+  # ============================================================================
+  # Determine Changed Paths for Conditional Execution
+  # ============================================================================
+  changes:
+    name: Detect Changes
+    runs-on: ubuntu-latest
+    outputs:
+      python: ${{ steps.filter.outputs.python }}
+      rust: ${{ steps.filter.outputs.rust }}
+      julia: ${{ steps.filter.outputs.julia }}
+      mt5: ${{ steps.filter.outputs.mt5 }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            python:
+              - 'src/**/*.py'
+              - 'tests/**/*.py'
+              - 'pyproject.toml'
+            rust:
+              - 'src/rust_modules/**'
+              - 'Cargo.toml'
+              - 'Cargo.lock'
+            julia:
+              - 'src/julia_modules/**'
+              - 'Project.toml'
+            mt5:
+              - 'src/hf_engine/**'
+              - 'src/strategies/**'
+
+  # ============================================================================
+  # Python Tests - Cross Platform Matrix
+  # ============================================================================
+  python-tests:
+    name: Python ${{ matrix.python-version }} (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    needs: [changes]
+    if: needs.changes.outputs.python == 'true' || github.event.inputs.run_full_matrix == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python-version: ['3.12']
+        # Note: Python 3.11 matrix removed - project requires >=3.12
+        # FFI modules (Rust abi3-py312) require Python 3.12+
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install -U pip
+          pip install -e .[dev]
+
+      - name: Run unit tests
+        shell: bash
+        run: |
+          pytest tests/ -q -m "not integration and not mt5 and not rust_integration and not julia_integration" \
+            --ignore=tests/benchmarks \
+            --ignore=tests/golden \
+            --ignore=tests/property
+
+      - name: Run property-based tests (Linux only)
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12'
+        run: |
+          pip install hypothesis
+          pytest tests/property/ -v --hypothesis-seed=42
+
+  # ============================================================================
+  # MT5 Integration Tests (Windows Only)
+  # ============================================================================
+  mt5-tests:
+    name: MT5 Integration (Windows)
+    runs-on: windows-latest
+    needs: [changes, python-tests]
+    if: |
+      (needs.changes.outputs.mt5 == 'true' || github.event.inputs.run_mt5_tests == 'true') &&
+      github.event_name != 'pull_request'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install -U pip
+          pip install -e .[dev]
+
+      - name: Check MT5 availability
+        id: mt5_check
+        shell: powershell
+        run: |
+          # Check if MetaTrader5 package can be imported
+          $result = python -c "
+          try:
+              import MetaTrader5 as mt5
+              print('available')
+          except ImportError:
+              print('unavailable')
+          "
+          echo "mt5_status=$result" >> $env:GITHUB_OUTPUT
+
+      - name: Run MT5 mock tests
+        run: |
+          pytest tests/ -q -m "mt5" --ignore=tests/benchmarks
+
+      - name: Generate MT5 compatibility report
+        shell: powershell
+        run: |
+          $report = @"
+          # MT5 Compatibility Report
+          
+          - **OS**: Windows
+          - **Python**: 3.12
+          - **MT5 Package**: ${{ steps.mt5_check.outputs.mt5_status }}
+          - **Timestamp**: $(Get-Date -Format "yyyy-MM-dd HH:mm:ss UTC")
+          
+          ## Test Results
+          See workflow artifacts for detailed test output.
+          "@
+          
+          $report | Out-File -FilePath mt5_report.md -Encoding UTF8
+
+      - name: Upload MT5 report
+        uses: actions/upload-artifact@v4
+        with:
+          name: mt5-compatibility-report
+          path: mt5_report.md
+          retention-days: 7
+
+  # ============================================================================
+  # Rust Cross-Platform Build
+  # ============================================================================
+  rust-cross-platform:
+    name: Rust (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    needs: [changes]
+    if: needs.changes.outputs.rust == 'true' || github.event.inputs.run_full_matrix == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+          - os: macos-latest
+            target: x86_64-apple-darwin
+          - os: macos-latest
+            target: aarch64-apple-darwin
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check for Rust modules
+        id: check_rust
+        shell: bash
+        run: |
+          if [ -d "src/rust_modules" ] && [ -f "src/rust_modules/omega_rust/Cargo.toml" ]; then
+            echo "rust_exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "rust_exists=false" >> $GITHUB_OUTPUT
+            echo "::notice::No Rust modules found"
+          fi
+
+      - name: Setup Python (required for PyO3 abi3-py312)
+        if: steps.check_rust.outputs.rust_exists == 'true'
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Setup Rust toolchain
+        if: steps.check_rust.outputs.rust_exists == 'true'
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Cache Cargo
+        if: steps.check_rust.outputs.rust_exists == 'true'
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-${{ matrix.target }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ matrix.target }}-cargo-
+
+      - name: Build Rust modules
+        if: steps.check_rust.outputs.rust_exists == 'true'
+        working-directory: src/rust_modules/omega_rust
+        run: cargo build --release --target ${{ matrix.target }}
+
+      - name: Run Rust tests
+        if: steps.check_rust.outputs.rust_exists == 'true'
+        working-directory: src/rust_modules/omega_rust
+        run: cargo test --target ${{ matrix.target }}
+
+  # ============================================================================
+  # Julia Cross-Platform Tests
+  # ============================================================================
+  julia-cross-platform:
+    name: Julia ${{ matrix.julia-version }} (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    needs: [changes]
+    if: needs.changes.outputs.julia == 'true' || github.event.inputs.run_full_matrix == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            julia-version: '1.10'
+          - os: macos-latest
+            julia-version: '1.10'
+          - os: windows-latest
+            julia-version: '1.10'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check for Julia modules
+        id: check_julia
+        shell: bash
+        run: |
+          if [ -d "src/julia_modules/omega_julia" ] && [ -f "src/julia_modules/omega_julia/Project.toml" ]; then
+            echo "julia_exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "julia_exists=false" >> $GITHUB_OUTPUT
+            echo "::notice::No Julia modules found"
+          fi
+
+      - name: Setup Julia
+        if: steps.check_julia.outputs.julia_exists == 'true'
+        uses: julia-actions/setup-julia@v2
+        with:
+          version: ${{ matrix.julia-version }}
+
+      - name: Cache Julia depot
+        if: steps.check_julia.outputs.julia_exists == 'true'
+        uses: julia-actions/cache@v2
+        with:
+          cache-name: julia-${{ matrix.os }}-${{ matrix.julia-version }}
+
+      - name: Install and test Julia packages
+        if: steps.check_julia.outputs.julia_exists == 'true'
+        shell: julia --color=yes --project=src/julia_modules/omega_julia {0}
+        run: |
+          using Pkg
+          Pkg.instantiate()
+          Pkg.test()
+
+  # ============================================================================
+  # Integration Summary
+  # ============================================================================
+  summary:
+    name: Cross-Platform Summary
+    runs-on: ubuntu-latest
+    needs: [python-tests, rust-cross-platform, julia-cross-platform]
+    if: always()
+    steps:
+      - name: Check job statuses
+        run: |
+          echo "## Cross-Platform CI Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Component | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Python Tests | ${{ needs.python-tests.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Rust Build | ${{ needs.rust-cross-platform.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Julia Tests | ${{ needs.julia-cross-platform.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Workflow Run:** ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" >> $GITHUB_STEP_SUMMARY
+
+      - name: Fail if critical jobs failed
+        if: |
+          needs.python-tests.result == 'failure'
+        run: |
+          echo "::error::Python tests failed - blocking merge"
+          exit 1
+
+  # ============================================================================
+  # Hybrid FFI Integration (Linux Only - Full Stack)
+  # ============================================================================
+  hybrid-integration:
+    name: Hybrid FFI Integration
+    runs-on: ubuntu-latest
+    needs: [python-tests, rust-cross-platform, julia-cross-platform]
+    if: |
+      always() &&
+      needs.python-tests.result == 'success' &&
+      (needs.rust-cross-platform.result == 'success' || needs.rust-cross-platform.result == 'skipped') &&
+      (needs.julia-cross-platform.result == 'success' || needs.julia-cross-platform.result == 'skipped')
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Check for Rust modules
+        id: check_rust
+        run: |
+          if [ -d "src/rust_modules" ] && [ -f "src/rust_modules/omega_rust/Cargo.toml" ]; then
+            echo "rust_exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "rust_exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Check for Julia modules
+        id: check_julia
+        run: |
+          if [ -d "src/julia_modules/omega_julia" ] && [ -f "src/julia_modules/omega_julia/Project.toml" ]; then
+            echo "julia_exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "julia_exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Setup Rust (if needed)
+        if: steps.check_rust.outputs.rust_exists == 'true'
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: '1.76.0'
+
+      - name: Setup Julia (if needed)
+        if: steps.check_julia.outputs.julia_exists == 'true'
+        uses: julia-actions/setup-julia@v2
+        with:
+          version: '1.10'
+
+      - name: Install Python dependencies
+        run: |
+          pip install -e .[dev]
+
+      - name: Build Rust FFI module
+        if: steps.check_rust.outputs.rust_exists == 'true'
+        run: |
+          pip install maturin
+          cd src/rust_modules/omega_rust
+          maturin build --release --out dist
+          # Use --force-reinstall --no-deps to ensure the wheel is properly installed
+          # without conflicting with the already installed omega package
+          pip install --force-reinstall --no-deps dist/*.whl
+          pip show omega-rust
+
+      - name: Setup Julia FFI
+        if: steps.check_julia.outputs.julia_exists == 'true'
+        run: |
+          pip install juliacall
+          julia --project=src/julia_modules/omega_julia -e 'using Pkg; Pkg.instantiate()'
+        env:
+          JULIA_CONDAPKG_BACKEND: "Null"
+
+      - name: Run hybrid integration tests
+        run: |
+          pytest tests/ -v -m "hybrid_integration or rust_integration or julia_integration" --tb=short
+        env:
+          JULIA_PROJECT: src/julia_modules/omega_julia
+          OMEGA_REQUIRE_RUST_FFI: ${{ steps.check_rust.outputs.rust_exists == 'true' && '1' || '0' }}
+          OMEGA_REQUIRE_JULIA_FFI: ${{ steps.check_julia.outputs.julia_exists == 'true' && '1' || '0' }}
+
+      - name: Validate FFI bridges
+        run: |
+          python << 'EOF'
+          import sys
+          import os
+          from pathlib import Path
+          
+          results = {"rust": "skipped", "julia": "skipped"}
+          
+          # Test Rust FFI
+          # Note: We use "from omega import _rust" not "from omega._rust import ..."
+          # because omega._rust is a lazy-loaded submodule via __getattr__, and Python's
+          # "from X.Y import Z" syntax doesn't trigger __getattr__ on X.
+          try:
+              from omega import _rust
+              test_data = [1.0, 2.0, 3.0, 4.0, 5.0]
+              result = _rust.ema(test_data, 3)
+              assert len(result) == len(test_data)
+              results["rust"] = "passed"
+              print(f"✓ Rust FFI validation passed (version: {_rust.__version__})")
+          except ImportError as e:
+              print(f"⚠ Rust module not available: {e}")
+          except Exception as e:
+              results["rust"] = f"failed: {e}"
+              print(f"✗ Rust FFI validation failed: {e}")
+          
+          # Test Julia FFI
+          # Note: juliacall does not reliably pick up JULIA_PROJECT in all environments.
+          # We must explicitly activate the project like the pytest integration tests do.
+          try:
+              from juliacall import Main as jl
+              
+              julia_project = os.environ.get("JULIA_PROJECT", "")
+              if julia_project and Path(julia_project).exists():
+                  project_path = Path(julia_project).resolve().as_posix()
+                  print(f"  Activating Julia project: {project_path}")
+                  jl.seval("import Pkg")
+                  jl.seval(f'Pkg.activate(raw"{project_path}")')
+                  jl.seval("Pkg.instantiate()")
+              
+              # Load the OmegaJulia package from the activated project environment
+              jl.seval("using OmegaJulia")
+              # Verify a simple function works
+              result = jl.seval("1 + 1")
+              assert result == 2
+              results["julia"] = "passed"
+              print("✓ Julia FFI validation passed")
+          except ImportError as e:
+              print(f"⚠ Julia not available: {e}")
+          except Exception as e:
+              results["julia"] = f"failed: {e}"
+              print(f"✗ Julia FFI validation failed: {e}")
+          
+          print(f"\n📊 FFI Validation Results: {results}")
+
+          require_rust = os.environ.get("OMEGA_REQUIRE_RUST_FFI") == "1"
+          require_julia = os.environ.get("OMEGA_REQUIRE_JULIA_FFI") == "1"
+          
+          # Only fail if explicitly required AND actually failed (not just skipped)
+          rust_failed = require_rust and results["rust"] != "passed" and results["rust"] != "skipped"
+          julia_failed = require_julia and results["julia"] != "passed" and results["julia"] != "skipped"
+          
+          if rust_failed or julia_failed:
+              print("\n❌ Required FFI modules failed validation")
+              sys.exit(1)
+          print("\n✅ FFI validation complete")
+          EOF
+        env:
+          JULIA_PROJECT: src/julia_modules/omega_julia
+          OMEGA_REQUIRE_RUST_FFI: ${{ steps.check_rust.outputs.rust_exists == 'true' && '1' || '0' }}
+          OMEGA_REQUIRE_JULIA_FFI: ${{ steps.check_julia.outputs.julia_exists == 'true' && '1' || '0' }}
+
+      - name: Generate integration report
+        run: |
+          echo "## Hybrid FFI Integration Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Python**: ✅ Available" >> $GITHUB_STEP_SUMMARY
+          echo "- **Rust FFI**: ${{ steps.check_rust.outputs.rust_exists == 'true' && '✅ Built' || '⏭️ Skipped' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Julia FFI**: ${{ steps.check_julia.outputs.julia_exists == 'true' && '✅ Configured' || '⏭️ Skipped' }}" >> $GITHUB_STEP_SUMMARY

@@ -1,0 +1,72 @@
+{
+  "meta": {
+    "num_bars": 50000,
+    "repetitions": 3,
+    "generated_at": "2026-01-03T21:37:37Z"
+  },
+  "init_seconds": 0.187437,
+  "init_peak_mb": 6.01048,
+  "operations": {
+    "ema": {
+      "first_call_seconds": 0.001253,
+      "first_peak_mb": 1.209796,
+      "cached_call_seconds": 3e-06,
+      "cached_peak_mb": 2.4e-05
+    },
+    "ema_stepwise": {
+      "first_call_seconds": 0.051055,
+      "first_peak_mb": 3.9183,
+      "cached_call_seconds": 6e-06,
+      "cached_peak_mb": 0.0
+    },
+    "sma": {
+      "first_call_seconds": 0.001348,
+      "first_peak_mb": 1.205093,
+      "cached_call_seconds": 3e-06,
+      "cached_peak_mb": 0.0
+    },
+    "rsi": {
+      "first_call_seconds": 0.006878,
+      "first_peak_mb": 3.218987,
+      "cached_call_seconds": 5e-06,
+      "cached_peak_mb": 0.0
+    },
+    "macd": {
+      "first_call_seconds": 0.0027,
+      "first_peak_mb": 2.40604,
+      "cached_call_seconds": 6e-06,
+      "cached_peak_mb": 8.8e-05
+    },
+    "roc": {
+      "first_call_seconds": 0.00111,
+      "first_peak_mb": 1.203737,
+      "cached_call_seconds": 3e-06,
+      "cached_peak_mb": 0.0
+    },
+    "dmi": {
+      "first_call_seconds": 0.065167,
+      "first_peak_mb": 6.573726,
+      "cached_call_seconds": 6e-06,
+      "cached_peak_mb": 0.0
+    },
+    "bollinger": {
+      "first_call_seconds": 0.003689,
+      "first_peak_mb": 2.054854,
+      "cached_call_seconds": 4e-06,
+      "cached_peak_mb": 0.0
+    },
+    "bollinger_stepwise": {
+      "first_call_seconds": 0.088489,
+      "first_peak_mb": 5.901973,
+      "cached_call_seconds": 1e-05,
+      "cached_peak_mb": 8e-05
+    },
+    "atr": {
+      "first_call_seconds": 0.954385,
+      "first_peak_mb": 4.15742,
+      "cached_call_seconds": 4e-06,
+      "cached_peak_mb": 0.0
+    }
+  },
+  "profile_top15": "         619187 function calls (618745 primitive calls) in 0.393 seconds\n\n   Ordered by: cumulative time\n   List reduced from 589 to 15 due to restriction <15>\n\n   ncalls  tottime  percall  cumtime  percall filename:lineno(function)\n        1    0.000    0.000    0.393    0.393 perf_baseline.py:116(_profile_all)\n        1    0.000    0.000    0.212    0.212 indicator_cache.py:29(__init__)\n       12    0.138    0.012    0.212    0.018 indicator_cache.py:45(_ensure_df)\n        3    0.000    0.000    0.080    0.027 perf_baseline.py:130(<lambda>)\n        3    0.070    0.023    0.080    0.027 indicator_cache.py:358(atr)\n504292/504211    0.071    0.000    0.072    0.000 {built-in method builtins.isinstance}\n        2    0.023    0.011    0.040    0.020 indicator_cache.py:131(_stepwise_indices)\n        3    0.000    0.000    0.038    0.013 perf_baseline.py:127(<lambda>)\n        3    0.000    0.000    0.038    0.013 indicator_cache.py:310(bollinger_stepwise)\n        3    0.000    0.000    0.028    0.009 perf_baseline.py:120(<lambda>)\n        3    0.000    0.000    0.028    0.009 indicator_cache.py:145(ema_stepwise)\n        3    0.000    0.000    0.020    0.007 perf_baseline.py:125(<lambda>)\n        3    0.000    0.000    0.020    0.007 indicator_cache.py:252(dmi)\n   100091    0.017    0.000    0.017    0.000 {method 'append' of 'list' objects}\n        2    0.000    0.000    0.017    0.008 frame.py:11675(max)\n\n\n"
+}

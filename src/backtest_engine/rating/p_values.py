@@ -10,9 +10,11 @@ def _clean_numeric(x: Any) -> np.ndarray:
     if x is None:
         return np.array([], dtype=np.float64)
     if isinstance(x, np.ndarray):
-        arr = np.asarray(x, dtype=np.float64)
+        arr: np.ndarray = np.asarray(x, dtype=np.float64)
     elif isinstance(x, pd.Series):
-        arr = pd.to_numeric(x, errors="coerce").to_numpy(dtype=np.float64, copy=False)
+        arr = np.asarray(
+            pd.to_numeric(x, errors="coerce").to_numpy(copy=False), dtype=np.float64
+        )
     else:
         try:
             arr = np.asarray(list(x), dtype=np.float64)
