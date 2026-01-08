@@ -76,6 +76,7 @@ package-dir = {"" = "src"}
 
 [tool.setuptools.packages.find]
 where = ["src"]
+include = ["omega*", "backtest_engine*", "hf_engine*", "shared*", "strategies*", "ui_engine*"]
 
 [tool.isort]
 profile = "black"

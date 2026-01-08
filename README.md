@@ -1,6 +1,8 @@
 # Omega
 
 [![CI](https://github.com/axelkempf/Omega/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/axelkempf/Omega/actions/workflows/ci.yml)
+[![Rust Build](https://github.com/axelkempf/Omega/actions/workflows/rust-build.yml/badge.svg?branch=main)](https://github.com/axelkempf/Omega/actions/workflows/rust-build.yml)
+[![Julia Tests](https://github.com/axelkempf/Omega/actions/workflows/julia-tests.yml/badge.svg?branch=main)](https://github.com/axelkempf/Omega/actions/workflows/julia-tests.yml)
 ![Python](https://img.shields.io/badge/python-%3E%3D3.12-blue)
 ![Version](https://img.shields.io/badge/version-1.2.0-blue)
 
