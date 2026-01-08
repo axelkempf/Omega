@@ -7,11 +7,13 @@ This package provides the namespace for FFI extensions:
 
 __all__ = []
 
+
 # Lazy import for optional Rust extension
 def __getattr__(name):
     if name == "_rust":
         try:
             from omega import _rust as rust_mod
+
             return rust_mod
         except ImportError:
             raise ImportError(
