@@ -119,14 +119,21 @@ Evidence:
 
 ### 3.2 Rating Module Golden Files
 
-| Module | Golden File | Determinism Test | Tolerance |
-|--------|-------------|------------------|-----------|
-| `strategy_rating` | ✅ | ✅ | 1e-10 |
-| `robustness_score_1` | ✅ | ✅ | 1e-10 |
-| `stability_score` | ✅ | ✅ | 1e-10 |
-| `cost_shock_score` | ✅ | ✅ | 1e-10 |
-| `trade_dropout_score` | ✅ | ✅ | 1e-10 |
-| `stress_penalty` | ✅ | ✅ | 1e-10 |
+| Module | Golden File | Determinism Test | Tolerance | Notes |
+|--------|-------------|------------------|-----------|-------|
+| `robustness_score_1` | ✅ | ✅ | 1e-10 | |
+| `stability_score` | ✅ | ✅ | 1e-10 | |
+| `cost_shock_score` | ✅ | ✅ | 1e-10 | |
+| `trade_dropout_score` | ✅ | ✅ | 1e-10 | |
+| `stress_penalty` | ✅ | ✅ | 1e-10 | |
+| `data_jitter_score` | ✅ | ✅ | 1e-10 | |
+| `timing_jitter_score` | ✅ | ✅ | 1e-10 | |
+| `tp_sl_stress_score` | ✅ | ✅ | 1e-10 | |
+| `ulcer_index_score` | ✅ | ✅ | 1e-10 | |
+| `p_values` | ✅ | ✅ | 1e-10 | |
+
+**Note:** `strategy_rating` has been removed as part of Wave 1 migration preparation.
+The functionality is now inline in `walkforward.py`.
 
 ### 3.3 Determinism Test Coverage
 

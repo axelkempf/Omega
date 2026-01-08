@@ -182,7 +182,6 @@
         "src/backtest_engine/rating/p_values.py",
         "src/backtest_engine/rating/robustness_score_1.py",
         "src/backtest_engine/rating/stability_score.py",
-        "src/backtest_engine/rating/strategy_rating.py",
         "src/backtest_engine/rating/stress_penalty.py",
         "src/backtest_engine/rating/timing_jitter_score.py",
         "src/backtest_engine/rating/tp_sl_stress_score.py",

@@ -268,7 +268,6 @@
       "missing_files": [],
       "low_files": [
         {
-          "path": "src/backtest_engine/rating/strategy_rating.py",
           "percent_covered": 0.0,
           "num_statements": 23
         },

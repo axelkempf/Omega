@@ -12,7 +12,7 @@ Hinweis:
 from __future__ import annotations
 
 from copy import deepcopy
-from typing import Any, Dict, List, Mapping, Tuple
+from typing import Any, Dict, Mapping, Tuple
 
 import numpy as np
 import pandas as pd
@@ -33,7 +33,6 @@ from backtest_engine.rating.robustness_score_1 import compute_robustness_score_1
 from backtest_engine.rating.stability_score import (
     compute_stability_score_and_wmape_from_yearly_profits,
 )
-from backtest_engine.rating.strategy_rating import rate_strategy_performance
 from backtest_engine.rating.stress_penalty import (
     compute_penalty_profit_drawdown_sharpe,
     score_from_penalty,
@@ -58,6 +57,51 @@ from tests.golden.conftest import (
     compute_dict_hash,
     create_metadata,
 )
+
+
+def _rate_strategy_performance(
+    summary: Dict[str, Any], thresholds: Dict[str, float] | None = None
+) -> Dict[str, Any]:
+    """
+    Bewertet die Strategie-Performance anhand fester Schwellenwerte.
+    Gibt Score (0–1), Deployment-Entscheidung und Fehlerschlüssel zurück.
+
+    Note: Diese Funktion war ursprünglich in strategy_rating.py und wurde
+    für die Wave-1 Rust/Julia Migration vorbereitet. Die Funktion wurde
+    inline hier verschoben, da strategy_rating.py vollständig entfernt wurde.
+    """
+    thresholds = thresholds or {
+        "min_winrate": 45,
+        "min_avg_r": 0.6,
+        "min_profit": 500,
+        "min_profit_factor": 1.2,
+        "max_drawdown": 1000,
+    }
+    deployment = True
+    checks: list[str] = []
+
+    if summary.get("Winrate (%)", 0) < thresholds["min_winrate"]:
+        deployment = False
+        checks.append("Winrate")
+    if summary.get("Avg R-Multiple", 0) < thresholds["min_avg_r"]:
+        deployment = False
+        checks.append("Avg R")
+    if summary.get("Net Profit", 0) < thresholds["min_profit"]:
+        deployment = False
+        checks.append("Net Profit")
+    if summary.get("profit_factor", 0) < thresholds["min_profit_factor"]:
+        deployment = False
+        checks.append("Profit Factor")
+    if summary.get("drawdown_eur", 0) > thresholds["max_drawdown"]:
+        deployment = False
+        checks.append("Drawdown")
+
+    score = 1 - len(checks) / 5
+    return {
+        "Score": round(score, 2),
+        "Deployment": deployment,
+        "Deployment_Fails": "|".join(checks),
+    }
 
 
 def _synthetic_ohlc_df(
@@ -127,13 +171,13 @@ class TestGoldenRatingDeterminism:
             "sharpe": 1.50,
         }
 
-        jitter_metrics: List[Dict[str, float]] = [
+        jitter_metrics: list[dict[str, float]] = [
             {"profit": 9_200.0, "avg_r": 0.72, "winrate": 0.52, "drawdown": 2_200.0},
             {"profit": 9_700.0, "avg_r": 0.78, "winrate": 0.54, "drawdown": 2_050.0},
             {"profit": 8_800.0, "avg_r": 0.70, "winrate": 0.50, "drawdown": 2_350.0},
         ]
 
-        stress_metrics: List[Dict[str, float]] = [
+        stress_metrics: list[dict[str, float]] = [
             {"profit": 8_000.0, "drawdown": 2_500.0, "sharpe": 1.10},
             {"profit": 6_500.0, "drawdown": 3_200.0, "sharpe": 0.90},
         ]
@@ -212,7 +256,7 @@ class TestGoldenRatingDeterminism:
         pvals = compute_p_values(trades_df, n_boot=300, seed_r=123, seed_pnl=456)
 
         # Strategy rating: threshold-based und deterministisch.
-        rating = rate_strategy_performance(
+        rating = _rate_strategy_performance(
             {
                 "Winrate (%)": 52,
                 "Avg R-Multiple": 0.75,

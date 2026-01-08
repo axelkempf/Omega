@@ -42,7 +42,6 @@ from backtest_engine.optimizer.walkforward_utils import (
     update_master_index,
 )
 from backtest_engine.rating.p_values import bootstrap_p_value_mean_gt_zero
-from backtest_engine.rating.strategy_rating import rate_strategy_performance
 from backtest_engine.report.metrics import calculate_metrics
 from backtest_engine.runner import run_backtest_and_return_portfolio
 from hf_engine.infra.config.paths import PARQUET_DIR, WALKFORWARD_RESULTS_DIR
@@ -68,6 +67,63 @@ def _ensure_utf8_stdout() -> None:
 
 
 _ensure_utf8_stdout()
+
+
+def _rate_strategy_performance(
+    summary: Dict[str, Any], thresholds: Optional[Dict[str, float]] = None
+) -> Dict[str, Any]:
+    """
+    Bewertet die Strategie-Performance anhand fester Schwellenwerte.
+    Gibt Score (0–1), Deployment-Entscheidung und Fehlerschlüssel zurück.
+
+    Note: Diese Funktion war ursprünglich in strategy_rating.py und wurde
+    für die Wave-1 Rust/Julia Migration vorbereitet. Die Funktion wurde
+    inline hier verschoben, da strategy_rating.py vollständig entfernt wurde.
+
+    Args:
+        summary: Dict mit den wichtigsten Metriken einer Backtest-Periode
+            (Keys: "Winrate (%)", "Avg R-Multiple", "Net Profit", "profit_factor", "drawdown_eur").
+        thresholds: Optionale Overrides für die Bewertungsschwellen.
+
+    Returns:
+        Dict mit:
+            - Score: Anteil bestandener Kriterien (0.0–1.0)
+            - Deployment: True/False, ob Deployment erlaubt ist
+            - Deployment_Fails: Pipe-separierte String-Liste fehlender Kriterien
+    """
+    thresholds = thresholds or {
+        "min_winrate": 45,
+        "min_avg_r": 0.6,
+        "min_profit": 500,
+        "min_profit_factor": 1.2,
+        "max_drawdown": 1000,
+    }
+    deployment = True
+    checks: list[str] = []
+
+    if summary.get("Winrate (%)", 0) < thresholds["min_winrate"]:
+        deployment = False
+        checks.append("Winrate")
+    if summary.get("Avg R-Multiple", 0) < thresholds["min_avg_r"]:
+        deployment = False
+        checks.append("Avg R")
+    if summary.get("Net Profit", 0) < thresholds["min_profit"]:
+        deployment = False
+        checks.append("Net Profit")
+    if summary.get("profit_factor", 0) < thresholds["min_profit_factor"]:
+        deployment = False
+        checks.append("Profit Factor")
+    if summary.get("drawdown_eur", 0) > thresholds["max_drawdown"]:
+        deployment = False
+        checks.append("Drawdown")
+
+    score = 1 - len(checks) / 5
+
+    return {
+        "Score": round(score, 2),
+        "Deployment": deployment,
+        "Deployment_Fails": "|".join(checks),
+    }
 
 
 def set_global_seed(seed: int) -> None:
@@ -1250,7 +1306,7 @@ def run_walkforward_window(
             }
         )
 
-        rating = rate_strategy_performance(summary, thresholds=rating_thresholds)
+        rating = _rate_strategy_performance(summary, thresholds=rating_thresholds)
         stage.add_details(
             total_trades=total_trades_val,
             active_days=active_days_val,
