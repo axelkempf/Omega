@@ -451,10 +451,10 @@ jobs:
           ):
               sys.exit(1)
           EOF
-          env:
-            JULIA_PROJECT: src/julia_modules/omega_julia
-            OMEGA_REQUIRE_RUST_FFI: ${{ steps.check_rust.outputs.rust_exists == 'true' && '1' || '0' }}
-            OMEGA_REQUIRE_JULIA_FFI: ${{ steps.check_julia.outputs.julia_exists == 'true' && '1' || '0' }}
+        env:
+          JULIA_PROJECT: src/julia_modules/omega_julia
+          OMEGA_REQUIRE_RUST_FFI: ${{ steps.check_rust.outputs.rust_exists == 'true' && '1' || '0' }}
+          OMEGA_REQUIRE_JULIA_FFI: ${{ steps.check_julia.outputs.julia_exists == 'true' && '1' || '0' }}
 
       - name: Generate integration report
         run: |

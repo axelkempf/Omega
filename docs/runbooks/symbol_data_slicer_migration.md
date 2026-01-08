@@ -11,6 +11,8 @@ rollback_procedure: docs/runbooks/rollback_generic.md
 
 # Migration Runbook: SymbolDataSlicer
 
+**Status:** 🔴 Nicht begonnen (Readiness/Go-No-Go: `docs/MIGRATION_READINESS_VALIDATION.md`)
+
 ## 1. Modul-Übersicht
 
 | Attribut | Wert |
@@ -145,3 +147,46 @@ export USE_RUST_SLICER=false
 - [ ] Code-Review abgeschlossen
 - [ ] Dokumentation aktualisiert
 - [ ] Feature-Flag dokumentiert
+
+---
+
+## 8. Sign-off Matrix
+
+| Phase | Reviewer | Datum | Status |
+|-------|----------|-------|--------|
+| FFI-Spec Review | - | - | ⏳ Pending |
+| Code Review (Rust) | - | - | ⏳ Pending |
+| Code Review (Python Wrapper) | - | - | ⏳ Pending |
+| Performance Validation | - | - | ⏳ Pending |
+| Security Review | - | - | ⏳ Pending |
+| Final Approval | - | - | ⏳ Pending |
+
+### Sign-off Kriterien
+
+1. **FFI-Spec Review**: FFI-Spezifikation ist vollständig und abgenommen
+2. **Code Review (Rust)**: Rust-Code erfüllt clippy --pedantic, keine unsafe blocks ohne Begründung
+3. **Code Review (Python Wrapper)**: Python-Wrapper ist mypy --strict compliant
+4. **Performance Validation**: ≥8x Speedup erreicht, Memory-Usage ≤ Python-Baseline
+5. **Security Review**: Keine Buffer-Overflows, Memory-Safety via miri verifiziert
+6. **Final Approval**: Alle vorherigen Sign-offs erteilt, Go-Live freigegeben
+
+---
+
+## 9. Referenzen
+
+- FFI-Spezifikation: `docs/ffi/symbol_data_slicer.md`
+- Performance-Baseline: `reports/performance_baselines/p0-01_symbol_data_slicer.json`
+- Arrow-Schemas: `src/shared/arrow_schemas.py`
+- ADR-0001: Migration Strategy
+- ADR-0002: Serialization Format
+- ADR-0003: Error Handling
+
+---
+
+## Changelog
+
+| Datum | Version | Änderung | Autor |
+|-------|---------|----------|-------|
+| 2026-01-05 | 1.0 | Initiale Version | Omega Team |
+| 2026-01-08 | 1.1 | Sign-off Matrix, Referenzen hinzugefügt | Omega Team |
+

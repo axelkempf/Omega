@@ -12,6 +12,8 @@ rollback_procedure: docs/runbooks/rollback_generic.md
 
 # Migration Runbook: Walkforward
 
+**Status:** 🔴 Nicht begonnen (Readiness/Go-No-Go: `docs/MIGRATION_READINESS_VALIDATION.md`)
+
 ## 1. Modul-Übersicht
 
 | Attribut | Wert |
@@ -237,3 +239,51 @@ def test_window_generation_equivalence():
 - [ ] Performance-Target erreicht
 - [ ] macOS + Linux Tests grün
 - [ ] Code-Review abgeschlossen
+
+---
+
+## 7. Sign-off Matrix
+
+| Phase | Reviewer | Datum | Status |
+|-------|----------|-------|--------|
+| FFI-Spec Review | - | - | ⏳ Pending |
+| Code Review (Julia) | - | - | ⏳ Pending |
+| Code Review (Python Integration) | - | - | ⏳ Pending |
+| Performance Validation | - | - | ⏳ Pending |
+| Cross-Platform Validation | - | - | ⏳ Pending |
+| Final Approval | - | - | ⏳ Pending |
+
+### Sign-off Kriterien
+
+1. **FFI-Spec Review**: FFI-Spezifikation ist vollständig und abgenommen
+2. **Code Review (Julia)**: Julia-Code folgt Style Guide, alle Tests grün
+3. **Code Review (Python Integration)**: Python-Wrapper ist mypy --strict compliant
+4. **Performance Validation**: ≥6x Speedup für Full Walkforward erreicht
+5. **Cross-Platform Validation**: Tests auf macOS und Linux erfolgreich
+6. **Final Approval**: Alle vorherigen Sign-offs erteilt, Go-Live freigegeben
+
+### Abhängigkeiten Sign-off
+
+| Abhängigkeit | Status | Blocker für |
+|--------------|--------|-------------|
+| Optimizer Migration | ⏳ Pending | Dieses Modul |
+
+---
+
+## 8. Referenzen
+
+- FFI-Spezifikation: `docs/ffi/walkforward.md`
+- Julia-Modul: `src/julia_modules/omega_julia/src/walkforward.jl` (docs-lint:planned)
+- Arrow-Schemas: `src/shared/arrow_schemas.py`
+- ADR-0001: Migration Strategy
+- ADR-0002: Serialization Format
+
+---
+
+## Changelog
+
+| Datum | Version | Änderung | Autor |
+|-------|---------|----------|-------|
+| 2026-01-05 | 1.0 | Initiale Version | Omega Team |
+| 2026-01-08 | 1.1 | Sign-off Matrix, Referenzen, Abhängigkeiten hinzugefügt | Omega Team |
+

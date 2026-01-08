@@ -16,7 +16,7 @@ rollback_procedure: docs/runbooks/rollback_generic.md
 **Target-Sprache:** Rust  
 **Priorität:** Wave 6 (Performance Cleanup)  
 **Aufwand:** L (Large)  
-**Status:** TEMPLATE (Readiness/Go-No-Go: `docs/MIGRATION_READINESS_VALIDATION.md`)
+**Status:** 🔴 Nicht begonnen (Runbook ist aktuell ein Template; Readiness/Go-No-Go: `docs/MIGRATION_READINESS_VALIDATION.md`)
 
 ---
 

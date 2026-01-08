@@ -11,6 +11,8 @@ rollback_procedure: docs/runbooks/rollback_generic.md
 
 # Migration Runbook: Slippage & Fee
 
+**Status:** 🔴 Nicht begonnen (Readiness/Go-No-Go: `docs/MIGRATION_READINESS_VALIDATION.md`)
+
 ## 1. Modul-Übersicht
 
 | Attribut | Wert |
@@ -163,3 +165,14 @@ fee_result = calculate_fee_rust(
 - [ ] Config-Loading funktioniert
 - [ ] Code-Review abgeschlossen
 - [ ] Dokumentation aktualisiert
+
+---
+
+## 8. Sign-off Matrix
+
+| Rolle | Name | Datum | Signatur |
+|-------|------|-------|----------|
+| Tech Lead | | | ⏳ |
+| QA Lead | | | ⏳ |
+| DevOps | | | ⏳ |
+

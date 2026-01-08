@@ -1,3 +1,16 @@
+---
+module: event_engine
+phase: 3
+prerequisites:
+  - Type-Hints vollständig (mypy --strict)
+  - ≥85% Test-Coverage
+  - Performance-Baseline dokumentiert
+  - FFI-Spec finalisiert
+  - Arrow-Schema definiert
+  - IndicatorCache Migration abgeschlossen (empfohlen)
+rollback_procedure: docs/runbooks/rollback_generic.md
+---
+
 # Migration Runbook: EventEngine
 
 **Python-Pfad:** `src/backtest_engine/core/event_engine.py`  
@@ -152,7 +165,7 @@ dann optional Upgrade zu **Strategy A** oder **C**.
 
 ## Migration Steps
 
-### Step 1: Rust Modul Setup
+### Phase 1: Rust Modul Setup
 
 ```bash
 cd src/rust_modules/omega_rust
@@ -169,7 +182,7 @@ touch src/event/types.rs
 - [ ] lib.rs Module-Deklaration
 - [ ] event/mod.rs Exports
 
-### Step 2: Interface Implementation
+### Phase 2: Interface Implementation
 
 **Event-Typen (Rust):**
 
@@ -223,7 +236,7 @@ pub struct ExecutionResult {
 - [ ] Python TypedDict ↔ Rust Struct Conversion
 - [ ] Nullability Handling
 
-### Step 3: Core-Logik portieren
+### Phase 3: Core-Logik portieren
 
 **Event Queue (Rust):**
 
@@ -331,7 +344,7 @@ impl RustEventEngine {
 - [ ] State Management
 - [ ] Error Propagation
 
-### Step 4: FFI-Bindings
+### Phase 4: FFI-Bindings
 
 ```rust
 // src/rust_modules/omega_rust/src/lib.rs
@@ -352,7 +365,7 @@ fn omega_rust(_py: Python, m: &PyModule) -> PyResult<()> {
 - [ ] Callback Protocol
 - [ ] Error Handling
 
-### Step 5: Python-Wrapper
+### Phase 5: Python-Wrapper
 
 ```python
 # src/backtest_engine/core/event_engine.py
@@ -419,7 +432,7 @@ class EventEngine:
 - [ ] Arrow Serialization
 - [ ] Error Handling
 
-### Step 6: Testing
+### Phase 6: Testing
 
 ```bash
 # Tests (bestehende)
@@ -451,7 +464,7 @@ pytest tests/integration/test_resume_semantics.py -v
 - [ ] Integration mit IndicatorCache
 - [ ] Integration mit ExecutionSimulator
 
-### Step 7: Documentation
+### Phase 7: Documentation
 
 - [ ] Docstrings in Python aktualisiert
 - [ ] Rustdoc für Rust-Modul
@@ -581,3 +594,40 @@ EventEngine (dieses Modul)
 | Datum | Version | Änderung | Autor |
 |-------|---------|----------|-------|
 | 2026-01-05 | 1.0 | Initiale Version des Runbooks | Omega Team |
+| 2026-01-08 | 1.1 | YAML Front Matter, Sign-off Matrix hinzugefügt | Omega Team |
+
+---
+
+## Sign-off Matrix
+
+| Phase | Reviewer | Datum | Status |
+|-------|----------|-------|--------|
+| FFI-Spec Review | - | - | ⏳ Pending |
+| Architecture Review | - | - | ⏳ Pending |
+| Code Review (Rust) | - | - | ⏳ Pending |
+| Code Review (Python Wrapper) | - | - | ⏳ Pending |
+| Determinism Validation | - | - | ⏳ Pending |
+| Performance Validation | - | - | ⏳ Pending |
+| Security Review | - | - | ⏳ Pending |
+| Integration Test Sign-off | - | - | ⏳ Pending |
+| Final Approval | - | - | ⏳ Pending |
+
+### Sign-off Kriterien
+
+1. **FFI-Spec Review**: FFI-Spezifikation ist vollständig und abgenommen
+2. **Architecture Review**: Hybrid-Architektur (Rust Core + Python Callbacks) abgenommen
+3. **Code Review (Rust)**: Rust-Code erfüllt clippy --pedantic, keine unsafe blocks ohne Begründung
+4. **Code Review (Python Wrapper)**: Python-Wrapper ist mypy --strict compliant
+5. **Determinism Validation**: 100% Backtest-Determinismus via Golden-File Tests verifiziert
+6. **Performance Validation**: Speedup-Targets erreicht, Callback-Overhead < 5%
+7. **Security Review**: Keine Buffer-Overflows, Memory-Safety verifiziert
+8. **Integration Test Sign-off**: Integration mit IndicatorCache, ExecutionSimulator, Portfolio erfolgreich
+9. **Final Approval**: Alle vorherigen Sign-offs erteilt, Go-Live freigegeben
+
+### Abhängigkeiten Sign-off
+
+| Abhängigkeit | Status | Blocker für |
+|--------------|--------|-------------|
+| IndicatorCache Migration | ⏳ Pending | Dieses Modul |
+| ExecutionSimulator Migration | - | Nicht blockierend |
+| Portfolio Migration | - | Nicht blockierend |

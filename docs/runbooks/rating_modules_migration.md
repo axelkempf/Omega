@@ -16,7 +16,7 @@ rollback_procedure: docs/runbooks/rollback_generic.md
 **Target-Sprache:** Rust  
 **Priorität:** Wave 1 (Pilot-Module)  
 **Aufwand:** M (Medium)  
-**Status:** TEMPLATE (Readiness/Go-No-Go: `docs/MIGRATION_READINESS_VALIDATION.md`)
+**Status:** 🔴 Nicht begonnen (Runbook ist aktuell ein Template; Readiness/Go-No-Go: `docs/MIGRATION_READINESS_VALIDATION.md`)
 
 ---
 
@@ -345,6 +345,7 @@ pytest tests/test_rating_*.py -v
 | Tech Lead | | | ⏳ |
 | QA Lead | | | ⏳ |
 | DevOps | | | ⏳ |
+
 
 ---
 

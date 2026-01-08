@@ -11,6 +11,8 @@ rollback_procedure: docs/runbooks/rollback_generic.md
 
 # Migration Runbook: Portfolio
 
+**Status:** 🔴 Nicht begonnen (Readiness/Go-No-Go: `docs/MIGRATION_READINESS_VALIDATION.md`)
+
 ## 1. Modul-Übersicht
 
 | Attribut | Wert |
@@ -181,3 +183,14 @@ python -m src.backtest_engine.core.portfolio --recover-state
 - [ ] Invarianten in CI validiert
 - [ ] Code-Review abgeschlossen
 - [ ] Dokumentation aktualisiert
+
+---
+
+## 9. Sign-off Matrix
+
+| Rolle | Name | Datum | Signatur |
+|-------|------|-------|----------|
+| Tech Lead | | | ⏳ |
+| QA Lead | | | ⏳ |
+| DevOps | | | ⏳ |
+

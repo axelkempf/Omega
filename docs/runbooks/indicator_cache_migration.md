@@ -1,3 +1,15 @@
+---
+module: indicator_cache
+phase: 2
+prerequisites:
+  - Type-Hints vollständig (mypy --strict)
+  - ≥85% Test-Coverage
+  - Performance-Baseline dokumentiert
+  - FFI-Spec finalisiert
+  - Arrow-Schema definiert
+rollback_procedure: docs/runbooks/rollback_generic.md
+---
+
 # Migration Runbook: IndicatorCache
 
 **Python-Pfad:** `src/backtest_engine/core/indicator_cache.py`  
@@ -118,7 +130,7 @@ Die Migration zu Rust soll einen **5-10x Speedup** für Indikator-Berechnungen e
 
 ## Migration Steps
 
-### Step 1: Rust Modul Setup
+### Phase 1: Rust Modul Setup
 
 ```bash
 # Bereits vorhanden in src/rust_modules/omega_rust/
@@ -139,7 +151,7 @@ touch src/indicators/dmi.rs
 - [x] lib.rs Module-Deklaration
 - [x] indicators/mod.rs Exports
 
-### Step 2: Interface Implementation
+### Phase 2: Interface Implementation
 
 **Input-Typen (Arrow → Rust):**
 
@@ -194,7 +206,7 @@ pub struct MacdResult {
 - [ ] Nullability Handling (NaN propagation)
 - [ ] Type Conversion Tests
 
-### Step 3: Core-Logik portieren
+### Phase 3: Core-Logik portieren
 
 #### EMA (Exponential Moving Average)
 
@@ -238,7 +250,7 @@ pub fn ema(close: &Array1<f64>, span: usize) -> Array1<f64> {
 - [ ] DMI Implementation (DI+, DI-, ADX)
 - [ ] ROC Implementation
 
-### Step 4: FFI-Bindings
+### Phase 4: FFI-Bindings
 
 ```rust
 // src/rust_modules/omega_rust/src/lib.rs
@@ -273,7 +285,7 @@ fn omega_rust(_py: Python, m: &PyModule) -> PyResult<()> {
 - [ ] GIL Release für lange Berechnungen
 - [ ] NumPy Array Interop
 
-### Step 5: Python-Wrapper
+### Phase 5: Python-Wrapper
 
 ```python
 # src/backtest_engine/core/indicator_cache.py
@@ -333,7 +345,7 @@ class IndicatorCache:
 - [ ] Cache-Key Kompatibilität
 - [ ] Typ-Signatur-Kompatibilität
 
-### Step 6: Testing
+### Phase 6: Testing
 
 ```bash
 # Unit Tests
@@ -363,7 +375,7 @@ cargo bench
 - [ ] Rust `cargo test` passiert
 - [ ] Integration mit Backtest-Engine
 
-### Step 7: Documentation
+### Phase 7: Documentation
 
 - [ ] Docstrings in Python aktualisiert
 - [ ] Rustdoc für Rust-Modul
@@ -468,3 +480,26 @@ cargo bench
 | Datum | Version | Änderung | Autor |
 |-------|---------|----------|-------|
 | 2026-01-05 | 1.0 | Initiale Version des Runbooks | Omega Team |
+| 2026-01-08 | 1.1 | YAML Front Matter, Sign-off Matrix hinzugefügt | Omega Team |
+
+---
+
+## Sign-off Matrix
+
+| Phase | Reviewer | Datum | Status |
+|-------|----------|-------|--------|
+| FFI-Spec Review | - | - | ⏳ Pending |
+| Code Review (Rust) | - | - | ⏳ Pending |
+| Code Review (Python Wrapper) | - | - | ⏳ Pending |
+| Performance Validation | - | - | ⏳ Pending |
+| Security Review | - | - | ⏳ Pending |
+| Final Approval | - | - | ⏳ Pending |
+
+### Sign-off Kriterien
+
+1. **FFI-Spec Review**: FFI-Spezifikation ist vollständig und abgenommen
+2. **Code Review (Rust)**: Rust-Code erfüllt clippy --pedantic, keine unsafe blocks ohne Begründung
+3. **Code Review (Python Wrapper)**: Python-Wrapper ist mypy --strict compliant
+4. **Performance Validation**: Speedup-Targets erreicht, keine Memory-Leaks
+5. **Security Review**: Keine Buffer-Overflows, Memory-Safety verifiziert
+6. **Final Approval**: Alle vorherigen Sign-offs erteilt, Go-Live freigegeben

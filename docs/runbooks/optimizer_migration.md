@@ -12,6 +12,8 @@ rollback_procedure: docs/runbooks/rollback_generic.md
 
 # Migration Runbook: Optimizer
 
+**Status:** 🔴 Nicht begonnen (Readiness/Go-No-Go: `docs/MIGRATION_READINESS_VALIDATION.md`)
+
 ## 1. Modul-Übersicht
 
 | Attribut | Wert |
@@ -185,3 +187,14 @@ pytest tests -k monte_carlo -v
 - [ ] Performance-Targets erreicht
 - [ ] Cross-Platform Tests (macOS, Linux)
 - [ ] Code-Review abgeschlossen
+
+---
+
+## 7. Sign-off Matrix
+
+| Rolle | Name | Datum | Signatur |
+|-------|------|-------|----------|
+| Tech Lead | | | ⏳ |
+| QA Lead | | | ⏳ |
+| DevOps | | | ⏳ |
+
