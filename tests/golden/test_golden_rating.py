@@ -12,7 +12,7 @@ Hinweis:
 from __future__ import annotations
 
 from copy import deepcopy
-from typing import Any, Dict, List, Mapping, Tuple
+from typing import Any, Dict, Mapping, Tuple
 
 import numpy as np
 import pandas as pd
@@ -78,7 +78,7 @@ def _rate_strategy_performance(
         "max_drawdown": 1000,
     }
     deployment = True
-    checks: List[str] = []
+    checks: list[str] = []
 
     if summary.get("Winrate (%)", 0) < thresholds["min_winrate"]:
         deployment = False
@@ -171,13 +171,13 @@ class TestGoldenRatingDeterminism:
             "sharpe": 1.50,
         }
 
-        jitter_metrics: List[Dict[str, float]] = [
+        jitter_metrics: list[dict[str, float]] = [
             {"profit": 9_200.0, "avg_r": 0.72, "winrate": 0.52, "drawdown": 2_200.0},
             {"profit": 9_700.0, "avg_r": 0.78, "winrate": 0.54, "drawdown": 2_050.0},
             {"profit": 8_800.0, "avg_r": 0.70, "winrate": 0.50, "drawdown": 2_350.0},
         ]
 
-        stress_metrics: List[Dict[str, float]] = [
+        stress_metrics: list[dict[str, float]] = [
             {"profit": 8_000.0, "drawdown": 2_500.0, "sharpe": 1.10},
             {"profit": 6_500.0, "drawdown": 3_200.0, "sharpe": 0.90},
         ]

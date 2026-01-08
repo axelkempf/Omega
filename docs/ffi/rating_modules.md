@@ -72,13 +72,11 @@ MetricsDict: TypeAlias = Mapping[str, float]
     "sharpe": float,      # Sharpe Ratio
 }
 
-# Für strategy_rating:
+# Für Penalty-Berechnung (stress_penalty, cost_shock, timing_jitter, data_jitter):
 {
-    "Winrate (%)": float,     # z.B. 55.0
-    "Avg R-Multiple": float,  # z.B. 0.8
-    "Net Profit": float,      # z.B. 1500.0
-    "profit_factor": float,   # z.B. 1.5
-    "drawdown_eur": float,    # z.B. 500.0
+    "profit": float,      # Netto-Profit
+    "drawdown": float,    # Max Drawdown
+    "sharpe": float,      # Sharpe Ratio
 }
 ```
 

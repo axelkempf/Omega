@@ -98,9 +98,8 @@ def _rate_strategy_performance(
         "min_profit_factor": 1.2,
         "max_drawdown": 1000,
     }
-    score = 0.0
     deployment = True
-    checks: List[str] = []
+    checks: list[str] = []
 
     if summary.get("Winrate (%)", 0) < thresholds["min_winrate"]:
         deployment = False
