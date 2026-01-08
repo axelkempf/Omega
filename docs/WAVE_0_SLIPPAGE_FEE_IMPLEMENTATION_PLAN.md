@@ -300,7 +300,7 @@ adjusted_batch = model.apply_batch(prices, directions, seed=42)  # Batch
 | Datei | Typ | Gate |
 |-------|-----|------|
 | `tests/golden/test_golden_slippage_fee.py` | Golden | ✅ CI |
-| `tests/integration/test_slippage_fee_rust.py` | Integration | ✅ CI (wenn Rust gebaut) |
+| `tests/integration/test_rust_slippage_fee_parity.py` | Integration | ✅ CI (wenn Rust gebaut) |
 | `src/rust_modules/omega_rust/src/costs/*.rs` | Rust Unit | ✅ cargo test |
 
 ---
@@ -311,10 +311,10 @@ adjusted_batch = model.apply_batch(prices, directions, seed=42)  # Batch
 
 | Datei | Beschreibung | LOC (geschätzt) |
 |-------|--------------|-----------------|
-| `src/costs/mod.rs` | Module exports | ~20 |
-| `src/costs/slippage.rs` | Slippage-Berechnung + Tests | ~150 |
-| `src/costs/fee.rs` | Fee-Berechnung + Tests | ~120 |
-| `src/lib.rs` | Module registration (Erweiterung) | ~10 |
+| `src/rust_modules/omega_rust/src/costs/mod.rs` | Module exports | ~20 |
+| `src/rust_modules/omega_rust/src/costs/slippage.rs` | Slippage-Berechnung + Tests | ~150 |
+| `src/rust_modules/omega_rust/src/costs/fee.rs` | Fee-Berechnung + Tests | ~120 |
+| `src/rust_modules/omega_rust/src/lib.rs` | Module registration (Erweiterung) | ~10 |
 
 **Gesamt:** ~300 LOC Rust
 
@@ -328,7 +328,7 @@ rand_chacha = "0.3"    # ChaCha8 RNG für Determinismus
 
 ### 4.3 Error Handling
 
-Alle Rust-Funktionen nutzen das bestehende Error-Handling aus `src/error.rs`:
+Alle Rust-Funktionen nutzen das bestehende Error-Handling aus `src/rust_modules/omega_rust/src/error.rs`:
 - `OmegaError::InvalidParameter` für ungültige Eingaben
 - Automatische Konvertierung zu Python `ValueError`/`RuntimeError`
 
@@ -439,7 +439,7 @@ USE_RUST_SLIPPAGE_FEE = False
 ### 8.2 Implementation Checklist
 
 #### Phase 1: Setup ✅
-- [x] Verzeichnisstruktur erstellen (`src/costs/`)
+- [x] Verzeichnisstruktur erstellen (`src/rust_modules/omega_rust/src/costs/`)
 - [x] Cargo.toml Dependencies hinzufügen (`rand`, `rand_chacha`)
 - [x] `mod.rs` erstellen
 
@@ -497,7 +497,7 @@ USE_RUST_SLIPPAGE_FEE = False
 ### 9.2 Critical Issues Resolved
 
 #### Issue 1: Namespace Conflict (`logging` module)
-- **Problem:** Python's `logging` module was shadowed by `src/backtest_engine/logging/`
+- **Problem:** Python's `logging` module was shadowed by `backtest_engine/logging/`
 - **Symptom:** `AttributeError: module 'logging' has no attribute 'getLogger'`
 - **Resolution:** Renamed directory to `bt_logging` and updated imports
 - **Files changed:** `strategy_wrapper.py`, entire `logging/` → `bt_logging/`

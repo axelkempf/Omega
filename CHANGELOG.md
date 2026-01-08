@@ -22,7 +22,7 @@ Alle nennenswerten Änderungen werden in dieser Datei dokumentiert.
 
 ### Changed
 - `SlippageModel.apply()` und `FeeModel.calculate()` unterstützen jetzt optionales `seed`-Argument
-- `src/backtest_engine/logging/` → `src/backtest_engine/bt_logging/` (Namespace-Konflikt mit stdlib behoben)
+- `logging/` → `bt_logging/` (Namespace-Konflikt mit stdlib behoben)
 
 ### Performance
 - **Batch-Speedup**: 14.4x (Python 95.77ms → Rust 6.66ms für 1000×10 Trades)
