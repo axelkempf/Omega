@@ -95,7 +95,12 @@ Ordner-für-Ordner-Übersicht der Codebasis (ohne `results`-Ordner und ohne Aufl
       - `stress_penalty.rs` *(Shared penalty logic)*
       - `cost_shock.rs` *(Cost shock analysis)*
       - `trade_dropout.rs` *(Trade dropout simulation)*
-      - `strategy_rating.rs` *(Deployment threshold check)*
+      - `data_jitter.rs` *(Data jitter score - NEU PR #19)*
+      - `timing_jitter.rs` *(Timing jitter score - NEU PR #19)*
+      - `tp_sl_stress.rs` *(TP/SL stress score - NEU PR #19)*
+      - `ulcer_index.rs` *(Ulcer index score - NEU PR #19)*
+      - `p_values.rs` *(P-values - OPTIONAL)*
+      - *(Note: strategy_rating.rs NOT planned - function inline in walkforward.py)*
   - `benches/`
     - `indicator_bench.rs` *(Criterion benchmarks)*
 
@@ -186,14 +191,16 @@ Ordner-für-Ordner-Übersicht der Codebasis (ohne `results`-Ordner und ohne Aufl
   - `__init__.py`
   - `cost_shock_score.py` *(Cost sensitivity analysis)*
   - `data_jitter_score.py` *(Data perturbation analysis)*
+  - `p_values.py` *(Statistical significance testing)*
   - `robustness_score_1.py` *(Parameter jitter robustness)*
   - `stability_score.py` *(Yearly profit stability)*
-  - `strategy_rating.py` *(Deployment threshold check)*
   - `stress_penalty.py` *(Shared penalty logic)*
   - `timing_jitter_score.py` *(Timing shift analysis)*
   - `tp_sl_stress_score.py` *(TP/SL stress testing)*
   - `trade_dropout_score.py` *(Trade dropout simulation)*
   - `ulcer_index_score.py` *(Ulcer index calculation)*
+  - `README.md`
+  - *(Note: strategy_rating.py removed in PR #19 - inline in walkforward.py)*
 - `report/`
   - `__init__.py`
   - `exporter.py`

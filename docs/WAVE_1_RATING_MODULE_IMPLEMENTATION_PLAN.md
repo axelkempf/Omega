@@ -1,16 +1,31 @@
 # Wave 1: Rating Module Migration Implementation Plan
 
-**Document Version:** 1.0  
+**Document Version:** 2.0  
 **Created:** 2026-01-08  
-**Updated:** 2026-01-08
+**Updated:** 2026-01-08 (Post PR #19 Synchronization)
 **Status:** 📋 READY FOR IMPLEMENTATION  
 **Modules:** `src/backtest_engine/rating/*.py`
 
 ---
 
+## Changelog (Post PR #19)
+
+| Status | Änderung | Begründung |
+|--------|----------|------------|
+| ✅ Erledigt | `strategy_rating.py` entfernt aus Scope | PR #19: Funktionalität inline in `walkforward.py` verschoben |
+| ✅ Hinzugefügt | 4 neue Module: `data_jitter_score`, `timing_jitter_score`, `tp_sl_stress_score`, `ulcer_index_score` | PR #19: Vollständige FFI-Specs für alle 10 Module erstellt |
+| ✅ Hinzugefügt | `p_values.py` als optionales Modul | Statistische Signifikanz-Tests |
+| ✅ Aktualisiert | Module-Count: 6 → 10 (davon 1 optional) | Vollständiger Scope nach PR #19 |
+| ✅ Aktualisiert | FFI-Spezifikation | `docs/ffi/rating_modules.md` erweitert |
+| ✅ Aktualisiert | Golden-Tests | Inline `_rate_strategy_performance` in Test-Datei |
+
+---
+
 ## Executive Summary
 
-Dieser Plan beschreibt die vollständige Implementierung der Migration der Rating-Module zu Rust als **Wave 1**. Das Ziel ist die Migration aller 6 Rating-Score-Module zu Rust mit vollständiger numerischer Parität zu den Python-Implementierungen.
+Dieser Plan beschreibt die vollständige Implementierung der Migration der Rating-Module zu Rust als **Wave 1**. Das Ziel ist die Migration aller **10 Rating-Score-Module** zu Rust mit vollständiger numerischer Parität zu den Python-Implementierungen.
+
+**Hinweis:** `strategy_rating.py` wurde in PR #19 entfernt und inline in `walkforward.py` verschoben. Die Funktion `_rate_strategy_performance` ist nun Teil von `walkforward.py` und wird **nicht** nach Rust migriert (zu einfach, keine Performance-Gewinne).
 
 ### Warum Rating Module als Wave 1?
 
@@ -21,20 +36,29 @@ Dieser Plan beschreibt die vollständige Implementierung der Migration der Ratin
 | **Testbarkeit** | ✅ Ideal | Golden-Tests, Property-Tests, Determinismus nachgewiesen |
 | **Batch-Potenzial** | ✅ Hoch | Optimizer-Szenarien mit vielen Evaluierungen |
 | **Risiko** | ✅ Niedrig | Fehler isoliert, Feature-Flag ermöglicht Rollback |
-| **Aufwand** | ⚡ Mittel | 5-7 Tage geschätzt |
+| **Aufwand** | ⚡ Mittel-Hoch | 7-10 Tage geschätzt (erweitert für 10 Module) |
 
-### Module in Scope
+### Module in Scope (Post PR #19 - Aktualisiert)
 
-| Modul | Funktion | Komplexität | Python LOC |
-|-------|----------|-------------|------------|
-| `strategy_rating.py` | Deployment-Entscheidung | ⭐ Niedrig | ~57 |
-| `robustness_score_1.py` | Parameter-Jitter Robustness | ⭐⭐ Niedrig | ~83 |
-| `stability_score.py` | Yearly Profit Stability | ⭐⭐ Niedrig | ~88 |
-| `cost_shock_score.py` | Cost Sensitivity Analysis | ⭐ Niedrig | ~92 |
-| `trade_dropout_score.py` | Trade Dropout Simulation | ⭐⭐⭐ Mittel | ~335 |
-| `stress_penalty.py` | Basis-Penalty-Logik | ⭐ Niedrig | ~84 |
+| Modul | Funktion | Komplexität | Python LOC | Priorität |
+|-------|----------|-------------|------------|-----------|
+| `robustness_score_1.py` | Parameter-Jitter Robustness | ⭐⭐ Niedrig | ~83 | 🔴 Hoch |
+| `stability_score.py` | Yearly Profit Stability | ⭐⭐ Niedrig | ~88 | 🔴 Hoch |
+| `stress_penalty.py` | Basis-Penalty-Logik (Shared) | ⭐ Niedrig | ~84 | 🔴 Hoch |
+| `cost_shock_score.py` | Cost Sensitivity Analysis | ⭐ Niedrig | ~92 | 🔴 Hoch |
+| `trade_dropout_score.py` | Trade Dropout Simulation | ⭐⭐⭐ Mittel | ~335 | 🔴 Hoch |
+| `data_jitter_score.py` | Daten-Jitter-Robustheit | ⭐⭐⭐ Mittel | ~289 | 🟡 Mittel |
+| `timing_jitter_score.py` | Timing-Shift-Robustheit | ⭐⭐ Niedrig | ~119 | 🟡 Mittel |
+| `tp_sl_stress_score.py` | TP/SL-Stress-Test | ⭐⭐⭐⭐ Hoch | ~378 | 🟡 Mittel |
+| `ulcer_index_score.py` | Ulcer Index Score | ⭐⭐ Niedrig | ~152 | 🟡 Mittel |
+| `p_values.py` | Statistische Signifikanz | ⭐⭐ Niedrig | ~128 | 🟢 Optional |
 
-**Gesamt:** ~739 LOC Python → ~600-800 LOC Rust (geschätzt)
+**Module NICHT in Scope (entfernt):**
+| Modul | Grund | Status |
+|-------|-------|--------|
+| `strategy_rating.py` | PR #19: Inline in `walkforward.py` verschoben, zu einfach für Rust-Migration | ❌ Entfernt |
+
+**Gesamt:** ~1,748 LOC Python → ~1,200-1,500 LOC Rust (geschätzt)
 
 ---
 
@@ -70,20 +94,29 @@ Dieser Plan beschreibt die vollständige Implementierung der Migration der Ratin
 | mypy strict | ✅ | `backtest_engine.rating.*` strict-compliant |
 | Wave 0 Pilot | ✅ | Slippage & Fee erfolgreich migriert |
 
-### 1.2 Python-Modul Baseline
+### 1.2 Python-Modul Baseline (Post PR #19)
 
 **Verzeichnis:** `src/backtest_engine/rating/`
 
-Die aktuellen Python-Implementierungen (~739 LOC) enthalten:
+Die aktuellen Python-Implementierungen (~1,748 LOC) enthalten:
 
-| Modul | Haupt-Funktion(en) |
-|-------|-------------------|
-| `strategy_rating.py` | `rate_strategy_performance()` |
-| `robustness_score_1.py` | `compute_robustness_score_1()` |
-| `stability_score.py` | `compute_stability_score_and_wmape_from_yearly_profits()`, `compute_stability_score_from_yearly_profits()` |
-| `stress_penalty.py` | `compute_penalty_profit_drawdown_sharpe()`, `score_from_penalty()` |
-| `cost_shock_score.py` | `compute_cost_shock_score()`, `compute_multi_factor_cost_shock_score()`, `apply_cost_shock_inplace()` |
-| `trade_dropout_score.py` | `simulate_trade_dropout_metrics()`, `simulate_trade_dropout_metrics_multi()`, `compute_trade_dropout_score()`, `compute_multi_run_trade_dropout_score()` |
+| Modul | Haupt-Funktion(en) | Status |
+|-------|-------------------|--------|
+| `robustness_score_1.py` | `compute_robustness_score_1()` | ✅ In Scope |
+| `stability_score.py` | `compute_stability_score_and_wmape_from_yearly_profits()`, `compute_stability_score_from_yearly_profits()` | ✅ In Scope |
+| `stress_penalty.py` | `compute_penalty_profit_drawdown_sharpe()`, `score_from_penalty()` | ✅ In Scope |
+| `cost_shock_score.py` | `compute_cost_shock_score()`, `compute_multi_factor_cost_shock_score()`, `apply_cost_shock_inplace()` | ✅ In Scope |
+| `trade_dropout_score.py` | `simulate_trade_dropout_metrics()`, `simulate_trade_dropout_metrics_multi()`, `compute_trade_dropout_score()`, `compute_multi_run_trade_dropout_score()` | ✅ In Scope |
+| `data_jitter_score.py` | `compute_data_jitter_score()`, `build_jittered_preloaded_data()`, `precompute_atr_cache()` | ✅ In Scope (NEU) |
+| `timing_jitter_score.py` | `compute_timing_jitter_score()`, `apply_timing_jitter_month_shift_inplace()` | ✅ In Scope (NEU) |
+| `tp_sl_stress_score.py` | `compute_tp_sl_stress_score()` | ✅ In Scope (NEU) |
+| `ulcer_index_score.py` | `compute_ulcer_index_and_score()` | ✅ In Scope (NEU) |
+| `p_values.py` | `compute_p_values()`, `bootstrap_p_value_mean_gt_zero()` | 🟡 Optional |
+
+**Entfernt aus Scope (PR #19):**
+| Modul | Grund | Neuer Ort |
+|-------|-------|-----------|
+| `strategy_rating.py` | Zu einfach für Rust-Migration | Inline in `backtest_engine.optimizer.walkforward._rate_strategy_performance()` |
 
 ### 1.3 Golden-File Referenz
 
@@ -93,19 +126,26 @@ Die aktuellen Python-Implementierungen (~739 LOC) enthalten:
 - **Seed:** 42
 - **Toleranz:** 1e-10
 
-### 1.4 Performance Baseline
+### 1.4 Performance Baseline (Post PR #19)
 
 **Datei:** `reports/performance_baselines/p0-01_rating.json`
 
-| Operation | Python Baseline | Rust Target | Speedup-Ziel |
-|-----------|-----------------|-------------|--------------|
-| robustness_1 | ~1.3ms | <150µs | 8x |
-| stability | ~80µs | <10µs | 8x |
-| cost_shock | ~590µs | <75µs | 8x |
-| trade_dropout | ~646µs | <80µs | 8x |
-| ulcer_index | ~22.7ms | <3ms | 8x |
-| strategy_rating | ~17µs | <2µs | 8x |
-| tp_sl_stress | ~47.3ms | <6ms | 8x |
+| Operation | Python Baseline | Rust Target | Speedup-Ziel | Status |
+|-----------|-----------------|-------------|--------------|--------|
+| robustness_1 | ~1.3ms | <150µs | 8x | ✅ In Scope |
+| stability | ~80µs | <10µs | 8x | ✅ In Scope |
+| cost_shock | ~590µs | <75µs | 8x | ✅ In Scope |
+| trade_dropout | ~646µs | <80µs | 8x | ✅ In Scope |
+| ulcer_index | ~22.7ms | <3ms | 8x | ✅ In Scope (NEU) |
+| tp_sl_stress | ~47.3ms | <6ms | 8x | ✅ In Scope (NEU) |
+| data_jitter | ~5ms | <600µs | 8x | ✅ In Scope (NEU) |
+| timing_jitter | ~2ms | <250µs | 8x | ✅ In Scope (NEU) |
+| p_values | ~10ms | <1.2ms | 8x | 🟡 Optional |
+
+**Entfernt:**
+| Operation | Grund |
+|-----------|-------|
+| strategy_rating (~17µs) | PR #19: Inline verschoben, kein Rust-Overhead gerechtfertigt |
 
 ---
 
@@ -156,7 +196,7 @@ Die aktuellen Python-Implementierungen (~739 LOC) enthalten:
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-### 2.2 Feature-Flag-System
+### 2.2 Feature-Flag-System (Post PR #19)
 
 ```python
 # src/backtest_engine/rating/__init__.py
@@ -167,6 +207,7 @@ def _check_rust_rating_available() -> bool:
     """Check if Rust rating functions are available."""
     try:
         from omega._rust import (
+            # Core Rating Functions (Wave 1)
             compute_robustness_score_1,
             compute_stability_score,
             compute_penalty_profit_drawdown_sharpe,
@@ -175,11 +216,20 @@ def _check_rust_rating_available() -> bool:
             compute_multi_factor_cost_shock_score,
             compute_trade_dropout_score,
             simulate_trade_dropout_metrics,
-            rate_strategy_performance,
+            # Extended Rating Functions (Wave 1 - NEU)
+            compute_data_jitter_score,
+            compute_timing_jitter_score,
+            compute_tp_sl_stress_score,
+            compute_ulcer_index_and_score,
+            # Optional (p_values may stay Python-only)
+            # compute_p_values,
         )
         return True
     except ImportError:
         return False
+
+# NOTE: rate_strategy_performance wurde entfernt (PR #19)
+# Die Funktion ist jetzt inline in walkforward.py
 
 def _is_rust_enabled() -> bool:
     """Determine if Rust rating should be used."""
@@ -211,7 +261,7 @@ def get_rust_rating_status() -> dict:
     }
 ```
 
-### 2.3 Datei-Struktur nach Migration
+### 2.3 Datei-Struktur nach Migration (Post PR #19)
 
 ```
 src/
@@ -222,30 +272,41 @@ src/
 │       │   ├── error.rs                  # Bestehendes Error-Handling
 │       │   ├── costs/                    # Wave 0: Slippage & Fee
 │       │   ├── indicators/               # Bestehendes Modul
-│       │   └── rating/                   # NEU: Rating-Module
+│       │   └── rating/                   # NEU: Rating-Module (10 Module)
 │       │       ├── mod.rs                # NEU: Module exports
 │       │       ├── common.rs             # NEU: Gemeinsame Helpers
 │       │       ├── robustness.rs         # NEU: Robustness Score
 │       │       ├── stability.rs          # NEU: Stability Score
-│       │       ├── stress_penalty.rs     # NEU: Stress/Penalty Logik
+│       │       ├── stress_penalty.rs     # NEU: Stress/Penalty Logik (Shared)
 │       │       ├── cost_shock.rs         # NEU: Cost Shock Score
 │       │       ├── trade_dropout.rs      # NEU: Trade Dropout
-│       │       └── strategy_rating.rs    # NEU: Strategy Rating
+│       │       ├── data_jitter.rs        # NEU: Data Jitter Score (PR #19)
+│       │       ├── timing_jitter.rs      # NEU: Timing Jitter Score (PR #19)
+│       │       ├── tp_sl_stress.rs       # NEU: TP/SL Stress Score (PR #19)
+│       │       ├── ulcer_index.rs        # NEU: Ulcer Index Score (PR #19)
+│       │       └── p_values.rs           # OPTIONAL: P-Values (PR #19)
 │       └── Cargo.toml                    # Dependencies ggf. erweitern
 │
 ├── backtest_engine/
+│   ├── optimizer/
+│   │   └── walkforward.py                # Enthält _rate_strategy_performance() (PR #19)
 │   └── rating/
-│       ├── __init__.py                   # NEU: Feature-Flag + Exports
+│       ├── __init__.py                   # Feature-Flag + Exports (aktualisiert PR #19)
 │       ├── robustness_score_1.py         # Erweitert mit Rust-Integration
 │       ├── stability_score.py            # Erweitert mit Rust-Integration
 │       ├── stress_penalty.py             # Erweitert mit Rust-Integration
 │       ├── cost_shock_score.py           # Erweitert mit Rust-Integration
 │       ├── trade_dropout_score.py        # Erweitert mit Rust-Integration
-│       └── strategy_rating.py            # Erweitert mit Rust-Integration
+│       ├── data_jitter_score.py          # Erweitert mit Rust-Integration (NEU)
+│       ├── timing_jitter_score.py        # Erweitert mit Rust-Integration (NEU)
+│       ├── tp_sl_stress_score.py         # Erweitert mit Rust-Integration (NEU)
+│       ├── ulcer_index_score.py          # Erweitert mit Rust-Integration (NEU)
+│       └── p_values.py                   # Optional: Rust-Integration
+│       # ENTFERNT: strategy_rating.py    # PR #19: Inline in walkforward.py
 │
 tests/
 ├── golden/
-│   └── test_golden_rating.py             # Bestehendes, validiert Rust-Parität
+│   └── test_golden_rating.py             # Aktualisiert PR #19: Inline _rate_strategy_performance
 ├── property/
 │   └── test_prop_scoring.py              # Bestehendes, erweitert für Rust
 └── integration/
@@ -254,7 +315,7 @@ tests/
 
 ---
 
-## 3. Implementierungs-Phasen
+## 3. Implementierungs-Phasen (Post PR #19 - Aktualisiert)
 
 ### Phase 1: Rust-Modul Setup (Tag 1, ~4h)
 
@@ -269,15 +330,23 @@ touch src/rust_modules/omega_rust/src/rating/stability.rs
 touch src/rust_modules/omega_rust/src/rating/stress_penalty.rs
 touch src/rust_modules/omega_rust/src/rating/cost_shock.rs
 touch src/rust_modules/omega_rust/src/rating/trade_dropout.rs
-touch src/rust_modules/omega_rust/src/rating/strategy_rating.rs
+# NEU (PR #19):
+touch src/rust_modules/omega_rust/src/rating/data_jitter.rs
+touch src/rust_modules/omega_rust/src/rating/timing_jitter.rs
+touch src/rust_modules/omega_rust/src/rating/tp_sl_stress.rs
+touch src/rust_modules/omega_rust/src/rating/ulcer_index.rs
+# OPTIONAL:
+touch src/rust_modules/omega_rust/src/rating/p_values.rs
+# ENTFERNT: strategy_rating.rs (PR #19 - nicht mehr benötigt)
 ```
 
-#### 3.1.2 Module registrieren in lib.rs
+#### 3.1.2 Module registrieren in lib.rs (Post PR #19)
 
 ```rust
 pub mod rating;  // NEU
 
 use rating::{
+    // Core Rating Functions
     compute_robustness_score_1,
     compute_robustness_score_1_batch,
     compute_stability_score,
@@ -289,14 +358,21 @@ use rating::{
     simulate_trade_dropout_metrics,
     compute_trade_dropout_score,
     compute_multi_run_trade_dropout_score,
-    rate_strategy_performance,
+    // Extended Rating Functions (PR #19)
+    compute_data_jitter_score,
+    compute_timing_jitter_score,
+    compute_tp_sl_stress_score,
+    compute_ulcer_index_and_score,
+    // Optional
+    // compute_p_values,
+    // ENTFERNT: rate_strategy_performance (PR #19 - inline in walkforward.py)
 };
 
 #[pymodule]
 fn omega_rust(m: &Bound<'_, PyModule>) -> PyResult<()> {
     // Bestehende Funktionen...
     
-    // NEU: Rating Functions
+    // NEU: Core Rating Functions
     m.add_function(wrap_pyfunction!(compute_robustness_score_1, m)?)?;
     m.add_function(wrap_pyfunction!(compute_robustness_score_1_batch, m)?)?;
     m.add_function(wrap_pyfunction!(compute_stability_score, m)?)?;
@@ -308,13 +384,20 @@ fn omega_rust(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(simulate_trade_dropout_metrics, m)?)?;
     m.add_function(wrap_pyfunction!(compute_trade_dropout_score, m)?)?;
     m.add_function(wrap_pyfunction!(compute_multi_run_trade_dropout_score, m)?)?;
-    m.add_function(wrap_pyfunction!(rate_strategy_performance, m)?)?;
+    
+    // NEU: Extended Rating Functions (PR #19)
+    m.add_function(wrap_pyfunction!(compute_data_jitter_score, m)?)?;
+    m.add_function(wrap_pyfunction!(compute_timing_jitter_score, m)?)?;
+    m.add_function(wrap_pyfunction!(compute_tp_sl_stress_score, m)?)?;
+    m.add_function(wrap_pyfunction!(compute_ulcer_index_and_score, m)?)?;
+    
+    // ENTFERNT: rate_strategy_performance (PR #19)
     
     Ok(())
 }
 ```
 
-### Phase 2: Core Rating Implementation (Tag 1-3, ~16h)
+### Phase 2: Core Rating Implementation (Tag 1-4, ~24h) (Post PR #19 - erweitert)
 
 #### 3.2.1 Common Helpers (`common.rs`)
 
@@ -323,11 +406,13 @@ Gemeinsame Funktionen für alle Rating-Module:
 - `pct_drop(base, x, invert)` - Relative Verschlechterung
 - `clamp(value, min, max)` - Value clamping
 
-#### 3.2.2 Stress Penalty (`stress_penalty.rs`)
+#### 3.2.2 Stress Penalty (`stress_penalty.rs`) - Shared Foundation
 
 Basis-Logik für alle Stress-basierten Scores:
 - `compute_penalty_profit_drawdown_sharpe()` - Penalty-Berechnung
 - `score_from_penalty()` - Penalty → Score Konvertierung
+
+**Nutzer:** cost_shock, trade_dropout, data_jitter, timing_jitter
 
 #### 3.2.3 Robustness Score (`robustness.rs`)
 
@@ -370,13 +455,58 @@ Kritische Design-Entscheidungen:
 - Fee-handling: net-of-fee wenn vorhanden
 - Chronologische Sortierung vor Dropout
 
-#### 3.2.7 Strategy Rating (`strategy_rating.rs`)
+#### 3.2.7 Data Jitter Score (`data_jitter.rs`) - NEU (PR #19)
 
-- `rate_strategy_performance()` - Threshold-basierte Bewertung
+- `compute_data_jitter_score()` - Score berechnung
+- `build_jittered_preloaded_data()` - Daten-Jitter-Simulation
+- `precompute_atr_cache()` - ATR-Cache für Jitter-Skalierung
 
-Einfachstes Modul - 5 Threshold-Checks.
+Kritische Design-Entscheidungen:
+- ATR-basierte Jitter-Skalierung
+- Deterministische Seeds via `_stable_data_jitter_seed()`
+- Delegiert Penalty an `stress_penalty`
 
-### Phase 3: Python-Integration (Tag 3-4, ~8h)
+#### 3.2.8 Timing Jitter Score (`timing_jitter.rs`) - NEU (PR #19)
+
+- `compute_timing_jitter_score()` - Score berechnung
+- `apply_timing_jitter_month_shift_inplace()` - Timing-Shift anwenden
+- `get_timing_jitter_backward_shift_months()` - Shift-Konfiguration
+
+Kritische Design-Entscheidungen:
+- Monats-basierte Timing-Shifts
+- Delegiert Penalty an `stress_penalty`
+
+#### 3.2.9 TP/SL Stress Score (`tp_sl_stress.rs`) - NEU (PR #19)
+
+- `compute_tp_sl_stress_score()` - Score berechnung
+
+Kritische Design-Entscheidungen:
+- Stress-Test mit variierenden TP/SL-Werten
+- Monte-Carlo-artige Simulation
+- Komplexeste Modul (~378 LOC)
+
+#### 3.2.10 Ulcer Index Score (`ulcer_index.rs`) - NEU (PR #19)
+
+- `compute_ulcer_index_and_score()` - Ulcer Index + Score
+
+Kritische Design-Entscheidungen:
+- Equity-Curve-basierte Berechnung
+- Drawdown-Duration-Gewichtung
+
+#### 3.2.11 P-Values (`p_values.rs`) - OPTIONAL (PR #19)
+
+- `compute_p_values()` - Statistische Signifikanz
+- `bootstrap_p_value_mean_gt_zero()` - Bootstrap-Test
+
+**Status:** Optional - kann in Python bleiben wenn Komplexität zu hoch
+
+#### ~~3.2.7 Strategy Rating (`strategy_rating.rs`)~~ - ENTFERNT (PR #19)
+
+~~- `rate_strategy_performance()` - Threshold-basierte Bewertung~~
+
+**Status:** PR #19 - Funktion inline in `walkforward.py` verschoben, nicht mehr in Scope.
+
+### Phase 3: Python-Integration (Tag 4-5, ~10h) (Post PR #19 - erweitert)
 
 #### 3.3.1 Feature-Flag System
 
@@ -385,12 +515,26 @@ Neues `__init__.py` mit:
 - `get_rust_rating_status()` für Diagnostik
 - Bedingte Imports
 
-#### 3.3.2 Module erweitern
+**Hinweis:** `strategy_rating` nicht mehr Teil des Feature-Flag-Systems (PR #19)
+
+#### 3.3.2 Module erweitern (10 statt 6)
 
 Jedes Python-Modul erhält:
 - `_<function>_python()` - Original-Implementation
 - `_<function>_rust()` - Rust-Wrapper
 - `<function>()` - Dispatch basierend auf Feature-Flag
+
+**Module zu erweitern:**
+1. `robustness_score_1.py`
+2. `stability_score.py`
+3. `stress_penalty.py`
+4. `cost_shock_score.py`
+5. `trade_dropout_score.py`
+6. `data_jitter_score.py` (NEU)
+7. `timing_jitter_score.py` (NEU)
+8. `tp_sl_stress_score.py` (NEU)
+9. `ulcer_index_score.py` (NEU)
+10. `p_values.py` (OPTIONAL)
 
 #### 3.3.3 Abwärtskompatibilität
 
@@ -401,9 +545,12 @@ score = compute_robustness_score_1(base_metrics, jitter_metrics)
 
 # Neue optionale Batch-Features:
 scores = compute_robustness_score_1_batch(metrics_list)
+
+# NEU (PR #19): Erweiterte Rating-Module ebenfalls mit Feature-Flag
+ulcer_score = compute_ulcer_index_and_score(equity_curve)
 ```
 
-### Phase 4: Testing & Validierung (Tag 4-6, ~12h)
+### Phase 4: Testing & Validierung (Tag 5-7, ~16h) (Post PR #19 - erweitert)
 
 #### 3.4.1 Test-Strategie
 
@@ -454,34 +601,47 @@ cargo bench
 pytest tests/benchmarks/test_bench_rating.py -v --benchmark-json=results.json
 ```
 
-#### 3.5.2 Performance-Validierung
+#### 3.5.2 Performance-Validierung (Post PR #19 - erweitert)
 
-| Metrik | Python Baseline | Rust Target | Akzeptanz |
-|--------|-----------------|-------------|-----------|
-| robustness_1 (50 jitter) | ~1.3ms | <150µs | ✅ wenn < 200µs |
-| stability (5 Jahre) | ~80µs | <10µs | ✅ wenn < 15µs |
-| cost_shock (3 factors) | ~590µs | <75µs | ✅ wenn < 100µs |
-| trade_dropout (500 trades) | ~646µs | <80µs | ✅ wenn < 100µs |
+| Metrik | Python Baseline | Rust Target | Akzeptanz | Status |
+|--------|-----------------|-------------|-----------|--------|
+| robustness_1 (50 jitter) | ~1.3ms | <150µs | ✅ wenn < 200µs | In Scope |
+| stability (5 Jahre) | ~80µs | <10µs | ✅ wenn < 15µs | In Scope |
+| cost_shock (3 factors) | ~590µs | <75µs | ✅ wenn < 100µs | In Scope |
+| trade_dropout (500 trades) | ~646µs | <80µs | ✅ wenn < 100µs | In Scope |
+| ulcer_index | ~22.7ms | <3ms | ✅ wenn < 4ms | NEU (PR #19) |
+| tp_sl_stress | ~47.3ms | <6ms | ✅ wenn < 8ms | NEU (PR #19) |
+| data_jitter | ~5ms | <600µs | ✅ wenn < 800µs | NEU (PR #19) |
+| timing_jitter | ~2ms | <250µs | ✅ wenn < 350µs | NEU (PR #19) |
 
 ---
 
-## 4. Rust-Implementation Details
+## 4. Rust-Implementation Details (Post PR #19 - aktualisiert)
 
 ### 4.1 Zusammenfassung der Rust-Dateien
 
-| Datei | Beschreibung | LOC (geschätzt) |
-|-------|--------------|-----------------|
-| `src/rust_modules/omega_rust/src/rating/mod.rs` | Module exports | ~30 |
-| `src/rust_modules/omega_rust/src/rating/common.rs` | Helpers | ~50 |
-| `src/rust_modules/omega_rust/src/rating/robustness.rs` | Robustness + Tests | ~150 |
-| `src/rust_modules/omega_rust/src/rating/stability.rs` | Stability + Tests | ~120 |
-| `src/rust_modules/omega_rust/src/rating/stress_penalty.rs` | Penalty + Tests | ~100 |
-| `src/rust_modules/omega_rust/src/rating/cost_shock.rs` | Cost Shock + Tests | ~80 |
-| `src/rust_modules/omega_rust/src/rating/trade_dropout.rs` | Dropout + Tests | ~200 |
-| `src/rust_modules/omega_rust/src/rating/strategy_rating.rs` | Rating + Tests | ~80 |
-| `src/rust_modules/omega_rust/src/lib.rs` | Module registration | ~20 |
+| Datei | Beschreibung | LOC (geschätzt) | Status |
+|-------|--------------|-----------------|--------|
+| `src/rust_modules/omega_rust/src/rating/mod.rs` | Module exports | ~50 | In Scope |
+| `src/rust_modules/omega_rust/src/rating/common.rs` | Helpers | ~50 | In Scope |
+| `src/rust_modules/omega_rust/src/rating/robustness.rs` | Robustness + Tests | ~150 | In Scope |
+| `src/rust_modules/omega_rust/src/rating/stability.rs` | Stability + Tests | ~120 | In Scope |
+| `src/rust_modules/omega_rust/src/rating/stress_penalty.rs` | Penalty + Tests (Shared) | ~100 | In Scope |
+| `src/rust_modules/omega_rust/src/rating/cost_shock.rs` | Cost Shock + Tests | ~80 | In Scope |
+| `src/rust_modules/omega_rust/src/rating/trade_dropout.rs` | Dropout + Tests | ~200 | In Scope |
+| `src/rust_modules/omega_rust/src/rating/data_jitter.rs` | Data Jitter + Tests | ~180 | NEU (PR #19) |
+| `src/rust_modules/omega_rust/src/rating/timing_jitter.rs` | Timing Jitter + Tests | ~100 | NEU (PR #19) |
+| `src/rust_modules/omega_rust/src/rating/tp_sl_stress.rs` | TP/SL Stress + Tests | ~250 | NEU (PR #19) |
+| `src/rust_modules/omega_rust/src/rating/ulcer_index.rs` | Ulcer Index + Tests | ~120 | NEU (PR #19) |
+| `src/rust_modules/omega_rust/src/rating/p_values.rs` | P-Values + Tests | ~100 | OPTIONAL |
+| `src/rust_modules/omega_rust/src/lib.rs` | Module registration | ~40 | Update |
 
-**Gesamt:** ~830 LOC Rust
+**Entfernt:**
+| Datei | Grund |
+|-------|-------|
+| ~~`strategy_rating.rs`~~ | PR #19: Funktion inline in walkforward.py |
+
+**Gesamt:** ~1,540 LOC Rust (erweitert von ~830)
 
 ### 4.2 Dependencies
 
@@ -694,18 +854,19 @@ mod tests {
 
 ---
 
-## 7. Validierung & Akzeptanzkriterien
+## 7. Validierung & Akzeptanzkriterien (Post PR #19 - aktualisiert)
 
 ### 7.1 Funktionale Kriterien
 
-- [ ] **F1:** Alle 6 Rating-Module implementiert und registriert
+- [ ] **F1:** Alle 10 Rating-Module implementiert und registriert (9 erforderlich + 1 optional)
 - [ ] **F2:** Golden-File Tests bestanden (Hash-Match)
 - [ ] **F3:** Property-Based Tests bestanden
 - [ ] **F4:** Numerische Parität < 1e-10 zwischen Python und Rust
 - [ ] **F5:** Edge-Cases korrekt behandelt (empty, NaN, negative)
 - [ ] **F6:** Backtest-Workflow unverändert lauffähig
+- [ ] **F7:** `_rate_strategy_performance` in walkforward.py funktioniert (PR #19 Inline)
 
-### 7.2 Performance-Kriterien
+### 7.2 Performance-Kriterien (Post PR #19 - erweitert)
 
 | Operation | Python Baseline | Rust Target | Status |
 |-----------|-----------------|-------------|--------|
@@ -713,6 +874,10 @@ mod tests {
 | stability (5 Jahre) | ~80µs | <10µs | ⏳ |
 | cost_shock (3 factors) | ~590µs | <75µs | ⏳ |
 | trade_dropout (500 trades) | ~646µs | <80µs | ⏳ |
+| ulcer_index | ~22.7ms | <3ms | ⏳ (NEU) |
+| tp_sl_stress | ~47.3ms | <6ms | ⏳ (NEU) |
+| data_jitter | ~5ms | <600µs | ⏳ (NEU) |
+| timing_jitter | ~2ms | <250µs | ⏳ (NEU) |
 | Full Rating Pipeline | ~450ms | <60ms | ⏳ |
 
 **Ziel-Speedup:** 8x (wie in FFI-Spec definiert)
@@ -725,6 +890,7 @@ mod tests {
 - [ ] **Q4:** Docstrings für alle öffentlichen Funktionen
 - [ ] **Q5:** CHANGELOG.md Eintrag erstellt
 - [ ] **Q6:** architecture.md aktualisiert
+- [ ] **Q7:** `_rate_strategy_performance` Tests in walkforward.py bestanden (PR #19)
 
 ### 7.4 Akzeptanz-Toleranzen
 
@@ -791,32 +957,42 @@ pytest tests/benchmarks/test_bench_rating.py -v
 - [x] Migration Readiness ✅ (`docs/MIGRATION_READINESS_VALIDATION.md`)
 - [x] Wave 0 Lessons Learned dokumentiert
 
-### 9.2 Implementation Checklist
+### 9.2 Implementation Checklist (Post PR #19 - aktualisiert)
 
 #### Phase 1: Setup ⏳
 - [ ] Verzeichnisstruktur erstellen (`src/rust_modules/omega_rust/src/rating/`)
-- [ ] `mod.rs` erstellen
-- [ ] `lib.rs` Module registrieren
+- [ ] `mod.rs` erstellen mit allen 10 Modulen
+- [ ] `lib.rs` Module registrieren (ohne strategy_rating - PR #19)
 
 #### Phase 2: Rust-Code ⏳
 - [ ] `common.rs` implementieren (Helpers)
-- [ ] `stress_penalty.rs` implementieren
+- [ ] `stress_penalty.rs` implementieren (Shared Foundation)
 - [ ] `robustness.rs` implementieren
 - [ ] `stability.rs` implementieren
 - [ ] `cost_shock.rs` implementieren
 - [ ] `trade_dropout.rs` implementieren (inkl. ChaCha8 RNG)
-- [ ] `strategy_rating.rs` implementieren
+- [ ] `data_jitter.rs` implementieren (NEU - PR #19)
+- [ ] `timing_jitter.rs` implementieren (NEU - PR #19)
+- [ ] `tp_sl_stress.rs` implementieren (NEU - PR #19)
+- [ ] `ulcer_index.rs` implementieren (NEU - PR #19)
+- [ ] `p_values.rs` implementieren (OPTIONAL)
+- [ ] ~~`strategy_rating.rs` implementieren~~ (ENTFERNT - PR #19)
 - [ ] `cargo test` bestanden
 - [ ] `cargo clippy` bestanden
 
 #### Phase 3: Python-Integration ⏳
-- [ ] `__init__.py` mit Feature-Flag erstellen
+- [ ] `__init__.py` mit Feature-Flag erstellen (ohne strategy_rating - PR #19)
 - [ ] `robustness_score_1.py` erweitern
 - [ ] `stability_score.py` erweitern
 - [ ] `stress_penalty.py` erweitern
 - [ ] `cost_shock_score.py` erweitern
 - [ ] `trade_dropout_score.py` erweitern
-- [ ] `strategy_rating.py` erweitern
+- [ ] `data_jitter_score.py` erweitern (NEU - PR #19)
+- [ ] `timing_jitter_score.py` erweitern (NEU - PR #19)
+- [ ] `tp_sl_stress_score.py` erweitern (NEU - PR #19)
+- [ ] `ulcer_index_score.py` erweitern (NEU - PR #19)
+- [ ] `p_values.py` erweitern (OPTIONAL)
+- [ ] ~~`strategy_rating.py` erweitern~~ (ENTFERNT - PR #19: inline in walkforward.py)
 - [ ] mypy strict compliance
 
 #### Phase 4: Testing ⏳
@@ -826,9 +1002,10 @@ pytest tests/benchmarks/test_bench_rating.py -v
 - [ ] Parity-Tests erstellt und bestanden
 - [ ] Rust-Unit-Tests bestanden
 - [ ] Backtest-Workflow validiert
+- [ ] `_rate_strategy_performance` in walkforward.py Tests bestanden (PR #19)
 
 #### Phase 5: Benchmarking ⏳
-- [ ] Rust Benchmarks erstellt
+- [ ] Rust Benchmarks erstellt (alle 10 Module)
 - [ ] Performance-Ziele erreicht (8x Speedup)
 - [ ] Benchmark-Ergebnisse dokumentiert
 
@@ -840,6 +1017,7 @@ pytest tests/benchmarks/test_bench_rating.py -v
 - [ ] Code-Review abgeschlossen
 - [ ] Performance-Benchmark dokumentiert
 - [ ] Sign-off Matrix ausgefüllt
+- [ ] FFI-Spec `docs/ffi/rating_modules.md` synchronisiert (PR #19)
 
 ### 9.4 Sign-off Matrix
 
@@ -852,7 +1030,7 @@ pytest tests/benchmarks/test_bench_rating.py -v
 
 ---
 
-## 10. Lessons Learned aus Wave 0
+## 10. Lessons Learned aus Wave 0 (und PR #19)
 
 ### 10.1 Kritische Issues aus Wave 0 (beachten!)
 
@@ -881,7 +1059,24 @@ pytest tests/benchmarks/test_bench_rating.py -v
   - **Erwartung:** Leichte Unterschiede bei dropout_metrics (verschiedene Trades werden gedroppt)
   - **Lösung:** Score-Vergleich statt Metrics-Vergleich; Scores sollten innerhalb Toleranz sein
 
-### 10.2 Erfolgreiche Patterns aus Wave 0 (wiederverwenden!)
+### 10.2 Lessons aus PR #19 (NEU)
+
+#### Lesson 1: Einfache Funktionen nicht migrieren
+- **Erkenntnisse:** `strategy_rating.py` war zu einfach für Rust-Migration (nur 5 Threshold-Checks)
+- **Decision:** Funktion inline in `walkforward.py` verschoben
+- **Lernergebnis:** Migration nur für performance-kritische Module sinnvoll
+
+#### Lesson 2: FFI-Spec vor Implementation aktualisieren
+- **Erkenntnisse:** FFI-Spec hatte nur 6 Module, nach PR #19 sind es 10
+- **Decision:** `docs/ffi/rating_modules.md` vollständig aktualisiert
+- **Lernergebnis:** Scope-Erweiterung muss dokumentiert werden bevor Code geschrieben wird
+
+#### Lesson 3: Inline-Funktionen getrennt testen
+- **Erkenntnisse:** `_rate_strategy_performance` nun in `walkforward.py` UND `test_golden_rating.py`
+- **Decision:** Beide Stellen müssen synchron gehalten werden
+- **Lernergebnis:** Bei Inline-Verschiebung Tests aktualisieren
+
+### 10.3 Erfolgreiche Patterns aus Wave 0 (wiederverwenden!)
 
 #### Pattern 1: Feature-Flag Design
 ```python
@@ -935,14 +1130,14 @@ pub fn calculate_slippage(...) -> PyResult<f64>
 | Phase | Dauer | Beschreibung |
 |-------|-------|--------------|
 | Phase 1: Setup | 0.5 Tage | Verzeichnisse, mod.rs, lib.rs |
-| Phase 2: Rust-Implementation | 2-3 Tage | Alle 6 Module + Unit Tests |
-| Phase 3: Python-Integration | 1 Tag | Feature-Flags, Wrappers |
-| Phase 4: Testing | 2 Tage | Golden, Property, Parity, Backtest |
+| Phase 2: Rust-Implementation | 3-4 Tage | Alle 10 Module + Unit Tests (erweitert) |
+| Phase 3: Python-Integration | 1.5 Tage | Feature-Flags, Wrappers (10 Module) |
+| Phase 4: Testing | 2-3 Tage | Golden, Property, Parity, Backtest |
 | Phase 5: Benchmarking | 1 Tag | Performance-Validierung, Doku |
 
-**Gesamt:** 5-7 Tage
+**Gesamt:** 7-10 Tage (erweitert von 5-7 für 10 Module statt 6)
 
-### 11.2 Risiken & Mitigations
+### 11.2 Risiken & Mitigations (Post PR #19)
 
 | Risiko | Wahrscheinlichkeit | Impact | Mitigation |
 |--------|-------------------|--------|------------|
@@ -950,14 +1145,17 @@ pub fn calculate_slippage(...) -> PyResult<f64>
 | Performance unter 8x | Niedrig | Mittel | Batch-APIs, SIMD-Optimierung |
 | Numerische Präzisionsprobleme | Niedrig | Hoch | Extensive Edge-Case Tests |
 | FFI-Overhead dominiert | Niedrig | Mittel | Batch-Threshold implementieren |
+| tp_sl_stress Komplexität zu hoch | Mittel | Mittel | Monte-Carlo-artige Tests, modulare Implementierung |
+| data_jitter ATR-Cache Performance | Niedrig | Niedrig | Pre-compute in Rust |
+| walkforward.py _rate_strategy_performance Drift | Niedrig | Mittel | Separate Unit-Tests für Inline-Funktion |
 
 ---
 
-## 12. Referenzen
+## 12. Referenzen (Post PR #19)
 
 - [ADR-0001: Migration Strategy](./adr/ADR-0001-migration-strategy.md)
 - [ADR-0003: Error Handling](./adr/ADR-0003-error-handling.md)
-- [FFI Specification: Rating Modules](./ffi/rating_modules.md)
+- [FFI Specification: Rating Modules](./ffi/rating_modules.md) ← **PR #19: Aktualisiert für 10 Module**
 - [Migration Runbook: Rating Modules](./runbooks/rating_modules_migration.md)
 - [Migration Readiness Validation](./MIGRATION_READINESS_VALIDATION.md)
 - [Wave 0 Implementation Plan](./WAVE_0_SLIPPAGE_FEE_IMPLEMENTATION_PLAN.md)
@@ -965,6 +1163,8 @@ pub fn calculate_slippage(...) -> PyResult<f64>
 - [Performance Baseline](../reports/performance_baselines/p0-01_rating.json)
 - [Property Tests](../tests/property/test_prop_scoring.py)
 - [Benchmarks](../tests/benchmarks/test_bench_rating.py)
+- **NEU (PR #19):** [Walkforward mit inline _rate_strategy_performance](../src/backtest_engine/optimizer/walkforward.py)
+- **NEU (PR #19):** [Golden Rating Tests mit inline _rate_strategy_performance](../tests/golden/test_golden_rating.py)
 
 ---
 
@@ -973,7 +1173,8 @@ pub fn calculate_slippage(...) -> PyResult<f64>
 | Datum | Version | Änderung | Autor |
 |-------|---------|----------|-------|
 | 2026-01-08 | 1.0 | Initiale Version | AI Agent |
+| 2026-01-08 | 2.0 | Post PR #19 Synchronisation: 10 Module, strategy_rating entfernt | AI Agent |
 
 ---
 
-*Document Status: 📋 READY FOR IMPLEMENTATION*
+*Document Status: 📋 READY FOR IMPLEMENTATION (v2.0 - Post PR #19)*
