@@ -1,6 +1,6 @@
 {
   "metadata": {
-    "created_at": "2026-01-08T15:03:16.305970+00:00",
+    "created_at": "2026-01-07T23:03:57.202153+00:00",
     "python_version": "3.12.12",
     "numpy_version": "2.3.5",
     "pandas_version": "2.3.3",
@@ -15,11 +15,10 @@
         "direction": "long",
         "pip_size": 0.0001,
         "fixed_pips": 0.5,
-        "random_pips": 1.0,
-        "seed": 42
+        "random_pips": 1.0
       },
       "output": {
-        "adjusted_price": 1.10011819
+        "adjusted_price": 1.10011394
       }
     },
     {
@@ -28,11 +27,10 @@
         "direction": "short",
         "pip_size": 0.0001,
         "fixed_pips": 0.5,
-        "random_pips": 1.0,
-        "seed": 42
+        "random_pips": 1.0
       },
       "output": {
-        "adjusted_price": 1.09988181
+        "adjusted_price": 1.09988606
       }
     },
     {
@@ -41,11 +39,10 @@
         "direction": "long",
         "pip_size": 0.0001,
         "fixed_pips": 0.5,
-        "random_pips": 1.0,
-        "seed": 42
+        "random_pips": 1.0
       },
       "output": {
-        "adjusted_price": 1.15011819
+        "adjusted_price": 1.15011394
       }
     },
     {
@@ -54,11 +51,10 @@
         "direction": "short",
         "pip_size": 0.0001,
         "fixed_pips": 0.5,
-        "random_pips": 1.0,
-        "seed": 42
+        "random_pips": 1.0
       },
       "output": {
-        "adjusted_price": 1.14988181
+        "adjusted_price": 1.14988606
       }
     },
     {
@@ -67,11 +63,10 @@
         "direction": "long",
         "pip_size": 0.0001,
         "fixed_pips": 0.5,
-        "random_pips": 1.0,
-        "seed": 42
+        "random_pips": 1.0
       },
       "output": {
-        "adjusted_price": 1.20011819
+        "adjusted_price": 1.20011394
       }
     },
     {
@@ -80,11 +75,10 @@
         "direction": "short",
         "pip_size": 0.0001,
         "fixed_pips": 0.5,
-        "random_pips": 1.0,
-        "seed": 42
+        "random_pips": 1.0
       },
       "output": {
-        "adjusted_price": 1.19988181
+        "adjusted_price": 1.19988606
       }
     },
     {
@@ -93,11 +87,10 @@
         "direction": "long",
         "pip_size": 0.0001,
         "fixed_pips": 0.5,
-        "random_pips": 1.0,
-        "seed": 42
+        "random_pips": 1.0
       },
       "output": {
-        "adjusted_price": 1.25011819
+        "adjusted_price": 1.25011394
       }
     },
     {
@@ -106,11 +99,10 @@
         "direction": "short",
         "pip_size": 0.0001,
         "fixed_pips": 0.5,
-        "random_pips": 1.0,
-        "seed": 42
+        "random_pips": 1.0
       },
       "output": {
-        "adjusted_price": 1.24988181
+        "adjusted_price": 1.24988606
       }
     },
     {
@@ -119,11 +111,10 @@
         "direction": "long",
         "pip_size": 0.0001,
         "fixed_pips": 0.5,
-        "random_pips": 1.0,
-        "seed": 42
+        "random_pips": 1.0
       },
       "output": {
-        "adjusted_price": 1.30011819
+        "adjusted_price": 1.30011394
       }
     },
     {
@@ -132,15 +123,14 @@
         "direction": "short",
         "pip_size": 0.0001,
         "fixed_pips": 0.5,
-        "random_pips": 1.0,
-        "seed": 42
+        "random_pips": 1.0
       },
       "output": {
-        "adjusted_price": 1.29988181
+        "adjusted_price": 1.29988606
       }
     }
   ],
-  "slippage_results_hash": "e3ca9a4b1367d8e25e234d6a9ff9849ab93c2a8ec22e93fe58aa0467a9aee528",
+  "slippage_results_hash": "da570884f652a2e9604ccb851ae4d0a650d4a274902cc874eb1ab22366a7adcd",
   "fee_test_cases": [
     {
       "input": {

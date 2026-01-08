@@ -11,9 +11,21 @@ Invarianten:
 - Rundungs-konsistent über Python-Versionen
 
 Golden-File: tests/golden/reference/slippage_fee/slippage_fee_v1.json
+
+WICHTIG: Golden-Tests verwenden immer das Python-Backend, da die
+Referenz-Hashes mit Python's Mersenne Twister RNG generiert wurden.
+Rust verwendet ChaCha8 RNG, was andere (aber gleichermaßen deterministische)
+Ergebnisse liefert.
 """
 
 from __future__ import annotations
+
+import os
+
+# CRITICAL: Force Python backend BEFORE importing slippage_and_fee module.
+# Golden file hashes are computed using Python's Mersenne Twister RNG.
+# Rust backend uses ChaCha8 RNG which produces different (but equally deterministic) values.
+os.environ["OMEGA_USE_RUST_SLIPPAGE_FEE"] = "false"
 
 import json
 from dataclasses import asdict, dataclass
@@ -110,6 +122,8 @@ def generate_slippage_test_cases(seed: int) -> list[dict[str, Any]]:
             # Pass seed directly to apply() for determinism (supports both Python and Rust backends)
             adjusted_price = model.apply(price, direction, pip_size, seed=seed)
 
+            # Note: Don't include 'seed' in input dict - it's in metadata.
+            # The seed is passed to apply() for determinism but stored globally in metadata.
             test_cases.append(
                 {
                     "input": {
@@ -118,7 +132,6 @@ def generate_slippage_test_cases(seed: int) -> list[dict[str, Any]]:
                         "pip_size": pip_size,
                         "fixed_pips": fixed_pips,
                         "random_pips": random_pips,
-                        "seed": seed,
                     },
                     "output": {
                         "adjusted_price": round(adjusted_price, 8),
