@@ -79,9 +79,13 @@ Ordner-für-Ordner-Übersicht der Codebasis (ohne `results`-Ordner und ohne Aufl
     - `error.rs` *(OmegaError with thiserror)*
     - `indicators/`
       - `mod.rs` *(Module exports)*
-      - `ema.rs` *(Exponential Moving Average)*
-      - `rsi.rs` *(Relative Strength Index)*
+      - `ema_impl.rs` *(Exponential Moving Average)*
+      - `rsi_impl.rs` *(Relative Strength Index)*
       - `statistics.rs` *(Rolling standard deviation)*
+    - `costs/` *(PLANNED: Wave 0 Pilot)*
+      - `mod.rs` *(Module exports)*
+      - `slippage.rs` *(Slippage calculation with deterministic RNG)*
+      - `fee.rs` *(Fee calculation per-million notional)*
   - `benches/`
     - `indicator_bench.rs` *(Criterion benchmarks)*
 
@@ -545,6 +549,8 @@ Der `docs/` Ordner enthält technische Dokumentation und Migrationspläne:
 - **`CATEGORICAL_RANKING_OPTIMIZATION.md`**: Detaillierter Performance-Optimierung Report
 - **`PYTHON_312_MIGRATION_PLAN.md`**: Konvertierungsplan für die Migration von Python 3.10 auf Python 3.12
 - **`RUST_JULIA_MIGRATION_PREPARATION_PLAN.md`**: Vorbereitungsplan für die Migration ausgewählter Module zu Rust und Julia
+- **`MIGRATION_READINESS_VALIDATION.md`**: Kanonischer Status-Report für Migration-Readiness (Go/No-Go)
+- **`WAVE_0_SLIPPAGE_FEE_IMPLEMENTATION_PLAN.md`**: Vollständiger Implementierungsplan für Wave 0 Pilot (Slippage & Fee → Rust)
 - **`rust-toolchain-requirements.md`**: Rust-Toolchain-Anforderungen (1.76.0+, PyO3, Maturin)
 - **`julia-environment-requirements.md`**: Julia-Umgebungsanforderungen (1.10+, PythonCall)
 - **`adr/`**: Architecture Decision Records (ADRs) für wichtige technische Entscheidungen
