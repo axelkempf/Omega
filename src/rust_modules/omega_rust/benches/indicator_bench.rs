@@ -5,7 +5,8 @@
 //! These benchmarks measure the performance of Rust implementations
 //! to compare against Python baselines.
 
-use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
+use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
+use std::hint::black_box;
 
 // Import internal modules for benchmarking
 // Note: This requires the library to expose these for benchmarks
@@ -61,7 +62,7 @@ fn bench_ema(c: &mut Criterion) {
     for size in [1_000_usize, 10_000, 100_000, 1_000_000] {
         let prices = generate_prices(size);
 
-        group.throughput(Throughput::Elements(size as u64));
+        group.throughput(Throughput::Elements(u64::try_from(size).unwrap()));
         group.bench_with_input(BenchmarkId::from_parameter(size), &prices, |b, prices| {
             b.iter(|| ema_bench::ema_impl(black_box(prices), black_box(20)));
         });
