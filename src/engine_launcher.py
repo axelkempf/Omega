@@ -147,7 +147,11 @@ def start_heartbeat(
 ) -> threading.Event:
     """Öffentliches API (Tests/UI) für einfachen Heartbeat ohne separaten Stop-Event."""
     stop_event = threading.Event()
-    interval = float(interval_sec) if interval_sec is not None else DEFAULT_HEARTBEAT_INTERVAL_SEC
+    interval = (
+        float(interval_sec)
+        if interval_sec is not None
+        else DEFAULT_HEARTBEAT_INTERVAL_SEC
+    )
     threading.Thread(
         target=_monitor_stop_file,
         args=(_shutdown_paths(account_id)["stop_file"], stop_event, 1.0),
