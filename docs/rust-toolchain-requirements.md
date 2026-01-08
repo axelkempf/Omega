@@ -16,25 +16,26 @@ Dieses Dokument spezifiziert die minimalen Rust-Toolchain-Anforderungen für die
 
 ### Rust Version
 
-**Minimum:** `1.75.0` (released 2023-12-28)  
-**Recommended:** `1.76+` (stable channel)
+**Minimum:** `1.86.0` (released 2025-11-29)  
+**Recommended:** `1.91+` (stable channel)
 
 **Begründung:**
 - PyO3 0.20+ erfordert mindestens Rust 1.63
 - Maturin 1.4+ funktioniert optimal mit Rust 1.70+
+- criterion 0.8+ (Benchmarks) erfordert mindestens Rust 1.86
 - Moderne async-Traits und GATs (Generic Associated Types) für bessere Typ-Sicherheit
 - Verbesserte Error-Messages und Compile-Zeiten
 
 **Version Pinning-Strategie:**
 - Development: `stable` channel (rolling updates)
-- CI/CD: Pinned auf spezifische Minor-Version (e.g., `1.76.0`)
+- CI/CD: Pinned auf spezifische Minor-Version (e.g., `1.86.0`)
 - Production Builds: Locked Toolchain via `rust-toolchain.toml`
 
 ### Required Toolchain Components
 
 ```toml
 [toolchain]
-channel = "1.76.0"
+channel = "1.86.0"
 components = ["rustfmt", "clippy"]
 targets = ["x86_64-unknown-linux-gnu", "x86_64-apple-darwin", "x86_64-pc-windows-msvc", "aarch64-apple-darwin"]
 profile = "minimal"
