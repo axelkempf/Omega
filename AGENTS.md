@@ -55,7 +55,7 @@ pre-commit install
 python src/backtest_engine/runner.py configs/backtest/<name>.json
 
 # Beispiel
-python src/backtest_engine/runner.py configs/backtest/ema_rsi_trend_follow_backtest.json
+python src/backtest_engine/runner.py configs/backtest/mean_reversion_z_score.json
 ```
 
 ### Walkforward Backtest
@@ -307,7 +307,6 @@ src/
 ├── ui_engine/              # FastAPI (Start/Stop/Logs)
 ├── strategies/             # Trading-Strategien
 │   ├── _template/          # Strategie-Template
-│   ├── ema_rsi_trend_follow/
 │   ├── mean_reversion_z_score/
 │   └── ...
 └── watchdog/               # Process Monitoring

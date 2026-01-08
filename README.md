@@ -71,7 +71,7 @@ Beispiel (Single Backtest via Konfig):
 - Runner: `src/backtest_engine/runner.py`
 
 ```bash
-python src/backtest_engine/runner.py configs/backtest/ema_rsi_trend_follow_backtest.json
+python src/backtest_engine/runner.py configs/backtest/mean_reversion_z_score.json
 ```
 
 Ergebnisse landen typischerweise unter `var/results/` (und Logs unter `var/logs/`).

@@ -59,7 +59,6 @@ Strict overrides (bereits als „strict“ konfiguriert):
 
 - `strategies._base.*`
 - `strategies.mean_reversion_z_score.*`
-- `strategies.ema_rsi_trend_follow.*`
 - `backtest_engine.core.types`
 - `backtest_engine.optimizer._settings`
 - `backtest_engine.rating` / `backtest_engine.rating.*`

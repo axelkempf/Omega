@@ -81,8 +81,8 @@ class TradeSetup:
         ...     entry=1.1000,
         ...     sl=50,
         ...     tp=1.1100,
-        ...     strategy="ema_rsi_trend_follow",
-        ...     strategy_module="ema_rsi_trend_follow.live",
+        ...     strategy="mean_reversion_z_score",
+        ...     strategy_module="mean_reversion_z_score.live",
         ... )
     """
 

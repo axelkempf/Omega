@@ -179,7 +179,7 @@ def strategy_position_manager_factory(
         AttributeError: If setup lacks required `strategy_module` attribute.
 
     Example:
-        >>> setup = TradeSetup(strategy_module="ema_rsi_trend_follow.live", ...)
+        >>> setup = TradeSetup(strategy_module="mean_reversion_z_score.live", ...)
         >>> manager = strategy_position_manager_factory(setup, broker, data_provider)
     """
     strategy_module: str = setup.strategy_module
