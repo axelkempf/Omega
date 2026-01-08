@@ -64,9 +64,9 @@ class TestErrorCodePythonIntegrity:
         for code in ErrorCode:
             result_enum = is_recoverable(code)
             result_int = is_recoverable(code.value)
-            assert result_enum == result_int, (
-                f"is_recoverable({code.name}) != is_recoverable({code.value})"
-            )
+            assert (
+                result_enum == result_int
+            ), f"is_recoverable({code.name}) != is_recoverable({code.value})"
 
 
 class TestRustPythonErrorCodeSync:
@@ -129,9 +129,7 @@ class TestRustPythonErrorCodeSync:
             f"Bitte src/shared/error_codes.py aktualisieren."
         )
 
-    def test_all_code_values_match(
-        self, rust_error_codes: dict[str, int]
-    ) -> None:
+    def test_all_code_values_match(self, rust_error_codes: dict[str, int]) -> None:
         """Alle ErrorCode-Werte müssen zwischen Python und Rust identisch sein."""
         mismatches: list[tuple[str, int, int]] = []
 
@@ -150,9 +148,7 @@ class TestRustPythonErrorCodeSync:
             + "\n\nBitte beide Seiten synchronisieren."
         )
 
-    def test_complete_sync_summary(
-        self, rust_error_codes: dict[str, int]
-    ) -> None:
+    def test_complete_sync_summary(self, rust_error_codes: dict[str, int]) -> None:
         """Zusammenfassender Sync-Test mit detailliertem Report."""
         python_codes = {code.name: code.value for code in ErrorCode}
 
@@ -185,8 +181,7 @@ class TestRustPythonErrorCodeSync:
 
         if report_lines:
             pytest.fail(
-                "ErrorCode-Synchronisation fehlgeschlagen:\n"
-                + "\n".join(report_lines)
+                "ErrorCode-Synchronisation fehlgeschlagen:\n" + "\n".join(report_lines)
             )
 
         # Erfolgsfall: Zeige Statistik
@@ -206,6 +201,4 @@ class TestErrorCodeDocumentation:
         """error_category muss für alle Codes funktionieren."""
         for code in ErrorCode:
             category = error_category(code)
-            assert category != "UNKNOWN", (
-                f"error_category({code.name}) liefert UNKNOWN"
-            )
+            assert category != "UNKNOWN", f"error_category({code.name}) liefert UNKNOWN"
