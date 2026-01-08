@@ -31,7 +31,7 @@ crate-type = ["cdylib", "rlib"]
 pyo3 = { version = "0.27", features = ["extension-module", "abi3-py312"] }
 
 # Numerical Computing
-ndarray = { version = "0.15", features = ["serde", "rayon"] }
+ndarray = { version = "0.17", features = ["serde", "rayon"] }
 num-traits = "0.2"
 
 # Arrow Zero-Copy FFI (for future DataFrame integration)
