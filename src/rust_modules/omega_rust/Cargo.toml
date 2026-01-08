@@ -32,6 +32,11 @@ pyo3 = { version = "0.27", features = ["extension-module", "abi3-py312"] }
 
 # Numerical Computing
 ndarray = { version = "0.17", features = ["serde", "rayon"] }
+
+# Random Number Generation (Wave 0: Slippage & Fee)
+# ChaCha8 RNG for deterministic, reproducible random numbers across platforms
+rand = "0.9"
+rand_chacha = "0.9"
 num-traits = "0.2"
 
 # Arrow Zero-Copy FFI (for future DataFrame integration)

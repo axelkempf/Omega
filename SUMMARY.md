@@ -73,15 +73,7 @@ Diese Datei fasst das Repository strukturiert und objektiv zusammen. Sie beschre
   - Basisklassen: `_base/*` (Strategy, Position‑Manager, Szenarien)
   - Template: `_template/*` (Vorlage für neue Strategien mit Live/Backtest-Struktur)
   - Konkrete Strategien (jeweils mit `live/` und `backtest/` Modulen):
-    - `ema_rsi_trend_follow` – EMA+RSI Trend-Following mit Higher-TF-Filter
-    - `ema_rejection_trend_follow` – EMA Trend-Following mit Rejection-Pattern-Erkennung
-    - `trading_the_flow` – Price Action mit Engulfing-Patterns und Psych-Levels
     - `mean_reversion_z_score` – Z-Score-basierte Mean Reversion
-    - `mean_reversion_bollinger_bands_plus_macd` – Bollinger Bands + MACD Reversion
-    - `statistical_arbitrage` – Spread-Trading zwischen korrelierten Paaren
-    - `macd_trend_follow` – MACD-basiertes Trend-System
-    - `session_momentum` – Session-basierte Momentum-Strategie
-    - `pre_session_momentum` – Pre-Market Momentum-Strategie
 
 ## Konfiguration & Dateien
 

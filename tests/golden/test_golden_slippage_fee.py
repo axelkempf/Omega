@@ -11,9 +11,21 @@ Invarianten:
 - Rundungs-konsistent über Python-Versionen
 
 Golden-File: tests/golden/reference/slippage_fee/slippage_fee_v1.json
+
+WICHTIG: Golden-Tests verwenden immer das Python-Backend, da die
+Referenz-Hashes mit Python's Mersenne Twister RNG generiert wurden.
+Rust verwendet ChaCha8 RNG, was andere (aber gleichermaßen deterministische)
+Ergebnisse liefert.
 """
 
 from __future__ import annotations
+
+import os
+
+# CRITICAL: Force Python backend BEFORE importing slippage_and_fee module.
+# Golden file hashes are computed using Python's Mersenne Twister RNG.
+# Rust backend uses ChaCha8 RNG which produces different (but equally deterministic) values.
+os.environ["OMEGA_USE_RUST_SLIPPAGE_FEE"] = "false"
 
 import json
 from dataclasses import asdict, dataclass
@@ -107,10 +119,11 @@ def generate_slippage_test_cases(seed: int) -> list[dict[str, Any]]:
 
     for price in prices:
         for direction in directions:
-            # Seed pro Testfall für Reproduzierbarkeit
-            set_deterministic_seed(seed)
-            adjusted_price = model.apply(price, direction, pip_size)
+            # Pass seed directly to apply() for determinism (supports both Python and Rust backends)
+            adjusted_price = model.apply(price, direction, pip_size, seed=seed)
 
+            # Note: Don't include 'seed' in input dict - it's in metadata.
+            # The seed is passed to apply() for determinism but stored globally in metadata.
             test_cases.append(
                 {
                     "input": {
@@ -214,18 +227,16 @@ class TestSlippageModelDeterminism:
 
     def test_slippage_deterministic_with_fixed_seed(self) -> None:
         """SlippageModel muss bei gleichem Seed gleiche Ergebnisse liefern."""
-        set_deterministic_seed(GOLDEN_SEED)
         model = SlippageModel(fixed_pips=0.5, random_pips=1.0)
 
         results_1 = []
         for price in [1.1, 1.2, 1.3]:
-            set_deterministic_seed(GOLDEN_SEED)
-            results_1.append(model.apply(price, "long", 0.0001))
+            # Pass seed directly to apply() for determinism (supports both Python and Rust)
+            results_1.append(model.apply(price, "long", 0.0001, seed=GOLDEN_SEED))
 
         results_2 = []
         for price in [1.1, 1.2, 1.3]:
-            set_deterministic_seed(GOLDEN_SEED)
-            results_2.append(model.apply(price, "long", 0.0001))
+            results_2.append(model.apply(price, "long", 0.0001, seed=GOLDEN_SEED))
 
         assert results_1 == results_2, "SlippageModel nicht deterministisch!"
 

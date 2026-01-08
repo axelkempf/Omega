@@ -34,7 +34,7 @@ Aus der Top-10-Liste „Files needing most attention“ der aktuellen Ausführun
 - `src/backtest_engine/core/multi_tick_controller.py` (0.0%)
 - `src/backtest_engine/core/tick_event_engine.py` (0.0%)
 - `src/backtest_engine/core/multi_strategy_controller.py` (0.0%)
-- `src/backtest_engine/logging/trade_logger.py` (0.0%)
+- `src/backtest_engine/bt_logging/trade_logger.py` (0.0%)
 - `src/hf_engine/core/controlling/strategy_runner.py` (0.0%)
 - `src/ui_engine/strategies/factory.py` (0.0%)
 - `src/ui_engine/datafeeds/factory.py` (0.0%)
@@ -59,7 +59,6 @@ Strict overrides (bereits als „strict“ konfiguriert):
 
 - `strategies._base.*`
 - `strategies.mean_reversion_z_score.*`
-- `strategies.ema_rsi_trend_follow.*`
 - `backtest_engine.core.types`
 - `backtest_engine.optimizer._settings`
 - `backtest_engine.rating` / `backtest_engine.rating.*`

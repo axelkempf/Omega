@@ -166,7 +166,6 @@ warn_unreachable = true
 module = [
     "strategies._base.*",
     "strategies.mean_reversion_z_score.*",
-    "strategies.ema_rsi_trend_follow.*",
 ]
 strict = true
 warn_unreachable = true

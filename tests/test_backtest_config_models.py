@@ -14,7 +14,6 @@ _REPO_ROOT = Path(__file__).resolve().parents[1]
 @pytest.mark.parametrize(
     "rel_path",
     [
-        "configs/backtest/ema_rsi_trend_follow_backtest.json",
         "configs/backtest/mean_reversion_z_score.json",
     ],
 )
@@ -48,8 +47,8 @@ def test_validate_config_reports_structured_errors() -> None:
         "symbol": "EURUSD",
         "timeframes": {"primary": "M15", "additional": []},
         "strategy": {
-            "module": "ema_rsi_trend_follow.backtest.backtest_strategy",
-            "class": "EMARSITrendFollowBacktestStrategy",
+            "module": "mean_reversion_z_score.backtest.backtest_strategy",
+            "class": "MeanReversionZScoreStrategy",
             "parameters": {},
         },
     }
