@@ -414,33 +414,50 @@ jobs:
           python << 'EOF'
           import sys
           import os
+          from pathlib import Path
           
           results = {"rust": "skipped", "julia": "skipped"}
           
           # Test Rust FFI
+          # Note: We use "from omega import _rust" not "from omega._rust import ..."
+          # because omega._rust is a lazy-loaded submodule via __getattr__, and Python's
+          # "from X.Y import Z" syntax doesn't trigger __getattr__ on X.
           try:
-              from omega._rust import ema
+              from omega import _rust
               test_data = [1.0, 2.0, 3.0, 4.0, 5.0]
-              result = ema(test_data, 3)
+              result = _rust.ema(test_data, 3)
               assert len(result) == len(test_data)
               results["rust"] = "passed"
-              print("✓ Rust FFI validation passed")
-          except ImportError:
-              print("⚠ Rust module not available (expected if not built)")
+              print(f"✓ Rust FFI validation passed (version: {_rust.__version__})")
+          except ImportError as e:
+              print(f"⚠ Rust module not available: {e}")
           except Exception as e:
               results["rust"] = f"failed: {e}"
               print(f"✗ Rust FFI validation failed: {e}")
           
           # Test Julia FFI
+          # Note: juliacall does not reliably pick up JULIA_PROJECT in all environments.
+          # We must explicitly activate the project like the pytest integration tests do.
           try:
               from juliacall import Main as jl
-              # Ensure the project-local OmegaJulia package can be loaded.
+              
+              julia_project = os.environ.get("JULIA_PROJECT", "")
+              if julia_project and Path(julia_project).exists():
+                  project_path = Path(julia_project).resolve().as_posix()
+                  print(f"  Activating Julia project: {project_path}")
+                  jl.seval("import Pkg")
+                  jl.seval(f'Pkg.activate(raw"{project_path}")')
+                  jl.seval("Pkg.instantiate()")
+              
+              # Load the OmegaJulia package from the activated project environment
               jl.seval("using OmegaJulia")
-              jl.seval("1 + 1")
+              # Verify a simple function works
+              result = jl.seval("1 + 1")
+              assert result == 2
               results["julia"] = "passed"
               print("✓ Julia FFI validation passed")
-          except ImportError:
-              print("⚠ Julia not available (expected if not installed)")
+          except ImportError as e:
+              print(f"⚠ Julia not available: {e}")
           except Exception as e:
               results["julia"] = f"failed: {e}"
               print(f"✗ Julia FFI validation failed: {e}")
@@ -449,10 +466,15 @@ jobs:
 
           require_rust = os.environ.get("OMEGA_REQUIRE_RUST_FFI") == "1"
           require_julia = os.environ.get("OMEGA_REQUIRE_JULIA_FFI") == "1"
-          if (require_rust and results["rust"].startswith("failed")) or (
-              require_julia and results["julia"].startswith("failed")
-          ):
+          
+          # Only fail if explicitly required AND actually failed (not just skipped)
+          rust_failed = require_rust and results["rust"] != "passed" and results["rust"] != "skipped"
+          julia_failed = require_julia and results["julia"] != "passed" and results["julia"] != "skipped"
+          
+          if rust_failed or julia_failed:
+              print("\n❌ Required FFI modules failed validation")
               sys.exit(1)
+          print("\n✅ FFI validation complete")
           EOF
         env:
           JULIA_PROJECT: src/julia_modules/omega_julia
