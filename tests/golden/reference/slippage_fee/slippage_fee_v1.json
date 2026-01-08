@@ -1,0 +1,332 @@
+{
+  "metadata": {
+    "created_at": "2026-01-07T23:03:57.202153+00:00",
+    "python_version": "3.12.12",
+    "numpy_version": "2.3.5",
+    "pandas_version": "2.3.3",
+    "seed": 42,
+    "description": "Golden-Reference f\u00fcr SlippageModel und FeeModel. Generiert f\u00fcr Migration Readiness Validation (Pilot Module).",
+    "file_hash": ""
+  },
+  "slippage_test_cases": [
+    {
+      "input": {
+        "price": 1.1,
+        "direction": "long",
+        "pip_size": 0.0001,
+        "fixed_pips": 0.5,
+        "random_pips": 1.0
+      },
+      "output": {
+        "adjusted_price": 1.10011394
+      }
+    },
+    {
+      "input": {
+        "price": 1.1,
+        "direction": "short",
+        "pip_size": 0.0001,
+        "fixed_pips": 0.5,
+        "random_pips": 1.0
+      },
+      "output": {
+        "adjusted_price": 1.09988606
+      }
+    },
+    {
+      "input": {
+        "price": 1.15,
+        "direction": "long",
+        "pip_size": 0.0001,
+        "fixed_pips": 0.5,
+        "random_pips": 1.0
+      },
+      "output": {
+        "adjusted_price": 1.15011394
+      }
+    },
+    {
+      "input": {
+        "price": 1.15,
+        "direction": "short",
+        "pip_size": 0.0001,
+        "fixed_pips": 0.5,
+        "random_pips": 1.0
+      },
+      "output": {
+        "adjusted_price": 1.14988606
+      }
+    },
+    {
+      "input": {
+        "price": 1.2,
+        "direction": "long",
+        "pip_size": 0.0001,
+        "fixed_pips": 0.5,
+        "random_pips": 1.0
+      },
+      "output": {
+        "adjusted_price": 1.20011394
+      }
+    },
+    {
+      "input": {
+        "price": 1.2,
+        "direction": "short",
+        "pip_size": 0.0001,
+        "fixed_pips": 0.5,
+        "random_pips": 1.0
+      },
+      "output": {
+        "adjusted_price": 1.19988606
+      }
+    },
+    {
+      "input": {
+        "price": 1.25,
+        "direction": "long",
+        "pip_size": 0.0001,
+        "fixed_pips": 0.5,
+        "random_pips": 1.0
+      },
+      "output": {
+        "adjusted_price": 1.25011394
+      }
+    },
+    {
+      "input": {
+        "price": 1.25,
+        "direction": "short",
+        "pip_size": 0.0001,
+        "fixed_pips": 0.5,
+        "random_pips": 1.0
+      },
+      "output": {
+        "adjusted_price": 1.24988606
+      }
+    },
+    {
+      "input": {
+        "price": 1.3,
+        "direction": "long",
+        "pip_size": 0.0001,
+        "fixed_pips": 0.5,
+        "random_pips": 1.0
+      },
+      "output": {
+        "adjusted_price": 1.30011394
+      }
+    },
+    {
+      "input": {
+        "price": 1.3,
+        "direction": "short",
+        "pip_size": 0.0001,
+        "fixed_pips": 0.5,
+        "random_pips": 1.0
+      },
+      "output": {
+        "adjusted_price": 1.29988606
+      }
+    }
+  ],
+  "slippage_results_hash": "da570884f652a2e9604ccb851ae4d0a650d4a274902cc874eb1ab22366a7adcd",
+  "fee_test_cases": [
+    {
+      "input": {
+        "volume_lots": 0.01,
+        "price": 1.1,
+        "contract_size": 100000,
+        "per_million": 30.0,
+        "lot_size": 100000,
+        "min_fee": 0.01
+      },
+      "output": {
+        "fee": 0.033
+      }
+    },
+    {
+      "input": {
+        "volume_lots": 0.01,
+        "price": 1.15,
+        "contract_size": 100000,
+        "per_million": 30.0,
+        "lot_size": 100000,
+        "min_fee": 0.01
+      },
+      "output": {
+        "fee": 0.0345
+      }
+    },
+    {
+      "input": {
+        "volume_lots": 0.01,
+        "price": 1.2,
+        "contract_size": 100000,
+        "per_million": 30.0,
+        "lot_size": 100000,
+        "min_fee": 0.01
+      },
+      "output": {
+        "fee": 0.036
+      }
+    },
+    {
+      "input": {
+        "volume_lots": 0.1,
+        "price": 1.1,
+        "contract_size": 100000,
+        "per_million": 30.0,
+        "lot_size": 100000,
+        "min_fee": 0.01
+      },
+      "output": {
+        "fee": 0.33
+      }
+    },
+    {
+      "input": {
+        "volume_lots": 0.1,
+        "price": 1.15,
+        "contract_size": 100000,
+        "per_million": 30.0,
+        "lot_size": 100000,
+        "min_fee": 0.01
+      },
+      "output": {
+        "fee": 0.345
+      }
+    },
+    {
+      "input": {
+        "volume_lots": 0.1,
+        "price": 1.2,
+        "contract_size": 100000,
+        "per_million": 30.0,
+        "lot_size": 100000,
+        "min_fee": 0.01
+      },
+      "output": {
+        "fee": 0.36
+      }
+    },
+    {
+      "input": {
+        "volume_lots": 1.0,
+        "price": 1.1,
+        "contract_size": 100000,
+        "per_million": 30.0,
+        "lot_size": 100000,
+        "min_fee": 0.01
+      },
+      "output": {
+        "fee": 3.3
+      }
+    },
+    {
+      "input": {
+        "volume_lots": 1.0,
+        "price": 1.15,
+        "contract_size": 100000,
+        "per_million": 30.0,
+        "lot_size": 100000,
+        "min_fee": 0.01
+      },
+      "output": {
+        "fee": 3.45
+      }
+    },
+    {
+      "input": {
+        "volume_lots": 1.0,
+        "price": 1.2,
+        "contract_size": 100000,
+        "per_million": 30.0,
+        "lot_size": 100000,
+        "min_fee": 0.01
+      },
+      "output": {
+        "fee": 3.6
+      }
+    },
+    {
+      "input": {
+        "volume_lots": 5.0,
+        "price": 1.1,
+        "contract_size": 100000,
+        "per_million": 30.0,
+        "lot_size": 100000,
+        "min_fee": 0.01
+      },
+      "output": {
+        "fee": 16.5
+      }
+    },
+    {
+      "input": {
+        "volume_lots": 5.0,
+        "price": 1.15,
+        "contract_size": 100000,
+        "per_million": 30.0,
+        "lot_size": 100000,
+        "min_fee": 0.01
+      },
+      "output": {
+        "fee": 17.25
+      }
+    },
+    {
+      "input": {
+        "volume_lots": 5.0,
+        "price": 1.2,
+        "contract_size": 100000,
+        "per_million": 30.0,
+        "lot_size": 100000,
+        "min_fee": 0.01
+      },
+      "output": {
+        "fee": 18.0
+      }
+    },
+    {
+      "input": {
+        "volume_lots": 10.0,
+        "price": 1.1,
+        "contract_size": 100000,
+        "per_million": 30.0,
+        "lot_size": 100000,
+        "min_fee": 0.01
+      },
+      "output": {
+        "fee": 33.0
+      }
+    },
+    {
+      "input": {
+        "volume_lots": 10.0,
+        "price": 1.15,
+        "contract_size": 100000,
+        "per_million": 30.0,
+        "lot_size": 100000,
+        "min_fee": 0.01
+      },
+      "output": {
+        "fee": 34.5
+      }
+    },
+    {
+      "input": {
+        "volume_lots": 10.0,
+        "price": 1.2,
+        "contract_size": 100000,
+        "per_million": 30.0,
+        "lot_size": 100000,
+        "min_fee": 0.01
+      },
+      "output": {
+        "fee": 36.0
+      }
+    }
+  ],
+  "fee_results_hash": "c00ad9a2d1363bc538de442432672f74aaf803950e51988027ca0106dd477289"
+}

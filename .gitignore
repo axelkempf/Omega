@@ -67,9 +67,11 @@ Cargo.lock
 .hypothesis/
 
 # ------------------------------------------------------------------------------
-# Golden test reference files (generated)
+# Golden test reference files (generated, but tracked for migration validation)
 # ------------------------------------------------------------------------------
-tests/golden/reference/
+# Note: Golden reference files are committed to enable determinism validation
+# during the Rust/Julia migration. See docs/MIGRATION_READINESS_VALIDATION.md
+# tests/golden/reference/  # Disabled - files are now tracked for migration
 
 # ------------------------------------------------------------------------------
 # Secrets & Credentials (never commit!)

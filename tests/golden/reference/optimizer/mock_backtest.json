@@ -1,0 +1,44 @@
+{
+  "metadata": {
+    "created_at": "2026-01-05T21:06:04.463083",
+    "python_version": "3.12.12",
+    "numpy_version": "2.3.5",
+    "pandas_version": "2.3.3",
+    "seed": 42,
+    "description": "Mock backtest optimization",
+    "file_hash": "3939d0fd570cbe145059800a2bd4b26551fc841ecc6fc502e9e64bb25af3e3d0"
+  },
+  "best_params": {
+    "ema_fast": 10,
+    "ema_slow": 32,
+    "rsi_threshold": 41.565927050001
+  },
+  "best_score": -904.1208774147299,
+  "n_trials": 40,
+  "param_ranges": {
+    "ema_fast": [
+      5,
+      20
+    ],
+    "ema_slow": [
+      20,
+      50
+    ],
+    "rsi_threshold": [
+      20,
+      80
+    ]
+  },
+  "top_n_hashes": [
+    "3de3347454b000adc67efa77c5e8860b2e4e2e37e1f76ec66e6046f243253d96",
+    "f7edc4d63034c533049acf2f2c2d958ea5381f4451d111b0069a4c37fe41816b",
+    "59b5aeb9e23799202b9fb49b7381eaa4b4ac6632f2e72bc21e99c415c2daa106",
+    "8e0396499f22a48cb4df0fc4070a6015edbc5f4c339a5a98c182be55b95464d6",
+    "c0db312db9f3a829a2910a0f049672c4b5b8bb82185d51da73492dd919c84eef",
+    "3738ce904f733028638b6a768e653dd756bd88c2504991dc21e2f19007336998",
+    "78651a651bf66249f821c5b6cf2ae662f072c6fbdac9f5dd775b1d4795959017",
+    "c02f9e64b27b103c722f760ee52a0a3044344457e275649748092eb3ff1918d6",
+    "4d178d4ef192b075e1628d854955f85f7c29ced4b59b56f0cdd01550696236f0",
+    "93991b4c0baeea08637336c3e6f00d09c2646747806245d51ba8fd213bb61278"
+  ]
+}

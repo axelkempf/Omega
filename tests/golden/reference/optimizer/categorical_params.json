@@ -1,0 +1,45 @@
+{
+  "metadata": {
+    "created_at": "2026-01-05T21:06:04.286208",
+    "python_version": "3.12.12",
+    "numpy_version": "2.3.5",
+    "pandas_version": "2.3.3",
+    "seed": 42,
+    "description": "Categorical parameter optimization",
+    "file_hash": "a5c863889dfe94973c0216c7ea7ae52c565994a20a8574487ede532f56336f8d"
+  },
+  "best_params": {
+    "optimizer": "adam",
+    "layers": 1,
+    "learning_rate": 0.0019713258474908725
+  },
+  "best_score": 0.11971325847490873,
+  "n_trials": 25,
+  "param_ranges": {
+    "optimizer": [
+      "adam",
+      "sgd",
+      "rmsprop"
+    ],
+    "layers": [
+      1,
+      5
+    ],
+    "learning_rate": [
+      1e-05,
+      0.1
+    ]
+  },
+  "top_n_hashes": [
+    "ae03bbfd89c43c056e8b4d3c763c898e5a9dea9cc3ab0570830545a835c658f3",
+    "c4fe40d7587ed749c4d079f67f5debac5d3567680ac239c90eeaf0fe1cc1c823",
+    "a9b3490ce862a669c779416c9b5019c692d96f07ed4318a31849678bb5ab58fc",
+    "d8b85cbf784df291df9ddf77f60aa193695de771423299f2ef0cd1943854a0f4",
+    "38f5756060585a9aeaf1eb1af48d56749827f16e2399b1da57cd2e38ca38e584",
+    "c3bf7b8566c0760c93d549dec5bf3e768fddf3bf6aa50bd20585de60d21f45c6",
+    "8890cd79004e5601e491acbf7849fc7d41329eb12430aaddf6a5fb7638d7fd0f",
+    "cc7c37739892f41b23096a43027a1213025d7f3b9bddebec7eb3893f28a7d2ac",
+    "21284dc4fb82d28b50360a5252c67e922028027e7a1dcb3bc512581d033671a3",
+    "8427050c487158f42c82dce4c3d5496b4ec33857155be3974ae732c7de91db58"
+  ]
+}
