@@ -5,6 +5,12 @@ from typing import Mapping, Sequence
 
 import numpy as np
 
+from backtest_engine.rating._rust_bridge import (
+    is_rust_enabled,
+    rust_compute_penalty_profit_drawdown_sharpe,
+    rust_score_from_penalty,
+)
+
 
 def _to_finite(x: object, *, default: float = 0.0) -> float:
     try:
@@ -33,6 +39,10 @@ def compute_penalty_profit_drawdown_sharpe(
     Expected keys:
       base_metrics: profit, drawdown, sharpe
       stress_metrics[i]: profit, drawdown, sharpe
+
+    Implementation:
+      - Uses Rust implementation when OMEGA_USE_RUST_RATING is enabled.
+      - Falls back to Python for compatibility.
     """
     cap = float(max(0.0, penalty_cap))
     if cap == 0.0:
@@ -42,6 +52,29 @@ def compute_penalty_profit_drawdown_sharpe(
     base_drawdown = _to_finite(base_metrics.get("drawdown", 0.0), default=0.0)
     base_sharpe = _to_finite(base_metrics.get("sharpe", 0.0), default=0.0)
 
+    # Rust dispatch
+    if is_rust_enabled() and stress_metrics:
+        stress_profits = [
+            _to_finite(m.get("profit", 0.0), default=0.0) for m in stress_metrics if m
+        ]
+        stress_drawdowns = [
+            _to_finite(m.get("drawdown", 0.0), default=0.0) for m in stress_metrics if m
+        ]
+        stress_sharpes = [
+            _to_finite(m.get("sharpe", 0.0), default=0.0) for m in stress_metrics if m
+        ]
+        if stress_profits:
+            return rust_compute_penalty_profit_drawdown_sharpe(
+                base_profit,
+                base_drawdown,
+                base_sharpe,
+                stress_profits,
+                stress_drawdowns,
+                stress_sharpes,
+                cap,
+            )
+
+    # Python fallback
     def rel_drop(base: float, stress: float) -> float:
         if base <= 0.0:
             return 0.0
@@ -77,6 +110,15 @@ def compute_penalty_profit_drawdown_sharpe(
 
 
 def score_from_penalty(penalty: float, *, penalty_cap: float = 0.5) -> float:
+    """Convert penalty to score.
+
+    Implementation:
+      - Uses Rust implementation when OMEGA_USE_RUST_RATING is enabled.
+      - Falls back to Python for compatibility.
+    """
+    if is_rust_enabled():
+        return rust_score_from_penalty(penalty, penalty_cap)
+
     cap = float(max(0.0, penalty_cap))
     pen = _to_finite(penalty, default=cap)
     pen = float(max(0.0, min(cap, pen)))

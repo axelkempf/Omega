@@ -4,6 +4,44 @@ Alle nennenswerten Änderungen werden in dieser Datei dokumentiert.
 
 > Hinweis: Historische Einträge sind ggf. unvollständig.
 
+## [1.4.0] - Wave 1: Rust FFI Rating Module Migration
+
+### Added
+- **Rust-Dispatch für Rating-Module**: Automatisches Dispatch zu Rust-Implementierungen
+  - `robustness_score_1.py`: Parameter-Jitter-Score → Rust
+  - `stability_score.py`: Yearly-Profit-WMAPE-Score → Rust
+  - `stress_penalty.py`: Profit/Drawdown/Sharpe-Penalty → Rust
+  - `cost_shock_score.py`: Single/Multi-Factor Cost-Shock → Rust
+  - `trade_dropout_score.py`: Single/Multi-Run Dropout-Score → Rust
+- **Feature Flag `OMEGA_USE_RUST_RATING`**: Steuert Python/Rust-Wahl
+  - `auto` (default): Rust wenn verfügbar, sonst Python-Fallback
+  - `true`: Force Rust (Fehler wenn nicht verfügbar)
+  - `false`: Force Python (Rollback)
+- **Parity-Tests**: `tests/integration/test_rust_rating_parity.py` mit 12 Tests für Python↔Rust-Parität
+- **Floating-Point-Toleranz**: `rel_tol=1e-14` für Cross-Language-Vergleiche
+
+### Changed
+- `tests/property/test_prop_scoring.py`: Determinismus-Test verwendet `math.isclose()` statt exakter Gleichheit
+
+### Performance (Benchmarks)
+| Funktion | Python-only | Rust-enabled | Speedup |
+|----------|-------------|--------------|---------|
+| `cost_shock_score` (single) | 41µs | 4µs | **10x** |
+| `cost_shock_score` (3 factors) | 117µs | 8µs | **15x** |
+| `cost_shock_score` (5 factors) | 219µs | 10µs | **22x** |
+| `penalty_computation` (10 stress) | 56µs | 10µs | **6x** |
+| `penalty_computation` (50 stress) | 125µs | 31µs | **4x** |
+| `robustness_score_1` (10 repeats) | 69µs | 12µs | **6x** |
+| `robustness_score_1` (50 repeats) | 205µs | 39µs | **5x** |
+| `robustness_score_1` (100 repeats) | 383µs | 73µs | **5x** |
+| `stability_score` (5 years) | 14µs | 8µs | **1.6x** |
+| `stability_score` (10 years) | 17µs | 11µs | **1.5x** |
+
+### Notes
+- **Ulcer Index bleibt Python-only**: Komplexes Timestamp-Resampling (weekly closes) ist in Rust nicht implementiert
+- **Numerische Parität**: Python und Rust liefern identische Ergebnisse (±1e-14 Toleranz)
+- **Kein neuer Rust-Code nötig**: Wave 1 aktiviert nur den Dispatch zu bereits existierenden Rust-Funktionen
+
 ## [1.3.0] - Wave 0: Rust FFI Migration (Slippage & Fee)
 
 ### Added

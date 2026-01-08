@@ -5,6 +5,12 @@ from typing import Any, Iterable, Sequence, Tuple, cast
 
 import numpy as np
 
+from backtest_engine.rating._rust_bridge import (
+    is_rust_enabled,
+    rust_compute_ulcer_index,
+    rust_compute_ulcer_index_and_score,
+)
+
 
 def compute_ulcer_index_and_score(
     equity_curve: Sequence[object] | Iterable[object], *, ulcer_cap: float = 10.0

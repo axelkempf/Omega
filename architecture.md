@@ -87,17 +87,15 @@ Ordner-für-Ordner-Übersicht der Codebasis (ohne `results`-Ordner und ohne Aufl
       - `mod.rs` *(Module exports)*
       - `slippage.rs` *(Slippage calculation with ChaCha8 RNG)*
       - `fee.rs` *(Fee calculation per-million notional)*
-    - `rating/` *(Wave 1: Rating Modules - PLANNED)*
+    - `rating/` *(Wave 1: Rating Modules - IMPLEMENTED)*
       - `mod.rs` *(Module exports)*
       - `common.rs` *(Shared helpers: to_finite, pct_drop)*
-      - `robustness.rs` *(Robustness Score 1)*
-      - `stability.rs` *(Stability Score with WMAPE)*
-      - `stress_penalty.rs` *(Shared penalty logic)*
-      - `cost_shock.rs` *(Cost shock analysis)*
-      - `trade_dropout.rs` *(Trade dropout simulation)*
-      - `data_jitter.rs` *(Data jitter score - NEU PR #19)*
-      - `timing_jitter.rs` *(Timing jitter score - NEU PR #19)*
-      - `tp_sl_stress.rs` *(TP/SL stress score - NEU PR #19)*
+      - `robustness.rs` *(Robustness Score 1: 5-6x speedup)*
+      - `stability.rs` *(Stability Score with WMAPE: 1.5x speedup)*
+      - `stress_penalty.rs` *(Shared penalty logic: 4-6x speedup)*
+      - `cost_shock.rs` *(Cost shock analysis: 10-22x speedup)*
+      - `trade_dropout.rs` *(Trade dropout scoring)*
+      - `ulcer_index.rs` *(Ulcer Index - dispatch not yet activated)*
       - `ulcer_index.rs` *(Ulcer index score - NEU PR #19)*
       - `p_values.rs` *(P-values - OPTIONAL)*
       - *(Note: strategy_rating.rs NOT planned - function inline in walkforward.py)*
@@ -187,18 +185,19 @@ Ordner-für-Ordner-Übersicht der Codebasis (ohne `results`-Ordner und ohne Aufl
   - `walkforward_utils.py`
   - `walkforward.py`
   - `__pycache__/`
-- `rating/` *(See migration: `docs/WAVE_1_RATING_MODULE_IMPLEMENTATION_PLAN.md`)*
+- `rating/` *(Wave 1: Rust FFI - 5-22x Speedup via OMEGA_USE_RUST_RATING)*
   - `__init__.py`
-  - `cost_shock_score.py` *(Cost sensitivity analysis)*
-  - `data_jitter_score.py` *(Data perturbation analysis)*
-  - `p_values.py` *(Statistical significance testing)*
-  - `robustness_score_1.py` *(Parameter jitter robustness)*
-  - `stability_score.py` *(Yearly profit stability)*
-  - `stress_penalty.py` *(Shared penalty logic)*
-  - `timing_jitter_score.py` *(Timing shift analysis)*
-  - `tp_sl_stress_score.py` *(TP/SL stress testing)*
-  - `trade_dropout_score.py` *(Trade dropout simulation)*
-  - `ulcer_index_score.py` *(Ulcer index calculation)*
+  - `_rust_bridge.py` *(Rust dispatch bridge: is_rust_enabled(), rust_compute_* wrappers)*
+  - `cost_shock_score.py` *(Cost sensitivity analysis - **Rust: 10-22x speedup**)*
+  - `data_jitter_score.py` *(Data perturbation analysis - calls robustness_score_1)*
+  - `p_values.py` *(Statistical significance testing - Python only)*
+  - `robustness_score_1.py` *(Parameter jitter robustness - **Rust: 5-6x speedup**)*
+  - `stability_score.py` *(Yearly profit stability - **Rust: 1.5x speedup**)*
+  - `stress_penalty.py` *(Shared penalty logic - **Rust: 4-6x speedup**)*
+  - `timing_jitter_score.py` *(Timing shift analysis - calls stress_penalty)*
+  - `tp_sl_stress_score.py` *(TP/SL stress testing - Python only)*
+  - `trade_dropout_score.py` *(Trade dropout simulation - **Rust dispatch**)*
+  - `ulcer_index_score.py` *(Ulcer index calculation - Python only, complex timestamp resampling)*
   - `README.md`
   - *(Note: strategy_rating.py removed in PR #19 - inline in walkforward.py)*
 - `report/`

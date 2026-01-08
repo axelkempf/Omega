@@ -7,6 +7,12 @@ from typing import Any, Dict, List, Mapping, Optional, Sequence
 import numpy as np
 import pandas as pd
 
+from backtest_engine.rating._rust_bridge import (
+    is_rust_enabled,
+    rust_compute_multi_run_trade_dropout_score,
+    rust_compute_trade_dropout_score,
+    rust_simulate_trade_dropout_metrics,
+)
 from backtest_engine.rating.stress_penalty import (
     compute_penalty_profit_drawdown_sharpe,
     score_from_penalty,
@@ -231,6 +237,37 @@ def compute_trade_dropout_score(
     *,
     penalty_cap: float = 0.5,
 ) -> float:
+    """Compute trade dropout robustness score.
+
+    Implementation:
+      - Uses Rust implementation when OMEGA_USE_RUST_RATING is enabled.
+      - Falls back to Python for compatibility.
+    """
+    if is_rust_enabled():
+
+        def _to_finite(x: object, default: float = 0.0) -> float:
+            try:
+                v = float(x)  # type: ignore[arg-type]
+            except Exception:
+                return float(default)
+            return v if math.isfinite(v) else float(default)
+
+        base_profit = _to_finite(base_metrics.get("profit", 0.0), default=0.0)
+        base_drawdown = _to_finite(base_metrics.get("drawdown", 0.0), default=0.0)
+        base_sharpe = _to_finite(base_metrics.get("sharpe", 0.0), default=0.0)
+        dropout_profit = _to_finite(dropout_metrics.get("profit", 0.0), default=0.0)
+        dropout_drawdown = _to_finite(dropout_metrics.get("drawdown", 0.0), default=0.0)
+        dropout_sharpe = _to_finite(dropout_metrics.get("sharpe", 0.0), default=0.0)
+        return rust_compute_trade_dropout_score(
+            base_profit,
+            base_drawdown,
+            base_sharpe,
+            dropout_profit,
+            dropout_drawdown,
+            dropout_sharpe,
+            penalty_cap,
+        )
+
     penalty = compute_penalty_profit_drawdown_sharpe(
         base_metrics, [dropout_metrics], penalty_cap=penalty_cap
     )
@@ -322,10 +359,46 @@ def compute_multi_run_trade_dropout_score(
     *,
     penalty_cap: float = 0.5,
 ) -> float:
-    """Aggregate dropout scores across multiple runs by averaging."""
+    """Aggregate dropout scores across multiple runs by averaging.
+
+    Implementation:
+      - Uses Rust implementation when OMEGA_USE_RUST_RATING is enabled.
+      - Falls back to Python for compatibility.
+    """
 
     if not dropout_metrics_list:
         return 1.0
+
+    if is_rust_enabled():
+
+        def _to_finite(x: object, default: float = 0.0) -> float:
+            try:
+                v = float(x)  # type: ignore[arg-type]
+            except Exception:
+                return float(default)
+            return v if math.isfinite(v) else float(default)
+
+        base_profit = _to_finite(base_metrics.get("profit", 0.0), default=0.0)
+        base_drawdown = _to_finite(base_metrics.get("drawdown", 0.0), default=0.0)
+        base_sharpe = _to_finite(base_metrics.get("sharpe", 0.0), default=0.0)
+        dropout_profits = [
+            _to_finite(m.get("profit", 0.0), default=0.0) for m in dropout_metrics_list
+        ]
+        dropout_drawdowns = [
+            _to_finite(m.get("drawdown", 0.0), default=0.0) for m in dropout_metrics_list
+        ]
+        dropout_sharpes = [
+            _to_finite(m.get("sharpe", 0.0), default=0.0) for m in dropout_metrics_list
+        ]
+        return rust_compute_multi_run_trade_dropout_score(
+            base_profit,
+            base_drawdown,
+            base_sharpe,
+            dropout_profits,
+            dropout_drawdowns,
+            dropout_sharpes,
+            penalty_cap,
+        )
 
     scores = [
         compute_trade_dropout_score(base_metrics, dm, penalty_cap=penalty_cap)

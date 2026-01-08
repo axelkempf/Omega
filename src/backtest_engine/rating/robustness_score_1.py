@@ -5,6 +5,11 @@ from typing import Mapping, Sequence
 
 import numpy as np
 
+from backtest_engine.rating._rust_bridge import (
+    is_rust_enabled,
+    rust_compute_robustness_score_1,
+)
+
 
 def _to_finite(x: object, *, default: float = 0.0) -> float:
     try:
@@ -43,6 +48,10 @@ def compute_robustness_score_1(
         and the resulting penalty contribution may become uninformative.
         Upstream selection should typically filter out unprofitable candidates before
         relying on this robustness score.
+
+    Implementation:
+      - Uses Rust implementation when OMEGA_USE_RUST_RATING is enabled.
+      - Falls back to Python for compatibility.
     """
     cap = float(max(0.0, penalty_cap))
     if cap == 0.0:
@@ -56,6 +65,33 @@ def compute_robustness_score_1(
     if not jitter_metrics:
         return float(max(0.0, 1.0 - cap))
 
+    # Rust dispatch
+    if is_rust_enabled():
+        jitter_profits = [
+            _to_finite(m.get("profit", 0.0), default=0.0) for m in jitter_metrics
+        ]
+        jitter_avg_rs = [
+            _to_finite(m.get("avg_r", 0.0), default=0.0) for m in jitter_metrics
+        ]
+        jitter_winrates = [
+            _to_finite(m.get("winrate", 0.0), default=0.0) for m in jitter_metrics
+        ]
+        jitter_drawdowns = [
+            _to_finite(m.get("drawdown", 0.0), default=0.0) for m in jitter_metrics
+        ]
+        return rust_compute_robustness_score_1(
+            base_profit,
+            base_avg_r,
+            base_winrate,
+            base_drawdown,
+            jitter_profits,
+            jitter_avg_rs,
+            jitter_winrates,
+            jitter_drawdowns,
+            cap,
+        )
+
+    # Python fallback
     drops: list[float] = []
     for m in jitter_metrics:
         profit = _to_finite(m.get("profit", 0.0), default=0.0)

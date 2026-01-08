@@ -6,7 +6,7 @@
   },
   "mode": "candle",
   "enable_entry_logging": true,
-  "enable_backtest_robust_metrics": false,
+  "enable_backtest_robust_metrics": true,
   "robust_jitter_frac": 0.05,
   "robust_jitter_repeats": 80,
   "robust_data_jitter_repeats": 50,  

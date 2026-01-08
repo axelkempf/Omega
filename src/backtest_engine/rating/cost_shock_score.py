@@ -2,6 +2,11 @@ from __future__ import annotations
 
 from typing import Any, Dict, Mapping, Sequence, Tuple
 
+from backtest_engine.rating._rust_bridge import (
+    is_rust_enabled,
+    rust_compute_cost_shock_score,
+    rust_compute_multi_factor_cost_shock_score,
+)
 from backtest_engine.rating.stress_penalty import (
     compute_penalty_profit_drawdown_sharpe,
     score_from_penalty,
@@ -53,12 +58,45 @@ def apply_cost_shock_inplace(cfg: Dict[str, Any], *, factor: float) -> None:
     # No additional in-place scaling of `slippage/fees/...` sections to avoid double shock.
 
 
+def _to_finite(x: object, *, default: float = 0.0) -> float:
+    import math
+
+    try:
+        v = float(x)  # type: ignore[arg-type]
+    except Exception:
+        return float(default)
+    return v if math.isfinite(v) else float(default)
+
+
 def compute_cost_shock_score(
     base_metrics: Mapping[str, float],
     shocked_metrics: Mapping[str, float],
     *,
     penalty_cap: float = 0.5,
 ) -> float:
+    """Compute cost shock robustness score.
+
+    Implementation:
+      - Uses Rust implementation when OMEGA_USE_RUST_RATING is enabled.
+      - Falls back to Python for compatibility.
+    """
+    if is_rust_enabled():
+        base_profit = _to_finite(base_metrics.get("profit", 0.0), default=0.0)
+        base_drawdown = _to_finite(base_metrics.get("drawdown", 0.0), default=0.0)
+        base_sharpe = _to_finite(base_metrics.get("sharpe", 0.0), default=0.0)
+        shocked_profit = _to_finite(shocked_metrics.get("profit", 0.0), default=0.0)
+        shocked_drawdown = _to_finite(shocked_metrics.get("drawdown", 0.0), default=0.0)
+        shocked_sharpe = _to_finite(shocked_metrics.get("sharpe", 0.0), default=0.0)
+        return rust_compute_cost_shock_score(
+            base_profit,
+            base_drawdown,
+            base_sharpe,
+            shocked_profit,
+            shocked_drawdown,
+            shocked_sharpe,
+            penalty_cap,
+        )
+
     penalty = compute_penalty_profit_drawdown_sharpe(
         base_metrics, [shocked_metrics], penalty_cap=penalty_cap
     )
@@ -80,9 +118,36 @@ def compute_multi_factor_cost_shock_score(
 
     Returns:
         Mean score across shocks. Returns 1.0 when no shocks are provided.
+
+    Implementation:
+      - Uses Rust implementation when OMEGA_USE_RUST_RATING is enabled.
+      - Falls back to Python for compatibility.
     """
     if not shocked_metrics_list:
         return 1.0
+
+    if is_rust_enabled():
+        base_profit = _to_finite(base_metrics.get("profit", 0.0), default=0.0)
+        base_drawdown = _to_finite(base_metrics.get("drawdown", 0.0), default=0.0)
+        base_sharpe = _to_finite(base_metrics.get("sharpe", 0.0), default=0.0)
+        shocked_profits = [
+            _to_finite(m.get("profit", 0.0), default=0.0) for m in shocked_metrics_list
+        ]
+        shocked_drawdowns = [
+            _to_finite(m.get("drawdown", 0.0), default=0.0) for m in shocked_metrics_list
+        ]
+        shocked_sharpes = [
+            _to_finite(m.get("sharpe", 0.0), default=0.0) for m in shocked_metrics_list
+        ]
+        return rust_compute_multi_factor_cost_shock_score(
+            base_profit,
+            base_drawdown,
+            base_sharpe,
+            shocked_profits,
+            shocked_drawdowns,
+            shocked_sharpes,
+            penalty_cap,
+        )
 
     scores = [
         compute_cost_shock_score(base_metrics, sm, penalty_cap=penalty_cap)
