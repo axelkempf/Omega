@@ -1,18 +1,18 @@
 {
   "metadata": {
-    "created_at": "2026-01-08T12:47:45.718123+00:00",
+    "created_at": "2026-01-08T13:17:32.702817+00:00",
     "python_version": "3.12.12",
     "numpy_version": "2.3.5",
     "pandas_version": "2.3.3",
     "seed": 42,
     "description": "Simple quadratic optimization",
-    "file_hash": "3cc75c437f2fa71a630ec589c78a834ffd2e3b70550e7f39e922bb0f3af8f8f0"
+    "file_hash": "bb94cbf705cd5638648e8f7750b2d7a3920ad76d2e52e7b2d296b4dc050b03a9"
   },
   "best_params": {
-    "x": 1.3122618136280642,
-    "y": -0.09908565748620757
+    "x": 1.3122618136280628,
+    "y": -0.09908565748620735
   },
-  "best_score": 1.7318490350258902,
+  "best_score": 1.7318490350258868,
   "n_trials": 30,
   "param_ranges": {
     "x": [

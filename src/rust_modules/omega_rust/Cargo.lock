@@ -409,6 +409,8 @@ dependencies = [
  "num-traits",
  "proptest",
  "pyo3",
+ "rand",
+ "rand_chacha",
  "rayon",
  "serde",
  "serde_json",
