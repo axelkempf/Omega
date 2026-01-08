@@ -29,7 +29,6 @@ from backtest_engine.rating.robustness_score_1 import compute_robustness_score_1
 from backtest_engine.rating.stability_score import (
     compute_stability_score_from_yearly_profits,
 )
-from backtest_engine.rating.strategy_rating import rate_strategy_performance
 from backtest_engine.rating.timing_jitter_score import compute_timing_jitter_score
 from backtest_engine.rating.tp_sl_stress_score import compute_tp_sl_stress_score
 from backtest_engine.rating.trade_dropout_score import (
@@ -37,6 +36,51 @@ from backtest_engine.rating.trade_dropout_score import (
     simulate_trade_dropout_metrics_multi,
 )
 from backtest_engine.rating.ulcer_index_score import compute_ulcer_index_and_score
+
+
+def _rate_strategy_performance(
+    summary: Dict[str, Any], thresholds: Dict[str, float] | None = None
+) -> Dict[str, Any]:
+    """
+    Bewertet die Strategie-Performance anhand fester Schwellenwerte.
+    Gibt Score (0–1), Deployment-Entscheidung und Fehlerschlüssel zurück.
+
+    Note: Diese Funktion war ursprünglich in strategy_rating.py und wurde
+    für die Wave-1 Rust/Julia Migration vorbereitet. Die Funktion wurde
+    inline hier verschoben, da strategy_rating.py vollständig entfernt wurde.
+    """
+    thresholds = thresholds or {
+        "min_winrate": 45,
+        "min_avg_r": 0.6,
+        "min_profit": 500,
+        "min_profit_factor": 1.2,
+        "max_drawdown": 1000,
+    }
+    deployment = True
+    checks: list[str] = []
+
+    if summary.get("Winrate (%)", 0) < thresholds["min_winrate"]:
+        deployment = False
+        checks.append("Winrate")
+    if summary.get("Avg R-Multiple", 0) < thresholds["min_avg_r"]:
+        deployment = False
+        checks.append("Avg R")
+    if summary.get("Net Profit", 0) < thresholds["min_profit"]:
+        deployment = False
+        checks.append("Net Profit")
+    if summary.get("profit_factor", 0) < thresholds["min_profit_factor"]:
+        deployment = False
+        checks.append("Profit Factor")
+    if summary.get("drawdown_eur", 0) > thresholds["max_drawdown"]:
+        deployment = False
+        checks.append("Drawdown")
+
+    score = 1 - len(checks) / 5
+    return {
+        "Score": round(score, 2),
+        "Deployment": deployment,
+        "Deployment_Fails": "|".join(checks),
+    }
 
 
 def _gen_equity(n: int) -> list[tuple[datetime, float]]:
@@ -171,7 +215,7 @@ def benchmark_rating(n_equity: int, n_jitter: int) -> Dict[str, Any]:
         "robustness_1": lambda: compute_robustness_score_1(
             base_metrics, jitter_metrics
         ),
-        "strategy_rating": lambda: rate_strategy_performance(summary),
+        "strategy_rating": lambda: _rate_strategy_performance(summary),
         "data_jitter": lambda: compute_data_jitter_score(base_metrics, jitter_metrics),
         "timing_jitter": lambda: compute_timing_jitter_score(
             base_metrics, jitter_metrics

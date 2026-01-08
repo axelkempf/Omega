@@ -3,7 +3,7 @@
 **Modulpfad:** `src/backtest_engine/rating/`  
 **Migrations-Ziel:** Rust (via PyO3/maturin) oder Julia (via PythonCall.jl)  
 **Phase 2 Task:** P2-04  
-**Status:** ✅ Spezifiziert (2026-01-05)
+**Status:** ✅ Spezifiziert (2026-01-05), Updated (2026-01-08)
 
 ---
 
@@ -11,11 +11,15 @@
 
 Das Rating-Modul berechnet **Qualitäts-Scores** für Trading-Strategien basierend auf
 Performance-Metriken. Diese Scores werden verwendet für:
-- Deployment-Entscheidungen (ja/nein)
 - Strategie-Ranking (Final Selection)
 - Robustheit gegen Parameter-Jitter
 - Stabilität über Zeit (Jahresvergleich)
 - Stress-Resistenz (Kosten-Schocks, Trade-Dropout)
+
+**Hinweis:** `strategy_rating.py` wurde entfernt als Teil der Wave 1 Migration Preparation.
+Die `rate_strategy_performance` Funktionalität wurde inline in die verwendenden Module
+verschoben (`backtest_engine.optimizer.walkforward`). Die verbleibenden 10 Rating-Module
+sind die primären Migrationskanditaten für Wave 1.
 
 Migrations-Kandidat aufgrund:
 - Numerisch intensive Berechnungen (Mittelwerte, Standardabweichungen)
@@ -29,12 +33,16 @@ Migrations-Kandidat aufgrund:
 
 | Modul | Funktion | Input | Output |
 |-------|----------|-------|--------|
-| `strategy_rating.py` | Deployment-Entscheidung | summary Dict | Score + Deployment Bool |
 | `robustness_score_1.py` | Parameter-Jitter-Robustheit | base + jitter Metrics | Score [0,1] |
 | `stability_score.py` | Jahres-Stabilität | profits_by_year | Score [0,1] |
 | `cost_shock_score.py` | Kosten-Schock-Resistenz | base + shocked Metrics | Score [0,1] |
 | `trade_dropout_score.py` | Trade-Dropout-Simulation | trades_df + dropout_frac | Metrics Dict |
 | `stress_penalty.py` | Gemeinsame Penalty-Logik | base + stress Metrics | Penalty [0, cap] |
+| `data_jitter_score.py` | Daten-Jitter-Robustheit | base + jittered Data | Score [0,1] |
+| `timing_jitter_score.py` | Timing-Shift-Robustheit | base + shifted Metrics | Score [0,1] |
+| `tp_sl_stress_score.py` | TP/SL-Stress-Test | trades_df + TP/SL Arrays | Score [0,1] |
+| `ulcer_index_score.py` | Ulcer Index Score | equity_curve | Score [0,1] + Index |
+| `p_values.py` | Statistische Signifikanz | trades_df | p-values Dict |
 
 ---
 
@@ -108,58 +116,7 @@ ScoreResult: TypeAlias = float  # [0.0, 1.0]
 
 ---
 
-## 1. strategy_rating.py
-
-### rate_strategy_performance()
-
-```python
-def rate_strategy_performance(
-    summary: Dict[str, Any],
-    thresholds: Optional[Dict[str, float]] = None,
-) -> Dict[str, Any]:
-    """
-    Bewertet Strategie gegen fixe Schwellenwerte.
-    
-    @ffi_boundary: Input/Output
-    
-    Args:
-        summary: Performance-Metriken aus Backtest
-        thresholds: Optional Override für Schwellen
-        
-    Default Thresholds:
-        min_winrate: 45        # Prozent
-        min_avg_r: 0.6         # R-Multiple
-        min_profit: 500        # EUR
-        min_profit_factor: 1.2
-        max_drawdown: 1000     # EUR
-        
-    Returns:
-        {
-            "Score": float,           # [0.0, 1.0] - Anteil bestandener Checks
-            "Deployment": bool,       # True wenn alle Checks bestanden
-            "Deployment_Fails": str,  # Pipe-separierte Liste: "Winrate|Drawdown"
-        }
-        
-    Scoring Logic:
-        - 5 unabhängige Checks
-        - Score = (5 - Anzahl Fails) / 5
-        - Deployment = True nur wenn alle Checks bestanden
-    """
-```
-
-### Arrow Schema für DeploymentResult
-
-```
-DeploymentResult {
-  score: float64
-  deployment: bool
-  deployment_fails: utf8  # Pipe-separated
-}
-```
-
----
-
-## 2. robustness_score_1.py
+## 1. robustness_score_1.py
 
 ### compute_robustness_score_1()
 
@@ -224,7 +181,7 @@ def _pct_drop(
 
 ---
 
-## 3. stability_score.py
+## 2. stability_score.py
 
 ### compute_stability_score_and_wmape_from_yearly_profits()
 
@@ -295,7 +252,7 @@ YearData {
 
 ---
 
-## 4. stress_penalty.py (Shared Foundation)
+## 3. stress_penalty.py (Shared Foundation)
 
 ### compute_penalty_profit_drawdown_sharpe()
 
@@ -350,7 +307,7 @@ def score_from_penalty(
 
 ---
 
-## 5. cost_shock_score.py
+## 4. cost_shock_score.py
 
 ### COST_SHOCK_FACTORS
 
@@ -427,7 +384,7 @@ def compute_multi_factor_cost_shock_score(
 
 ---
 
-## 6. trade_dropout_score.py
+## 5. trade_dropout_score.py
 
 ### simulate_trade_dropout_metrics()
 

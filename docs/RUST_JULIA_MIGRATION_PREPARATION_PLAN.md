@@ -194,9 +194,10 @@ Dieses Dokument beschreibt den systematischen Vorbereitungsplan zur sicheren, in
   - Signal Processing, Entry Trigger, Exit Evaluation APIs
   - Position Sizing Logic, Slippage/Fee Models
 
-- **P2-04 (Rating-Module):** ✅ **KOMPLETT** (2026-01-05)
+- **P2-04 (Rating-Module):** ✅ **KOMPLETT** (2026-01-05, Updated 2026-01-08)
   - Vollständige Interface-Spezifikation in `docs/ffi/rating_modules.md`
-  - 6 Module: strategy_rating, robustness_score_1, stability_score, cost_shock_score, trade_dropout_score, stress_penalty
+  - 10 Module: robustness_score_1, stability_score, cost_shock_score, trade_dropout_score, stress_penalty, data_jitter_score, timing_jitter_score, tp_sl_stress_score, ulcer_index_score, p_values
+  - `strategy_rating.py` entfernt (Funktionalität inline in walkforward.py verschoben)
   - MetricsDict Arrow Schema, Score-Berechnungs-Algorithmen
   - Rust Implementation Examples, Benchmark Targets
 
@@ -876,8 +877,9 @@ Diese Phase schließt die Lücken für die vollständige Migration-Readiness all
     - Deckt deterministische Outputs und seed-basierte Simulationen ab, u.a.:
       - `robustness_score_1.py`, `stress_penalty.py`, `cost_shock_score.py`
       - `timing_jitter_score.py`, `trade_dropout_score.py`, `tp_sl_stress_score.py`
-      - `stability_score.py`, `ulcer_index_score.py`, `p_values.py`, `strategy_rating.py`
+      - `stability_score.py`, `ulcer_index_score.py`, `p_values.py`
       - `data_jitter_score.py` (inkl. DataFrame-Hashes für jittered OHLC)
+    - Note: `strategy_rating.py` entfernt; Funktionalität inline in consuming modules
   - Referenz-Datei:
     - `tests/golden/reference/rating/rating_modules_v1.json` (wird beim ersten Golden-Testlauf erzeugt; docs-lint:planned)
 
@@ -923,11 +925,13 @@ Diese Phase schließt die Lücken für die vollständige Migration-Readiness all
   - Performance-Targets: 20x single, 30x batch
   - Rollback-Trigger: Numerical Diff > 1e-8
 
-- **P6-15 (Migrations-Runbook Rating-Module - Batch):** ✅ **KOMPLETT** (2026-01-06)
+- **P6-15 (Migrations-Runbook Rating-Module - Batch):** ✅ **KOMPLETT** (2026-01-06, Updated 2026-01-08)
   - Datei: `docs/runbooks/rating_modules_migration.md` (~345 Zeilen)
   - Status: ⏳ siehe `docs/MIGRATION_READINESS_VALIDATION.md`
-  - 6 Module in Scope: strategy_rating, robustness_score_1, stability_score, 
-    cost_shock_score, trade_dropout_score, stress_penalty
+  - 10 Module in Scope: robustness_score_1, stability_score, cost_shock_score, 
+    trade_dropout_score, stress_penalty, data_jitter_score, timing_jitter_score,
+    tp_sl_stress_score, ulcer_index_score, p_values
+  - Note: `strategy_rating.py` entfernt; Funktionalität inline in walkforward.py
   - Vollständige 7-Phasen-Migrationsanleitung
   - Rust-Architektur: `MetricsInput`, `RatingScore`, `JitterConfig` Types
   - Batch-API: `calculate_ratings_batch()`, `robustness_score_batch()`, `cost_shock_score_batch()`

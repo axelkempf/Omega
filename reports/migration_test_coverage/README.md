@@ -104,10 +104,10 @@ Fokus: Kandidaten mit niedriger Coverage oder fehlenden Coverage-Daten.
 
 - Coverage: 71.2%
 - Low-Coverage Dateien (< 70%):
-  - `src/backtest_engine/rating/strategy_rating.py`: 0.0% (23 stmts)
   - `src/backtest_engine/rating/ulcer_index_score.py`: 19.4% (67 stmts)
   - `src/backtest_engine/rating/tp_sl_stress_score.py`: 65.8% (243 stmts)
   - `src/backtest_engine/rating/trade_dropout_score.py`: 67.9% (156 stmts)
+- Note: `strategy_rating.py` entfernt (Funktionalität inline in walkforward.py)
 
 ## Reproduzieren
 

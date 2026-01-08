@@ -169,7 +169,17 @@ Ordner-für-Ordner-Übersicht der Codebasis (ohne `results`-Ordner und ohne Aufl
   - `__pycache__/`
 - `rating/`
   - `__init__.py`
-  - `strategy_rating.py`
+  - `cost_shock_score.py`
+  - `data_jitter_score.py`
+  - `p_values.py`
+  - `robustness_score_1.py`
+  - `stability_score.py`
+  - `stress_penalty.py`
+  - `timing_jitter_score.py`
+  - `tp_sl_stress_score.py`
+  - `trade_dropout_score.py`
+  - `ulcer_index_score.py`
+  - `README.md`
 - `report/`
   - `__init__.py`
   - `exporter.py`

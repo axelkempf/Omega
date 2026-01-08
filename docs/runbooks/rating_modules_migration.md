@@ -24,16 +24,24 @@ rollback_procedure: docs/runbooks/rollback_generic.md
 
 Die Rating-Module berechnen Qualitäts- und Robustheits-Scores für Backtest-Ergebnisse. Sie sind ideale Pilot-Kandidaten: reine Mathematik, keine Abhängigkeiten, gut testbar.
 
+**Hinweis:** `strategy_rating.py` wurde entfernt als Teil der Migration Preparation. Die
+`rate_strategy_performance` Funktionalität wurde inline in `walkforward.py` verschoben.
+Die verbleibenden 10 Module sind die Ziele für die Rust-Migration.
+
 ### 1.1 Module in Scope
 
 | Modul | Funktion | Komplexität |
 |-------|----------|-------------|
-| `strategy_rating.py` | Haupt-Rating Aggregation | Niedrig |
 | `robustness_score_1.py` | Parameter-Jitter Robustness | Niedrig |
 | `stability_score.py` | Yearly Profit Stability | Niedrig |
 | `cost_shock_score.py` | Cost Sensitivity Analysis | Niedrig |
 | `trade_dropout_score.py` | Trade Dropout Analysis | Niedrig |
 | `stress_penalty.py` | Drawdown/Stress Penalty | Niedrig |
+| `data_jitter_score.py` | Data Noise Sensitivity | Mittel |
+| `timing_jitter_score.py` | Timing Shift Sensitivity | Niedrig |
+| `tp_sl_stress_score.py` | TP/SL Stress Testing | Mittel |
+| `ulcer_index_score.py` | Ulcer Index Calculation | Niedrig |
+| `p_values.py` | Statistical Significance | Niedrig |
 
 ### 1.2 Warum Migration?
 
