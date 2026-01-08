@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import os
 import random
-from typing import TYPE_CHECKING, Optional, Sequence
+from typing import TYPE_CHECKING, Any, Optional, Sequence
 
 if TYPE_CHECKING:
     from typing import List
@@ -28,14 +28,14 @@ if TYPE_CHECKING:
 # OMEGA_USE_RUST_SLIPPAGE_FEE=true|false|auto (default: auto)
 
 _RUST_AVAILABLE: bool = False
-_RUST_MODULE: object = None
+_RUST_MODULE: Any = None
 
 
 def _check_rust_available() -> bool:
     """Check if Rust module is available and functional."""
     global _RUST_MODULE
     try:
-        import omega_rust  # type: ignore[import-not-found]
+        import omega_rust  # noqa: F401
 
         # Verify required functions exist
         if hasattr(omega_rust, "calculate_slippage") and hasattr(
@@ -167,7 +167,7 @@ class SlippageModel:
     ) -> float:
         """Rust FFI implementation of slippage calculation."""
         direction_int = _direction_to_int(direction)
-        return _RUST_MODULE.calculate_slippage(  # type: ignore[union-attr]
+        result: float = _RUST_MODULE.calculate_slippage(
             price=price,
             direction=direction_int,
             pip_size=pip_size,
@@ -175,6 +175,7 @@ class SlippageModel:
             random_pips=self.random_pips,
             seed=seed,
         )
+        return result
 
     def apply_batch(
         self,
@@ -205,7 +206,7 @@ class SlippageModel:
         if _should_use_rust() and _RUST_MODULE is not None:
             direction_ints = [_direction_to_int(d) for d in directions]
             return list(
-                _RUST_MODULE.calculate_slippage_batch(  # type: ignore[union-attr]
+                _RUST_MODULE.calculate_slippage_batch(
                     prices=list(prices),
                     directions=direction_ints,
                     pip_size=pip_size,
@@ -281,13 +282,14 @@ class FeeModel:
         self, volume_lots: float, price: float, contract_size: float
     ) -> float:
         """Rust FFI implementation of fee calculation."""
-        return _RUST_MODULE.calculate_fee(  # type: ignore[union-attr]
+        result: float = _RUST_MODULE.calculate_fee(
             volume_lots=volume_lots,
             price=price,
             contract_size=contract_size,
             per_million=self.per_million,
             min_fee=self.min_fee,
         )
+        return result
 
     def calculate_batch(
         self,
@@ -315,7 +317,7 @@ class FeeModel:
 
         if _should_use_rust() and _RUST_MODULE is not None:
             return list(
-                _RUST_MODULE.calculate_fee_batch(  # type: ignore[union-attr]
+                _RUST_MODULE.calculate_fee_batch(
                     volume_lots=list(volume_lots),
                     prices=list(prices),
                     contract_size=cs,
@@ -326,4 +328,3 @@ class FeeModel:
 
         # Python fallback
         return [self._calculate_python(v, p, cs) for v, p in zip(volume_lots, prices)]
-

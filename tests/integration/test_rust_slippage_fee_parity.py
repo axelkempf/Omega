@@ -101,12 +101,12 @@ class TestSlippageRustParity:
         self, rust_available, force_python_mode
     ) -> None:
         """Slippage mit Seed: Both implementations should be internally deterministic.
-        
+
         NOTE: Python's random.Random and Rust's ChaCha8 use different RNG algorithms,
         so their outputs with the same seed will differ. What matters is:
         1. Each implementation is internally deterministic (same seed = same result)
         2. Fixed-only slippage (no random component) matches exactly
-        
+
         When migrating to Rust, golden files need to be re-generated with Rust results.
         """
         if not rust_available:
@@ -136,9 +136,9 @@ class TestSlippageRustParity:
         diff = abs(python_result1 - rust_result1)
         assert diff > 0, "Different RNG algorithms should produce different values"
         # The difference should be bounded within the random_pips range
-        assert diff < model.random_pips * pip_size, (
-            f"Difference {diff} exceeds max random slippage {model.random_pips * pip_size}"
-        )
+        assert (
+            diff < model.random_pips * pip_size
+        ), f"Difference {diff} exceeds max random slippage {model.random_pips * pip_size}"
 
     def test_slippage_fixed_only_parity(self, rust_available) -> None:
         """Slippage ohne Random muss exakt übereinstimmen."""

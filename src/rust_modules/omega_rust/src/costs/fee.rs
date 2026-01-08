@@ -210,8 +210,7 @@ mod tests {
         let volumes = vec![0.01, 0.1, 1.0];
         let prices = vec![1.1, 1.1, 1.1];
 
-        let fees =
-            calculate_fee_batch_impl(&volumes, &prices, 100_000.0, 30.0, 0.01).unwrap();
+        let fees = calculate_fee_batch_impl(&volumes, &prices, 100_000.0, 30.0, 0.01).unwrap();
 
         assert_eq!(fees.len(), 3);
         // 0.01 × 100,000 × 1.1 / 1,000,000 × 30 = 0.033

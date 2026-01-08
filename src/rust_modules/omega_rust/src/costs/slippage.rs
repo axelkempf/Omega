@@ -90,6 +90,7 @@ pub fn calculate_slippage_impl(
     }
 
     // Calculate random component
+    #[allow(clippy::option_if_let_else)]
     let random_component = if random_pips > 0.0 {
         if let Some(s) = seed {
             let mut rng = ChaCha8Rng::seed_from_u64(s);
@@ -145,8 +146,15 @@ pub fn calculate_slippage_batch(
     random_pips: f64,
     seed: Option<u64>,
 ) -> PyResult<Vec<f64>> {
-    calculate_slippage_batch_impl(&prices, &directions, pip_size, fixed_pips, random_pips, seed)
-        .map_err(Into::into)
+    calculate_slippage_batch_impl(
+        &prices,
+        &directions,
+        pip_size,
+        fixed_pips,
+        random_pips,
+        seed,
+    )
+    .map_err(Into::into)
 }
 
 /// Internal implementation for batch slippage calculation.
@@ -177,7 +185,14 @@ pub fn calculate_slippage_batch_impl(
         .map(|(i, (&price, &direction))| {
             // Each trade gets a unique seed derived from base seed + index
             let trade_seed = Some(base_seed.wrapping_add(i as u64));
-            calculate_slippage_impl(price, direction, pip_size, fixed_pips, random_pips, trade_seed)
+            calculate_slippage_impl(
+                price,
+                direction,
+                pip_size,
+                fixed_pips,
+                random_pips,
+                trade_seed,
+            )
         })
         .collect()
 }
@@ -195,12 +210,24 @@ mod tests {
         let random_pips = 1.0;
         let seed = Some(42_u64);
 
-        let result1 =
-            calculate_slippage_impl(price, DIRECTION_LONG, pip_size, fixed_pips, random_pips, seed)
-                .unwrap();
-        let result2 =
-            calculate_slippage_impl(price, DIRECTION_LONG, pip_size, fixed_pips, random_pips, seed)
-                .unwrap();
+        let result1 = calculate_slippage_impl(
+            price,
+            DIRECTION_LONG,
+            pip_size,
+            fixed_pips,
+            random_pips,
+            seed,
+        )
+        .unwrap();
+        let result2 = calculate_slippage_impl(
+            price,
+            DIRECTION_LONG,
+            pip_size,
+            fixed_pips,
+            random_pips,
+            seed,
+        )
+        .unwrap();
 
         assert_relative_eq!(result1, result2, epsilon = 1e-10);
     }
