@@ -81,7 +81,7 @@ jobs:
 
       - name: Cache Cargo registry
         if: steps.check_rust.outputs.rust_exists == 'true'
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ~/.cargo/registry
@@ -181,7 +181,7 @@ jobs:
 
       - name: Cache Cargo registry
         if: steps.check_rust.outputs.rust_exists == 'true'
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ~/.cargo/registry
@@ -256,7 +256,7 @@ jobs:
 
       - name: Cache Cargo registry
         if: steps.check_rust.outputs.rust_exists == 'true'
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ~/.cargo/registry
@@ -389,7 +389,7 @@ jobs:
 
       - name: Cache Cargo registry
         if: steps.check_rust.outputs.rust_exists == 'true'
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ~/.cargo/registry
