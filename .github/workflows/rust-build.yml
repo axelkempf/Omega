@@ -54,7 +54,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Check for Rust modules
         id: check_rust
@@ -115,7 +115,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Check for Rust modules
         id: check_rust
@@ -156,7 +156,7 @@ jobs:
     needs: [lint]
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Check for Rust modules
         id: check_rust
@@ -228,7 +228,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Check for Rust modules
         id: check_rust
@@ -307,7 +307,7 @@ jobs:
     needs: [build]
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Check for Rust modules
         id: check_rust
@@ -370,7 +370,7 @@ jobs:
     if: github.event.inputs.run_benchmarks == 'true' || github.ref == 'refs/heads/main'
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Check for Rust modules
         id: check_rust
