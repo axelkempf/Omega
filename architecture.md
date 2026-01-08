@@ -23,7 +23,13 @@ Ordner-für-Ordner-Übersicht der Codebasis (ohne `results`-Ordner und ohne Aufl
   - `parquet/` *({SYMBOL}/{SYMBOL}_{TIMEFRAME}_BID.parquet, ASK.parquet)*
   - `raw/` *(Unprocessed broker exports)*
 - `docs/`
-  - `CATEGORICAL_RANKING_OPTIMIZATION.md` (Detaillierter Performance-Optimierung Report)
+  - `CATEGORICAL_RANKING_OPTIMIZATION.md` *(Detaillierter Performance-Optimierung Report)*
+  - `MIGRATION_READINESS_VALIDATION.md` *(Rust/Julia migration readiness)*
+  - `WAVE_0_SLIPPAGE_FEE_IMPLEMENTATION_PLAN.md` *(Wave 0: Slippage & Fee)*
+  - `WAVE_1_RATING_MODULE_IMPLEMENTATION_PLAN.md` *(Wave 1: Rating Modules)*
+  - `adr/` *(Architecture Decision Records)*
+  - `ffi/` *(FFI specifications for Rust/Julia modules)*
+  - `runbooks/` *(Migration and operational runbooks)*
 - `final_selection/`
   - `joblib_tmp/`
 - `scripts/`
@@ -65,9 +71,9 @@ Ordner-für-Ordner-Übersicht der Codebasis (ohne `results`-Ordner und ohne Aufl
 ### `src/rust_modules/` *(High-Performance Rust Extensions via PyO3/Maturin)*
 
 - `omega_rust/`
-  - `Cargo.toml` *(PyO3 0.20+, ndarray, rayon, serde)*
+  - `Cargo.toml` *(PyO3 0.27+, ndarray, rayon, serde, rand_chacha)*
   - `pyproject.toml` *(Maturin build system)*
-  - `rust-toolchain.toml` *(Rust 1.76.0 pinning)*
+  - `rust-toolchain.toml` *(Rust 1.75+ pinning)*
   - `README.md`
   - `src/`
     - `lib.rs` *(PyO3 module entry point)*
@@ -77,10 +83,19 @@ Ordner-für-Ordner-Übersicht der Codebasis (ohne `results`-Ordner und ohne Aufl
       - `ema_impl.rs` *(Exponential Moving Average)*
       - `rsi_impl.rs` *(Relative Strength Index)*
       - `statistics.rs` *(Rolling standard deviation)*
-    - `costs/` *(PLANNED: Wave 0 Pilot)*
+    - `costs/` *(Wave 0: Slippage & Fee - IMPLEMENTED)*
       - `mod.rs` *(Module exports)*
-      - `slippage.rs` *(Slippage calculation with deterministic RNG)*
+      - `slippage.rs` *(Slippage calculation with ChaCha8 RNG)*
       - `fee.rs` *(Fee calculation per-million notional)*
+    - `rating/` *(Wave 1: Rating Modules - PLANNED)*
+      - `mod.rs` *(Module exports)*
+      - `common.rs` *(Shared helpers: to_finite, pct_drop)*
+      - `robustness.rs` *(Robustness Score 1)*
+      - `stability.rs` *(Stability Score with WMAPE)*
+      - `stress_penalty.rs` *(Shared penalty logic)*
+      - `cost_shock.rs` *(Cost shock analysis)*
+      - `trade_dropout.rs` *(Trade dropout simulation)*
+      - `strategy_rating.rs` *(Deployment threshold check)*
   - `benches/`
     - `indicator_bench.rs` *(Criterion benchmarks)*
 
@@ -167,9 +182,18 @@ Ordner-für-Ordner-Übersicht der Codebasis (ohne `results`-Ordner und ohne Aufl
   - `walkforward_utils.py`
   - `walkforward.py`
   - `__pycache__/`
-- `rating/`
+- `rating/` *(See migration: `docs/WAVE_1_RATING_MODULE_IMPLEMENTATION_PLAN.md`)*
   - `__init__.py`
-  - `strategy_rating.py`
+  - `cost_shock_score.py` *(Cost sensitivity analysis)*
+  - `data_jitter_score.py` *(Data perturbation analysis)*
+  - `robustness_score_1.py` *(Parameter jitter robustness)*
+  - `stability_score.py` *(Yearly profit stability)*
+  - `strategy_rating.py` *(Deployment threshold check)*
+  - `stress_penalty.py` *(Shared penalty logic)*
+  - `timing_jitter_score.py` *(Timing shift analysis)*
+  - `tp_sl_stress_score.py` *(TP/SL stress testing)*
+  - `trade_dropout_score.py` *(Trade dropout simulation)*
+  - `ulcer_index_score.py` *(Ulcer index calculation)*
 - `report/`
   - `__init__.py`
   - `exporter.py`
