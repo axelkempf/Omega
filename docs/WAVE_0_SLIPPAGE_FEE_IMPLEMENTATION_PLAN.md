@@ -536,7 +536,7 @@ The slight shortfall is due to FFI overhead for small batches.
 - Total Trades: 89 (identical)
 - Winrate: 41.57% (identical)
 
-### 9.5 Recommendations for Wave 1+
+### 9.5 Recommendations for Wave 0+
 
 1. **Batch-First Design:** Prioritize batch operations for maximum speedup
 2. **FFI Overhead:** Consider threshold (e.g., batch size >10) before switching to Rust
