@@ -4,7 +4,7 @@
 # ============================================
 # Stage 1: Build Stage
 # ============================================
-FROM python:3.12-slim AS builder
+FROM python:3.14-slim AS builder
 
 # Build-Dependencies installieren
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -25,7 +25,7 @@ RUN python -m venv /opt/venv && \
 # ============================================
 # Stage 2: Runtime Stage
 # ============================================
-FROM python:3.12-slim
+FROM python:3.14-slim
 
 # Metadata
 LABEL maintainer="Axel Kempf"
