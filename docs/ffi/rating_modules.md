@@ -482,6 +482,313 @@ def _sharpe_from_r_multiples(
 
 ---
 
+## 6. data_jitter_score.py
+
+### compute_data_jitter_score()
+
+```python
+def compute_data_jitter_score(
+    base_metrics: Mapping[str, float],
+    jitter_metrics: Sequence[Mapping[str, float]],
+    *,
+    penalty_cap: float = 0.5,
+) -> float:
+    """
+    Robustheit gegen Daten-Jitter (simulierte Marktdaten-Rauschen).
+    
+    @ffi_boundary: Input/Output
+    
+    Args:
+        base_metrics: Baseline-Performance (ohne Jitter)
+            Keys: profit, drawdown, sharpe
+        jitter_metrics: Liste von Runs mit leicht verrauschten Marktdaten
+        penalty_cap: Maximale Penalty [0.0, 0.5]
+        
+    Returns:
+        Score [0.0, 1.0]
+        
+    Algorithm:
+        Delegiert an compute_penalty_profit_drawdown_sharpe + score_from_penalty.
+    """
+```
+
+### Helper: build_jittered_preloaded_data()
+
+```python
+def build_jittered_preloaded_data(
+    base_preloaded_data: Mapping[Tuple[str, str], pd.DataFrame],
+    *,
+    atr_cache: Mapping[str, pd.Series],
+    sigma_atr: float = 0.10,
+    seed: int,
+    min_price: float = 1e-9,
+    fraq: float = 0.0,
+) -> Dict[Tuple[str, str], pd.DataFrame]:
+    """
+    Erzeugt jittered OHLC-Daten basierend auf ATR-Skalierung.
+    
+    @ffi_boundary: Internal (nicht für FFI Migration)
+    
+    Algorithm:
+        - Für jeden Candle: noise = N(0, sigma_atr * ATR)
+        - Open, High, Low, Close += noise (mit Konsistenz-Korrektur)
+    """
+```
+
+### Arrow Schema für DataJitterInput
+
+```
+DataJitterInput {
+  base_metrics: PerformanceMetrics
+  jitter_metrics: list<PerformanceMetrics>
+  penalty_cap: float64
+}
+```
+
+---
+
+## 7. timing_jitter_score.py
+
+### compute_timing_jitter_score()
+
+```python
+def compute_timing_jitter_score(
+    base_metrics: Mapping[str, float],
+    jitter_metrics: Sequence[Mapping[str, float]],
+    *,
+    penalty_cap: float = 0.5,
+) -> float:
+    """
+    Robustheit gegen Timing-Shifts (verschobene Backtest-Fenster).
+    
+    @ffi_boundary: Input/Output
+    
+    Args:
+        base_metrics: Baseline-Performance
+        jitter_metrics: Performance mit verschobenen Zeitfenstern
+        penalty_cap: Maximale Penalty [0.0, 0.5]
+        
+    Returns:
+        Score [0.0, 1.0]
+        
+    Algorithm:
+        Delegiert an compute_penalty_profit_drawdown_sharpe + score_from_penalty.
+    """
+```
+
+### Helper: get_timing_jitter_backward_shift_months()
+
+```python
+def get_timing_jitter_backward_shift_months(
+    start_date: str | datetime,
+    end_date: str | datetime,
+) -> List[int]:
+    """
+    Berechnet sinnvolle Rückwärts-Shifts in Monaten.
+    
+    @ffi_boundary: Internal
+    
+    Returns:
+        Liste von Shift-Werten [6, 12, 3] oder angepasst je nach Fenstergröße.
+    """
+```
+
+---
+
+## 8. tp_sl_stress_score.py
+
+### compute_tp_sl_stress_score()
+
+```python
+def compute_tp_sl_stress_score(
+    trades_df: pd.DataFrame,
+    primary_candle_arrays: Optional[PrimaryCandleArrays],
+    *,
+    tp_shift_pct_list: Sequence[float] = (-0.1, -0.2, -0.3),
+    sl_shift_pct_list: Sequence[float] = (-0.1, -0.2, -0.3),
+    penalty_cap: float = 0.5,
+) -> float:
+    """
+    Stress-Test für TP/SL-Level Sensitivität.
+    
+    @ffi_boundary: Input/Output
+    
+    Args:
+        trades_df: Trade-Historie mit entry_price, tp_price, sl_price, direction
+        primary_candle_arrays: Aligned bid/ask Candles für Hit-Simulation
+        tp_shift_pct_list: Liste von TP-Shift-Prozenten (negativ = enger)
+        sl_shift_pct_list: Liste von SL-Shift-Prozenten (negativ = enger)
+        penalty_cap: Maximale Penalty
+        
+    Returns:
+        Score [0.0, 1.0]
+        
+    Algorithm:
+        1. Für jeden Trade simuliere veränderte TP/SL-Hits
+        2. Berechne neue P&L basierend auf Candle-Durchbrüchen
+        3. Vergleiche mit Original-Performance
+        4. Score = 1.0 - aggregierte Penalty
+    """
+```
+
+### Arrow Schema für TPSLStressInput
+
+```
+TPSLStressInput {
+  trades: list<TradeRecord>
+  candle_times_ns: list<int64>
+  bid_high: list<float64>
+  bid_low: list<float64>
+  ask_high: list<float64>
+  ask_low: list<float64>
+}
+
+TradeRecord {
+  entry_price: float64
+  tp_price: float64
+  sl_price: float64
+  direction: utf8  # "long" | "short"
+  entry_time_ns: int64
+  exit_time_ns: int64
+}
+```
+
+---
+
+## 9. ulcer_index_score.py
+
+### compute_ulcer_index_and_score()
+
+```python
+def compute_ulcer_index_and_score(
+    equity_curve: Sequence[object] | Iterable[object],
+    *,
+    ulcer_cap: float = 10.0,
+) -> Tuple[float, float]:
+    """
+    Berechnet Ulcer Index (wöchentlich, in Prozent) und mapped Score.
+    
+    @ffi_boundary: Input/Output
+    
+    Args:
+        equity_curve: Sequenz von Equity-Werten oder (timestamp, equity) Tupeln
+        ulcer_cap: Cap für lineare Score-Mapping (in Prozent-Einheiten)
+        
+    Returns:
+        (ulcer_index, ulcer_score)
+        - ulcer_index: NaN wenn keine Daten, sonst sqrt(mean(dd_pct^2))
+        - ulcer_score: [0.0, 1.0], höher = besser
+        
+    Algorithm:
+        1. Resample zu wöchentlichen Closes (W-SUN)
+        2. Berechne Drawdown in Prozent: (weekly - cummax) / cummax * 100
+        3. Ulcer Index = sqrt(mean(dd_pct^2))
+        4. Score = 1.0 - ulcer_index / ulcer_cap (clamped)
+    """
+```
+
+### Arrow Schema für EquityCurveInput
+
+```
+EquityCurveInput {
+  timestamps: list<timestamp[us, tz=UTC]> (nullable)
+  values: list<float64>
+}
+
+UlcerResult {
+  ulcer_index: float64
+  ulcer_score: float64
+}
+```
+
+---
+
+## 10. p_values.py
+
+### compute_p_values()
+
+```python
+def compute_p_values(
+    trades_df: Optional[pd.DataFrame],
+    *,
+    r_col: str = "r_multiple",
+    pnl_col: str = "result",
+    fees_col: str = "total_fee",
+    net_of_fees_pnl: bool = True,
+    n_boot: int = 2000,
+    seed_r: int = 123,
+    seed_pnl: int = 456,
+) -> Mapping[str, float]:
+    """
+    Berechnet Bootstrap p-Werte für Strategie-Signifikanz.
+    
+    @ffi_boundary: Input/Output
+    
+    Args:
+        trades_df: Trade-Historie
+        r_col: Spaltenname für R-Multiple
+        pnl_col: Spaltenname für P&L
+        fees_col: Spaltenname für Gebühren
+        net_of_fees_pnl: PnL netto nach Gebühren?
+        n_boot: Anzahl Bootstrap-Samples
+        seed_r: Seed für R-Multiple p-Wert
+        seed_pnl: Seed für PnL p-Wert
+        
+    Returns:
+        {
+            "p_mean_r_gt_0": float,      # P(mean_boot(r) <= 0)
+            "p_net_profit_gt_0": float,  # P(mean_boot(pnl) <= 0)
+        }
+        
+    Algorithm:
+        IID Bootstrap: Ziehe n_boot Samples mit Replacement,
+        berechne mean für jedes Sample, zähle Anteil <= 0.
+        
+    Note:
+        Nicht für multiple testing korrigiert. Kann optimistisch sein
+        nach intensiver Parametersuche.
+    """
+```
+
+### Helper: bootstrap_p_value_mean_gt_zero()
+
+```python
+def bootstrap_p_value_mean_gt_zero(
+    x: Any,
+    *,
+    n_boot: int = 2000,
+    seed: int = 123,
+) -> float:
+    """
+    Bootstrap p-value für H0: mean(x) <= 0.
+    
+    @ffi_boundary: Internal
+    
+    Returns:
+        p = P(mean_boot <= 0)
+        1.0 für leere/ungültige Inputs
+    """
+```
+
+### Arrow Schema für PValuesInput
+
+```
+PValuesInput {
+  r_multiples: list<float64>
+  pnl_values: list<float64>
+  n_boot: int32
+  seed_r: int32
+  seed_pnl: int32
+}
+
+PValuesResult {
+  p_mean_r_gt_0: float64
+  p_net_profit_gt_0: float64
+}
+```
+
+---
+
 ## FFI Migration Strategy
 
 ### Rust Implementation
@@ -565,6 +872,11 @@ pub fn compute_robustness_score_1(
 | stability_score (5 years) | ~50µs | <5µs |
 | cost_shock_score (3 factors) | ~100µs | <10µs |
 | trade_dropout_metrics (1000 trades) | ~5ms | <500µs |
+| data_jitter_score (10 jitter runs) | ~1.5ms | <150µs |
+| timing_jitter_score (3 shifts) | ~0.8ms | <80µs |
+| tp_sl_stress_score (1000 trades) | ~50ms | <5ms |
+| ulcer_index_score (365 points) | ~20ms | <2ms |
+| p_values (2000 bootstrap) | ~3ms | <300µs |
 
 ---
 
