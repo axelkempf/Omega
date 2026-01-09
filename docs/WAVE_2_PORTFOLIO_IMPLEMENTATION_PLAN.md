@@ -1209,16 +1209,16 @@ Aus Wave 0:
 
 #### Phase 4: Testing
 - [x] Golden-Tests erstellt und bestanden (13 Tests)
-- [ ] Integration-Tests erstellt und bestanden
-- [ ] Rust-Unit-Tests bestanden
+- [x] Integration-Tests erstellt und bestanden (18 Tests)
+- [ ] Rust-Unit-Tests bestanden (benötigt Maturin build)
 - [ ] Backtest-Vergleich validiert
 - [ ] Performance-Benchmarks erreicht
 
 ### 10.3 Post-Implementation Checklist
 
-- [ ] Dokumentation aktualisiert
-- [ ] CHANGELOG.md Eintrag
-- [ ] architecture.md aktualisiert
+- [x] Dokumentation aktualisiert
+- [x] CHANGELOG.md Eintrag
+- [x] architecture.md aktualisiert
 - [ ] Code-Review abgeschlossen
 - [ ] Performance-Benchmark dokumentiert
 - [ ] Sign-off Matrix ausgefüllt
