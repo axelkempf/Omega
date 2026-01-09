@@ -14,10 +14,9 @@ Test Strategy:
 
 from __future__ import annotations
 
-import json
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict
 
 import pytest
 
@@ -205,7 +204,15 @@ class TestPortfolioGolden:
         positions_data = [
             ("EURUSD", "long", 1.10000, 1.09900, 1.10200, 1.10150, "signal"),  # +150
             ("EURUSD", "long", 1.10200, 1.10100, 1.10400, 1.10050, "stop_loss"),  # -150
-            ("GBPUSD", "short", 1.25000, 1.25100, 1.24800, 1.24850, "take_profit"),  # +150
+            (
+                "GBPUSD",
+                "short",
+                1.25000,
+                1.25100,
+                1.24800,
+                1.24850,
+                "take_profit",
+            ),  # +150
         ]
 
         for i, (symbol, direction, entry, sl, tp, exit_price, reason) in enumerate(
@@ -336,7 +343,9 @@ class TestPortfolioEquityCurveGolden:
 
         # Verify chronological order
         for i in range(1, len(curve)):
-            assert curve[i][0] >= curve[i - 1][0], "Equity curve not in chronological order"
+            assert (
+                curve[i][0] >= curve[i - 1][0]
+            ), "Equity curve not in chronological order"
 
     def test_equity_curve_initial_value(self) -> None:
         """Test that equity curve starts with initial balance."""

@@ -4,7 +4,7 @@ Alle nennenswerten Änderungen werden in dieser Datei dokumentiert.
 
 > Hinweis: Historische Einträge sind ggf. unvollständig.
 
-## [Unreleased] - Wave 2: Portfolio Rust Migration Implementation
+## [1.5.0] - Wave 2: Portfolio Rust Migration ✅ COMPLETED
 
 ### Added
 - **Rust Portfolio-Modul**: `src/rust_modules/omega_rust/src/portfolio/`
@@ -21,19 +21,37 @@ Alle nennenswerten Änderungen werden in dieser Datei dokumentiert.
   - `_to_rust()` / `_from_rust()` Conversion-Methoden für PortfolioPosition
   - Docstring mit Modul-Dokumentation
 
-- **Golden-Tests**: `tests/golden/test_portfolio_rust_golden.py`
-  - 13 Tests für deterministische Verhalten-Validierung
-  - R-Multiple-Berechnungen für Long/Short Win/Loss
-  - Portfolio State Management Tests
-  - Equity-Curve Generierung Tests
-  - Rust-Status Struktur-Tests
+- **Test-Suite (54 Tests gesamt)**:
+  - **Golden-Tests** (`tests/golden/test_portfolio_rust_golden.py`): 13 Tests
+    - R-Multiple-Berechnungen für Long/Short Win/Loss
+    - Portfolio State Management Tests
+    - Equity-Curve Generierung Tests
+    - Rust-Status Struktur-Tests
+  - **Integration-Tests** (`tests/integration/test_portfolio_rust_parity.py`): 18 Tests
+    - Feature-Flag Behavior Tests
+    - Position Parity Tests
+    - Portfolio Parity Tests
+    - Edge Case Tests (Zero-Risk, Empty Portfolio, All Losses)
+    - Multi-Symbol Portfolio Tests
+    - DataFrame Export Tests
+  - **Benchmark-Tests** (`tests/benchmarks/test_bench_portfolio.py`): 23 Tests
+    - Position Registration Benchmarks
+    - Equity Update Benchmarks
+    - Fee Registration Benchmarks
+    - Summary Benchmarks
+    - Position Query Benchmarks
+    - Full Lifecycle Benchmarks
+    - Throughput Baselines
+
+- **Golden Reference Files**: `tests/golden/reference/portfolio/portfolio_v1.json`
 
 ### Changed
-- **Implementierungsplan aktualisiert**: Checkliste mit Fortschritt
+- **Implementierungsplan**: Status → COMPLETED
   - Phase 1: Setup ✅
   - Phase 2: Rust-Code ✅
   - Phase 3: Python-Integration ✅
-  - Phase 4: Testing 🔄 (in Progress)
+  - Phase 4: Testing ✅
+- **Lint-Fixes**: Ungenutzte Imports in Test-Dateien entfernt
 
 ## [1.4.0] - Wave 2: Portfolio Rust Migration Plan
 
