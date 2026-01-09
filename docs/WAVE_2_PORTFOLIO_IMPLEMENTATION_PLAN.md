@@ -1189,17 +1189,17 @@ Aus Wave 0:
 ### 10.2 Implementation Checklist
 
 #### Phase 1: Setup
-- [ ] Verzeichnisstruktur erstellen (`src/rust_modules/omega_rust/src/portfolio/`)
-- [ ] Cargo.toml Dependencies hinzufügen (`chrono`)
-- [ ] `mod.rs` erstellen
+- [x] Verzeichnisstruktur erstellen (`src/rust_modules/omega_rust/src/portfolio/`)
+- [x] Cargo.toml Dependencies hinzufügen (keine zusätzlichen nötig - `approx` bereits vorhanden)
+- [x] `mod.rs` erstellen
 
 #### Phase 2: Rust-Code
-- [ ] `position.rs` implementieren (PositionRust struct)
-- [ ] `state.rs` implementieren (PortfolioState, EquityPoint)
-- [ ] `portfolio.rs` implementieren (PortfolioRust class)
-- [ ] `lib.rs` Module registrieren
-- [ ] `cargo test` bestanden
-- [ ] `cargo clippy` bestanden
+- [x] `position.rs` implementieren (PositionRust struct)
+- [x] `state.rs` implementieren (PortfolioState, EquityPoint)
+- [x] `portfolio.rs` implementieren (PortfolioRust class)
+- [x] `lib.rs` Module registrieren
+- [ ] `cargo test` bestanden (benötigt Python-Interpreter für PyO3-Tests)
+- [x] `cargo clippy` bestanden
 
 #### Phase 3: Python-Integration
 - [ ] `portfolio.py` erweitern mit Feature-Flag

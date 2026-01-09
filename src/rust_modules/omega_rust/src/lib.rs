@@ -8,6 +8,7 @@
 //! - Technical indicators (EMA, RSI, etc.)
 //! - Statistical calculations
 //! - Cost calculations (Slippage, Fee) - Wave 0 Pilot
+//! - Portfolio management - Wave 2
 //!
 //! ## Usage from Python
 //!
@@ -22,6 +23,13 @@
 //!
 //! adjusted_price = calculate_slippage(1.10000, 1, 0.0001, 0.5, 1.0, seed=42)
 //! fee = calculate_fee(1.0, 1.10000, 100_000.0, 30.0, 0.01)
+//!
+//! # Wave 2: Portfolio management
+//! from omega_rust import PortfolioRust, PositionRust
+//!
+//! portfolio = PortfolioRust(initial_balance=100000.0)
+//! pos = PositionRust(1704067200000000, 1, "EURUSD", 1.1, 1.099, 1.102, 1.0, 100.0)
+//! portfolio.register_entry(pos)
 //! ```
 //!
 //! ## Performance
@@ -34,10 +42,12 @@ use pyo3::prelude::*;
 pub mod costs;
 pub mod error;
 pub mod indicators;
+pub mod portfolio;
 
 use costs::{calculate_fee, calculate_fee_batch, calculate_slippage, calculate_slippage_batch};
 use error::get_error_code_constants;
 use indicators::{ema, exponential_moving_average, rolling_std, rsi};
+use portfolio::{PortfolioRust, PositionRust};
 
 /// Omega Rust Extension Module
 ///
@@ -60,6 +70,10 @@ fn omega_rust(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(calculate_slippage_batch, m)?)?;
     m.add_function(wrap_pyfunction!(calculate_fee, m)?)?;
     m.add_function(wrap_pyfunction!(calculate_fee_batch, m)?)?;
+
+    // Register Portfolio classes (Wave 2)
+    m.add_class::<PortfolioRust>()?;
+    m.add_class::<PositionRust>()?;
 
     // Register error code constants for cross-language verification
     m.add_function(wrap_pyfunction!(get_error_code_constants, m)?)?;
