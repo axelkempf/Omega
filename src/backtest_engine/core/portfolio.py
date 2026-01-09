@@ -32,7 +32,7 @@ _BatchResult: Optional[type] = None
 
 if _FEATURE_FLAG in ("auto", "true"):
     try:
-        from omega_rust import BatchResult as _BatchResultRust  # type: ignore
+        from omega_rust import BatchResult as _BatchResultRust
         from omega_rust import PortfolioRust, PositionRust
 
         _RUST_AVAILABLE = True
@@ -544,7 +544,7 @@ class Portfolio:
 
                     # Optional exit fee
                     fee = op.get("fee")
-                    if fee is not None and fee > 0:
+                    if fee is not None and fee > 0 and time is not None:
                         self.register_fee(fee, time, "exit", position)
                         result.fees_registered += 1
                         result.total_fees += fee
@@ -660,8 +660,8 @@ class Portfolio:
         # Try to sync current state to Rust portfolio
         # Fall back to Python if state sync not supported
         try:
-            rust_portfolio._cash = self.cash  # type: ignore
-            rust_portfolio._equity = self.equity  # type: ignore
+            rust_portfolio._cash = self.cash
+            rust_portfolio._equity = self.equity
         except AttributeError:
             # Rust backend doesn't support state setters yet
             # Fall back to Python implementation
