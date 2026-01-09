@@ -1201,6 +1201,97 @@ Aus Wave 0:
 
 ---
 
+## 9.5 Batch-API Implementation (Wave 2.1)
+
+Nach der erfolgreichen Migration wurde eine Batch-API implementiert, um den FFI-Overhead bei hohen
+Event-Zahlen zu minimieren.
+
+### 9.5.1 Motivation
+
+- **Problem:** Bei 20K Events entstehen ~80K einzelne FFI-Calls (Entry+Exit+Fee+Update pro Trade)
+- **Ziel:** Reduzierung auf 1-2 Batch-Calls mit Speedup von 2-3x
+- **Implementiert:** `process_batch()` Methode für Entry, Exit, Update, Fee Operationen
+
+### 9.5.2 API Design
+
+```python
+from backtest_engine.core.portfolio import Portfolio, PortfolioPosition, BatchResult
+
+portfolio = Portfolio(initial_balance=100_000.0)
+
+# Batch Operations definieren
+ops = [
+    {"type": "entry", "position": pos1, "fee": 3.0, "fee_kind": "entry"},
+    {"type": "entry", "position": pos2, "fee": 3.0, "fee_kind": "entry"},
+    {"type": "update", "time": datetime.now()},
+    {"type": "exit", "position_idx": 0, "price": 1.10200, "time": exit_time, "reason": "take_profit"},
+]
+
+result: BatchResult = portfolio.process_batch(ops)
+
+# BatchResult enthält:
+# - operations_processed: 4
+# - entries_registered: 2
+# - exits_registered: 1
+# - updates_performed: 1
+# - fees_registered: 2
+# - total_fees, final_equity, final_cash
+# - errors: Liste von (index, message) Tupeln
+```
+
+### 9.5.3 Operation Types
+
+| Type | Required Fields | Optional Fields |
+|------|-----------------|-----------------|
+| `entry` | `position: PortfolioPosition` | `fee: float`, `fee_kind: str` |
+| `exit` | `position_idx: int`, `price: float`, `time: datetime`, `reason: str` | `fee: float` |
+| `update` | `time: datetime` | - |
+| `fee` | `amount: float`, `time: datetime`, `kind: str` | `position: PortfolioPosition` |
+
+### 9.5.4 Performance Results (Python Fallback)
+
+Mit Python-Fallback (Rust-Backend noch nicht kompiliert):
+
+```
+📊 Comparison Results (5000 events):
+   Sequential: 0.0712s
+   Batch:      0.0628s
+   Speedup:    1.13x (+13.3%)
+```
+
+**Hinweis:** Der volle Speedup wird erst mit dem Rust-Backend erreicht, da dann nur ein
+FFI-Call statt ~80K Calls benötigt wird.
+
+### 9.5.5 Test Coverage
+
+- **Golden Tests:** `tests/golden/test_portfolio_batch_golden.py` (13 Tests)
+  - BatchResult Dataclass Tests
+  - Batch vs Sequential Parity Tests
+  - Error Handling Tests
+  - Scaling Tests (100, 500, 1000 events)
+  - Rust Backend Integration Tests
+
+- **Benchmark Tests:** `tests/benchmarks/test_bench_portfolio.py` (10 neue Tests)
+  - `test_batch_entry_1k` vs `test_sequential_entry_1k`
+  - `test_batch_entry_5k` vs `test_sequential_entry_5k`
+  - `test_batch_entry_20k` vs `test_sequential_entry_20k`
+  - `test_batch_mixed_ops_1k` vs `test_sequential_mixed_ops_1k`
+  - `test_batch_update_only_10k` vs `test_sequential_update_only_10k`
+
+### 9.5.6 Performance Tool
+
+```bash
+# Batch-Modus
+python tools/perf_portfolio.py --batch --events 20000
+
+# Vergleich Sequential vs Batch
+python tools/perf_portfolio.py --compare --events 20000
+
+# Output: reports/performance_baselines/p0-02_portfolio_batch_comparison.json
+```
+
+---
+
 ## 10. Checklisten
 
 ### 10.1 Pre-Implementation Checklist

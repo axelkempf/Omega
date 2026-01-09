@@ -184,6 +184,111 @@ impl PortfolioRust {
         self.closed_positions.clone()
     }
 
+    /// Process multiple operations in a single call for reduced FFI overhead.
+    ///
+    /// This method processes a batch of operations (entries, exits, updates, fees)
+    /// in a single FFI call, significantly reducing Python↔Rust overhead.
+    ///
+    /// # Arguments
+    /// * `operations` - List of operation dicts with format:
+    ///   - `{"type": "entry", "position": {...}, "fee": 3.0, "fee_kind": "entry"}`
+    ///   - `{"type": "exit", "position_idx": 0, "price": 1.102, "time": ts, "reason": "tp", "fee": 3.0}`
+    ///   - `{"type": "update", "time": timestamp}`
+    ///   - `{"type": "fee", "amount": 3.0, "time": timestamp, "kind": "entry"}`
+    ///
+    /// # Returns
+    /// `BatchResult` with counts and final state
+    ///
+    /// # Example
+    ///
+    /// ```python
+    /// ops = [
+    ///     {"type": "entry", "position": pos_dict},
+    ///     {"type": "fee", "amount": 3.0, "time": ts, "kind": "entry"},
+    ///     {"type": "exit", "position_idx": 0, "price": 1.102, "time": ts, "reason": "take_profit"},
+    ///     {"type": "update", "time": ts},
+    /// ]
+    /// result = portfolio.process_batch(ops)
+    /// ```
+    pub fn process_batch(&mut self, operations: Vec<Bound<'_, pyo3::types::PyDict>>) -> PyResult<super::batch::BatchResult> {
+        use super::batch::{BatchOperation, BatchResult};
+        
+        let mut result = BatchResult::new();
+        
+        for (idx, op_dict) in operations.iter().enumerate() {
+            match BatchOperation::from_pydict(op_dict) {
+                Ok(op) => {
+                    match op {
+                        BatchOperation::RegisterEntry { position, fee, fee_kind } => {
+                            if let Err(e) = self.register_entry_impl(position.clone()) {
+                                result.errors.push((idx, e.to_string()));
+                            } else {
+                                result.entries_registered += 1;
+                                
+                                // Handle optional entry fee
+                                if let Some(fee_amount) = fee {
+                                    let kind = fee_kind.as_deref().unwrap_or("entry");
+                                    // Get the last position (just added) for fee registration
+                                    if let Some(pos) = self.open_positions.last_mut() {
+                                        self.register_fee_internal(fee_amount, position.entry_time, kind, Some(pos));
+                                        result.fees_registered += 1;
+                                        result.total_fees += fee_amount;
+                                    }
+                                }
+                            }
+                        }
+                        BatchOperation::RegisterExit { position_idx, price, time, reason, fee } => {
+                            if position_idx < self.open_positions.len() {
+                                // Clone position, close it, then register exit
+                                let mut pos = self.open_positions[position_idx].clone();
+                                pos.close(time, price, reason);
+                                self.register_exit_impl(&mut pos);
+                                result.exits_registered += 1;
+                                
+                                // Handle optional exit fee
+                                if let Some(fee_amount) = fee {
+                                    // Fee for closed position (already moved to closed_positions)
+                                    if let Some(closed_pos) = self.closed_positions.last_mut() {
+                                        closed_pos.exit_fee += fee_amount;
+                                    }
+                                    self.state.cash -= fee_amount;
+                                    self.state.total_fees += fee_amount;
+                                    self.state.equity = self.state.cash;
+                                    result.fees_registered += 1;
+                                    result.total_fees += fee_amount;
+                                }
+                            } else {
+                                result.errors.push((idx, format!(
+                                    "Position index {} out of bounds (max {})",
+                                    position_idx,
+                                    self.open_positions.len().saturating_sub(1)
+                                )));
+                            }
+                        }
+                        BatchOperation::Update { time } => {
+                            self.update(time);
+                            result.updates_performed += 1;
+                        }
+                        BatchOperation::RegisterFee { amount, time, kind } => {
+                            self.register_fee_internal(amount, time, &kind, None);
+                            result.fees_registered += 1;
+                            result.total_fees += amount;
+                        }
+                    }
+                    result.operations_processed += 1;
+                }
+                Err(e) => {
+                    result.errors.push((idx, e.to_string()));
+                }
+            }
+        }
+        
+        result.final_equity = self.state.equity;
+        result.final_cash = self.state.cash;
+        
+        Ok(result)
+    }
+
     /// Update equity and drawdown tracking.
     ///
     /// # Arguments
@@ -465,6 +570,43 @@ impl PortfolioRust {
     /// Remove position from `open_positions` by `entry_time`
     fn remove_from_open(&mut self, entry_time: i64) {
         self.open_positions.retain(|p| p.entry_time != entry_time);
+    }
+
+    /// Internal fee registration for batch processing (avoids PyO3 overhead)
+    fn register_fee_internal(
+        &mut self,
+        amount: f64,
+        time: i64,
+        kind: &str,
+        position: Option<&mut PositionRust>,
+    ) {
+        if amount == 0.0 {
+            return;
+        }
+
+        self.state.cash -= amount;
+        self.state.total_fees += amount;
+        self.state.equity = self.state.cash;
+
+        let (symbol, size) = match position {
+            Some(pos) => {
+                if kind == "entry" {
+                    pos.entry_fee += amount;
+                } else if kind == "exit" {
+                    pos.exit_fee += amount;
+                }
+                (Some(pos.symbol.clone()), Some(pos.size))
+            }
+            None => (None, None),
+        };
+
+        self.fees_log.push(super::state::FeeLogEntry {
+            time,
+            kind: kind.to_string(),
+            symbol,
+            size,
+            fee: amount,
+        });
     }
 
     /// Calculate average R-multiple weighted by `risk_per_trade`

@@ -47,7 +47,7 @@ pub mod portfolio;
 use costs::{calculate_fee, calculate_fee_batch, calculate_slippage, calculate_slippage_batch};
 use error::get_error_code_constants;
 use indicators::{ema, exponential_moving_average, rolling_std, rsi};
-use portfolio::{PortfolioRust, PositionRust};
+use portfolio::{BatchResult, PortfolioRust, PositionRust};
 
 /// Omega Rust Extension Module
 ///
@@ -74,6 +74,7 @@ fn omega_rust(m: &Bound<'_, PyModule>) -> PyResult<()> {
     // Register Portfolio classes (Wave 2)
     m.add_class::<PortfolioRust>()?;
     m.add_class::<PositionRust>()?;
+    m.add_class::<BatchResult>()?;
 
     // Register error code constants for cross-language verification
     m.add_function(wrap_pyfunction!(get_error_code_constants, m)?)?;
