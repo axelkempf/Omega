@@ -22,12 +22,12 @@
 //! - FFI Specification: `docs/ffi/portfolio.md`
 
 mod batch;
-mod position;
 #[allow(clippy::module_inception)]
 mod portfolio;
+mod position;
 mod state;
 
 pub use batch::{BatchOperation, BatchResult};
-pub use position::{PositionRust, DIRECTION_LONG, DIRECTION_SHORT};
 pub use portfolio::PortfolioRust;
+pub use position::{PositionRust, DIRECTION_LONG, DIRECTION_SHORT};
 pub use state::{EquityPoint, FeeLogEntry, PortfolioState};

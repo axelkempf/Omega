@@ -23,9 +23,10 @@
 //! result = portfolio.process_batch(operations)
 //! ```
 
+#![allow(clippy::large_enum_variant)]
+
 use pyo3::prelude::*;
 use pyo3::types::PyDict;
-use std::collections::HashMap;
 
 use super::position::PositionRust;
 
@@ -115,6 +116,13 @@ impl BatchResult {
 impl BatchOperation {
     /// Parse a batch operation from a Python dict.
     ///
+    /// # Errors
+    ///
+    /// Returns `PyValueError` if:
+    /// - Required keys are missing
+    /// - Values cannot be extracted to expected types
+    /// - Unknown operation type is provided
+    ///
     /// Expected dict format:
     /// ```python
     /// # Entry operation
@@ -129,6 +137,7 @@ impl BatchOperation {
     /// # Fee operation
     /// {"type": "fee", "amount": 3.0, "time": 1704067200, "kind": "entry"}
     /// ```
+    #[allow(clippy::too_many_lines)]
     pub fn from_pydict(dict: &Bound<'_, PyDict>) -> PyResult<Self> {
         let op_type: String = dict
             .get_item("type")?
@@ -144,15 +153,12 @@ impl BatchOperation {
                         "Missing 'position' key for entry operation",
                     )
                 })?;
-                let position = position_from_pydict(pos_dict.downcast::<PyDict>()?)?;
-                let fee: Option<f64> = dict
-                    .get_item("fee")?
-                    .and_then(|v| v.extract().ok());
-                let fee_kind: Option<String> = dict
-                    .get_item("fee_kind")?
-                    .and_then(|v| v.extract().ok());
+                let position = position_from_pydict(&pos_dict.extract::<Bound<'_, PyDict>>()?)?;
+                let fee: Option<f64> = dict.get_item("fee")?.and_then(|v| v.extract().ok());
+                let fee_kind: Option<String> =
+                    dict.get_item("fee_kind")?.and_then(|v| v.extract().ok());
 
-                Ok(BatchOperation::RegisterEntry {
+                Ok(Self::RegisterEntry {
                     position,
                     fee,
                     fee_kind,
@@ -178,21 +184,16 @@ impl BatchOperation {
                 let time: i64 = dict
                     .get_item("time")?
                     .ok_or_else(|| {
-                        pyo3::exceptions::PyValueError::new_err(
-                            "Missing 'time' for exit operation",
-                        )
+                        pyo3::exceptions::PyValueError::new_err("Missing 'time' for exit operation")
                     })?
                     .extract()?;
-                let reason: String = dict
-                    .get_item("reason")?
-                    .map_or_else(|| "signal".to_string(), |v| {
-                        v.extract().unwrap_or_else(|_| "signal".to_string())
-                    });
-                let fee: Option<f64> = dict
-                    .get_item("fee")?
-                    .and_then(|v| v.extract().ok());
+                let reason: String = dict.get_item("reason")?.map_or_else(
+                    || "signal".to_string(),
+                    |v| v.extract().unwrap_or_else(|_| "signal".to_string()),
+                );
+                let fee: Option<f64> = dict.get_item("fee")?.and_then(|v| v.extract().ok());
 
-                Ok(BatchOperation::RegisterExit {
+                Ok(Self::RegisterExit {
                     position_idx,
                     price,
                     time,
@@ -210,7 +211,7 @@ impl BatchOperation {
                     })?
                     .extract()?;
 
-                Ok(BatchOperation::Update { time })
+                Ok(Self::Update { time })
             }
             "fee" => {
                 let amount: f64 = dict
@@ -224,31 +225,26 @@ impl BatchOperation {
                 let time: i64 = dict
                     .get_item("time")?
                     .ok_or_else(|| {
-                        pyo3::exceptions::PyValueError::new_err(
-                            "Missing 'time' for fee operation",
-                        )
+                        pyo3::exceptions::PyValueError::new_err("Missing 'time' for fee operation")
                     })?
                     .extract()?;
                 let kind: String = dict
                     .get_item("kind")?
                     .ok_or_else(|| {
-                        pyo3::exceptions::PyValueError::new_err(
-                            "Missing 'kind' for fee operation",
-                        )
+                        pyo3::exceptions::PyValueError::new_err("Missing 'kind' for fee operation")
                     })?
                     .extract()?;
 
-                Ok(BatchOperation::RegisterFee { amount, time, kind })
+                Ok(Self::RegisterFee { amount, time, kind })
             }
             _ => Err(pyo3::exceptions::PyValueError::new_err(format!(
-                "Unknown operation type: '{}'",
-                op_type
+                "Unknown operation type: '{op_type}'"
             ))),
         }
     }
 }
 
-/// Helper to create a PositionRust from a Python dict.
+/// Helper to create a `PositionRust` from a Python dict.
 fn position_from_pydict(dict: &Bound<'_, PyDict>) -> PyResult<PositionRust> {
     let entry_time: i64 = dict
         .get_item("entry_time")?

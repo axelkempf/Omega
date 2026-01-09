@@ -199,6 +199,12 @@ impl PortfolioRust {
     /// # Returns
     /// `BatchResult` with counts and final state
     ///
+    /// # Errors
+    ///
+    /// Returns `PyErr` if:
+    /// - Operation parsing fails (missing keys or wrong types)
+    /// - Position registration fails (insufficient funds, etc.)
+    ///
     /// # Example
     ///
     /// ```python
@@ -210,41 +216,73 @@ impl PortfolioRust {
     /// ]
     /// result = portfolio.process_batch(ops)
     /// ```
-    pub fn process_batch(&mut self, operations: Vec<Bound<'_, pyo3::types::PyDict>>) -> PyResult<super::batch::BatchResult> {
+    #[allow(clippy::needless_pass_by_value)]
+    pub fn process_batch(
+        &mut self,
+        operations: Vec<Bound<'_, pyo3::types::PyDict>>,
+    ) -> PyResult<super::batch::BatchResult> {
         use super::batch::{BatchOperation, BatchResult};
-        
+
         let mut result = BatchResult::new();
-        
+
         for (idx, op_dict) in operations.iter().enumerate() {
             match BatchOperation::from_pydict(op_dict) {
                 Ok(op) => {
                     match op {
-                        BatchOperation::RegisterEntry { position, fee, fee_kind } => {
+                        BatchOperation::RegisterEntry {
+                            position,
+                            fee,
+                            fee_kind,
+                        } => {
                             if let Err(e) = self.register_entry_impl(position.clone()) {
                                 result.errors.push((idx, e.to_string()));
                             } else {
                                 result.entries_registered += 1;
-                                
-                                // Handle optional entry fee
+
+                                // Handle optional entry fee (inline to avoid borrow issues)
                                 if let Some(fee_amount) = fee {
-                                    let kind = fee_kind.as_deref().unwrap_or("entry");
-                                    // Get the last position (just added) for fee registration
-                                    if let Some(pos) = self.open_positions.last_mut() {
-                                        self.register_fee_internal(fee_amount, position.entry_time, kind, Some(pos));
+                                    if fee_amount != 0.0 {
+                                        let kind = fee_kind.as_deref().unwrap_or("entry");
+                                        // Update the last position's entry_fee
+                                        if let Some(pos) = self.open_positions.last_mut() {
+                                            pos.entry_fee += fee_amount;
+                                        }
+                                        // Update portfolio state
+                                        self.state.cash -= fee_amount;
+                                        self.state.total_fees += fee_amount;
+                                        self.state.equity = self.state.cash;
+                                        // Log the fee
+                                        let (symbol, size) =
+                                            self.open_positions.last().map_or((None, None), |p| {
+                                                (Some(p.symbol.clone()), Some(p.size))
+                                            });
+                                        self.fees_log.push(super::state::FeeLogEntry {
+                                            time: position.entry_time,
+                                            kind: kind.to_string(),
+                                            symbol,
+                                            size,
+                                            fee: fee_amount,
+                                        });
                                         result.fees_registered += 1;
                                         result.total_fees += fee_amount;
                                     }
                                 }
                             }
                         }
-                        BatchOperation::RegisterExit { position_idx, price, time, reason, fee } => {
+                        BatchOperation::RegisterExit {
+                            position_idx,
+                            price,
+                            time,
+                            reason,
+                            fee,
+                        } => {
                             if position_idx < self.open_positions.len() {
                                 // Clone position, close it, then register exit
                                 let mut pos = self.open_positions[position_idx].clone();
                                 pos.close(time, price, reason);
                                 self.register_exit_impl(&mut pos);
                                 result.exits_registered += 1;
-                                
+
                                 // Handle optional exit fee
                                 if let Some(fee_amount) = fee {
                                     // Fee for closed position (already moved to closed_positions)
@@ -258,11 +296,14 @@ impl PortfolioRust {
                                     result.total_fees += fee_amount;
                                 }
                             } else {
-                                result.errors.push((idx, format!(
-                                    "Position index {} out of bounds (max {})",
-                                    position_idx,
-                                    self.open_positions.len().saturating_sub(1)
-                                )));
+                                result.errors.push((
+                                    idx,
+                                    format!(
+                                        "Position index {} out of bounds (max {})",
+                                        position_idx,
+                                        self.open_positions.len().saturating_sub(1)
+                                    ),
+                                ));
                             }
                         }
                         BatchOperation::Update { time } => {
@@ -282,10 +323,10 @@ impl PortfolioRust {
                 }
             }
         }
-        
+
         result.final_equity = self.state.equity;
         result.final_cash = self.state.cash;
-        
+
         Ok(result)
     }
 
@@ -340,10 +381,7 @@ impl PortfolioRust {
         summary.insert("Initial Balance".to_string(), self.state.initial_balance);
         summary.insert("Final Balance".to_string(), round_2(self.state.cash));
         summary.insert("Equity".to_string(), round_2(self.state.equity));
-        summary.insert(
-            "Max Drawdown".to_string(),
-            round_2(self.state.max_drawdown),
-        );
+        summary.insert("Max Drawdown".to_string(), round_2(self.state.max_drawdown));
         summary.insert(
             "Drawdown Initial Balance".to_string(),
             round_2(self.state.initial_max_drawdown),
@@ -572,7 +610,7 @@ impl PortfolioRust {
         self.open_positions.retain(|p| p.entry_time != entry_time);
     }
 
-    /// Internal fee registration for batch processing (avoids PyO3 overhead)
+    /// Internal fee registration for batch processing (avoids `PyO3` overhead)
     fn register_fee_internal(
         &mut self,
         amount: f64,
@@ -810,11 +848,7 @@ mod tests {
         );
 
         portfolio.register_entry(pos.clone()).unwrap();
-        pos.close(
-            1_704_067_260_000_000,
-            1.10200,
-            "take_profit".to_string(),
-        );
+        pos.close(1_704_067_260_000_000, 1.10200, "take_profit".to_string());
         portfolio.register_exit(&mut pos).unwrap();
 
         assert_eq!(portfolio.num_open_positions(), 0);
@@ -907,11 +941,7 @@ mod tests {
         );
 
         portfolio.register_entry(pos.clone()).unwrap();
-        pos.close(
-            1_704_067_260_000_000,
-            1.10200,
-            "take_profit".to_string(),
-        );
+        pos.close(1_704_067_260_000_000, 1.10200, "take_profit".to_string());
         portfolio.register_exit(&mut pos).unwrap();
 
         let summary = portfolio.get_summary();
@@ -989,11 +1019,7 @@ mod tests {
             1.10200,
         );
         portfolio.register_entry(pos1.clone()).unwrap();
-        pos1.close(
-            1_704_067_260_000_000,
-            1.10200,
-            "take_profit".to_string(),
-        );
+        pos1.close(1_704_067_260_000_000, 1.10200, "take_profit".to_string());
         portfolio.register_exit(&mut pos1).unwrap();
 
         // Position 2: -1R loss
@@ -1011,11 +1037,7 @@ mod tests {
 
         let summary = portfolio.get_summary();
         // (2R + -1R) / 2 = 0.5R
-        assert_relative_eq!(
-            *summary.get("Avg R-Multiple").unwrap(),
-            0.5,
-            epsilon = 1e-3
-        );
+        assert_relative_eq!(*summary.get("Avg R-Multiple").unwrap(), 0.5, epsilon = 1e-3);
     }
 
     #[test]
@@ -1033,11 +1055,7 @@ mod tests {
         );
 
         portfolio.register_entry(pos.clone()).unwrap();
-        pos.close(
-            1_704_067_260_000_000,
-            1.10200,
-            "take_profit".to_string(),
-        );
+        pos.close(1_704_067_260_000_000, 1.10200, "take_profit".to_string());
         portfolio.register_exit(&mut pos).unwrap();
 
         let curve = portfolio.get_equity_curve();
@@ -1091,11 +1109,7 @@ mod tests {
 
         let summary = portfolio.get_summary();
 
-        assert_relative_eq!(
-            *summary.get("Robustness 1").unwrap(),
-            0.85,
-            epsilon = 1e-8
-        );
+        assert_relative_eq!(*summary.get("Robustness 1").unwrap(), 0.85, epsilon = 1e-8);
         assert_relative_eq!(
             *summary.get("Cost Shock Score").unwrap(),
             0.92,
