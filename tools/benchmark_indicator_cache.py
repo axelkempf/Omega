@@ -1,15 +1,28 @@
 #!/usr/bin/env python3
-"""Benchmark: Python vs Rust IndicatorCache Performance."""
+"""Benchmark: Python vs Rust IndicatorCache Performance with Memory Tracking."""
 
+import gc
 import os
 import sys
 import time
+import tracemalloc
+from dataclasses import dataclass
 
 import numpy as np
 import pandas as pd
 
 # Ensure we can import from src
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+
+@dataclass
+class BenchmarkResult:
+    """Result of a single benchmark run."""
+
+    name: str
+    time_ms: float
+    peak_memory_kb: float
+    current_memory_kb: float
 
 
 def create_mock_data(n_bars: int = 100_000):
@@ -48,6 +61,35 @@ def create_mock_data(n_bars: int = 100_000):
     return data
 
 
+def benchmark_indicator(
+    cache, name: str, fn, clear_cache: bool = True
+) -> BenchmarkResult:
+    """Benchmark a single indicator with memory tracking."""
+    if clear_cache:
+        cache._ind_cache.clear()
+
+    # Force garbage collection before measurement
+    gc.collect()
+
+    # Start memory tracking
+    tracemalloc.start()
+
+    start = time.perf_counter()
+    _ = fn(cache)
+    elapsed = time.perf_counter() - start
+
+    # Get memory stats
+    current, peak = tracemalloc.get_traced_memory()
+    tracemalloc.stop()
+
+    return BenchmarkResult(
+        name=name,
+        time_ms=elapsed * 1000,
+        peak_memory_kb=peak / 1024,
+        current_memory_kb=current / 1024,
+    )
+
+
 def run_benchmark(n_bars: int = 100_000):
     """Run benchmark comparing Python vs Rust indicator calculations."""
     from importlib import reload
@@ -77,9 +119,15 @@ def run_benchmark(n_bars: int = 100_000):
         ("Kalman ZScore", lambda c: c.kalman_zscore("M5", "bid", 100, 0.01, 1.0)),
         ("ZScore(100)", lambda c: c.zscore("M5", "bid", 100)),
         ("EMA Stepwise(20)", lambda c: c.ema_stepwise("H1", "bid", 20)),
-        ("Kalman ZScore Stepwise", lambda c: c.kalman_zscore_stepwise("H1", "bid", 100, 0.01, 1.0)),
+        (
+            "Kalman ZScore Stepwise",
+            lambda c: c.kalman_zscore_stepwise("H1", "bid", 100, 0.01, 1.0),
+        ),
         ("GARCH Volatility", lambda c: c.garch_volatility("M5", "bid", 0.05, 0.90)),
-        ("Kalman GARCH ZScore", lambda c: c.kalman_garch_zscore("M5", "bid", 0.01, 1.0, 0.05, 0.90)),
+        (
+            "Kalman GARCH ZScore",
+            lambda c: c.kalman_garch_zscore("M5", "bid", 0.01, 1.0, 0.05, 0.90),
+        ),
     ]
 
     # Benchmark ohne Rust
@@ -89,14 +137,15 @@ def run_benchmark(n_bars: int = 100_000):
     cache_py = ic_module.IndicatorCache(data)
 
     print("=== Python (ohne Rust) ===")
-    py_times = {}
+    print(f"{'Indikator':<25} {'Zeit (ms)':>10} {'Peak RAM (KB)':>14} {'Alloc (KB)':>12}")
+    print("-" * 65)
+    py_results: dict[str, BenchmarkResult] = {}
     for name, fn in indicators:
-        cache_py._ind_cache.clear()
-        start = time.perf_counter()
-        _ = fn(cache_py)
-        elapsed = time.perf_counter() - start
-        py_times[name] = elapsed
-        print(f"  {name}: {elapsed*1000:.2f}ms")
+        result = benchmark_indicator(cache_py, name, fn)
+        py_results[name] = result
+        print(
+            f"  {name:<23} {result.time_ms:>10.2f} {result.peak_memory_kb:>14.1f} {result.current_memory_kb:>12.1f}"
+        )
 
     # Benchmark mit Rust
     os.environ["OMEGA_USE_RUST_INDICATOR_CACHE"] = "1"
@@ -106,28 +155,61 @@ def run_benchmark(n_bars: int = 100_000):
 
     print()
     print("=== Rust (aktiviert) ===")
-    rust_times = {}
+    print(f"{'Indikator':<25} {'Zeit (ms)':>10} {'Peak RAM (KB)':>14} {'Alloc (KB)':>12}")
+    print("-" * 65)
+    rust_results: dict[str, BenchmarkResult] = {}
     for name, fn in indicators:
-        cache_rust._ind_cache.clear()
-        start = time.perf_counter()
-        _ = fn(cache_rust)
-        elapsed = time.perf_counter() - start
-        rust_times[name] = elapsed
-        print(f"  {name}: {elapsed*1000:.2f}ms")
+        result = benchmark_indicator(cache_rust, name, fn)
+        rust_results[name] = result
+        print(
+            f"  {name:<23} {result.time_ms:>10.2f} {result.peak_memory_kb:>14.1f} {result.current_memory_kb:>12.1f}"
+        )
 
     print()
-    print("=== Speedup (Python/Rust) ===")
-    total_py = sum(py_times.values())
-    total_rust = sum(rust_times.values())
-    for name in py_times:
-        speedup = py_times[name] / rust_times[name] if rust_times[name] > 0 else 0
-        status = "✅" if speedup > 1.5 else "⚠️" if speedup > 1.0 else "❌"
-        print(f"  {status} {name}: {speedup:.1f}x")
+    print("=== Vergleich (Python vs Rust) ===")
+    print(
+        f"{'Indikator':<25} {'Speedup':>8} {'RAM Diff':>12} {'Status':>8}"
+    )
+    print("-" * 55)
+
+    total_py_time = sum(r.time_ms for r in py_results.values())
+    total_rust_time = sum(r.time_ms for r in rust_results.values())
+    total_py_mem = sum(r.peak_memory_kb for r in py_results.values())
+    total_rust_mem = sum(r.peak_memory_kb for r in rust_results.values())
+
+    for name in py_results:
+        py_r = py_results[name]
+        rust_r = rust_results[name]
+        speedup = py_r.time_ms / rust_r.time_ms if rust_r.time_ms > 0 else 0
+        mem_diff = rust_r.peak_memory_kb - py_r.peak_memory_kb
+        mem_pct = (
+            (mem_diff / py_r.peak_memory_kb * 100)
+            if py_r.peak_memory_kb > 0
+            else 0
+        )
+
+        # Status: Zeit-basiert
+        time_status = "✅" if speedup > 1.5 else "⚠️" if speedup > 1.0 else "❌"
+        # Memory: negativ = Rust spart Speicher
+        mem_status = "💾" if mem_diff < 0 else ""
+
+        print(
+            f"  {name:<23} {speedup:>7.1f}x {mem_diff:>+10.1f}KB {time_status}{mem_status:>5}"
+        )
 
     print()
-    print(f"Gesamt Python: {total_py*1000:.1f}ms")
-    print(f"Gesamt Rust:   {total_rust*1000:.1f}ms")
-    print(f"Gesamt Speedup: {total_py/total_rust:.1f}x")
+    print("=== Zusammenfassung ===")
+    print(f"{'Metrik':<25} {'Python':>12} {'Rust':>12} {'Diff':>12}")
+    print("-" * 55)
+    print(f"  {'Gesamt Zeit':<23} {total_py_time:>10.1f}ms {total_rust_time:>10.1f}ms {total_py_time/total_rust_time:>10.1f}x")
+    print(f"  {'Gesamt Peak RAM':<23} {total_py_mem:>10.1f}KB {total_rust_mem:>10.1f}KB {total_rust_mem - total_py_mem:>+10.1f}KB")
+    print()
+    print(f"Zeit-Speedup:    {total_py_time/total_rust_time:.1f}x schneller")
+    mem_ratio = total_rust_mem / total_py_mem if total_py_mem > 0 else 1.0
+    if mem_ratio < 1.0:
+        print(f"RAM-Effizienz:   {(1-mem_ratio)*100:.1f}% weniger Speicher")
+    else:
+        print(f"RAM-Overhead:    {(mem_ratio-1)*100:.1f}% mehr Speicher (FFI-Kosten)")
 
 
 if __name__ == "__main__":
