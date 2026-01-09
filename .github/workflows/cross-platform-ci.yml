@@ -240,7 +240,12 @@ jobs:
         run: cargo build --release --target ${{ matrix.target }}
 
       - name: Run Rust tests
-        if: steps.check_rust.outputs.rust_exists == 'true'
+        # Tests require PyO3 linking - only run on native targets to avoid linker errors
+        if: |
+          steps.check_rust.outputs.rust_exists == 'true' && (
+            (matrix.os == 'ubuntu-latest' && matrix.target == 'x86_64-unknown-linux-gnu') ||
+            (matrix.os == 'windows-latest' && matrix.target == 'x86_64-pc-windows-msvc')
+          )
         working-directory: src/rust_modules/omega_rust
         run: cargo test --target ${{ matrix.target }}
 
