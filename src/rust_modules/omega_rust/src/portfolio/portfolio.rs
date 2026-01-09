@@ -71,7 +71,10 @@ impl PortfolioRust {
     #[pyo3(signature = (initial_balance=10000.0))]
     #[must_use]
     pub fn new(initial_balance: f64) -> Self {
-        let placeholder_time = 0_i64; // Will be replaced with first real update
+        // Sentinel value for placeholder timestamp (will be replaced on first update)
+        // Using i64::MIN would cause issues with Python datetime conversion,
+        // so we use 0 (Unix epoch) as a recognizable placeholder
+        const PLACEHOLDER_TIMESTAMP: i64 = 0;
         Self {
             state: PortfolioState::new(initial_balance),
             open_positions: Vec::new(),
@@ -80,7 +83,7 @@ impl PortfolioRust {
             partial_closed_positions: Vec::new(),
             closed_position_break_even: Vec::new(),
             equity_curve: vec![EquityPoint {
-                timestamp: placeholder_time,
+                timestamp: PLACEHOLDER_TIMESTAMP,
                 equity: initial_balance,
             }],
             fees_log: Vec::new(),

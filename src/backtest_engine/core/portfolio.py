@@ -15,8 +15,8 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
+from datetime import datetime, timedelta, timezone
+from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
@@ -256,7 +256,9 @@ class PortfolioPosition:
             New PortfolioPosition instance
         """
         direction_str = "long" if rust_pos.direction == 1 else "short"
-        entry_time = datetime.utcfromtimestamp(rust_pos.entry_time / 1_000_000)
+        entry_time = datetime.fromtimestamp(
+            rust_pos.entry_time / 1_000_000, tz=timezone.utc
+        ).replace(tzinfo=None)
 
         pos = cls(
             entry_time=entry_time,
@@ -274,7 +276,9 @@ class PortfolioPosition:
         pos.initial_take_profit = rust_pos.initial_take_profit
 
         if rust_pos.exit_time is not None:
-            pos.exit_time = datetime.utcfromtimestamp(rust_pos.exit_time / 1_000_000)
+            pos.exit_time = datetime.fromtimestamp(
+                rust_pos.exit_time / 1_000_000, tz=timezone.utc
+            ).replace(tzinfo=None)
         pos.exit_price = rust_pos.exit_price
         pos.result = rust_pos.result
         pos.reason = rust_pos.reason
