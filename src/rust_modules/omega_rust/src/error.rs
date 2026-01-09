@@ -157,6 +157,10 @@ pub enum OmegaError {
     /// Internal computation error
     #[error("[{code}] Internal error: {0}", code = ErrorCode::InternalError.as_i32())]
     InternalError(String),
+
+    /// Item not found
+    #[error("[{code}] Not found: {item}", code = ErrorCode::InvalidState.as_i32())]
+    NotFound { item: String },
 }
 
 impl OmegaError {
@@ -167,6 +171,7 @@ impl OmegaError {
             Self::InsufficientData { .. } => ErrorCode::InsufficientData,
             Self::NumericalError(_) => ErrorCode::ComputationFailed,
             Self::InternalError(_) => ErrorCode::InternalError,
+            Self::NotFound { .. } => ErrorCode::InvalidState,
         }
     }
 }
@@ -179,9 +184,9 @@ pub type Result<T> = std::result::Result<T, OmegaError>;
 impl From<OmegaError> for PyErr {
     fn from(err: OmegaError) -> Self {
         match err {
-            OmegaError::InvalidParameter { .. } | OmegaError::InsufficientData { .. } => {
-                PyValueError::new_err(err.to_string())
-            }
+            OmegaError::InvalidParameter { .. }
+            | OmegaError::InsufficientData { .. }
+            | OmegaError::NotFound { .. } => PyValueError::new_err(err.to_string()),
             OmegaError::NumericalError(_) | OmegaError::InternalError(_) => {
                 PyRuntimeError::new_err(err.to_string())
             }

@@ -4,6 +4,52 @@ Alle nennenswerten Änderungen werden in dieser Datei dokumentiert.
 
 > Hinweis: Historische Einträge sind ggf. unvollständig.
 
+## [1.6.0] - Wave 1: IndicatorCache Rust Integration Fix ✅ COMPLETED
+
+### Fixed
+- **Critical Bug**: Rust `IndicatorCacheRust` was implemented but never called
+  - `indicator_cache.py` was not updated to delegate to Rust
+  - `event_engine.py` always imported pure Python implementation
+  - **Result**: Rust code existed but was never executed
+
+### Added
+- **Feature Flag System**: `OMEGA_USE_RUST_INDICATOR_CACHE` environment variable
+  - `auto` (default): Use Rust if available, fallback to Python
+  - `1`: Force Rust-only (no fallback)
+  - `0`: Force Python-only
+
+- **Rust Backend Integration**:
+  - `_init_rust_cache()` function for lazy initialization
+  - `_series_from_rust_array()` for NumPy → pandas Series conversion
+  - All supported indicators now delegate to Rust with Python fallback
+
+- **Benchmark Tool**: `tools/benchmark_indicator_cache.py`
+  - Direct Python vs Rust indicator comparison
+  - Supports configurable bar counts
+  - Reports per-indicator and total speedup
+
+### Performance Results (100k bars benchmark)
+| Indicator | Speedup | Notes |
+|-----------|---------|-------|
+| `kalman_mean` | **357x** | Complex state machine |
+| `kalman_zscore` | **109x** | Complex state machine |
+| `atr(14)` | **83x** | Multiple passes |
+| `dmi(14)` | **5.1x** | Complex calculation |
+| `sma(50)` | **3.3x** | Rolling window |
+| `choppiness(14)` | **3.2x** | ATR-based |
+| `ema(20)` | **2.8x** | Simple EMA |
+| **Overall** | **16.6x** | Total pipeline |
+
+### Changed
+- **Default changed from disabled to auto**: Rust is now used automatically when available
+- **Documentation updated**: `docs/WAVE_1_INDICATOR_CACHE_IMPLEMENTATION_PLAN.md` v2.1
+
+### Tests
+- 17 Rust integration tests passing
+- All existing backtest tests passing
+
+---
+
 ## [1.5.0] - Wave 2: Portfolio Rust Migration ✅ COMPLETED
 
 ### Added

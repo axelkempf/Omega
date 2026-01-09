@@ -5,22 +5,123 @@
 //!
 //! ## Available Indicators
 //!
+//! ### Moving Averages
 //! - [`ema`] - Exponential Moving Average
-//! - [`rsi`] - Relative Strength Index
+//! - [`sma`] - Simple Moving Average
+//! - [`dema`] - Double Exponential Moving Average
+//! - [`tema`] - Triple Exponential Moving Average
+//!
+//! ### Volatility
+//! - [`atr`] - Average True Range (Wilder)
+//! - [`bollinger`] - Bollinger Bands
 //! - [`rolling_std`] - Rolling Standard Deviation
 //!
-//! ## Performance Notes
+//! ### Momentum
+//! - [`rsi`] - Relative Strength Index
+//! - [`macd`] - Moving Average Convergence Divergence
+//! - [`roc`] - Rate of Change
+//! - [`momentum`] - Price Momentum
 //!
-//! All indicators are implemented with O(n) time complexity and
-//! minimal memory allocation. For large datasets, consider using
-//! the streaming variants (future feature).
+//! ### Trend
+//! - [`dmi`] - Directional Movement Index (+DI, -DI, ADX)
+//! - [`choppiness`] - Choppiness Index
+//!
+//! ### Statistical
+//! - [`zscore`] - Rolling Z-Score
+//! - [`kalman`] - Kalman Filter
+//!
+//! ## Performance Targets (Wave 1)
+//!
+//! | Indicator | Python Baseline | Rust Target | Speedup |
+//! |-----------|-----------------|-------------|---------|
+//! | ATR       | 954ms           | ≤19ms       | 50x     |
+//! | EMA_stepwise | 45ms         | ≤2.3ms      | 20x     |
+//! | Bollinger | 89ms            | ≤4.5ms      | 20x     |
+//! | DMI       | 65ms            | ≤3.3ms      | 20x     |
+//! | SMA       | 23ms            | ≤2.3ms      | 10x     |
+//!
+//! ## IndicatorCache
+//!
+//! The [`cache::IndicatorCache`] struct provides caching and OHLCV storage
+//! for efficient repeated indicator calculations.
 
-// Internal modules (not re-exported as modules to avoid name collision)
+// =============================================================================
+// Core Types
+// =============================================================================
+pub mod types;
+pub use types::{CacheKey, IndicatorResult, OhlcvData, OhlcvKey};
+
+// =============================================================================
+// Indicator Cache
+// =============================================================================
+pub mod cache;
+pub use cache::IndicatorCache;
+
+// =============================================================================
+// Individual Indicators
+// =============================================================================
+
+// ATR (Priority 1 - 50x target)
+pub mod atr;
+pub use atr::{atr_from_tr, atr_impl};
+
+// EMA (existing + extended with stepwise)
 mod ema_impl;
-mod rsi_impl;
-mod statistics;
-
-// Re-export only the functions
+pub mod ema_extended;
 pub use ema_impl::{ema, exponential_moving_average};
+pub use ema_extended::{dema_impl, ema_impl as ema_generic, ema_stepwise_impl, tema_impl};
+
+// SMA + Rolling Std
+pub mod sma;
+pub use sma::{rolling_std_impl, sma_impl};
+
+// RSI (existing)
+mod rsi_impl;
 pub use rsi_impl::rsi;
+
+// Bollinger Bands (Priority 2 - 20x target)
+pub mod bollinger;
+pub use bollinger::{bollinger_impl, bollinger_stepwise_impl, BollingerResult};
+
+// DMI (Priority 2 - 20x target)
+pub mod dmi;
+pub use dmi::{dmi_impl, DmiResult};
+
+// MACD
+pub mod macd;
+pub use macd::{macd_impl, MacdResult};
+
+// ROC / Momentum
+pub mod roc;
+pub use roc::{momentum_impl, roc_impl};
+
+// Z-Score
+pub mod zscore;
+pub use zscore::{zscore_impl, zscore_normalized_impl};
+
+// Choppiness Index
+pub mod choppiness;
+pub use choppiness::choppiness_impl;
+
+// Kalman Filter
+pub mod kalman;
+pub use kalman::{
+    kalman_impl, kalman_zscore_impl, kalman_zscore_stepwise_impl, KalmanResult,
+};
+
+// GARCH Volatility (Wave 1 - Python-only indicators)
+pub mod garch;
+pub use garch::{
+    garch_volatility_impl, garch_volatility_local_impl, garch_volatility_local_last, GarchParams,
+    GarchResult,
+};
+
+// Legacy statistics (for backwards compatibility)
+mod statistics;
 pub use statistics::rolling_std;
+
+// =============================================================================
+// PyO3 Bindings
+// =============================================================================
+pub mod py_bindings;
+pub use py_bindings::{register_indicator_cache, PyIndicatorCache};
