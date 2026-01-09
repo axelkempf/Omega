@@ -1,9 +1,68 @@
+"""
+Portfolio module for backtesting.
+
+This module provides Python implementations of portfolio state management.
+When the feature flag OMEGA_USE_RUST_PORTFOLIO is enabled, the Rust backend
+(PortfolioRust) is used for improved performance.
+
+Feature Flag: OMEGA_USE_RUST_PORTFOLIO
+  - "auto": Use Rust if available (default)
+  - "true": Force Rust (raises ImportError if unavailable)
+  - "false": Always use Python implementation
+"""
+
+from __future__ import annotations
+
+import os
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
+
+# =============================================================================
+# Feature Flag Configuration for Rust Backend
+# =============================================================================
+
+_FEATURE_FLAG = os.environ.get("OMEGA_USE_RUST_PORTFOLIO", "auto").lower()
+_RUST_AVAILABLE = False
+_RUST_IMPORT_ERROR: Optional[str] = None
+
+if _FEATURE_FLAG in ("auto", "true"):
+    try:
+        from omega_rust import PositionRust, PortfolioRust  # type: ignore
+
+        _RUST_AVAILABLE = True
+    except ImportError as e:
+        _RUST_IMPORT_ERROR = str(e)
+        if _FEATURE_FLAG == "true":
+            raise ImportError(
+                f"OMEGA_USE_RUST_PORTFOLIO='true' but omega_rust not available: {e}"
+            ) from e
+
+
+def get_rust_status() -> Dict[str, Any]:
+    """
+    Return status information about the Rust backend availability.
+
+    Returns:
+        Dict with keys: 'available', 'enabled', 'flag', 'error'
+    """
+    enabled = _RUST_AVAILABLE and _FEATURE_FLAG != "false"
+    return {
+        "available": _RUST_AVAILABLE,
+        "enabled": enabled,
+        "flag": _FEATURE_FLAG,
+        "error": _RUST_IMPORT_ERROR,
+    }
+
+
+def _use_rust_backend() -> bool:
+    """Check if Rust backend should be used based on feature flag."""
+    if _FEATURE_FLAG == "false":
+        return False
+    return _RUST_AVAILABLE
 
 
 @dataclass
@@ -131,6 +190,101 @@ class PortfolioPosition:
         if self.metadata:
             d["meta"] = self.metadata
         return d
+
+    # =========================================================================
+    # Rust Conversion Methods
+    # =========================================================================
+
+    def _to_rust(self) -> Any:
+        """
+        Convert this PortfolioPosition to a PositionRust instance.
+
+        Returns:
+            PositionRust instance if Rust backend is available
+
+        Raises:
+            ImportError: If Rust backend is not available
+        """
+        if not _RUST_AVAILABLE:
+            raise ImportError("Rust backend not available for position conversion")
+
+        direction_int: int = 1 if self.direction == "long" else -1
+        entry_time_us = int(self.entry_time.timestamp() * 1_000_000)
+
+        pos = PositionRust(
+            entry_time=entry_time_us,
+            direction=direction_int,
+            symbol=self.symbol,
+            entry_price=self.entry_price,
+            stop_loss=self.stop_loss,
+            take_profit=self.take_profit,
+            size=self.size,
+            risk_per_trade=self.risk_per_trade,
+        )
+
+        # Set optional fields
+        if self.initial_stop_loss is not None:
+            pos.initial_stop_loss = self.initial_stop_loss
+        if self.initial_take_profit is not None:
+            pos.initial_take_profit = self.initial_take_profit
+        if self.exit_time is not None:
+            pos.exit_time = int(self.exit_time.timestamp() * 1_000_000)
+        if self.exit_price is not None:
+            pos.exit_price = self.exit_price
+        if self.result is not None:
+            pos.result = self.result
+        if self.reason is not None:
+            pos.reason = self.reason
+
+        pos.is_closed = self.is_closed
+        pos.order_type = self.order_type
+        pos.status = self.status
+        pos.entry_fee = self.entry_fee
+        pos.exit_fee = self.exit_fee
+
+        return pos
+
+    @classmethod
+    def _from_rust(cls, rust_pos: Any) -> "PortfolioPosition":
+        """
+        Create a PortfolioPosition from a PositionRust instance.
+
+        Args:
+            rust_pos: PositionRust instance
+
+        Returns:
+            New PortfolioPosition instance
+        """
+        direction_str = "long" if rust_pos.direction == 1 else "short"
+        entry_time = datetime.utcfromtimestamp(rust_pos.entry_time / 1_000_000)
+
+        pos = cls(
+            entry_time=entry_time,
+            direction=direction_str,
+            symbol=rust_pos.symbol,
+            entry_price=rust_pos.entry_price,
+            stop_loss=rust_pos.stop_loss,
+            take_profit=rust_pos.take_profit,
+            size=rust_pos.size,
+            risk_per_trade=rust_pos.risk_per_trade,
+        )
+
+        # Set optional fields
+        pos.initial_stop_loss = rust_pos.initial_stop_loss
+        pos.initial_take_profit = rust_pos.initial_take_profit
+
+        if rust_pos.exit_time is not None:
+            pos.exit_time = datetime.utcfromtimestamp(rust_pos.exit_time / 1_000_000)
+        pos.exit_price = rust_pos.exit_price
+        pos.result = rust_pos.result
+        pos.reason = rust_pos.reason
+        pos.is_closed = rust_pos.is_closed
+        pos.order_type = rust_pos.order_type
+        pos.status = rust_pos.status
+        pos.entry_fee = rust_pos.entry_fee
+        pos.exit_fee = rust_pos.exit_fee
+
+        return pos
 
 
 class Portfolio:

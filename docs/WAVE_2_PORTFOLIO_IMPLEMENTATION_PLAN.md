@@ -1202,13 +1202,13 @@ Aus Wave 0:
 - [x] `cargo clippy` bestanden
 
 #### Phase 3: Python-Integration
-- [ ] `portfolio.py` erweitern mit Feature-Flag
-- [ ] Conversion-Methoden implementieren (`_to_rust`, `_from_rust`)
-- [ ] `get_rust_status()` Funktion hinzufügen
+- [x] `portfolio.py` erweitern mit Feature-Flag (`OMEGA_USE_RUST_PORTFOLIO`)
+- [x] Conversion-Methoden implementieren (`_to_rust`, `_from_rust`)
+- [x] `get_rust_status()` Funktion hinzufügen
 - [ ] mypy types validiert
 
 #### Phase 4: Testing
-- [ ] Golden-Tests erstellt und bestanden
+- [x] Golden-Tests erstellt und bestanden (13 Tests)
 - [ ] Integration-Tests erstellt und bestanden
 - [ ] Rust-Unit-Tests bestanden
 - [ ] Backtest-Vergleich validiert

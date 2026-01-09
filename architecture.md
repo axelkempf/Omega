@@ -77,10 +77,15 @@ Ordner-für-Ordner-Übersicht der Codebasis (ohne `results`-Ordner und ohne Aufl
       - `ema_impl.rs` *(Exponential Moving Average)*
       - `rsi_impl.rs` *(Relative Strength Index)*
       - `statistics.rs` *(Rolling standard deviation)*
-    - `costs/` *(PLANNED: Wave 0 Pilot)*
+    - `costs/` *(Wave 0: Slippage & Fee)*
       - `mod.rs` *(Module exports)*
       - `slippage.rs` *(Slippage calculation with deterministic RNG)*
       - `fee.rs` *(Fee calculation per-million notional)*
+    - `portfolio/` *(Wave 2: Portfolio State Management)*
+      - `mod.rs` *(Module exports: PositionRust, PortfolioRust)*
+      - `position.rs` *(PositionRust struct with R-multiple)*
+      - `portfolio.rs` *(PortfolioRust class with state tracking)*
+      - `state.rs` *(PortfolioState, EquityPoint, FeeLogEntry)*
   - `benches/`
     - `indicator_bench.rs` *(Criterion benchmarks)*
 

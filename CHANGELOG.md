@@ -4,7 +4,38 @@ Alle nennenswerten Änderungen werden in dieser Datei dokumentiert.
 
 > Hinweis: Historische Einträge sind ggf. unvollständig.
 
-## [Unreleased] - Wave 2: Portfolio Rust Migration Plan
+## [Unreleased] - Wave 2: Portfolio Rust Migration Implementation
+
+### Added
+- **Rust Portfolio-Modul**: `src/rust_modules/omega_rust/src/portfolio/`
+  - `PositionRust` struct mit R-Multiple-Berechnung und voller Handels-State-Verwaltung
+  - `PortfolioRust` class mit Position-Tracking, Fee-Management, Equity-Curve
+  - `PortfolioState` struct für interne State-Verwaltung
+  - `EquityPoint` und `FeeLogEntry` für Logging-Strukturen
+  - Registriert in PyO3 für Python-Zugriff
+  - Alle Clippy-Warnungen behoben
+
+- **Python-Integration**:
+  - Feature-Flag `OMEGA_USE_RUST_PORTFOLIO` (auto/true/false)
+  - `get_rust_status()` für Backend-Diagnose
+  - `_to_rust()` / `_from_rust()` Conversion-Methoden für PortfolioPosition
+  - Docstring mit Modul-Dokumentation
+
+- **Golden-Tests**: `tests/golden/test_portfolio_rust_golden.py`
+  - 13 Tests für deterministische Verhalten-Validierung
+  - R-Multiple-Berechnungen für Long/Short Win/Loss
+  - Portfolio State Management Tests
+  - Equity-Curve Generierung Tests
+  - Rust-Status Struktur-Tests
+
+### Changed
+- **Implementierungsplan aktualisiert**: Checkliste mit Fortschritt
+  - Phase 1: Setup ✅
+  - Phase 2: Rust-Code ✅
+  - Phase 3: Python-Integration ✅
+  - Phase 4: Testing 🔄 (in Progress)
+
+## [1.4.0] - Wave 2: Portfolio Rust Migration Plan
 
 ### Added
 - **Implementierungsplan Wave 2**: `docs/WAVE_2_PORTFOLIO_IMPLEMENTATION_PLAN.md`
@@ -17,11 +48,6 @@ Alle nennenswerten Änderungen werden in dieser Datei dokumentiert.
   - Rollback-Prozedur und Trigger dokumentiert
 - **Runbook-Referenz**: `docs/runbooks/portfolio_migration.md` mit Verweis auf Implementation Plan
 - **Architecture.md Update**: Neue Wave 2 Dokumentation referenziert
-
-### Planned (für Implementation)
-- `src/rust_modules/omega_rust/src/portfolio/` - Rust Portfolio-Modul
-- `tests/golden/test_golden_portfolio.py` - Golden-File Tests
-- `tests/integration/test_portfolio_rust.py` - Integration Tests
 
 ## [1.3.0] - Wave 0: Rust FFI Migration (Slippage & Fee)
 
