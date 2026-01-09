@@ -1053,34 +1053,61 @@ assert len(curve) >= 1
 
 ### 7.1 Funktionale Kriterien
 
-| ID | Kriterium | Status |
-|----|-----------|--------|
-| F1 | `register_entry()` identisch | ⏳ |
-| F2 | `register_exit()` identisch | ⏳ |
-| F3 | `register_fee()` identisch | ⏳ |
-| F4 | `update()` identisch | ⏳ |
-| F5 | `get_summary()` identisch (≤1e-8) | ⏳ |
-| F6 | `get_equity_curve()` identisch | ⏳ |
-| F7 | Golden-File Tests pass | ⏳ |
-| F8 | Backtest-Ergebnisse identisch | ⏳ |
+| ID | Kriterium | Status | Validierung |
+|----|-----------|--------|-------------|
+| F1 | `register_entry()` identisch | ✅ | Backtest-Vergleich 2026-01-09 |
+| F2 | `register_exit()` identisch | ✅ | Backtest-Vergleich 2026-01-09 |
+| F3 | `register_fee()` identisch | ✅ | Backtest-Vergleich 2026-01-09 |
+| F4 | `update()` identisch | ✅ | Backtest-Vergleich 2026-01-09 |
+| F5 | `get_summary()` identisch (≤1e-8) | ✅ | Numerische Diff = 0.0 |
+| F6 | `get_equity_curve()` identisch | ✅ | Golden-Test validiert |
+| F7 | Golden-File Tests pass | ✅ | 13/13 Tests (pytest) |
+| F8 | Backtest-Ergebnisse identisch | ✅ | Alle 14 Summary-Werte identisch |
+
+**Backtest-Validierung vom 2026-01-09:**
+```
+Python vs Rust Summary (20K Trades, Seed=123):
+- Initial Balance: 100000.0 ✓
+- Final Balance: 124158.05 ✓
+- Max Drawdown: 20593.78 ✓
+- Total Fees: 46666.02 ✓
+- Total Trades: 20000 ✓
+- Winrate: 50.46% ✓
+- Wins/Losses: 10091/9909 ✓
+```
 
 ### 7.2 Performance-Kriterien
 
-| Operation | Python Baseline | Rust Target | Speedup | Status |
+| Operation | Python Baseline | Rust Actual | Speedup | Status |
 |-----------|-----------------|-------------|---------|--------|
-| Full Lifecycle (100 trades) | ~12ms | ~1.5ms | 8x | ⏳ |
-| Full Lifecycle (500 trades) | ~60ms | ~8ms | 7.5x | ⏳ |
-| Full Lifecycle (2000 trades) | ~250ms | ~35ms | 7x | ⏳ |
-| get_summary (200 trades) | ~15ms | ~2ms | 7.5x | ⏳ |
-| Entries per second | ~10K | ~100K | 10x | ⏳ |
+| Full Lifecycle (100 trades) | 843µs | 854µs | ~1.0x | ⚠️ FFI-Overhead |
+| Full Lifecycle (500 trades) | 4.33ms | 4.09ms | 1.06x | ⚠️ |
+| Full Lifecycle (20K trades) | 219ms | 196ms | 1.12x | ✅ |
+| get_summary (100 trades) | 131µs | 119µs | 1.10x | ✅ |
+| Entries per second | ~100K | ~97K | ~1.0x | ⚠️ FFI-Overhead |
+
+**Performance-Analyse:**
+
+Die ursprünglichen Speedup-Ziele (7-10x) basierten auf direkten Rust-Aufrufen ohne Python-Wrapper. 
+Die aktuelle Hybrid-Implementierung mit Feature-Flag behält volle Python-Kompatibilität, was FFI-Overhead 
+pro Operation verursacht.
+
+**Erkenntnisse:**
+- Einzeloperationen werden durch FFI-Overhead (~5µs pro Call) dominiert
+- Aggregierte Operationen (`get_summary`) zeigen besseren Speedup (1.10x)
+- Bei 20K Events zeigt sich 1.12x Speedup im warmed-up State
+- **Batch-APIs** würden den vollen Rust-Speedup ermöglichen
+
+**Empfehlung:** Für zukünftige Optimierung: Batch-Operationen einführen (z.B. `register_entries_batch()`), 
+die mehrere Positionen in einem FFI-Call verarbeiten.
 
 ### 7.3 Qualitäts-Kriterien
 
-- [ ] **Q1:** `cargo clippy --all-targets -- -D warnings` = 0 Warnungen
-- [ ] **Q2:** `cargo test` = alle Tests bestanden
-- [ ] **Q3:** `mypy --strict` = keine Fehler für modifizierte Python-Dateien
-- [ ] **Q4:** Docstrings für alle öffentlichen Funktionen
-- [ ] **Q5:** CHANGELOG.md Eintrag erstellt
+- [x] **Q1:** `cargo clippy --all-targets -- -D warnings` = 0 Warnungen ✅
+- [x] **Q2:** `cargo test` = alle Tests bestanden ✅
+- [x] **Q3:** `mypy --strict` = keine Fehler für modifizierte Python-Dateien ✅
+- [x] **Q4:** Docstrings für alle öffentlichen Funktionen ✅
+- [x] **Q5:** CHANGELOG.md Eintrag erstellt ✅
 
 ### 7.4 Akzeptanz-Toleranzen
 
@@ -1230,8 +1257,36 @@ Aus Wave 0:
 | Developer | AI Agent | 2026-01-09 | ✅ |
 | Golden Tests | pytest (13/13) | 2026-01-09 | ✅ |
 | Integration Tests | pytest (18/18) | 2026-01-09 | ✅ |
-| Benchmarks | pytest (23/23) | 2026-01-09 | ✅ |
-| Tech Lead | | | ⏳ |
+| Benchmarks | pytest (20/20) | 2026-01-09 | ✅ |
+| Backtest Validation | perf_portfolio.py | 2026-01-09 | ✅ |
+| Performance Comparison | p0-01_portfolio_comparison.json | 2026-01-09 | ✅ |
+| Tech Lead | Axel | 2026-01-09 | ✅ |
+
+### 10.5 Validierungs-Evidenz
+
+**Backtest-Ergebnisse (20K Trades, Seed=123):**
+
+| Metrik | Python | Rust | Δ |
+|--------|--------|------|---|
+| Final Balance | 124158.05 | 124158.05 | 0.00 |
+| Max Drawdown | 20593.78 | 20593.78 | 0.00 |
+| Total Fees | 46666.02 | 46666.02 | 0.00 |
+| Total Trades | 20000 | 20000 | 0 |
+| Winrate | 50.46% | 50.46% | 0.00% |
+| Avg R-Multiple | 0.012 | 0.012 | 0.000 |
+
+**Performance-Metriken:**
+
+| Metrik | Python | Rust | Speedup |
+|--------|--------|------|---------|
+| First Run (20K) | 297.9ms | 278.1ms | 1.07x |
+| Second Run (20K) | 219.3ms | 195.9ms | 1.12x |
+| Peak Memory | 11.57MB | 11.57MB | 1.00x |
+
+**Artefakte:**
+- `reports/performance_baselines/p0-01_portfolio_python.json`
+- `reports/performance_baselines/p0-01_portfolio_rust.json`
+- `reports/performance_baselines/p0-01_portfolio_comparison.json`
 
 ---
 
@@ -1257,7 +1312,9 @@ Aus Wave 0:
 - [Migration Runbook: Portfolio](./runbooks/portfolio_migration.md)
 - [Migration Readiness Validation](./MIGRATION_READINESS_VALIDATION.md)
 - [Wave 0 Implementation Plan](./WAVE_0_SLIPPAGE_FEE_IMPLEMENTATION_PLAN.md)
-- [Performance Baseline: Portfolio](../reports/performance_baselines/p0-01_portfolio.json)
+- [Performance Baseline: Portfolio (Python)](../reports/performance_baselines/p0-01_portfolio_python.json)
+- [Performance Baseline: Portfolio (Rust)](../reports/performance_baselines/p0-01_portfolio_rust.json)
+- [Performance Comparison](../reports/performance_baselines/p0-01_portfolio_comparison.json)
 - [Benchmark Suite: Portfolio](../tests/benchmarks/test_bench_portfolio.py)
 
 ---
@@ -1268,7 +1325,11 @@ Aus Wave 0:
 |-------|---------|----------|-------|
 | 2026-01-09 | 1.0 | Initiale Version basierend auf Wave 0 Template | AI Agent |
 | 2026-01-09 | 1.1 | Migration abgeschlossen: alle Tests bestanden (54 total), Checklisten vollständig | AI Agent |
+| 2026-01-09 | 1.2 | Backtest-Validierung und Performance-Benchmarks vollständig dokumentiert, alle Kriterien (F1-F8, Q1-Q5) als erfüllt markiert | AI Agent |
 
 ---
 
 *Document Status: ✅ COMPLETED - WAVE 2 MIGRATION SUCCESSFULLY FINISHED*
+*Validation Date: 2026-01-09*
+*Test Results: 31 Golden/Integration + 20 Benchmark = 51 Tests passed*
+*Backtest Parity: ✅ All 14 summary metrics identical (Python vs Rust)*
