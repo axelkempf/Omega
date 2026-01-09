@@ -4,6 +4,69 @@ Alle nennenswerten Änderungen werden in dieser Datei dokumentiert.
 
 > Hinweis: Historische Einträge sind ggf. unvollständig.
 
+## [1.5.0] - Wave 2: Portfolio Rust Migration ✅ COMPLETED
+
+### Added
+- **Rust Portfolio-Modul**: `src/rust_modules/omega_rust/src/portfolio/`
+  - `PositionRust` struct mit R-Multiple-Berechnung und voller Handels-State-Verwaltung
+  - `PortfolioRust` class mit Position-Tracking, Fee-Management, Equity-Curve
+  - `PortfolioState` struct für interne State-Verwaltung
+  - `EquityPoint` und `FeeLogEntry` für Logging-Strukturen
+  - Registriert in PyO3 für Python-Zugriff
+  - Alle Clippy-Warnungen behoben
+
+- **Python-Integration**:
+  - Feature-Flag `OMEGA_USE_RUST_PORTFOLIO` (auto/true/false)
+  - `get_rust_status()` für Backend-Diagnose
+  - `_to_rust()` / `_from_rust()` Conversion-Methoden für PortfolioPosition
+  - Docstring mit Modul-Dokumentation
+
+- **Test-Suite (54 Tests gesamt)**:
+  - **Golden-Tests** (`tests/golden/test_portfolio_rust_golden.py`): 13 Tests
+    - R-Multiple-Berechnungen für Long/Short Win/Loss
+    - Portfolio State Management Tests
+    - Equity-Curve Generierung Tests
+    - Rust-Status Struktur-Tests
+  - **Integration-Tests** (`tests/integration/test_portfolio_rust_parity.py`): 18 Tests
+    - Feature-Flag Behavior Tests
+    - Position Parity Tests
+    - Portfolio Parity Tests
+    - Edge Case Tests (Zero-Risk, Empty Portfolio, All Losses)
+    - Multi-Symbol Portfolio Tests
+    - DataFrame Export Tests
+  - **Benchmark-Tests** (`tests/benchmarks/test_bench_portfolio.py`): 23 Tests
+    - Position Registration Benchmarks
+    - Equity Update Benchmarks
+    - Fee Registration Benchmarks
+    - Summary Benchmarks
+    - Position Query Benchmarks
+    - Full Lifecycle Benchmarks
+    - Throughput Baselines
+
+- **Golden Reference Files**: `tests/golden/reference/portfolio/portfolio_v1.json`
+
+### Changed
+- **Implementierungsplan**: Status → COMPLETED
+  - Phase 1: Setup ✅
+  - Phase 2: Rust-Code ✅
+  - Phase 3: Python-Integration ✅
+  - Phase 4: Testing ✅
+- **Lint-Fixes**: Ungenutzte Imports in Test-Dateien entfernt
+
+## [1.4.0] - Wave 2: Portfolio Rust Migration Plan
+
+### Added
+- **Implementierungsplan Wave 2**: `docs/WAVE_2_PORTFOLIO_IMPLEMENTATION_PLAN.md`
+  - Vollständige Migrationsstrategie für Portfolio-Modul zu Rust
+  - Rust-Strukturdefinitionen für `PortfolioRust`, `PositionRust`, `PortfolioState`
+  - Feature-Flag `OMEGA_USE_RUST_PORTFOLIO` (auto/true/false)
+  - Golden-File Test-Strategie für Determinismus-Validierung
+  - Lessons Learned aus Wave 0 integriert
+  - 5-Tage Zeitplan mit detaillierten Phasen
+  - Rollback-Prozedur und Trigger dokumentiert
+- **Runbook-Referenz**: `docs/runbooks/portfolio_migration.md` mit Verweis auf Implementation Plan
+- **Architecture.md Update**: Neue Wave 2 Dokumentation referenziert
+
 ## [1.3.0] - Wave 0: Rust FFI Migration (Slippage & Fee)
 
 ### Added

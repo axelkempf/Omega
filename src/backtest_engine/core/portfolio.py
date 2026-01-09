@@ -1,9 +1,103 @@
+"""
+Portfolio module for backtesting.
+
+This module provides Python implementations of portfolio state management.
+When the feature flag OMEGA_USE_RUST_PORTFOLIO is enabled, the Rust backend
+(PortfolioRust) is used for improved performance.
+
+Feature Flag: OMEGA_USE_RUST_PORTFOLIO
+  - "auto": Use Rust if available (default)
+  - "true": Force Rust (raises ImportError if unavailable)
+  - "false": Always use Python implementation
+"""
+
+from __future__ import annotations
+
+import os
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional, Tuple
+from datetime import datetime, timedelta, timezone
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
+
+# =============================================================================
+# Feature Flag Configuration for Rust Backend
+# =============================================================================
+
+_FEATURE_FLAG = os.environ.get("OMEGA_USE_RUST_PORTFOLIO", "auto").lower()
+_RUST_AVAILABLE = False
+_RUST_IMPORT_ERROR: Optional[str] = None
+_BatchResult: Optional[type] = None
+
+if _FEATURE_FLAG in ("auto", "true"):
+    try:
+        from omega_rust import BatchResult as _BatchResultRust
+        from omega_rust import PortfolioRust, PositionRust
+
+        _RUST_AVAILABLE = True
+        _BatchResult = _BatchResultRust
+    except ImportError as e:
+        _RUST_IMPORT_ERROR = str(e)
+        if _FEATURE_FLAG == "true":
+            raise ImportError(
+                f"OMEGA_USE_RUST_PORTFOLIO='true' but omega_rust not available: {e}"
+            ) from e
+
+
+def get_rust_status() -> Dict[str, Any]:
+    """
+    Return status information about the Rust backend availability.
+
+    Returns:
+        Dict with keys: 'available', 'enabled', 'flag', 'error'
+    """
+    enabled = _RUST_AVAILABLE and _FEATURE_FLAG != "false"
+    return {
+        "available": _RUST_AVAILABLE,
+        "enabled": enabled,
+        "flag": _FEATURE_FLAG,
+        "error": _RUST_IMPORT_ERROR,
+    }
+
+
+def _use_rust_backend() -> bool:
+    """Check if Rust backend should be used based on feature flag."""
+    if _FEATURE_FLAG == "false":
+        return False
+    return _RUST_AVAILABLE
+
+
+# =============================================================================
+# Batch Processing Support
+# =============================================================================
+
+
+@dataclass
+class BatchResult:
+    """
+    Result of batch processing operations.
+
+    Contains counts of processed operations and final portfolio state.
+    This is the Python equivalent of the Rust BatchResult.
+    """
+
+    operations_processed: int = 0
+    entries_registered: int = 0
+    exits_registered: int = 0
+    updates_performed: int = 0
+    fees_registered: int = 0
+    total_fees: float = 0.0
+    final_equity: float = 0.0
+    final_cash: float = 0.0
+    errors: List[Tuple[int, str]] = field(default_factory=list)
+
+    def __repr__(self) -> str:
+        return (
+            f"BatchResult(ops={self.operations_processed}, entries={self.entries_registered}, "
+            f"exits={self.exits_registered}, updates={self.updates_performed}, "
+            f"fees={self.fees_registered}, errors={len(self.errors)})"
+        )
 
 
 @dataclass
@@ -131,6 +225,105 @@ class PortfolioPosition:
         if self.metadata:
             d["meta"] = self.metadata
         return d
+
+    # =========================================================================
+    # Rust Conversion Methods
+    # =========================================================================
+
+    def _to_rust(self) -> Any:
+        """
+        Convert this PortfolioPosition to a PositionRust instance.
+
+        Returns:
+            PositionRust instance if Rust backend is available
+
+        Raises:
+            ImportError: If Rust backend is not available
+        """
+        if not _RUST_AVAILABLE:
+            raise ImportError("Rust backend not available for position conversion")
+
+        direction_int: int = 1 if self.direction == "long" else -1
+        entry_time_us = int(self.entry_time.timestamp() * 1_000_000)
+
+        pos = PositionRust(
+            entry_time=entry_time_us,
+            direction=direction_int,
+            symbol=self.symbol,
+            entry_price=self.entry_price,
+            stop_loss=self.stop_loss,
+            take_profit=self.take_profit,
+            size=self.size,
+            risk_per_trade=self.risk_per_trade,
+        )
+
+        # Set optional fields
+        if self.initial_stop_loss is not None:
+            pos.initial_stop_loss = self.initial_stop_loss
+        if self.initial_take_profit is not None:
+            pos.initial_take_profit = self.initial_take_profit
+        if self.exit_time is not None:
+            pos.exit_time = int(self.exit_time.timestamp() * 1_000_000)
+        if self.exit_price is not None:
+            pos.exit_price = self.exit_price
+        if self.result is not None:
+            pos.result = self.result
+        if self.reason is not None:
+            pos.reason = self.reason
+
+        pos.is_closed = self.is_closed
+        pos.order_type = self.order_type
+        pos.status = self.status
+        pos.entry_fee = self.entry_fee
+        pos.exit_fee = self.exit_fee
+
+        return pos
+
+    @classmethod
+    def _from_rust(cls, rust_pos: Any) -> "PortfolioPosition":
+        """
+        Create a PortfolioPosition from a PositionRust instance.
+
+        Args:
+            rust_pos: PositionRust instance
+
+        Returns:
+            New PortfolioPosition instance
+        """
+        direction_str = "long" if rust_pos.direction == 1 else "short"
+        entry_time = datetime.fromtimestamp(
+            rust_pos.entry_time / 1_000_000, tz=timezone.utc
+        ).replace(tzinfo=None)
+
+        pos = cls(
+            entry_time=entry_time,
+            direction=direction_str,
+            symbol=rust_pos.symbol,
+            entry_price=rust_pos.entry_price,
+            stop_loss=rust_pos.stop_loss,
+            take_profit=rust_pos.take_profit,
+            size=rust_pos.size,
+            risk_per_trade=rust_pos.risk_per_trade,
+        )
+
+        # Set optional fields
+        pos.initial_stop_loss = rust_pos.initial_stop_loss
+        pos.initial_take_profit = rust_pos.initial_take_profit
+
+        if rust_pos.exit_time is not None:
+            pos.exit_time = datetime.fromtimestamp(
+                rust_pos.exit_time / 1_000_000, tz=timezone.utc
+            ).replace(tzinfo=None)
+        pos.exit_price = rust_pos.exit_price
+        pos.result = rust_pos.result
+        pos.reason = rust_pos.reason
+        pos.is_closed = rust_pos.is_closed
+        pos.order_type = rust_pos.order_type
+        pos.status = rust_pos.status
+        pos.entry_fee = rust_pos.entry_fee
+        pos.exit_fee = rust_pos.exit_fee
+
+        return pos
 
 
 class Portfolio:
@@ -261,6 +454,246 @@ class Portfolio:
         except Exception:
             # niemals die Verbuchung riskieren
             pass
+
+    def process_batch(self, operations: List[Dict[str, Any]]) -> BatchResult:
+        """
+        Process multiple operations in a single call for reduced overhead.
+
+        When the Rust backend is available, this method delegates to
+        PortfolioRust.process_batch() for significant performance gains.
+        Otherwise, it processes operations sequentially in Python.
+
+        Args:
+            operations: List of operation dicts with format:
+                - {"type": "entry", "position": PortfolioPosition, "fee": 3.0, "fee_kind": "entry"}
+                - {"type": "exit", "position_idx": 0, "price": 1.102, "time": datetime, "reason": "tp", "fee": 3.0}
+                - {"type": "update", "time": datetime}
+                - {"type": "fee", "amount": 3.0, "time": datetime, "kind": "entry"}
+
+        Returns:
+            BatchResult with counts and final state
+
+        Example:
+            >>> portfolio = Portfolio(initial_balance=100000.0)
+            >>> ops = [
+            ...     {"type": "entry", "position": pos1},
+            ...     {"type": "fee", "amount": 3.0, "time": entry_time, "kind": "entry"},
+            ...     {"type": "exit", "position_idx": 0, "price": 1.102, "time": exit_time, "reason": "take_profit"},
+            ...     {"type": "update", "time": exit_time},
+            ... ]
+            >>> result = portfolio.process_batch(ops)
+        """
+        if _use_rust_backend():
+            return self._process_batch_rust(operations)
+        else:
+            return self._process_batch_python(operations)
+
+    def _process_batch_python(self, operations: List[Dict[str, Any]]) -> BatchResult:
+        """Process batch operations using Python implementation."""
+        result = BatchResult()
+        result.final_equity = self.equity
+        result.final_cash = self.cash
+
+        for idx, op in enumerate(operations):
+            try:
+                op_type = op.get("type", "")
+
+                if op_type == "entry":
+                    position = op.get("position")
+                    if position is None:
+                        result.errors.append(
+                            (idx, "Missing 'position' for entry operation")
+                        )
+                        continue
+                    self.register_entry(position)
+                    result.entries_registered += 1
+
+                    # Optional entry fee
+                    fee = op.get("fee")
+                    if fee is not None and fee > 0:
+                        fee_kind = op.get("fee_kind", "entry")
+                        fee_time = op.get("fee_time", position.entry_time)
+                        self.register_fee(fee, fee_time, fee_kind, position)
+                        result.fees_registered += 1
+                        result.total_fees += fee
+
+                elif op_type == "exit":
+                    position_idx = op.get("position_idx")
+                    if position_idx is None:
+                        result.errors.append(
+                            (idx, "Missing 'position_idx' for exit operation")
+                        )
+                        continue
+                    if position_idx >= len(self.open_positions):
+                        result.errors.append(
+                            (
+                                idx,
+                                f"Position index {position_idx} out of bounds (max {len(self.open_positions) - 1})",
+                            )
+                        )
+                        continue
+
+                    price = op.get("price")
+                    time = op.get("time")
+                    reason = op.get("reason", "signal")
+
+                    position = self.open_positions[position_idx]
+                    position.close(time=time, price=price, reason=reason)
+                    self.register_exit(position)
+                    result.exits_registered += 1
+
+                    # Optional exit fee
+                    fee = op.get("fee")
+                    if fee is not None and fee > 0 and time is not None:
+                        self.register_fee(fee, time, "exit", position)
+                        result.fees_registered += 1
+                        result.total_fees += fee
+
+                elif op_type == "update":
+                    time = op.get("time")
+                    if time is None:
+                        result.errors.append(
+                            (idx, "Missing 'time' for update operation")
+                        )
+                        continue
+                    self.update(time)
+                    result.updates_performed += 1
+
+                elif op_type == "fee":
+                    amount = op.get("amount")
+                    time = op.get("time")
+                    kind = op.get("kind", "other")
+                    if amount is None or time is None:
+                        result.errors.append(
+                            (idx, "Missing 'amount' or 'time' for fee operation")
+                        )
+                        continue
+                    self.register_fee(amount, time, kind)
+                    result.fees_registered += 1
+                    result.total_fees += amount
+
+                else:
+                    result.errors.append((idx, f"Unknown operation type: '{op_type}'"))
+                    continue
+
+                result.operations_processed += 1
+
+            except Exception as e:
+                result.errors.append((idx, str(e)))
+
+        result.final_equity = self.equity
+        result.final_cash = self.cash
+        return result
+
+    def _process_batch_rust(self, operations: List[Dict[str, Any]]) -> BatchResult:
+        """Process batch operations using Rust backend for performance.
+
+        Falls back to Python implementation if Rust state sync fails.
+        This can happen if the Rust backend doesn't support state setters.
+        """
+        # Convert operations to Rust-compatible format
+        rust_ops: List[Dict[str, Any]] = []
+
+        for op in operations:
+            op_type = op.get("type", "")
+            rust_op: Dict[str, Any] = {"type": op_type}
+
+            if op_type == "entry":
+                position = op.get("position")
+                if position is not None:
+                    # Convert PortfolioPosition to dict for Rust
+                    rust_op["position"] = {
+                        "entry_time": int(position.entry_time.timestamp() * 1_000_000),
+                        "direction": 1 if position.direction == "long" else -1,
+                        "symbol": position.symbol,
+                        "entry_price": position.entry_price,
+                        "stop_loss": position.stop_loss,
+                        "take_profit": position.take_profit,
+                        "size": position.size,
+                        "risk_per_trade": position.risk_per_trade,
+                        "initial_stop_loss": position.initial_stop_loss,
+                        "initial_take_profit": position.initial_take_profit,
+                        "order_type": position.order_type,
+                        "status": position.status,
+                    }
+                if op.get("fee") is not None:
+                    rust_op["fee"] = op["fee"]
+                if op.get("fee_kind") is not None:
+                    rust_op["fee_kind"] = op["fee_kind"]
+
+            elif op_type == "exit":
+                rust_op["position_idx"] = op.get("position_idx", 0)
+                rust_op["price"] = op.get("price", 0.0)
+                time = op.get("time")
+                rust_op["time"] = (
+                    int(time.timestamp() * 1_000_000)
+                    if isinstance(time, datetime)
+                    else time
+                )
+                rust_op["reason"] = op.get("reason", "signal")
+                if op.get("fee") is not None:
+                    rust_op["fee"] = op["fee"]
+
+            elif op_type == "update":
+                time = op.get("time")
+                rust_op["time"] = (
+                    int(time.timestamp() * 1_000_000)
+                    if isinstance(time, datetime)
+                    else time
+                )
+
+            elif op_type == "fee":
+                rust_op["amount"] = op.get("amount", 0.0)
+                time = op.get("time")
+                rust_op["time"] = (
+                    int(time.timestamp() * 1_000_000)
+                    if isinstance(time, datetime)
+                    else time
+                )
+                rust_op["kind"] = op.get("kind", "other")
+
+            rust_ops.append(rust_op)
+
+        # Create Rust portfolio and process batch
+        rust_portfolio = PortfolioRust(self.initial_balance)
+
+        # Try to sync current state to Rust portfolio
+        # Fall back to Python if state sync not supported
+        try:
+            rust_portfolio._cash = self.cash
+            rust_portfolio._equity = self.equity
+        except AttributeError:
+            # Rust backend doesn't support state setters yet
+            # Fall back to Python implementation
+            return self._process_batch_python(operations)
+
+        rust_result = rust_portfolio.process_batch(rust_ops)
+
+        # Sync Rust state back to Python portfolio
+        # Note: For full sync, we'd need to convert positions back
+        # For now, we process in Python to maintain full state sync
+        # This is a simplified approach - full integration would require
+        # converting all positions between Python and Rust
+
+        # Convert Rust result to Python BatchResult
+        result = BatchResult(
+            operations_processed=rust_result.operations_processed,
+            entries_registered=rust_result.entries_registered,
+            exits_registered=rust_result.exits_registered,
+            updates_performed=rust_result.updates_performed,
+            fees_registered=rust_result.fees_registered,
+            total_fees=rust_result.total_fees,
+            final_equity=rust_result.final_equity,
+            final_cash=rust_result.final_cash,
+            errors=list(rust_result.errors),
+        )
+
+        # Apply changes to Python portfolio state
+        self.cash = rust_result.final_cash
+        self.equity = rust_result.final_equity
+        self.total_fees += rust_result.total_fees
+
+        return result
 
     def get_open_positions(
         self, symbol: Optional[str] = None

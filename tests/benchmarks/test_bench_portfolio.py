@@ -20,7 +20,6 @@ from datetime import datetime, timedelta
 from typing import Any, Dict, List, Tuple
 
 import numpy as np
-import pandas as pd
 import pytest
 
 from backtest_engine.core.portfolio import Portfolio, PortfolioPosition
@@ -624,3 +623,183 @@ class TestThroughputBaselines:
 
         result = benchmark(generate_summaries)
         assert result == 100
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# BENCHMARK: Batch Processing (Wave 2)
+# ══════════════════════════════════════════════════════════════════════════════
+
+
+@pytest.mark.benchmark(group="portfolio_batch")
+class TestBatchProcessingBenchmarks:
+    """Benchmarks für Batch-Processing-API (Wave 2).
+
+    Vergleicht sequenzielle Operationen mit Batch-Operationen,
+    um den FFI-Overhead zu quantifizieren.
+    """
+
+    def test_batch_entry_1k(self, benchmark: Any) -> None:
+        """Benchmark: Batch Entry-Registrierung (1000 Positionen)."""
+        positions = generate_mock_positions(1000)
+
+        def batch_entries() -> int:
+            portfolio = Portfolio(initial_balance=1000000.0)
+            ops = [{"type": "entry", "position": pos} for pos in positions]
+            result = portfolio.process_batch(ops)
+            return result.entries_registered
+
+        result = benchmark(batch_entries)
+        assert result == 1000
+
+    def test_sequential_entry_1k(self, benchmark: Any) -> None:
+        """Benchmark: Sequentielle Entry-Registrierung (1000 Positionen)."""
+        positions = generate_mock_positions(1000)
+
+        def sequential_entries() -> int:
+            portfolio = Portfolio(initial_balance=1000000.0)
+            for pos in positions:
+                portfolio.register_entry(pos)
+            return len(portfolio.open_positions)
+
+        result = benchmark(sequential_entries)
+        assert result == 1000
+
+    def test_batch_entry_5k(self, benchmark: Any) -> None:
+        """Benchmark: Batch Entry-Registrierung (5000 Positionen)."""
+        positions = generate_mock_positions(5000)
+
+        def batch_entries() -> int:
+            portfolio = Portfolio(initial_balance=5000000.0)
+            ops = [{"type": "entry", "position": pos} for pos in positions]
+            result = portfolio.process_batch(ops)
+            return result.entries_registered
+
+        result = benchmark(batch_entries)
+        assert result == 5000
+
+    def test_sequential_entry_5k(self, benchmark: Any) -> None:
+        """Benchmark: Sequentielle Entry-Registrierung (5000 Positionen)."""
+        positions = generate_mock_positions(5000)
+
+        def sequential_entries() -> int:
+            portfolio = Portfolio(initial_balance=5000000.0)
+            for pos in positions:
+                portfolio.register_entry(pos)
+            return len(portfolio.open_positions)
+
+        result = benchmark(sequential_entries)
+        assert result == 5000
+
+    @pytest.mark.benchmark_slow
+    def test_batch_entry_20k(self, benchmark: Any) -> None:
+        """Benchmark: Batch Entry-Registrierung (20000 Positionen).
+
+        Primärer Test für FFI-Overhead-Reduktion (Ziel: 2-3x Speedup).
+        """
+        positions = generate_mock_positions(20000, seed=42)
+
+        def batch_entries() -> int:
+            portfolio = Portfolio(initial_balance=20000000.0)
+            ops = [{"type": "entry", "position": pos} for pos in positions]
+            result = portfolio.process_batch(ops)
+            return result.entries_registered
+
+        result = benchmark(batch_entries)
+        assert result == 20000
+
+    @pytest.mark.benchmark_slow
+    def test_sequential_entry_20k(self, benchmark: Any) -> None:
+        """Benchmark: Sequentielle Entry-Registrierung (20000 Positionen).
+
+        Baseline für Vergleich mit Batch-Processing.
+        """
+        positions = generate_mock_positions(20000, seed=42)
+
+        def sequential_entries() -> int:
+            portfolio = Portfolio(initial_balance=20000000.0)
+            for pos in positions:
+                portfolio.register_entry(pos)
+            return len(portfolio.open_positions)
+
+        result = benchmark(sequential_entries)
+        assert result == 20000
+
+    def test_batch_mixed_ops_1k(self, benchmark: Any) -> None:
+        """Benchmark: Batch mit gemischten Operationen (Entry + Update + Fee)."""
+        positions = generate_mock_positions(1000)
+        base_time = datetime(2024, 1, 1, 0, 0, 0)
+
+        def batch_mixed() -> Dict[str, int]:
+            portfolio = Portfolio(initial_balance=1000000.0)
+            ops: List[Dict[str, Any]] = []
+
+            for i, pos in enumerate(positions):
+                ops.append({"type": "entry", "position": pos, "fee": 5.0})
+                ops.append({"type": "update", "time": base_time + timedelta(hours=i)})
+
+            result = portfolio.process_batch(ops)
+            return {
+                "entries": result.entries_registered,
+                "updates": result.updates_performed,
+                "fees": result.fees_registered,
+            }
+
+        result = benchmark(batch_mixed)
+        assert result["entries"] == 1000
+        assert result["updates"] == 1000
+        assert result["fees"] == 1000
+
+    def test_sequential_mixed_ops_1k(self, benchmark: Any) -> None:
+        """Benchmark: Sequentielle gemischte Operationen (Entry + Update + Fee)."""
+        positions = generate_mock_positions(1000)
+        base_time = datetime(2024, 1, 1, 0, 0, 0)
+
+        def sequential_mixed() -> Dict[str, int]:
+            portfolio = Portfolio(initial_balance=1000000.0)
+            entries, updates, fees = 0, 0, 0
+
+            for i, pos in enumerate(positions):
+                portfolio.register_entry(pos)
+                entries += 1
+                portfolio.register_fee(
+                    5.0, base_time + timedelta(hours=i), "entry", pos
+                )
+                fees += 1
+                portfolio.update(base_time + timedelta(hours=i))
+                updates += 1
+
+            return {"entries": entries, "updates": updates, "fees": fees}
+
+        result = benchmark(sequential_mixed)
+        assert result["entries"] == 1000
+        assert result["updates"] == 1000
+        assert result["fees"] == 1000
+
+    def test_batch_update_only_10k(self, benchmark: Any) -> None:
+        """Benchmark: Batch Updates nur (10000 Updates)."""
+        base_time = datetime(2024, 1, 1, 0, 0, 0)
+
+        def batch_updates() -> int:
+            portfolio = Portfolio(initial_balance=10000.0)
+            ops = [
+                {"type": "update", "time": base_time + timedelta(minutes=i)}
+                for i in range(10000)
+            ]
+            result = portfolio.process_batch(ops)
+            return result.updates_performed
+
+        result = benchmark(batch_updates)
+        assert result == 10000
+
+    def test_sequential_update_only_10k(self, benchmark: Any) -> None:
+        """Benchmark: Sequentielle Updates (10000 Updates)."""
+        base_time = datetime(2024, 1, 1, 0, 0, 0)
+
+        def sequential_updates() -> int:
+            portfolio = Portfolio(initial_balance=10000.0)
+            for i in range(10000):
+                portfolio.update(base_time + timedelta(minutes=i))
+            return len(portfolio.equity_curve)
+
+        result = benchmark(sequential_updates)
+        assert result > 0

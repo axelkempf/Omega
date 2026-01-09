@@ -12,7 +12,7 @@ import time
 import tracemalloc
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Dict, Tuple
+from typing import Any, Dict, List, Tuple
 
 import numpy as np
 
@@ -109,6 +109,97 @@ def _run_portfolio(events: int, seed: int) -> Dict[str, Any]:
     }
 
 
+def _run_portfolio_batch(events: int, seed: int) -> Dict[str, Any]:
+    """Batch-Processing für FFI-Overhead-Reduktion.
+
+    Statt einzelner FFI-Calls werden alle Operationen in einem Batch gesammelt
+    und in einem einzigen Call verarbeitet.
+    """
+    positions = _make_positions(events, seed)
+    portfolio = Portfolio(initial_balance=100_000.0)
+
+    def _build_batch_ops() -> List[Dict[str, Any]]:
+        """Baut Liste aller Batch-Operationen."""
+        ops: List[Dict[str, Any]] = []
+        for pos in positions:
+            # Entry mit Fee in einem Op
+            ops.append(
+                {
+                    "type": "entry",
+                    "position": pos,
+                    "fee": pos.size * 0.5,
+                    "fee_kind": "entry",
+                }
+            )
+        return ops
+
+    def _process_batch():
+        batch_ops = _build_batch_ops()
+        result = portfolio.process_batch(batch_ops)
+        return result
+
+    # Batch Processing - Entry Phase
+    first_sec, first_peak = _measure(_process_batch)
+
+    # Zweiter Durchlauf für Warm-Cache Messung
+    portfolio2 = Portfolio(initial_balance=100_000.0)
+
+    def _process_batch2():
+        batch_ops = _build_batch_ops()
+        return portfolio2.process_batch(batch_ops)
+
+    second_sec, second_peak = _measure(_process_batch2)
+    profile = _profile(_process_batch2)
+
+    # Ergebnis der Batch-Verarbeitung
+    final_result = portfolio.process_batch([])  # Leerer Batch für Status
+
+    return {
+        "events": int(events),
+        "mode": "batch",
+        "first_run_seconds": round(first_sec, 6),
+        "first_peak_mb": round(first_peak, 6),
+        "second_run_seconds": round(second_sec, 6),
+        "second_peak_mb": round(second_peak, 6),
+        "profile_top25": profile,
+        "batch_stats": {
+            "entries_registered": len(positions),
+            "total_fees": portfolio.total_fees,
+            "final_equity": portfolio.equity,
+            "final_cash": portfolio.cash,
+        },
+        "summary": portfolio.get_summary(),
+    }
+
+
+def _run_comparison(events: int, seed: int) -> Dict[str, Any]:
+    """Vergleich Sequential vs Batch Processing."""
+    # Sequential
+    seq_result = _run_portfolio(events, seed)
+
+    # Batch
+    batch_result = _run_portfolio_batch(events, seed)
+
+    # Speedup berechnen
+    seq_time = seq_result["first_run_seconds"]
+    batch_time = batch_result["first_run_seconds"]
+    speedup = seq_time / batch_time if batch_time > 0 else float("inf")
+
+    return {
+        "events": int(events),
+        "sequential": {
+            "first_run_seconds": seq_result["first_run_seconds"],
+            "first_peak_mb": seq_result["first_peak_mb"],
+        },
+        "batch": {
+            "first_run_seconds": batch_result["first_run_seconds"],
+            "first_peak_mb": batch_result["first_peak_mb"],
+        },
+        "speedup": round(speedup, 3),
+        "speedup_pct": round((speedup - 1) * 100, 1),
+    }
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Performance baseline for Portfolio hot paths"
@@ -126,18 +217,48 @@ def main() -> None:
         default=Path("reports/performance_baselines/p0-01_portfolio.json"),
         help="Pfad zur JSON-Ausgabe",
     )
+    parser.add_argument(
+        "--batch",
+        action="store_true",
+        help="Nutze Batch-Processing statt sequenzieller Operationen",
+    )
+    parser.add_argument(
+        "--compare",
+        action="store_true",
+        help="Vergleiche Sequential vs Batch Processing",
+    )
     args = parser.parse_args()
 
-    result = _run_portfolio(events=args.events, seed=args.seed)
+    if args.compare:
+        result = _run_comparison(events=args.events, seed=args.seed)
+        output_path = args.output.parent / "p0-02_portfolio_batch_comparison.json"
+    elif args.batch:
+        result = _run_portfolio_batch(events=args.events, seed=args.seed)
+        output_path = args.output.parent / "p0-01_portfolio_batch.json"
+    else:
+        result = _run_portfolio(events=args.events, seed=args.seed)
+        output_path = args.output
+
     result["meta"] = {
         "generated_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "seed": int(args.seed),
+        "mode": (
+            "batch" if args.batch else ("compare" if args.compare else "sequential")
+        ),
         "sys_path_inserted": sys_path_inserted,
     }
 
-    args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(json.dumps(result, indent=2))
-    print(f"Saved portfolio baseline to {args.output}")
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_text(json.dumps(result, indent=2))
+    print(f"Saved portfolio baseline to {output_path}")
+
+    if args.compare:
+        print(f"\n📊 Comparison Results ({args.events} events):")
+        print(f"   Sequential: {result['sequential']['first_run_seconds']:.4f}s")
+        print(f"   Batch:      {result['batch']['first_run_seconds']:.4f}s")
+        print(
+            f"   Speedup:    {result['speedup']:.2f}x ({result['speedup_pct']:+.1f}%)"
+        )
 
 
 if __name__ == "__main__":

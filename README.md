@@ -4,7 +4,7 @@
 [![Rust Build](https://github.com/axelkempf/Omega/actions/workflows/rust-build.yml/badge.svg?branch=main)](https://github.com/axelkempf/Omega/actions/workflows/rust-build.yml)
 [![Julia Tests](https://github.com/axelkempf/Omega/actions/workflows/julia-tests.yml/badge.svg?branch=main)](https://github.com/axelkempf/Omega/actions/workflows/julia-tests.yml)
 ![Python](https://img.shields.io/badge/python-%3E%3D3.12-blue)
-![Version](https://img.shields.io/badge/version-1.2.0-blue)
+![Version](https://img.shields.io/badge/version-1.5.0-blue)
 
 Ein Python-basierter Trading-Stack mit **Live-Engine (MetaTrader 5)**, **event-getriebenem Backtest/Optimizer** und einer **FastAPI-UI** zur Prozesssteuerung und zum Monitoring.
 
@@ -170,13 +170,30 @@ Schema:
 - `configs/` – Live-/Backtest-Konfigurationen + zentrale YAMLs
 - `var/` – Runtime-State (gitignored): Logs/Results/tmp
 
-## Rust/Julia High-Performance Extensions (in Vorbereitung)
+## Rust/Julia High-Performance Extensions
 
-Für performance-kritische Module wird eine Hybrid-Architektur vorbereitet:
+Für performance-kritische Module wird eine Hybrid-Architektur verwendet:
 
-### Rust-Module (PyO3/Maturin)
+### Rust-Module (PyO3/Maturin) – Migrationsstatus
 
-Numerische Berechnungen, Hot-Loops und Indicator-Caches können optional in Rust kompiliert werden.
+| Wave | Modul | Status | Feature-Flag |
+|------|-------|--------|--------------|
+| Wave 0 | Slippage & Fee Costs | ✅ Complete | `OMEGA_USE_RUST_SLIPPAGE_FEE` |
+| Wave 2 | Portfolio (Position, State) | ✅ Complete | `OMEGA_USE_RUST_PORTFOLIO` |
+
+**Feature-Flag-Werte:** `auto` (default), `true`, `false`
+
+- `auto`: Rust-Backend wird verwendet wenn verfügbar, sonst Python-Fallback
+- `true`: Nur Rust-Backend (Error wenn nicht verfügbar)
+- `false`: Nur Python-Implementation
+
+**Backend-Status prüfen:**
+
+```python
+from src.backtest_engine.core.portfolio import get_rust_status
+print(get_rust_status())
+# {'available': True, 'enabled': True, 'flag': 'auto', 'error': None}
+```
 
 **Voraussetzungen (optional für lokale Entwicklung):**
 

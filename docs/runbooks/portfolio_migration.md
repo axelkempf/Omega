@@ -7,11 +7,14 @@ prerequisites:
   - Performance-Baseline dokumentiert
   - FFI-Spec finalisiert
 rollback_procedure: docs/runbooks/rollback_generic.md
+implementation_plan: docs/WAVE_2_PORTFOLIO_IMPLEMENTATION_PLAN.md
 ---
 
 # Migration Runbook: Portfolio
 
 **Status:** 🔴 Nicht begonnen (Readiness/Go-No-Go: `docs/MIGRATION_READINESS_VALIDATION.md`)
+
+**Implementation Plan:** [`docs/WAVE_2_PORTFOLIO_IMPLEMENTATION_PLAN.md`](../WAVE_2_PORTFOLIO_IMPLEMENTATION_PLAN.md)
 
 ## 1. Modul-Übersicht
 

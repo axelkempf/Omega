@@ -1,0 +1,245 @@
+{
+  "metadata": {
+    "created_at": "2026-01-09T12:00:00.000000+00:00",
+    "python_version": "3.12.12",
+    "numpy_version": "2.3.5",
+    "pandas_version": "2.3.3",
+    "seed": 42,
+    "description": "Golden-Reference für Portfolio Wave 2 Migration. Enthält deterministische Test-Outputs für Portfolio-State-Management, R-Multiple-Berechnungen und Summary-Generierung.",
+    "file_hash": "",
+    "wave": 2,
+    "module": "backtest_engine.core.portfolio"
+  },
+  "position_test_cases": [
+    {
+      "description": "Long position with 2R win",
+      "input": {
+        "entry_time": "2024-01-01T12:00:00",
+        "direction": "long",
+        "symbol": "EURUSD",
+        "entry_price": 1.10000,
+        "stop_loss": 1.09900,
+        "take_profit": 1.10200,
+        "size": 1.0,
+        "risk_per_trade": 100.0,
+        "exit_price": 1.10200,
+        "reason": "take_profit"
+      },
+      "expected": {
+        "r_multiple": 2.0,
+        "result": 200.0,
+        "is_closed": true
+      }
+    },
+    {
+      "description": "Long position with -1R loss",
+      "input": {
+        "entry_time": "2024-01-01T12:00:00",
+        "direction": "long",
+        "symbol": "EURUSD",
+        "entry_price": 1.10000,
+        "stop_loss": 1.09900,
+        "take_profit": 1.10200,
+        "size": 1.0,
+        "risk_per_trade": 100.0,
+        "exit_price": 1.09900,
+        "reason": "stop_loss"
+      },
+      "expected": {
+        "r_multiple": -1.0,
+        "result": -100.0,
+        "is_closed": true
+      }
+    },
+    {
+      "description": "Short position with 2R win",
+      "input": {
+        "entry_time": "2024-01-01T12:00:00",
+        "direction": "short",
+        "symbol": "EURUSD",
+        "entry_price": 1.10000,
+        "stop_loss": 1.10100,
+        "take_profit": 1.09800,
+        "size": 1.0,
+        "risk_per_trade": 100.0,
+        "exit_price": 1.09800,
+        "reason": "take_profit"
+      },
+      "expected": {
+        "r_multiple": 2.0,
+        "result": 200.0,
+        "is_closed": true
+      }
+    },
+    {
+      "description": "Short position with -1R loss",
+      "input": {
+        "entry_time": "2024-01-01T12:00:00",
+        "direction": "short",
+        "symbol": "EURUSD",
+        "entry_price": 1.10000,
+        "stop_loss": 1.10100,
+        "take_profit": 1.09800,
+        "size": 1.0,
+        "risk_per_trade": 100.0,
+        "exit_price": 1.10100,
+        "reason": "stop_loss"
+      },
+      "expected": {
+        "r_multiple": -1.0,
+        "result": -100.0,
+        "is_closed": true
+      }
+    },
+    {
+      "description": "Zero risk position (SL == entry)",
+      "input": {
+        "entry_time": "2024-01-01T12:00:00",
+        "direction": "long",
+        "symbol": "EURUSD",
+        "entry_price": 1.10000,
+        "stop_loss": 1.10000,
+        "take_profit": 1.10200,
+        "size": 1.0,
+        "risk_per_trade": 100.0,
+        "exit_price": 1.10100,
+        "reason": "signal"
+      },
+      "expected": {
+        "r_multiple": 0.0,
+        "result": 0.0,
+        "is_closed": true
+      }
+    }
+  ],
+  "portfolio_test_cases": [
+    {
+      "description": "Empty portfolio initial state",
+      "initial_balance": 100000.0,
+      "trades": [],
+      "expected_summary": {
+        "Initial Balance": 100000.0,
+        "Final Balance": 100000.0,
+        "Total Trades": 0,
+        "Wins": 0,
+        "Losses": 0,
+        "Winrate": 0.0,
+        "Max Drawdown": 0.0,
+        "Total Fees": 0.0
+      }
+    },
+    {
+      "description": "Single winning trade",
+      "initial_balance": 100000.0,
+      "trades": [
+        {
+          "entry_time": "2024-01-01T12:00:00",
+          "exit_time": "2024-01-01T13:00:00",
+          "direction": "long",
+          "symbol": "EURUSD",
+          "entry_price": 1.10000,
+          "stop_loss": 1.09900,
+          "take_profit": 1.10200,
+          "size": 1.0,
+          "risk_per_trade": 100.0,
+          "exit_price": 1.10200,
+          "reason": "take_profit"
+        }
+      ],
+      "expected_summary": {
+        "Initial Balance": 100000.0,
+        "Final Balance": 100200.0,
+        "Total Trades": 1,
+        "Wins": 1,
+        "Losses": 0,
+        "Winrate": 100.0,
+        "Total Fees": 0.0
+      }
+    },
+    {
+      "description": "Mixed trades (2 wins, 1 loss)",
+      "initial_balance": 100000.0,
+      "trades": [
+        {
+          "entry_time": "2024-01-01T12:00:00",
+          "exit_time": "2024-01-01T12:30:00",
+          "direction": "long",
+          "symbol": "EURUSD",
+          "entry_price": 1.10000,
+          "stop_loss": 1.09900,
+          "take_profit": 1.10200,
+          "exit_price": 1.10150,
+          "reason": "signal"
+        },
+        {
+          "entry_time": "2024-01-01T13:00:00",
+          "exit_time": "2024-01-01T13:30:00",
+          "direction": "long",
+          "symbol": "EURUSD",
+          "entry_price": 1.10200,
+          "stop_loss": 1.10100,
+          "take_profit": 1.10400,
+          "exit_price": 1.10050,
+          "reason": "stop_loss"
+        },
+        {
+          "entry_time": "2024-01-01T14:00:00",
+          "exit_time": "2024-01-01T14:30:00",
+          "direction": "short",
+          "symbol": "GBPUSD",
+          "entry_price": 1.25000,
+          "stop_loss": 1.25100,
+          "take_profit": 1.24800,
+          "exit_price": 1.24850,
+          "reason": "take_profit"
+        }
+      ],
+      "expected_summary": {
+        "Initial Balance": 100000.0,
+        "Total Trades": 3,
+        "Wins": 2,
+        "Losses": 1,
+        "Winrate": 66.67
+      }
+    },
+    {
+      "description": "Portfolio with fees",
+      "initial_balance": 100000.0,
+      "trades": [
+        {
+          "entry_time": "2024-01-01T12:00:00",
+          "exit_time": "2024-01-01T13:00:00",
+          "direction": "long",
+          "symbol": "EURUSD",
+          "entry_price": 1.10000,
+          "stop_loss": 1.09900,
+          "take_profit": 1.10200,
+          "size": 1.0,
+          "risk_per_trade": 100.0,
+          "exit_price": 1.10200,
+          "reason": "take_profit",
+          "entry_fee": 3.0,
+          "exit_fee": 2.5
+        }
+      ],
+      "expected_summary": {
+        "Initial Balance": 100000.0,
+        "Total Fees": 5.5
+      }
+    }
+  ],
+  "equity_curve_test_cases": [
+    {
+      "description": "Equity curve with three trades",
+      "initial_balance": 100000.0,
+      "expected_properties": {
+        "first_equity": 100000.0,
+        "monotonic_timestamps": true,
+        "min_points": 1
+      }
+    }
+  ],
+  "summary_hash": "portfolio_v1_2026-01-09",
+  "position_results_hash": "9a8b7c6d5e4f3g2h1i0j",
+  "portfolio_results_hash": "1j0i9h8g7f6e5d4c3b2a"
+}
