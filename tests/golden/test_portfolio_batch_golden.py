@@ -155,20 +155,24 @@ class TestBatchProcessingParity:
         exit_ops: List[Dict[str, Any]] = []
         for i, pos in enumerate(portfolio_batch.open_positions):
             exit_time = pos.entry_time + timedelta(hours=1)
-            exit_ops.append({
-                "type": "exit",
-                "position_idx": 0,  # Always 0 since positions are removed
-                "price": pos.take_profit,
-                "time": exit_time,
-                "reason": "take_profit",
-            })
+            exit_ops.append(
+                {
+                    "type": "exit",
+                    "position_idx": 0,  # Always 0 since positions are removed
+                    "price": pos.take_profit,
+                    "time": exit_time,
+                    "reason": "take_profit",
+                }
+            )
 
         # Process one exit at a time (since indices shift)
         for exit_op in exit_ops:
             portfolio_batch.process_batch([exit_op])
 
         # Verify parity
-        assert len(portfolio_batch.closed_positions) == len(portfolio_seq.closed_positions)
+        assert len(portfolio_batch.closed_positions) == len(
+            portfolio_seq.closed_positions
+        )
         assert portfolio_batch.cash == pytest.approx(portfolio_seq.cash, rel=1e-6)
         assert portfolio_batch.equity == pytest.approx(portfolio_seq.equity, rel=1e-6)
 
@@ -210,7 +214,9 @@ class TestBatchProcessingParity:
         result_exit = portfolio_batch.process_batch(exit_ops)
 
         # Verify parity
-        assert portfolio_batch.total_fees == pytest.approx(portfolio_seq.total_fees, rel=1e-8)
+        assert portfolio_batch.total_fees == pytest.approx(
+            portfolio_seq.total_fees, rel=1e-8
+        )
         assert portfolio_batch.cash == pytest.approx(portfolio_seq.cash, rel=1e-6)
 
     def test_batch_update_parity(self) -> None:
@@ -233,7 +239,9 @@ class TestBatchProcessingParity:
         # Verify parity
         assert result.updates_performed == 10
         assert portfolio_batch.equity == pytest.approx(portfolio_seq.equity, rel=1e-8)
-        assert portfolio_batch.max_drawdown == pytest.approx(portfolio_seq.max_drawdown, rel=1e-8)
+        assert portfolio_batch.max_drawdown == pytest.approx(
+            portfolio_seq.max_drawdown, rel=1e-8
+        )
 
 
 class TestBatchProcessingErrors:

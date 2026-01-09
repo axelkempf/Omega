@@ -234,14 +234,15 @@ src/
 
 tests/
 ├── golden/
-│   ├── test_golden_portfolio.py          # NEU: Golden-Tests für Portfolio
+│   ├── test_portfolio_batch_golden.py    # Golden-Tests für Portfolio Batch API
+│   ├── test_portfolio_rust_golden.py     # Golden-Tests für Rust Backend
 │   └── reference/
 │       └── portfolio/
-│           └── portfolio_v1.json         # NEU: Golden-Reference
+│           └── portfolio_v1.json         # Golden-Reference
 ├── benchmarks/
 │   └── test_bench_portfolio.py           # Bestehend
 └── integration/
-    └── test_portfolio_rust.py            # NEU: Rust-spezifische Tests
+    └── test_portfolio_rust_parity.py     # Rust↔Python Parität-Tests
 ```
 
 ---
@@ -864,7 +865,7 @@ summary = portfolio.get_summary()
 
 #### 3.4.1 Golden-File Tests
 
-**Neue Datei:** `tests/golden/test_golden_portfolio.py`
+**Dateien:** `tests/golden/test_portfolio_batch_golden.py`, `tests/golden/test_portfolio_rust_golden.py`
 
 - Deterministisches Portfolio mit fixem Seed
 - Trade-Sequenz reproduzierbar
@@ -875,7 +876,7 @@ summary = portfolio.get_summary()
 
 #### 3.4.2 Integration Tests
 
-**Neue Datei:** `tests/integration/test_portfolio_rust.py`
+**Datei:** `tests/integration/test_portfolio_rust_parity.py`
 
 - Rust ↔ Python Parität für alle Methoden
 - Edge Cases: leeres Portfolio, nur Losses, nur Wins
@@ -966,12 +967,12 @@ dt = datetime.fromtimestamp(timestamp_us / 1_000_000)
 ```
                     ┌─────────────────┐
                     │   Golden File   │ ← Determinismus-Gate
-                    │     Tests       │   (tests/golden/test_golden_portfolio.py)
+                    │     Tests       │   (tests/golden/test_portfolio_*_golden.py)
                     └────────┬────────┘
                              │
                     ┌────────┴────────┐
                     │   Integration   │ ← Rust↔Python Parität
-                    │     Tests       │   (tests/integration/test_portfolio_rust.py)
+                    │     Tests       │   (tests/integration/test_portfolio_rust_parity.py)
                     └────────┬────────┘
                              │
           ┌──────────────────┴──────────────────┐
@@ -987,8 +988,9 @@ dt = datetime.fromtimestamp(timestamp_us / 1_000_000)
 
 | Datei | Typ | Gate |
 |-------|-----|------|
-| `tests/golden/test_golden_portfolio.py` | Golden | ✅ CI |
-| `tests/integration/test_portfolio_rust.py` | Integration | ✅ CI (wenn Rust gebaut) |
+| `tests/golden/test_portfolio_batch_golden.py` | Golden | ✅ CI |
+| `tests/golden/test_portfolio_rust_golden.py` | Golden | ✅ CI |
+| `tests/integration/test_portfolio_rust_parity.py` | Integration | ✅ CI (wenn Rust gebaut) |
 | `src/rust_modules/omega_rust/src/portfolio/*.rs` | Rust Unit | ✅ cargo test |
 | `tests/test_portfolio_summary_extra_metrics.py` | Python Unit | ✅ pytest |
 | `tests/benchmarks/test_bench_portfolio.py` | Benchmark | ✅ CI (für Baseline) |

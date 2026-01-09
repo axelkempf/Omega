@@ -761,7 +761,9 @@ class TestBatchProcessingBenchmarks:
             for i, pos in enumerate(positions):
                 portfolio.register_entry(pos)
                 entries += 1
-                portfolio.register_fee(5.0, base_time + timedelta(hours=i), "entry", pos)
+                portfolio.register_fee(
+                    5.0, base_time + timedelta(hours=i), "entry", pos
+                )
                 fees += 1
                 portfolio.update(base_time + timedelta(hours=i))
                 updates += 1

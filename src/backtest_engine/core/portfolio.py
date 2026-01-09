@@ -32,7 +32,8 @@ _BatchResult: Optional[type] = None
 
 if _FEATURE_FLAG in ("auto", "true"):
     try:
-        from omega_rust import PositionRust, PortfolioRust, BatchResult as _BatchResultRust  # type: ignore
+        from omega_rust import BatchResult as _BatchResultRust  # type: ignore
+        from omega_rust import PortfolioRust, PositionRust
 
         _RUST_AVAILABLE = True
         _BatchResult = _BatchResultRust
@@ -454,9 +455,7 @@ class Portfolio:
             # niemals die Verbuchung riskieren
             pass
 
-    def process_batch(
-        self, operations: List[Dict[str, Any]]
-    ) -> BatchResult:
+    def process_batch(self, operations: List[Dict[str, Any]]) -> BatchResult:
         """
         Process multiple operations in a single call for reduced overhead.
 
@@ -489,9 +488,7 @@ class Portfolio:
         else:
             return self._process_batch_python(operations)
 
-    def _process_batch_python(
-        self, operations: List[Dict[str, Any]]
-    ) -> BatchResult:
+    def _process_batch_python(self, operations: List[Dict[str, Any]]) -> BatchResult:
         """Process batch operations using Python implementation."""
         result = BatchResult()
         result.final_equity = self.equity
@@ -504,7 +501,9 @@ class Portfolio:
                 if op_type == "entry":
                     position = op.get("position")
                     if position is None:
-                        result.errors.append((idx, "Missing 'position' for entry operation"))
+                        result.errors.append(
+                            (idx, "Missing 'position' for entry operation")
+                        )
                         continue
                     self.register_entry(position)
                     result.entries_registered += 1
@@ -521,13 +520,17 @@ class Portfolio:
                 elif op_type == "exit":
                     position_idx = op.get("position_idx")
                     if position_idx is None:
-                        result.errors.append((idx, "Missing 'position_idx' for exit operation"))
+                        result.errors.append(
+                            (idx, "Missing 'position_idx' for exit operation")
+                        )
                         continue
                     if position_idx >= len(self.open_positions):
-                        result.errors.append((
-                            idx,
-                            f"Position index {position_idx} out of bounds (max {len(self.open_positions) - 1})"
-                        ))
+                        result.errors.append(
+                            (
+                                idx,
+                                f"Position index {position_idx} out of bounds (max {len(self.open_positions) - 1})",
+                            )
+                        )
                         continue
 
                     price = op.get("price")
@@ -549,7 +552,9 @@ class Portfolio:
                 elif op_type == "update":
                     time = op.get("time")
                     if time is None:
-                        result.errors.append((idx, "Missing 'time' for update operation"))
+                        result.errors.append(
+                            (idx, "Missing 'time' for update operation")
+                        )
                         continue
                     self.update(time)
                     result.updates_performed += 1
@@ -559,7 +564,9 @@ class Portfolio:
                     time = op.get("time")
                     kind = op.get("kind", "other")
                     if amount is None or time is None:
-                        result.errors.append((idx, "Missing 'amount' or 'time' for fee operation"))
+                        result.errors.append(
+                            (idx, "Missing 'amount' or 'time' for fee operation")
+                        )
                         continue
                     self.register_fee(amount, time, kind)
                     result.fees_registered += 1
@@ -578,10 +585,12 @@ class Portfolio:
         result.final_cash = self.cash
         return result
 
-    def _process_batch_rust(
-        self, operations: List[Dict[str, Any]]
-    ) -> BatchResult:
-        """Process batch operations using Rust backend for performance."""
+    def _process_batch_rust(self, operations: List[Dict[str, Any]]) -> BatchResult:
+        """Process batch operations using Rust backend for performance.
+
+        Falls back to Python implementation if Rust state sync fails.
+        This can happen if the Rust backend doesn't support state setters.
+        """
         # Convert operations to Rust-compatible format
         rust_ops: List[Dict[str, Any]] = []
 
@@ -616,19 +625,31 @@ class Portfolio:
                 rust_op["position_idx"] = op.get("position_idx", 0)
                 rust_op["price"] = op.get("price", 0.0)
                 time = op.get("time")
-                rust_op["time"] = int(time.timestamp() * 1_000_000) if isinstance(time, datetime) else time
+                rust_op["time"] = (
+                    int(time.timestamp() * 1_000_000)
+                    if isinstance(time, datetime)
+                    else time
+                )
                 rust_op["reason"] = op.get("reason", "signal")
                 if op.get("fee") is not None:
                     rust_op["fee"] = op["fee"]
 
             elif op_type == "update":
                 time = op.get("time")
-                rust_op["time"] = int(time.timestamp() * 1_000_000) if isinstance(time, datetime) else time
+                rust_op["time"] = (
+                    int(time.timestamp() * 1_000_000)
+                    if isinstance(time, datetime)
+                    else time
+                )
 
             elif op_type == "fee":
                 rust_op["amount"] = op.get("amount", 0.0)
                 time = op.get("time")
-                rust_op["time"] = int(time.timestamp() * 1_000_000) if isinstance(time, datetime) else time
+                rust_op["time"] = (
+                    int(time.timestamp() * 1_000_000)
+                    if isinstance(time, datetime)
+                    else time
+                )
                 rust_op["kind"] = op.get("kind", "other")
 
             rust_ops.append(rust_op)
@@ -636,9 +657,15 @@ class Portfolio:
         # Create Rust portfolio and process batch
         rust_portfolio = PortfolioRust(self.initial_balance)
 
-        # Sync current state to Rust portfolio
-        rust_portfolio._cash = self.cash  # type: ignore
-        rust_portfolio._equity = self.equity  # type: ignore
+        # Try to sync current state to Rust portfolio
+        # Fall back to Python if state sync not supported
+        try:
+            rust_portfolio._cash = self.cash  # type: ignore
+            rust_portfolio._equity = self.equity  # type: ignore
+        except AttributeError:
+            # Rust backend doesn't support state setters yet
+            # Fall back to Python implementation
+            return self._process_batch_python(operations)
 
         rust_result = rust_portfolio.process_batch(rust_ops)
 

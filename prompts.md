@@ -284,3 +284,77 @@ Ergänze/aktualisiere Tests unter `tests/` so, dass folgende Regressionen abgede
 - Keine stillschweigende Änderung in Live-/Execution-Pfaden.
 - Shocks/Jitter sind nicht länger triviale No-Ops.
 - Profit/DD/„Net“-Begriffe sind konsistent definiert (insb. bzgl. Fees) und im Code klar benannt.
+---
+
+# Batch API für Portfolio-Modul implementieren
+
+## Ziel
+Implementiere eine `process_batch()` Methode im Portfolio-Modul, die mehrere Operationen (Entry, Exit, Update, Fee) in einem einzigen FFI-Call verarbeitet, um den Python↔Rust Overhead zu minimieren.
+
+## Kontext
+- **Aktueller Stand**: Wave 2 Portfolio Migration ist abgeschlossen
+- **Problem**: Bei 20.000 Events entstehen ~80.000 einzelne FFI-Calls mit je ~1-2µs Overhead
+- **Ziel-Speedup**: Von 1.12x auf 2-3x gegenüber Python-only
+
+## Zu ändernde Dateien
+
+**1. Rust-Backend** (`src/rust_modules/omega_rust/src/portfolio/mod.rs`):
+```rust
+// Neue Enum für Batch-Operationen
+pub enum BatchOperation {
+    RegisterEntry { position: PositionData, fee: Option<f64> },
+    RegisterExit { position_idx: usize, price: f64, time: i64 },
+    Update { time: i64, prices: HashMap<String, f64> },
+    RegisterFee { amount: f64, time: i64, kind: String },
+}
+
+// Neue Methode in PortfolioRust
+pub fn process_batch(&mut self, operations: Vec<BatchOperation>) -> PyResult<BatchResult>;
+```
+
+**2. Python-Wrapper** (`src/backtest_engine/core/portfolio.py`):
+```python
+def process_batch(self, operations: List[Dict]) -> BatchResult:
+    """Process multiple operations in a single Rust call."""
+    if _use_rust_backend():
+        return self._rust_portfolio.process_batch(operations)
+    else:
+        return self._process_batch_python(operations)
+```
+
+**3. Neuer Benchmark** (`tests/benchmarks/test_bench_portfolio.py`):
+```python
+@pytest.mark.benchmark
+def test_batch_20k_events(benchmark):
+    """Benchmark batch processing of 20K events."""
+    # Vergleiche: Einzeloperationen vs Batch
+```
+
+## Akzeptanzkriterien
+
+| Kriterium | Anforderung |
+|-----------|-------------|
+| **Funktional** | Batch-Ergebnis identisch zu sequentieller Verarbeitung |
+| **Performance** | ≥1.5x Speedup bei 20K Events (vs. aktuelle 1.12x) |
+| **Tests** | Golden-Test für Batch-Parität Python↔Rust |
+| **API** | Rückwärtskompatibel (bestehende API unverändert) |
+
+## Benchmark-Vergleich nach Integration
+
+Führe aus und dokumentiere:
+```bash
+# Vorher (aktuelle Einzeloperationen)
+OMEGA_USE_RUST_PORTFOLIO=true python tools/perf_portfolio.py --events 20000
+
+# Nachher (mit Batch API)
+OMEGA_USE_RUST_PORTFOLIO=true python tools/perf_portfolio.py --events 20000 --batch
+
+# Vergleich dokumentieren in:
+# reports/performance_baselines/p0-02_portfolio_batch_comparison.json
+```
+
+## Referenzen
+- Aktuelle Portfolio-Implementierung: `src/backtest_engine/core/portfolio.py`
+- Rust-Backend: `src/rust_modules/omega_rust/src/portfolio/`
+- Baseline-Benchmarks: `reports/performance_baselines/p0-01_portfolio_*.json`
+- Wave 2 Plan: `docs/WAVE_2_PORTFOLIO_IMPLEMENTATION_PLAN.md`

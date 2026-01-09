@@ -123,12 +123,14 @@ def _run_portfolio_batch(events: int, seed: int) -> Dict[str, Any]:
         ops: List[Dict[str, Any]] = []
         for pos in positions:
             # Entry mit Fee in einem Op
-            ops.append({
-                "type": "entry",
-                "position": pos,
-                "fee": pos.size * 0.5,
-                "fee_kind": "entry",
-            })
+            ops.append(
+                {
+                    "type": "entry",
+                    "position": pos,
+                    "fee": pos.size * 0.5,
+                    "fee_kind": "entry",
+                }
+            )
         return ops
 
     def _process_batch():
@@ -240,7 +242,9 @@ def main() -> None:
     result["meta"] = {
         "generated_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "seed": int(args.seed),
-        "mode": "batch" if args.batch else ("compare" if args.compare else "sequential"),
+        "mode": (
+            "batch" if args.batch else ("compare" if args.compare else "sequential")
+        ),
         "sys_path_inserted": sys_path_inserted,
     }
 
@@ -252,7 +256,9 @@ def main() -> None:
         print(f"\n📊 Comparison Results ({args.events} events):")
         print(f"   Sequential: {result['sequential']['first_run_seconds']:.4f}s")
         print(f"   Batch:      {result['batch']['first_run_seconds']:.4f}s")
-        print(f"   Speedup:    {result['speedup']:.2f}x ({result['speedup_pct']:+.1f}%)")
+        print(
+            f"   Speedup:    {result['speedup']:.2f}x ({result['speedup_pct']:+.1f}%)"
+        )
 
 
 if __name__ == "__main__":
