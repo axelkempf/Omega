@@ -579,8 +579,9 @@ impl PortfolioRust {
             return;
         }
 
-        // Handle different exit types
-        if position.status == "open" {
+        // Handle different exit types - check closed or open status
+        // Position may already be closed via .close() before register_exit
+        if position.status == "open" || position.status == "closed" {
             match position.reason.as_deref() {
                 Some("partial_exit") => {
                     self.partial_closed_positions.push(position.clone());
