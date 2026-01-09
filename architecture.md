@@ -432,6 +432,7 @@ Der `docs/` Ordner enthält technische Dokumentation und Migrationspläne:
 - **`RUST_JULIA_MIGRATION_PREPARATION_PLAN.md`**: Vorbereitungsplan für die Migration ausgewählter Module zu Rust und Julia
 - **`MIGRATION_READINESS_VALIDATION.md`**: Kanonischer Status-Report für Migration-Readiness (Go/No-Go)
 - **`WAVE_0_SLIPPAGE_FEE_IMPLEMENTATION_PLAN.md`**: Vollständiger Implementierungsplan für Wave 0 Pilot (Slippage & Fee → Rust)
+- **`WAVE_2_PORTFOLIO_IMPLEMENTATION_PLAN.md`**: Vollständiger Implementierungsplan für Wave 2 (Portfolio → Rust)
 - **`rust-toolchain-requirements.md`**: Rust-Toolchain-Anforderungen (1.76.0+, PyO3, Maturin)
 - **`julia-environment-requirements.md`**: Julia-Umgebungsanforderungen (1.10+, PythonCall)
 - **`adr/`**: Architecture Decision Records (ADRs) für wichtige technische Entscheidungen

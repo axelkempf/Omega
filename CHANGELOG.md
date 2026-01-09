@@ -4,6 +4,25 @@ Alle nennenswerten Änderungen werden in dieser Datei dokumentiert.
 
 > Hinweis: Historische Einträge sind ggf. unvollständig.
 
+## [Unreleased] - Wave 2: Portfolio Rust Migration Plan
+
+### Added
+- **Implementierungsplan Wave 2**: `docs/WAVE_2_PORTFOLIO_IMPLEMENTATION_PLAN.md`
+  - Vollständige Migrationsstrategie für Portfolio-Modul zu Rust
+  - Rust-Strukturdefinitionen für `PortfolioRust`, `PositionRust`, `PortfolioState`
+  - Feature-Flag `OMEGA_USE_RUST_PORTFOLIO` (auto/true/false)
+  - Golden-File Test-Strategie für Determinismus-Validierung
+  - Lessons Learned aus Wave 0 integriert
+  - 5-Tage Zeitplan mit detaillierten Phasen
+  - Rollback-Prozedur und Trigger dokumentiert
+- **Runbook-Referenz**: `docs/runbooks/portfolio_migration.md` mit Verweis auf Implementation Plan
+- **Architecture.md Update**: Neue Wave 2 Dokumentation referenziert
+
+### Planned (für Implementation)
+- `src/rust_modules/omega_rust/src/portfolio/` - Rust Portfolio-Modul
+- `tests/golden/test_golden_portfolio.py` - Golden-File Tests
+- `tests/integration/test_portfolio_rust.py` - Integration Tests
+
 ## [1.3.0] - Wave 0: Rust FFI Migration (Slippage & Fee)
 
 ### Added
