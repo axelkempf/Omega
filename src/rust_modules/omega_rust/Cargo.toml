@@ -30,6 +30,9 @@ crate-type = ["cdylib", "rlib"]
 # Note: Using 0.24+ for Bound<> API and Rust 1.85+ compatibility
 pyo3 = { version = "0.27", features = ["extension-module", "abi3-py312"] }
 
+# NumPy bindings for PyO3 (Wave 1: IndicatorCache)
+numpy = "0.27"
+
 # Numerical Computing
 ndarray = { version = "0.17", features = ["serde", "rayon"] }
 

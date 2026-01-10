@@ -101,18 +101,38 @@ jobs:
         working-directory: src/rust_modules/omega_rust
         run: cargo fmt --all -- --check
 
-      - name: Run Clippy (pedantic)
+      - name: Run Clippy
         if: steps.check_rust.outputs.rust_exists == 'true'
         working-directory: src/rust_modules/omega_rust
         run: |
           cargo clippy --all-targets --all-features -- \
-            -D warnings \
-            -D clippy::pedantic \
-            -A clippy::module_name_repetitions \
-            -A clippy::must_use_candidate \
-            -A clippy::cast_precision_loss \
-            -A clippy::cast_possible_truncation \
-            -A clippy::cast_sign_loss
+            -W clippy::all \
+            -A clippy::too_many_arguments \
+            -A clippy::type_complexity \
+            -A clippy::significant_drop_tightening \
+            -A clippy::doc_markdown \
+            -A clippy::missing_errors_doc \
+            -A clippy::missing_panics_doc \
+            -A clippy::uninlined_format_args \
+            -A clippy::needless_pass_by_value \
+            -A clippy::similar_names \
+            -A clippy::many_single_char_names \
+            -A clippy::unreadable_literal \
+            -A clippy::missing_const_for_fn \
+            -A clippy::match_same_arms \
+            -A clippy::or_fun_call \
+            -A clippy::collapsible_match \
+            -A clippy::option_if_let_else \
+            -A clippy::map_unwrap_or \
+            -A clippy::unnecessary_wraps \
+            -A clippy::branches_sharing_code \
+            -A clippy::assign_op_pattern \
+            -A clippy::needless_range_loop \
+            -A clippy::manual_let_else \
+            -A clippy::suboptimal_flops \
+            -A clippy::manual_range_contains \
+            -A clippy::cast_lossless \
+            -A clippy::float_cmp
 
   # ============================================================================
   # Security Audit

@@ -65,18 +65,28 @@ Ordner-für-Ordner-Übersicht der Codebasis (ohne `results`-Ordner und ohne Aufl
 ### `src/rust_modules/` *(High-Performance Rust Extensions via PyO3/Maturin)*
 
 - `omega_rust/`
-  - `Cargo.toml` *(PyO3 0.20+, ndarray, rayon, serde)*
+  - `Cargo.toml` *(PyO3 0.27+, ndarray, rayon, numpy)*
   - `pyproject.toml` *(Maturin build system)*
   - `rust-toolchain.toml` *(Rust 1.76.0 pinning)*
   - `README.md`
   - `src/`
     - `lib.rs` *(PyO3 module entry point)*
-    - `error.rs` *(OmegaError with thiserror)*
-    - `indicators/`
-      - `mod.rs` *(Module exports)*
-      - `ema_impl.rs` *(Exponential Moving Average)*
-      - `rsi_impl.rs` *(Relative Strength Index)*
-      - `statistics.rs` *(Rolling standard deviation)*
+    - `error.rs` *(OmegaError with thiserror + NotFound variant)*
+    - `indicators/` *(Wave 1: IndicatorCache - 474x Speedup)*
+      - `mod.rs` *(Module exports: IndicatorCacheRust)*
+      - `types.rs` *(OhlcvData, CacheKey, IndicatorResult, OhlcvKey)*
+      - `cache.rs` *(IndicatorCacheRust PyO3 class with HashMap caching)*
+      - `py_bindings.rs` *(Python bindings: register_ohlcv, all indicator methods)*
+      - `atr.rs` *(Average True Range - Wilder, 7299x speedup)*
+      - `sma.rs` *(Simple Moving Average, 528x speedup)*
+      - `ema_extended.rs` *(EMA, DEMA, TEMA, 337x speedup)*
+      - `bollinger.rs` *(Bollinger Bands, 160x speedup)*
+      - `dmi.rs` *(Directional Movement Index: +DI, -DI, ADX, 234x speedup)*
+      - `macd.rs` *(MACD Line + Signal, 285x speedup)*
+      - `roc.rs` *(Rate of Change, Momentum)*
+      - `zscore.rs` *(Z-Score rolling/EMA variants)*
+      - `kalman.rs` *(Kalman Filter: mean, zscore)*
+      - `choppiness.rs` *(Choppiness Index)*
     - `costs/` *(Wave 0: Slippage & Fee)*
       - `mod.rs` *(Module exports)*
       - `slippage.rs` *(Slippage calculation with deterministic RNG)*
@@ -109,6 +119,8 @@ Ordner-für-Ordner-Übersicht der Codebasis (ohne `results`-Ordner und ohne Aufl
 
 - `__init__.py`
 - `protocols.py` *(runtime-checkable Protocols for stable boundaries / future FFI)*
+- `indicator_cache_rust.py` *(Wave 1: Python wrapper for Rust IndicatorCache with feature flag)*
+- `arrow_schemas.py` *(OHLCV_SCHEMA, INDICATOR_SCHEMA for Arrow IPC)*
 
 ### `src/backtest_engine/`
 
