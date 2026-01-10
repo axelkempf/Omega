@@ -212,6 +212,99 @@ benchmarks:
 - run: pytest -q -m "not integration and not mt5 and not rust_integration and not julia_integration"
 ```
 
+### E10: Rust-Backend-Tests ohne skipif-Marker (PR #24 Wave 3)
+```python
+# ❌ Falsch: Test importiert omega_rust direkt ohne Guard
+def test_rust_module_has_required_exports(self):
+    import omega_rust  # ModuleNotFoundError in CI!
+    assert hasattr(omega_rust, "EventEngineRust")
+
+# ✅ Korrekt: pytest.mark.skipif für optionale FFI-Module
+import pytest
+
+try:
+    import omega_rust
+    RUST_AVAILABLE = True
+except ImportError:
+    RUST_AVAILABLE = False
+
+@pytest.mark.skipif(not RUST_AVAILABLE, reason="omega_rust not built/installed")
+def test_rust_module_has_required_exports(self):
+    assert hasattr(omega_rust, "EventEngineRust")
+```
+
+**Validation:** Suche nach `import omega_rust` ohne vorherigen `skipif`-Guard:
+```bash
+grep -rn "import omega_rust" tests/ --include="*.py" | grep -v "skipif\|try:"
+```
+
+### E11: Clippy Warnings als Errors (PR #24 Wave 3)
+```rust
+// ❌ Falsch: Unbenutzte Felder in Rust-Struct
+pub struct CrossSymbolEventEngineRust {
+    symbols: Vec<String>,        // dead_code warning → error
+    total_timestamps: usize,     // never read
+}
+
+// ✅ Option A: Felder verwenden oder entfernen
+pub struct CrossSymbolEventEngineRust {
+    // Nur Felder die wirklich verwendet werden
+}
+
+// ✅ Option B: Explizit erlauben wenn beabsichtigt
+#[allow(dead_code)]
+pub struct CrossSymbolEventEngineRust {
+    symbols: Vec<String>,
+    total_timestamps: usize,
+}
+```
+
+**Häufige Clippy-Fehler in PyO3-Code:**
+| Clippy-Lint | Ursache | Fix |
+|-------------|---------|-----|
+| `dead_code` | Felder nie gelesen | Entfernen oder `#[allow(dead_code)]` |
+| `unused_self` | `&self` in Methode nicht verwendet | `fn method()` ohne self oder `#[allow(clippy::unused_self)]` |
+| `field_reassign_with_default` | Felder nach `Default::default()` zuweisen | Struct-Initializer mit allen Feldern verwenden |
+
+**Validation:**
+```bash
+cargo clippy --manifest-path src/rust_modules/omega_rust/Cargo.toml -- -D warnings
+```
+
+### E12: FFI-Modul nicht gebaut vor Python-Tests (PR #24 Wave 3)
+```yaml
+# ❌ Falsch: Python-Tests ohne omega_rust Build-Abhängigkeit
+test:
+  needs: [lint]  # FEHLT: rust-build nicht in needs!
+  steps:
+    - run: pytest  # Schlägt fehl: omega_rust nicht vorhanden
+
+# ✅ Option A: Rust-Build als Abhängigkeit hinzufügen
+test:
+  needs: [lint, rust-build]
+  steps:
+    - name: Download omega_rust wheel
+      uses: actions/download-artifact@v4
+      with:
+        name: omega-rust-wheel
+    - run: pip install *.whl
+    - run: pytest
+
+# ✅ Option B: Tests mit skipif-Marker für fehlende Module
+test:
+  needs: [lint]
+  steps:
+    # Tests mit Rust-Markern werden übersprungen wenn omega_rust fehlt
+    - run: pytest -m "not rust_backend"
+```
+
+**Entscheidungsmatrix:**
+| Szenario | Empfehlung |
+|----------|------------|
+| Rust ist optional (Fallback auf Python) | Option B: skipif-Marker |
+| Rust ist mandatory für Feature | Option A: Build-Abhängigkeit |
+| Hybrid (manche Tests brauchen Rust) | Kombination: Test-Marker + separater rust-test Job |
+
 ---
 
 ## ⚡ Pre-Flight Code Quality Checks (KRITISCH - PR #24 Learning)
@@ -229,6 +322,9 @@ isort --check src/ tests/
 
 # Rust-Formatierung prüfen
 cargo fmt --manifest-path src/rust_modules/omega_rust/Cargo.toml --check
+
+# Rust-Linting prüfen (KRITISCH - PR #24 Wave 3)
+cargo clippy --manifest-path src/rust_modules/omega_rust/Cargo.toml -- -D warnings
 ```
 
 **Falls Fehler gefunden werden → ERST lokal fixen:**
@@ -237,6 +333,24 @@ black src/ tests/
 isort src/ tests/
 cargo fmt --manifest-path src/rust_modules/omega_rust/Cargo.toml
 ```
+
+### Schritt 0.5: FFI-Test-Kompatibilität prüfen (NEU - PR #24 Wave 3)
+
+```bash
+# Finde Tests die omega_rust importieren ohne skipif-Guard
+grep -rn "import omega_rust" tests/ --include="*.py" | grep -v "try:\|except\|skipif"
+
+# Finde Tests die omega_julia importieren ohne skipif-Guard  
+grep -rn "import omega_julia" tests/ --include="*.py" | grep -v "try:\|except\|skipif"
+
+# Prüfe ob rust_backend Marker existiert für Rust-Tests
+grep -rn "@pytest.mark.rust_backend\|pytest.mark.skipif.*RUST" tests/ --include="*.py"
+```
+
+**Falls ungeschützte FFI-Imports gefunden:**
+1. Füge `try/except ImportError` Block am Modul-Anfang hinzu
+2. Füge `@pytest.mark.skipif(not RUST_AVAILABLE, reason="...")` zu Tests hinzu
+3. ODER verschiebe Tests in separaten `test_*_rust.py` mit eigenem CI-Job
 
 ### Häufige Formatierungsfehler (aus PR #24)
 
@@ -311,7 +425,37 @@ grep -rh "path:" .github/workflows/ | sort -u
 grep -rh "uses:" .github/workflows/ | sed 's/.*uses: //' | sort -u
 ```
 
-### 4. Lokaler Dry-Run (wenn möglich)
+### 4. FFI-Test-Guard-Validierung (NEU - PR #24 Wave 3)
+```bash
+# Finde alle FFI-Imports in Tests
+echo "=== omega_rust Imports ==="
+grep -rn "import omega_rust\|from omega_rust" tests/ --include="*.py"
+
+echo ""
+echo "=== Geschützte Imports (OK) ==="
+grep -B5 "import omega_rust" tests/ --include="*.py" | grep -E "try:|skipif|RUST_AVAILABLE"
+
+echo ""
+echo "=== UNGESCHÜTZTE Imports (FIX NEEDED) ==="
+for file in $(grep -l "import omega_rust" tests/ --include="*.py"); do
+  if ! grep -q "RUST_AVAILABLE\|skipif.*rust\|try:.*omega_rust" "$file"; then
+    echo "⚠️  $file - Kein Import-Guard gefunden!"
+  fi
+done
+```
+
+### 5. Clippy-Validierung vor Push
+```bash
+# Muss OHNE Fehler durchlaufen für Rust-Workflows
+cargo clippy --manifest-path src/rust_modules/omega_rust/Cargo.toml -- -D warnings 2>&1 | tee clippy_output.txt
+if grep -q "error\[" clippy_output.txt; then
+  echo "❌ Clippy-Fehler gefunden - Fix vor Push!"
+  exit 1
+fi
+echo "✅ Clippy OK"
+```
+
+### 6. Lokaler Dry-Run (wenn möglich)
 ```bash
 # Mit act (GitHub Actions lokal testen)
 act -l  # Jobs auflisten
@@ -408,6 +552,33 @@ for f in .github/workflows/*.yml; do python -c "import yaml; yaml.safe_load(open
 | `pytest` failed in copilot-setup | Integration-Tests ohne Deps | `-m "not integration..."` Marker |
 | Cache miss / restore error | Veraltete action Version | Alle auf `@v5` / `@v6` updaten |
 | MT5 import error auf Linux | MT5 ist Windows-only | Tests mit `platform_system == "Windows"` oder pytest-Marker |
+| **`ModuleNotFoundError: omega_rust`** (PR #24) | FFI-Modul nicht gebaut/installiert | `pytest.mark.skipif` Guard oder rust-build Abhängigkeit |
+| **`cargo clippy` dead_code error** (PR #24) | Unbenutzte Felder/Variablen in Rust | Entfernen oder `#[allow(dead_code)]` |
+| **`cargo clippy` unused_self** (PR #24) | `&self` nicht verwendet in Methode | `#[allow(clippy::unused_self)]` oder zu assoc fn |
+| **`cargo clippy` field_reassign_with_default** (PR #24) | Feld-Zuweisung nach `Default::default()` | Struct-Initializer mit expliziten Feldern |
+| **11 failed tests in CI** (PR #24) | Rust-Backend-Tests ohne skipif | Alle 11 Tests mit `@pytest.mark.skipif(not RUST_AVAILABLE)` |
+
+---
+
+## 🎯 PR #24 Wave 3 Learnings - Checkliste für Rust-Migrationen
+
+Bei jeder Rust-FFI-Migration (Wave 1-4) diese Punkte prüfen:
+
+### Vor dem PR:
+- [ ] `cargo clippy -- -D warnings` lokal ausführen
+- [ ] Alle neuen Tests mit `try/except ImportError` für FFI-Module
+- [ ] `pytest.mark.skipif` für Tests die FFI-Modul benötigen
+- [ ] Oder: Separater CI-Job mit `needs: [rust-build]`
+
+### Im CI:
+- [ ] Python-Setup VOR Rust-Toolchain in PyO3-Jobs
+- [ ] Test-Marker: `-m "not rust_backend"` für Standard-Tests
+- [ ] Oder: `needs: [rust-build]` + Artifact-Download für rust-enabled Tests
+
+### Nach dem PR:
+- [ ] Dokumentieren in `docs/WAVE_X_MIGRATION_LEARNINGS.md`
+- [ ] Error-Pattern in `workflow-fix.prompt.md` ergänzen
+- [ ] Golden-File-Tests für neue FFI-Funktionen
 
 ---
 
