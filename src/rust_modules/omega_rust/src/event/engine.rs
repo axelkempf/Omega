@@ -459,10 +459,12 @@ mod tests {
 
     #[test]
     fn test_event_engine_stats_summary() {
-        let mut stats = EventEngineStats::default();
-        stats.bars_processed = 100;
-        stats.signals_generated = 10;
-        stats.loop_time_ms = 50.0;
+        let stats = EventEngineStats {
+            bars_processed: 100,
+            signals_generated: 10,
+            loop_time_ms: 50.0,
+            ..Default::default()
+        };
 
         let summary = stats.summary();
         assert!(summary.contains("bars=100"));

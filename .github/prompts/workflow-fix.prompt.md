@@ -554,11 +554,42 @@ for f in .github/workflows/*.yml; do python -c "import yaml; yaml.safe_load(open
 | MT5 import error auf Linux | MT5 ist Windows-only | Tests mit `platform_system == "Windows"` oder pytest-Marker |
 | **`ModuleNotFoundError: omega_rust`** (PR #24) | FFI-Modul nicht gebaut/installiert | `pytest.mark.skipif` Guard oder rust-build Abhängigkeit |
 | **`cargo clippy` dead_code error** (PR #24) | Unbenutzte Felder/Variablen in Rust | Entfernen oder `#[allow(dead_code)]` |
-| **`cargo clippy` unused_self** (PR #24) | `&self` nicht verwendet in Methode | `#[allow(clippy::unused_self)]` oder zu assoc fn → `Self::method()` |
+| **`cargo clippy` unused_self** (PR #24) | `&self` nicht verwendet in Methode | `#[allow(clippy::unused_self)]` oder zu assoc fn |
 | **`cargo clippy` field_reassign_with_default** (PR #24) | Feld-Zuweisung nach `Default::default()` | Struct-Initializer mit expliziten Feldern |
 | **11 failed tests in CI** (PR #24) | Rust-Backend-Tests ohne skipif | Alle 11 Tests mit `@pytest.mark.skipif(not RUST_AVAILABLE)` |
-| **`deprecated` error in Clippy** (PR #24) | PyO3 API-Änderungen (z.B. `downcast` → `extract`/`cast`) | API auf aktuellen Stand bringen oder `-A deprecated` |
-| **RUSTFLAGS vs Clippy -A Konflikt** (PR #24) | `RUSTFLAGS: -D warnings` überschreibt Clippy `-A` Flags | RUSTFLAGS aus workflow-level env entfernen, `-D warnings` direkt in Clippy-Command |
+
+### E13: Clippy field_reassign_with_default (PR #24 Wave 3 - Ergänzung)
+```rust
+// ❌ Falsch: Felder nach Default::default() einzeln zuweisen
+#[test]
+fn test_stats_summary() {
+    let mut stats = EventEngineStats::default();
+    stats.bars_processed = 100;    // Clippy error!
+    stats.signals_generated = 10;
+    stats.loop_time_ms = 50.0;
+}
+
+// ✅ Korrekt: Struct-Initializer mit ..Default::default()
+#[test]
+fn test_stats_summary() {
+    let stats = EventEngineStats {
+        bars_processed: 100,
+        signals_generated: 10,
+        loop_time_ms: 50.0,
+        ..Default::default()  // Für alle anderen Felder
+    };
+}
+```
+
+**Warum:** Clippy bevorzugt den Struct-Initializer-Stil, da er:
+1. Expliziter zeigt welche Felder gesetzt werden
+2. Weniger mutable Variablen erfordert
+3. Idiomatischer Rust-Code ist
+
+**Validation:**
+```bash
+cargo clippy --manifest-path src/rust_modules/omega_rust/Cargo.toml -- -D warnings 2>&1 | grep field_reassign
+```
 
 ---
 
@@ -576,7 +607,6 @@ Bei jeder Rust-FFI-Migration (Wave 1-4) diese Punkte prüfen:
 - [ ] Python-Setup VOR Rust-Toolchain in PyO3-Jobs
 - [ ] Test-Marker: `-m "not rust_backend"` für Standard-Tests
 - [ ] Oder: `needs: [rust-build]` + Artifact-Download für rust-enabled Tests
-- [ ] **RUSTFLAGS nicht auf Workflow-Level** wenn Clippy eigene Warning-Control braucht
 
 ### Nach dem PR:
 - [ ] Dokumentieren in `docs/WAVE_X_MIGRATION_LEARNINGS.md`
