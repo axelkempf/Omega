@@ -1078,7 +1078,9 @@ class IndicatorCache:
                 self._ind_cache[key] = sigma_series
                 return sigma_series
             except Exception as e:
-                logger.debug(f"Rust GARCH volatility failed, falling back to Python: {e}")
+                logger.debug(
+                    f"Rust GARCH volatility failed, falling back to Python: {e}"
+                )
 
         # Python fallback
         closes = self.get_closes(tf, price_type)

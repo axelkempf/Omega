@@ -137,7 +137,9 @@ def run_benchmark(n_bars: int = 100_000):
     cache_py = ic_module.IndicatorCache(data)
 
     print("=== Python (ohne Rust) ===")
-    print(f"{'Indikator':<25} {'Zeit (ms)':>10} {'Peak RAM (KB)':>14} {'Alloc (KB)':>12}")
+    print(
+        f"{'Indikator':<25} {'Zeit (ms)':>10} {'Peak RAM (KB)':>14} {'Alloc (KB)':>12}"
+    )
     print("-" * 65)
     py_results: dict[str, BenchmarkResult] = {}
     for name, fn in indicators:
@@ -155,7 +157,9 @@ def run_benchmark(n_bars: int = 100_000):
 
     print()
     print("=== Rust (aktiviert) ===")
-    print(f"{'Indikator':<25} {'Zeit (ms)':>10} {'Peak RAM (KB)':>14} {'Alloc (KB)':>12}")
+    print(
+        f"{'Indikator':<25} {'Zeit (ms)':>10} {'Peak RAM (KB)':>14} {'Alloc (KB)':>12}"
+    )
     print("-" * 65)
     rust_results: dict[str, BenchmarkResult] = {}
     for name, fn in indicators:
@@ -167,9 +171,7 @@ def run_benchmark(n_bars: int = 100_000):
 
     print()
     print("=== Vergleich (Python vs Rust) ===")
-    print(
-        f"{'Indikator':<25} {'Speedup':>8} {'RAM Diff':>12} {'Status':>8}"
-    )
+    print(f"{'Indikator':<25} {'Speedup':>8} {'RAM Diff':>12} {'Status':>8}")
     print("-" * 55)
 
     total_py_time = sum(r.time_ms for r in py_results.values())
@@ -183,9 +185,7 @@ def run_benchmark(n_bars: int = 100_000):
         speedup = py_r.time_ms / rust_r.time_ms if rust_r.time_ms > 0 else 0
         mem_diff = rust_r.peak_memory_kb - py_r.peak_memory_kb
         mem_pct = (
-            (mem_diff / py_r.peak_memory_kb * 100)
-            if py_r.peak_memory_kb > 0
-            else 0
+            (mem_diff / py_r.peak_memory_kb * 100) if py_r.peak_memory_kb > 0 else 0
         )
 
         # Status: Zeit-basiert
@@ -201,8 +201,12 @@ def run_benchmark(n_bars: int = 100_000):
     print("=== Zusammenfassung ===")
     print(f"{'Metrik':<25} {'Python':>12} {'Rust':>12} {'Diff':>12}")
     print("-" * 55)
-    print(f"  {'Gesamt Zeit':<23} {total_py_time:>10.1f}ms {total_rust_time:>10.1f}ms {total_py_time/total_rust_time:>10.1f}x")
-    print(f"  {'Gesamt Peak RAM':<23} {total_py_mem:>10.1f}KB {total_rust_mem:>10.1f}KB {total_rust_mem - total_py_mem:>+10.1f}KB")
+    print(
+        f"  {'Gesamt Zeit':<23} {total_py_time:>10.1f}ms {total_rust_time:>10.1f}ms {total_py_time/total_rust_time:>10.1f}x"
+    )
+    print(
+        f"  {'Gesamt Peak RAM':<23} {total_py_mem:>10.1f}KB {total_rust_mem:>10.1f}KB {total_rust_mem - total_py_mem:>+10.1f}KB"
+    )
     print()
     print(f"Zeit-Speedup:    {total_py_time/total_rust_time:.1f}x schneller")
     mem_ratio = total_rust_mem / total_py_mem if total_py_mem > 0 else 1.0
