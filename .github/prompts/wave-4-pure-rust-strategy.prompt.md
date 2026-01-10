@@ -86,7 +86,7 @@ Die erste Pure-Rust-Strategie soll `mean_reversion_z_score` sein:
 
 ### Python-Implementierung (Referenz)
 
-Pfad: `src/strategies/mean_reversion_z_score/strategy/mean_reversion_z_score_strategy.py`
+Pfad: `src/strategies//mean_reversion_z_score_strategy.py`
 
 Kernlogik:
 - Kalman-Filter für geglätteten Preis
