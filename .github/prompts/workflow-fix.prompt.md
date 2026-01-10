@@ -1,6 +1,6 @@
 ---
 description: 'Spezialisierter Prompt für die Analyse und Behebung von CI/CD-Workflow-Fehlern im Omega Trading-Stack. Berücksichtigt Python/Rust/Julia-Hybrid-Architektur, Cross-Platform-Anforderungen und MT5-Spezifika.'
-tools: ['file_search', 'grep_search', 'read_file', 'replace_string_in_file', 'run_in_terminal', 'get_errors', 'get_changed_files', 'semantic_search']
+tools: ['vscode', 'execute', 'read', 'edit', 'search', 'web', 'copilot-container-tools/*', 'agent', 'github/*', 'pylance-mcp-server/*', 'github.vscode-pull-request-github/copilotCodingAgent', 'github.vscode-pull-request-github/issue_fetch', 'github.vscode-pull-request-github/suggest-fix', 'github.vscode-pull-request-github/searchSyntax', 'github.vscode-pull-request-github/doSearch', 'github.vscode-pull-request-github/renderIssues', 'github.vscode-pull-request-github/activePullRequest', 'github.vscode-pull-request-github/openPullRequest', 'ms-python.python/getPythonEnvironmentInfo', 'ms-python.python/getPythonExecutableCommand', 'ms-python.python/installPythonPackage', 'ms-python.python/configurePythonEnvironment', 'ms-toolsai.jupyter/configureNotebook', 'ms-toolsai.jupyter/listNotebookPackages', 'ms-toolsai.jupyter/installNotebookPackages', 'todo']
 agent: 'agent'
 ---
 

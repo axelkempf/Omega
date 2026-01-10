@@ -96,11 +96,10 @@ Ordner-für-Ordner-Übersicht der Codebasis (ohne `results`-Ordner und ohne Aufl
       - `position.rs` *(PositionRust struct with R-multiple)*
       - `portfolio.rs` *(PortfolioRust class with state tracking)*
       - `state.rs` *(PortfolioState, EquityPoint, FeeLogEntry)*
-    - `event_engine/` *(Wave 3: Event Engine - PLANNED)*
-      - `mod.rs` *(Module exports: EventEngineRust - TBD)*
-      - `engine.rs` *(Event loop with Rust callbacks - TBD)*
-      - `callbacks.rs` *(Python callback FFI bridge - TBD)*
-      - `state.rs` *(EngineState, LoopState - TBD)*
+    - `event/` *(Wave 3: Event Engine - IMPLEMENTED)*
+      - `mod.rs` *(Module exports: EventEngineRust, EventEngineStats)*
+      - `types.rs` *(CandleData, SignalDirection, TradeSignalRust)*
+      - `engine.rs` *(EventEngineRust: Rust event loop with Python callbacks)*
   - `benches/`
     - `indicator_bench.rs` *(Criterion benchmarks)*
 

@@ -109,7 +109,7 @@ jobs:
           cache-dependency-path: pyproject.toml
 
       - name: Cache mypy
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: .mypy_cache
           key: mypy-${{ runner.os }}-${{ hashFiles('src/**/*.py') }}
@@ -160,7 +160,7 @@ jobs:
           cache-dependency-path: pyproject.toml
 
       - name: Cache pytest
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: .pytest_cache
           key: pytest-${{ runner.os }}-${{ hashFiles('tests/**/*.py') }}

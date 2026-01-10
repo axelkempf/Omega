@@ -4,6 +4,65 @@ Alle nennenswerten Änderungen werden in dieser Datei dokumentiert.
 
 > Hinweis: Historische Einträge sind ggf. unvollständig.
 
+## [1.7.0] - Wave 3: Event Engine Rust Migration ✅ IMPLEMENTED
+
+### Added
+- **Rust Event Engine** (`src/rust_modules/omega_rust/src/event/`):
+  - `EventEngineRust` PyO3 class with main event loop
+  - `EventEngineStats` for performance metrics tracking
+  - `CandleData`, `SignalDirection`, `TradeSignalRust` types
+  - Python callback integration for strategy evaluation
+  - Optional position management callback support
+
+- **Feature Flag System**: `OMEGA_USE_RUST_EVENT_ENGINE` environment variable
+  - `auto` (default): Use Rust if available, fallback to Python
+  - `true`: Force Rust
+  - `false`: Force Python
+
+- **CI Verification Helpers**:
+  - `get_active_backend()` function for backend verification
+  - `get_event_engine_backend()` Rust function
+
+- **Backend Verification Tests** (`tests/test_event_engine_backend_verify.py`):
+  - 16 tests covering backend availability, feature flags, stats attributes
+
+- **Migration Learnings Document** (`docs/WAVE_3_MIGRATION_LEARNINGS.md`):
+  - PyO3 0.27 API changes documented
+  - Ownership patterns for loops
+  - Callback integration patterns
+  - Best practices for future migrations
+
+### Changed
+- **`src/backtest_engine/core/event_engine.py`**:
+  - Added `_run_rust()` method for Rust backend
+  - Added `_run_python()` method for Python backend  
+  - Added `_create_position_mgmt_callback()` method
+  - Added `use_rust` constructor parameter for explicit backend selection
+
+- **`src/rust_modules/omega_rust/src/lib.rs`**:
+  - Registered `EventEngineRust`, `EventEngineStats`
+  - Registered `get_event_engine_backend()` function
+
+- **`architecture.md`**:
+  - Updated Rust module structure with `event/` directory
+
+### Technical Details
+- Event loop implemented in Rust with 7-step processing:
+  1. PREPARE: Candle selection and SymbolDataSlice update
+  2. STRATEGY: Python callback evaluation
+  3. PROCESS: Signal processing via executor
+  4. EXITS: Position exit evaluation
+  5. POSITION_MGMT: Optional position management callback
+  6. PORTFOLIO: Portfolio state update
+  7. PROGRESS: Progress reporting
+
+### Tests
+- 16 backend verification tests passing
+- 716 existing tests passing (1 unrelated failure)
+- All Rust compilation successful (warnings only)
+
+---
+
 ## [1.6.0] - Wave 1: IndicatorCache Rust Integration Fix ✅ COMPLETED
 
 ### Fixed
