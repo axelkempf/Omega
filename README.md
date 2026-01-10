@@ -176,10 +176,12 @@ Für performance-kritische Module wird eine Hybrid-Architektur verwendet:
 
 ### Rust-Module (PyO3/Maturin) – Migrationsstatus
 
-| Wave | Modul | Status | Feature-Flag |
-|------|-------|--------|--------------|
-| Wave 0 | Slippage & Fee Costs | ✅ Complete | `OMEGA_USE_RUST_SLIPPAGE_FEE` |
-| Wave 2 | Portfolio (Position, State) | ✅ Complete | `OMEGA_USE_RUST_PORTFOLIO` |
+| Wave | Modul | Status | Feature-Flag | Plan |
+|------|-------|--------|--------------|------|
+| Wave 0 | Slippage & Fee Costs | ✅ Complete | `OMEGA_USE_RUST_SLIPPAGE_FEE` | [Plan](docs/WAVE_0_SLIPPAGE_FEE_IMPLEMENTATION_PLAN.md) |
+| Wave 1 | IndicatorCache | ✅ Complete (474x Speedup) | `OMEGA_USE_RUST_INDICATOR_CACHE` | [Plan](docs/WAVE_1_INDICATOR_CACHE_IMPLEMENTATION_PLAN.md) |
+| Wave 2 | Portfolio (Position, State) | ✅ Complete | `OMEGA_USE_RUST_PORTFOLIO` | [Plan](docs/WAVE_2_PORTFOLIO_IMPLEMENTATION_PLAN.md) |
+| Wave 3 | Event Engine | 📋 Planned | `OMEGA_USE_RUST_EVENT_ENGINE` | [Plan](docs/WAVE_3_EVENT_ENGINE_IMPLEMENTATION_PLAN.md) |
 
 **Feature-Flag-Werte:** `auto` (default), `true`, `false`
 

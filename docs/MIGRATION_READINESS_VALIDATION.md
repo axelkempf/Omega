@@ -270,29 +270,26 @@ Evidence:
 
 ## 9. Migration Execution Order
 
-### Recommended Pilot Sequence
+### Actual Implementation Sequence (Updated 2026-01-09)
 
-1. **Wave 0 (Pilot):** `slippage_and_fee.py` (2-3 days)
-   - Pure functions, SIMD-friendly
-   - Validates entire toolchain
-   
-2. **Wave 1:** Rating Modules (batch) (5-7 days)
-   - Property-based validation ready
-   - High parallelism potential
+| Wave | Module | Status | Duration | Plan Document |
+|------|--------|--------|----------|---------------|
+| **Wave 0** | `slippage_and_fee.py` | ✅ Complete | 2-3 days | [WAVE_0_SLIPPAGE_FEE_IMPLEMENTATION_PLAN.md](WAVE_0_SLIPPAGE_FEE_IMPLEMENTATION_PLAN.md) |
+| **Wave 1** | `indicator_cache.py` | ✅ Complete (474x) | 5-7 days | [WAVE_1_INDICATOR_CACHE_IMPLEMENTATION_PLAN.md](WAVE_1_INDICATOR_CACHE_IMPLEMENTATION_PLAN.md) |
+| **Wave 2** | `portfolio.py` | ✅ Complete | 4-5 days | [WAVE_2_PORTFOLIO_IMPLEMENTATION_PLAN.md](WAVE_2_PORTFOLIO_IMPLEMENTATION_PLAN.md) |
+| **Wave 3** | `event_engine.py` | 📋 Planned | 8-12 days | [WAVE_3_EVENT_ENGINE_IMPLEMENTATION_PLAN.md](WAVE_3_EVENT_ENGINE_IMPLEMENTATION_PLAN.md) |
 
-3. **Wave 2:** `portfolio.py` (4-5 days)
-   - State management patterns
-   - Decimal precision critical
+### Future Waves (Tentative)
 
-4. **Wave 3:** `execution_simulator.py` (10-14 days)
+4. **Wave 4:** `execution_simulator.py` (10-14 days)
    - Highest complexity
    - Central to backtest integrity
 
-5. **Wave 4:** `multi_symbol_slice.py` (8-10 days)
+5. **Wave 5:** `multi_symbol_slice.py` (8-10 days)
    - Memory optimization focus
    - Iterator patterns
 
-6. **Wave 5:** Optimizer Modules (Julia) (6-8 days)
+6. **Wave 6:** Optimizer Modules (Julia) (6-8 days)
    - Hybrid architecture
    - Monte-Carlo integration
 
