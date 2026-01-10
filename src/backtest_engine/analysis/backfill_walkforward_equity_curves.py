@@ -754,6 +754,7 @@ def save_equity_curve(portfolio: Any, dest_dir: Path) -> bool:
             if isinstance(ts, (int, float)):
                 # Rust backend returns microseconds since epoch
                 from datetime import datetime
+
                 ts_str = datetime.utcfromtimestamp(ts / 1_000_000).isoformat()
             else:
                 ts_str = ts.isoformat()

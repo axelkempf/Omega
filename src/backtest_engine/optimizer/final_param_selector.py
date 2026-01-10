@@ -2532,6 +2532,7 @@ def _score_candidates(
                     if isinstance(ts, (int, float)):
                         # Rust backend returns microseconds since epoch
                         from datetime import datetime
+
                         ts_str = datetime.utcfromtimestamp(ts / 1_000_000).isoformat()
                     else:
                         ts_str = ts.isoformat()
