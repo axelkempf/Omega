@@ -1,4 +1,20 @@
-from typing import Any, Callable, Dict, List, Optional
+"""
+Event Engine Module for Backtest Execution.
+
+This module provides the core event loop for backtesting, with support for both
+Python and Rust backends. The Rust backend (Wave 3 migration) provides significant
+performance improvements for large backtests.
+
+Feature Flag: OMEGA_USE_RUST_EVENT_ENGINE
+    - "auto" (default): Use Rust if available, fallback to Python
+    - "true"/"1": Force Rust (error if unavailable)
+    - "false"/"0": Force Python (disable Rust)
+"""
+
+from __future__ import annotations
+
+import os
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional
 
 from backtest_engine.core.execution_simulator import ExecutionSimulator
 from backtest_engine.core.indicator_cache import get_cached_indicator_cache
@@ -8,10 +24,76 @@ from backtest_engine.core.symbol_data_slicer import SymbolDataSlice
 from backtest_engine.data.candle import Candle
 from backtest_engine.strategy.strategy_wrapper import StrategyWrapper
 
+if TYPE_CHECKING:
+    from omega_rust import EventEngineRust as EventEngineRustType
+    from omega_rust import EventEngineStats as EventEngineStatsType
+
+
+# =============================================================================
+# Rust Backend Detection (Wave 3)
+# =============================================================================
+
+_RUST_AVAILABLE: bool = False
+_RUST_MODULE: Any = None
+
+
+def _check_rust_event_engine_available() -> bool:
+    """Check if Rust EventEngine module is available and functional."""
+    global _RUST_MODULE
+    try:
+        import omega_rust
+
+        # Verify the EventEngineRust class exists
+        if hasattr(omega_rust, "EventEngineRust"):
+            _RUST_MODULE = omega_rust
+            return True
+    except ImportError:
+        pass
+    return False
+
+
+def _should_use_rust() -> bool:
+    """Determine if Rust implementation should be used based on env flag."""
+    env_val = os.environ.get("OMEGA_USE_RUST_EVENT_ENGINE", "auto").lower()
+    if env_val in ("true", "1"):
+        if not _RUST_AVAILABLE:
+            raise RuntimeError(
+                "OMEGA_USE_RUST_EVENT_ENGINE=true but Rust backend not available"
+            )
+        return True
+    if env_val in ("false", "0"):
+        return False
+    # auto: use Rust if available
+    return _RUST_AVAILABLE
+
+
+# Initialize on module load
+_RUST_AVAILABLE = _check_rust_event_engine_available()
+
+
+def get_active_backend() -> str:
+    """
+    Returns 'rust' or 'python' - for CI verification (Wave 1 Learning).
+
+    This function is used by tests to verify that the expected backend
+    is actually being used when feature flags are set.
+    """
+    if _should_use_rust():
+        return "rust"
+    return "python"
+
+
+def is_rust_available() -> bool:
+    """Returns True if the Rust EventEngine is available."""
+    return _RUST_AVAILABLE
+
 
 class EventEngine:
     """
     Event Engine für Single-Symbol Backtests.
+
+    Supports both Python and Rust backends. The Rust backend provides
+    significant performance improvements for large backtests (Wave 3).
 
     Args:
         bid_candles: Liste der Bid-Kerzen.
@@ -22,7 +104,12 @@ class EventEngine:
         multi_candle_data: Dict mit Multi-TF Candle-Listen.
         symbol: Symbol-Name (z.B. 'EURUSD').
         on_progress: Optionaler Callback für Fortschrittsanzeige.
+        original_start_dt: Timestamp für Start nach Warmup.
+        use_rust: Override for backend selection (None=auto, True=force Rust, False=force Python)
     """
+
+    # Last run statistics (populated after run() completes)
+    last_stats: Optional[Any] = None
 
     def __init__(
         self,
@@ -34,9 +121,8 @@ class EventEngine:
         multi_candle_data: Dict[str, Dict[str, List[Candle]]],
         symbol: str,
         on_progress: Optional[Callable[[int, int], None]] = None,
-        original_start_dt: Optional[
-            Any
-        ] = None,  # Typ je nach Timestamp-Klasse anpassen!
+        original_start_dt: Optional[Any] = None,
+        use_rust: Optional[bool] = None,
     ):
         self.bid_candles = bid_candles
         self.ask_candles = ask_candles
@@ -47,10 +133,120 @@ class EventEngine:
         self.symbol = symbol
         self.on_progress = on_progress
         self.original_start_dt = original_start_dt
+        self._use_rust = use_rust
+        self.last_stats = None
+
+    @property
+    def active_backend(self) -> str:
+        """Returns the backend that will be used for run()."""
+        if self._use_rust is True:
+            return "rust"
+        if self._use_rust is False:
+            return "python"
+        return get_active_backend()
 
     def run(self) -> None:
         """
         Hauptschleife für die Event Engine (Single Symbol).
+
+        Automatically selects Rust or Python backend based on availability
+        and configuration.
+        """
+        if self.active_backend == "rust":
+            self._run_rust()
+        else:
+            self._run_python()
+
+    def _run_rust(self) -> None:
+        """
+        Execute the event loop using the Rust backend.
+
+        The Rust backend handles the main loop iteration in compiled code,
+        calling back to Python for strategy evaluation and position management.
+        """
+        if not _RUST_AVAILABLE or _RUST_MODULE is None:
+            raise RuntimeError("Rust EventEngine not available")
+
+        total = len(self.bid_candles)
+
+        if self.original_start_dt is None:
+            raise ValueError("original_start_dt muss gesetzt werden!")
+
+        start_index = next(
+            (
+                i
+                for i, c in enumerate(self.bid_candles)
+                if c.timestamp >= self.original_start_dt
+            ),
+            None,
+        )
+        if start_index is None:
+            raise ValueError("Kein Startindex gefunden – überprüfe original_start_dt!")
+
+        # Get cached indicator cache
+        ind_cache = get_cached_indicator_cache(self.multi_candle_data)
+
+        # Create reusable SymbolDataSlice
+        symbol_slice = SymbolDataSlice(
+            multi_candle_data=self.multi_candle_data,
+            index=start_index,
+            indicator_cache=ind_cache,
+        )
+
+        # Create Rust EventEngine
+        rust_engine = _RUST_MODULE.EventEngineRust(
+            bid_candles=self.bid_candles,
+            ask_candles=self.ask_candles,
+            start_index=start_index,
+            symbol=self.symbol,
+        )
+
+        # Create strategy callback wrapper
+        def strategy_callback(index: int, slice_map: Dict[str, Any]) -> Any:
+            return self.strategy.evaluate(index, slice_map)
+
+        # Create position management callback if needed
+        position_mgmt_callback = self._create_position_mgmt_callback()
+
+        # Run the Rust event loop
+        self.last_stats = rust_engine.run(
+            strategy_callback=strategy_callback,
+            executor=self.executor,
+            portfolio=self.portfolio,
+            slice_obj=symbol_slice,
+            progress_callback=self.on_progress,
+            position_mgmt_callback=position_mgmt_callback,
+        )
+
+    def _create_position_mgmt_callback(self) -> Optional[Callable[..., None]]:
+        """Create a callback for position management in Rust loop."""
+        strategy_instance = getattr(self.strategy.strategy, "strategy", None)
+        pm = getattr(strategy_instance, "position_manager", None)
+        if pm is None:
+            return None
+
+        # Attach portfolio if not already attached
+        if not getattr(pm, "portfolio", None):
+            pm.attach_portfolio(self.portfolio)
+
+        def callback(symbol_slice: Any, bid_candle: Any, ask_candle: Any) -> None:
+            open_pos = self.portfolio.get_open_positions(self.symbol)
+            all_pos = self.executor.active_positions
+            pm.manage_positions(
+                open_positions=open_pos,
+                symbol_slice=symbol_slice,
+                bid_candle=bid_candle,
+                ask_candle=ask_candle,
+                all_positions=all_pos,
+            )
+
+        return callback
+
+    def _run_python(self) -> None:
+        """
+        Execute the event loop using the pure Python backend.
+
+        This is the original implementation, kept for fallback and comparison.
         """
         total = len(self.bid_candles)
 

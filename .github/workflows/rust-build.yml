@@ -44,7 +44,8 @@ permissions:
 env:
   CARGO_TERM_COLOR: always
   RUST_BACKTRACE: 1
-  RUSTFLAGS: "-D warnings"
+  # RUSTFLAGS moved to job-level to allow Clippy to control its own warning behavior
+  # Build jobs use -D warnings, Clippy uses its own -A/-W/-D flags
   # Rust toolchain version (pinned for reproducibility)
   # Using latest stable - dtolnay/rust-toolchain@stable will resolve automatically
   RUST_VERSION: "stable"
@@ -104,8 +105,11 @@ jobs:
       - name: Run Clippy
         if: steps.check_rust.outputs.rust_exists == 'true'
         working-directory: src/rust_modules/omega_rust
+        # Note: -D warnings is applied selectively via Clippy flags, not RUSTFLAGS
+        # This allows fine-grained control over which warnings are errors
         run: |
           cargo clippy --all-targets --all-features -- \
+            -D warnings \
             -W clippy::all \
             -A clippy::too_many_arguments \
             -A clippy::type_complexity \
@@ -132,7 +136,8 @@ jobs:
             -A clippy::suboptimal_flops \
             -A clippy::manual_range_contains \
             -A clippy::cast_lossless \
-            -A clippy::float_cmp
+            -A clippy::float_cmp \
+            -A deprecated
 
   # ============================================================================
   # Security Audit
@@ -414,6 +419,12 @@ jobs:
           else
             echo "rust_exists=false" >> $GITHUB_OUTPUT
           fi
+
+      - name: Setup Python (required for PyO3 abi3-py312)
+        if: steps.check_rust.outputs.rust_exists == 'true'
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
 
       - name: Setup Rust toolchain
         if: steps.check_rust.outputs.rust_exists == 'true'

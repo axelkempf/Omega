@@ -227,12 +227,92 @@ lint:
 
 ---
 
+## Vorausgehende Qualitätsprüfungen (KRITISCH)
+
+**BEVOR** Workflows analysiert werden, führe diese lokalen Prüfungen durch, um Code-Qualitätsprobleme zu erkennen, die Workflow-Fehler verursachen können:
+
+### 1. Pre-Flight Code Quality Checks
+
+```bash
+# Python-Formatierung prüfen
+black --check src/ tests/
+
+# Import-Sortierung prüfen
+isort --check src/ tests/
+
+# Rust-Formatierung prüfen (falls Rust-Module existieren)
+cargo fmt --manifest-path src/rust_modules/omega_rust/Cargo.toml --check
+
+# Julia-Formatierung prüfen (falls Julia-Module existieren)
+# julia -e 'using JuliaFormatter; format("src/julia_modules", check=true)'
+```
+
+### 2. Workflow-Fehler vs. Code-Qualitätsfehler unterscheiden
+
+**Code-Qualitätsfehler** (lokaler Fix erforderlich):
+- `black --check` zeigt Formatting-Differenzen → `black src/ tests/` ausführen
+- `isort --check` zeigt Import-Fehler → `isort src/ tests/` ausführen
+- `cargo fmt --check` zeigt Rust-Formatierung → `cargo fmt` ausführen
+- Linter-Fehler (flake8, clippy) → Code lokal korrigieren
+
+**Workflow-Konfigurationsfehler** (YAML-Fix erforderlich):
+- Fehlende Setup-Schritte (z.B. Python nicht installiert vor Rust-Build)
+- Veraltete Action-Versionen (`@v4` statt `@v5`)
+- Fehlende pytest-Marker für Integration-Tests in Copilot-Workflow
+- Falsche Job-Dependencies oder Concurrency-Konflikte
+
+### 3. Gelernte Muster aus vergangenen Fehlern
+
+| Fehlertyp | Root Cause | Lösung |
+|-----------|------------|--------|
+| `black --check` Failure | Trailing Whitespace, Assert-Formatierung, Import-Gruppierung | `black src/ tests/` lokal ausführen |
+| PyO3 Undefined Symbol | Python nicht vor Rust-Build installiert | `setup-python@v5` VOR Rust-Toolchain |
+| Copilot-Setup Tests Fail | Integration-Tests ohne MT5/Rust | pytest-Marker `-m "not integration..."` |
+| `cargo fmt --check` Failure | Rust-Code nicht formatiert | `cargo fmt` lokal ausführen |
+| Cache Miss / Action Error | Veraltete Action-Versionen | Alle auf @v5 oder @v6 aktualisieren |
+
 ## Starte die Analyse
+
+### Schritt 1: Lokale Code-Qualität verifizieren
+
+Führe zuerst aus:
+```bash
+cd /Users/axelkempf/Omega
+black --check src/ tests/ 2>&1 | head -20
+isort --check src/ tests/ 2>&1 | head -20
+cargo fmt --manifest-path src/rust_modules/omega_rust/Cargo.toml --check 2>&1 | head -20
+```
+
+Falls Fehler gefunden werden: **Erst lokale Fixes anwenden** bevor Workflows analysiert werden!
+
+### Schritt 2: Aktuelle Workflow-Fehler identifizieren
+
+```bash
+# Letzte fehlgeschlagene Runs auf main/PR anzeigen
+gh run list --status=failure --limit=5
+
+# Details eines fehlgeschlagenen Runs abrufen
+gh run view <RUN_ID> --log-failed | head -100
+```
+
+### Schritt 3: Workflow-Dateien analysieren
 
 Analysiere nun die vorhandenen Workflows im Repository `/Users/axelkempf/Omega/.github/workflows/` und erstelle die oben beschriebene Optimierungs-Empfehlung.
 
 **Fokus dabei auf:**
-1. Minimierung der Wartezeit für Entwickler
-2. Maximale Sicherheit gegen Bugs auf main
-3. Praktische, sofort umsetzbare Vorschläge
-4. Berücksichtigung der Hybrid-Stack-Architektur (Python/Rust/Julia)
+1. **Lokale Pre-Flight Checks**: Formatierung und Lint-Fehler VOR Commit beheben
+2. **Minimierung der Wartezeit** für Entwickler
+3. **Maximale Sicherheit** gegen Bugs auf main
+4. **Praktische, sofort umsetzbare Vorschläge**
+5. **Berücksichtigung der Hybrid-Stack-Architektur** (Python/Rust/Julia)
+
+### Schritt 4: Validierung nach Fixes
+
+Nach Workflow-Änderungen:
+```bash
+# YAML-Syntax validieren
+python -c "import yaml; yaml.safe_load(open('.github/workflows/<file>.yml'))"
+
+# Alle Workflow-Dateien validieren
+for f in .github/workflows/*.yml; do python -c "import yaml; yaml.safe_load(open('$f'))" && echo "$f: OK"; done
+```
