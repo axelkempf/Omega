@@ -173,6 +173,93 @@ strategy:
     os: [ubuntu-latest, macos-latest, windows-latest]
 ```
 
+### E7: PyO3/Rust-Benchmarks ohne Python-Setup (PR #24 Learning)
+```yaml
+# ❌ Falsch: Rust-Benchmarks mit PyO3 ohne Python-Installation
+benchmarks:
+  steps:
+    - uses: dtolnay/rust-toolchain@stable
+    - run: cargo bench  # Fehler: PyO3 findet kein Python
+
+# ✅ Korrekt: Python VOR Rust-Toolchain installieren
+benchmarks:
+  steps:
+    - uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+    - uses: dtolnay/rust-toolchain@stable
+    - run: cargo bench  # PyO3 findet Python 3.12
+```
+
+### E8: Actions-Versionen nicht konsistent (PR #24 Learning)
+```yaml
+# ❌ Inkonsistent: Mischung verschiedener Versionen
+- uses: actions/cache@v4  # Veraltet
+- uses: actions/cache@v5  # In anderem Job
+
+# ✅ Konsistent: Alle auf gleicher Major-Version
+- uses: actions/cache@v5
+- uses: actions/checkout@v6
+- uses: actions/setup-python@v5
+```
+
+### E9: Copilot-Setup ohne pytest-Marker (PR #24 Learning)
+```yaml
+# ❌ Falsch: Alle Tests ausführen (inkl. Integration)
+- run: pytest -q  # Fehlschlag: MT5/Rust nicht verfügbar
+
+# ✅ Korrekt: Integration-Tests exkludieren
+- run: pytest -q -m "not integration and not mt5 and not rust_integration and not julia_integration"
+```
+
+---
+
+## ⚡ Pre-Flight Code Quality Checks (KRITISCH - PR #24 Learning)
+
+**BEVOR** Workflows analysiert werden, lokale Code-Qualität prüfen!
+
+### Schritt 0: Lokale Formatierung verifizieren
+
+```bash
+# Python-Formatierung prüfen
+black --check src/ tests/
+
+# Import-Sortierung prüfen
+isort --check src/ tests/
+
+# Rust-Formatierung prüfen
+cargo fmt --manifest-path src/rust_modules/omega_rust/Cargo.toml --check
+```
+
+**Falls Fehler gefunden werden → ERST lokal fixen:**
+```bash
+black src/ tests/
+isort src/ tests/
+cargo fmt --manifest-path src/rust_modules/omega_rust/Cargo.toml
+```
+
+### Häufige Formatierungsfehler (aus PR #24)
+
+| Fehlertyp | Symptom | Lösung |
+|-----------|---------|--------|
+| Black assert-Formatierung | `assert x == y, (msg)` falsch formatiert | `black` reformatiert zu korrekter Form |
+| Trailing Whitespace | Leerzeichen am Zeilenende | Black ersetzt durch Newlines |
+| Import-Gruppierung | Imports nicht nach isort sortiert | `isort` gruppiert korrekt |
+| Rust Method-Chaining | `.method1().method2()` auf einer Zeile | `cargo fmt` bricht korrekt um |
+
+### Code-Qualitätsfehler vs. Workflow-Konfigurationsfehler
+
+**Code-Qualitätsfehler** (lokaler Fix, kein YAML ändern):
+- `black --check` / `isort --check` → Formatierung
+- `cargo fmt --check` / `clippy` → Rust-Qualität
+- `flake8` / `mypy` Warnungen → Code korrigieren
+
+**Workflow-Konfigurationsfehler** (YAML ändern):
+- Fehlende Setup-Schritte (Python vor Rust)
+- Veraltete Action-Versionen
+- Fehlende pytest-Marker
+- Falsche Pfade/Trigger
+
 ---
 
 ## Korrektur-Checkliste
@@ -304,7 +391,23 @@ gh workflow run cross-platform-ci.yml --field run_full_matrix=true
 
 # Lokale YAML-Validierung
 python -c "import yaml; yaml.safe_load(open('.github/workflows/ci.yml'))"
+
+# Alle Workflow-YAMLs validieren
+for f in .github/workflows/*.yml; do python -c "import yaml; yaml.safe_load(open('$f'))" && echo "$f: OK"; done
 ```
+
+---
+
+## Gelernte Muster (Error → Root Cause → Fix)
+
+| Workflow-Fehler | Root Cause | Fix |
+|-----------------|------------|-----|
+| `black --check` failed | Code nicht formatiert | `black src/ tests/` lokal |
+| `cargo fmt --check` failed | Rust nicht formatiert | `cargo fmt` lokal |
+| PyO3 `undefined symbol: _Py_DecRef` | Python nicht installiert vor Rust-Build | `setup-python@v5` VOR `rust-toolchain` |
+| `pytest` failed in copilot-setup | Integration-Tests ohne Deps | `-m "not integration..."` Marker |
+| Cache miss / restore error | Veraltete action Version | Alle auf `@v5` / `@v6` updaten |
+| MT5 import error auf Linux | MT5 ist Windows-only | Tests mit `platform_system == "Windows"` oder pytest-Marker |
 
 ---
 
