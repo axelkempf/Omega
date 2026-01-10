@@ -422,7 +422,11 @@ mod tests {
         // Log returns
         let log_ret = calculate_returns(&prices, true, 100.0);
         assert!(log_ret[0].is_nan());
-        assert_relative_eq!(log_ret[1], (101.0 / 100.0_f64).ln() * 100.0, epsilon = 1e-10);
+        assert_relative_eq!(
+            log_ret[1],
+            (101.0 / 100.0_f64).ln() * 100.0,
+            epsilon = 1e-10
+        );
 
         // Simple returns
         let simple_ret = calculate_returns(&prices, false, 100.0);

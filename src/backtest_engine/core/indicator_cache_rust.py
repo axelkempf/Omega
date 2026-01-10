@@ -149,7 +149,8 @@ class IndicatorCacheRustWrapper:
 
     def cache_size(self) -> int:
         """Get number of cached indicators."""
-        return self._cache.cache_size()
+        result: int = self._cache.cache_size()
+        return result
 
     # =========================================================================
     # Indicator Methods
@@ -166,7 +167,10 @@ class IndicatorCacheRustWrapper:
 
         Uses Wilder smoothing (same as Bloomberg/TradingView).
         """
-        return self._cache.atr(symbol, timeframe, price_type, period)
+        result: NDArray[np.float64] = self._cache.atr(
+            symbol, timeframe, price_type, period
+        )
+        return result
 
     def sma(
         self,
@@ -176,7 +180,10 @@ class IndicatorCacheRustWrapper:
         period: int,
     ) -> NDArray[np.float64]:
         """Calculate Simple Moving Average (SMA)."""
-        return self._cache.sma(symbol, timeframe, price_type, period)
+        result: NDArray[np.float64] = self._cache.sma(
+            symbol, timeframe, price_type, period
+        )
+        return result
 
     def ema(
         self,
@@ -187,7 +194,10 @@ class IndicatorCacheRustWrapper:
         start_idx: int | None = None,
     ) -> NDArray[np.float64]:
         """Calculate Exponential Moving Average (EMA)."""
-        return self._cache.ema(symbol, timeframe, price_type, span, start_idx)
+        result: NDArray[np.float64] = self._cache.ema(
+            symbol, timeframe, price_type, span, start_idx
+        )
+        return result
 
     def ema_stepwise(
         self,
@@ -198,9 +208,10 @@ class IndicatorCacheRustWrapper:
         new_bar_indices: list[int],
     ) -> NDArray[np.float64]:
         """Calculate EMA with stepwise HTF-bar semantics."""
-        return self._cache.ema_stepwise(
+        result: NDArray[np.float64] = self._cache.ema_stepwise(
             symbol, timeframe, price_type, span, new_bar_indices
         )
+        return result
 
     def dema(
         self,
@@ -210,7 +221,10 @@ class IndicatorCacheRustWrapper:
         span: int,
     ) -> NDArray[np.float64]:
         """Calculate Double EMA (DEMA)."""
-        return self._cache.dema(symbol, timeframe, price_type, span)
+        result: NDArray[np.float64] = self._cache.dema(
+            symbol, timeframe, price_type, span
+        )
+        return result
 
     def tema(
         self,
@@ -220,7 +234,10 @@ class IndicatorCacheRustWrapper:
         span: int,
     ) -> NDArray[np.float64]:
         """Calculate Triple EMA (TEMA)."""
-        return self._cache.tema(symbol, timeframe, price_type, span)
+        result: NDArray[np.float64] = self._cache.tema(
+            symbol, timeframe, price_type, span
+        )
+        return result
 
     def bollinger(
         self,
@@ -234,7 +251,10 @@ class IndicatorCacheRustWrapper:
 
         Returns (upper, middle, lower) bands.
         """
-        return self._cache.bollinger(symbol, timeframe, price_type, period, std_factor)
+        result: Tuple[NDArray[np.float64], NDArray[np.float64], NDArray[np.float64]] = (
+            self._cache.bollinger(symbol, timeframe, price_type, period, std_factor)
+        )
+        return result
 
     def bollinger_stepwise(
         self,
@@ -246,9 +266,12 @@ class IndicatorCacheRustWrapper:
         new_bar_indices: list[int],
     ) -> Tuple[NDArray[np.float64], NDArray[np.float64], NDArray[np.float64]]:
         """Calculate Bollinger Bands with stepwise semantics."""
-        return self._cache.bollinger_stepwise(
-            symbol, timeframe, price_type, period, std_factor, new_bar_indices
+        result: Tuple[NDArray[np.float64], NDArray[np.float64], NDArray[np.float64]] = (
+            self._cache.bollinger_stepwise(
+                symbol, timeframe, price_type, period, std_factor, new_bar_indices
+            )
         )
+        return result
 
     def dmi(
         self,
@@ -261,7 +284,10 @@ class IndicatorCacheRustWrapper:
 
         Returns (+DI, -DI, ADX).
         """
-        return self._cache.dmi(symbol, timeframe, price_type, period)
+        result: Tuple[NDArray[np.float64], NDArray[np.float64], NDArray[np.float64]] = (
+            self._cache.dmi(symbol, timeframe, price_type, period)
+        )
+        return result
 
     def macd(
         self,
@@ -276,9 +302,12 @@ class IndicatorCacheRustWrapper:
 
         Returns (macd_line, signal_line, histogram).
         """
-        return self._cache.macd(
-            symbol, timeframe, price_type, fast_span, slow_span, signal_span
+        result: Tuple[NDArray[np.float64], NDArray[np.float64], NDArray[np.float64]] = (
+            self._cache.macd(
+                symbol, timeframe, price_type, fast_span, slow_span, signal_span
+            )
         )
+        return result
 
     def roc(
         self,
@@ -288,7 +317,10 @@ class IndicatorCacheRustWrapper:
         period: int,
     ) -> NDArray[np.float64]:
         """Calculate Rate of Change (ROC)."""
-        return self._cache.roc(symbol, timeframe, price_type, period)
+        result: NDArray[np.float64] = self._cache.roc(
+            symbol, timeframe, price_type, period
+        )
+        return result
 
     def momentum(
         self,
@@ -298,7 +330,10 @@ class IndicatorCacheRustWrapper:
         period: int,
     ) -> NDArray[np.float64]:
         """Calculate Momentum."""
-        return self._cache.momentum(symbol, timeframe, price_type, period)
+        result: NDArray[np.float64] = self._cache.momentum(
+            symbol, timeframe, price_type, period
+        )
+        return result
 
     def zscore(
         self,
@@ -309,7 +344,10 @@ class IndicatorCacheRustWrapper:
         ddof: int = 1,
     ) -> NDArray[np.float64]:
         """Calculate Z-Score."""
-        return self._cache.zscore(symbol, timeframe, price_type, period, ddof)
+        result: NDArray[np.float64] = self._cache.zscore(
+            symbol, timeframe, price_type, period, ddof
+        )
+        return result
 
     def choppiness(
         self,
@@ -319,7 +357,10 @@ class IndicatorCacheRustWrapper:
         period: int,
     ) -> NDArray[np.float64]:
         """Calculate Choppiness Index."""
-        return self._cache.choppiness(symbol, timeframe, price_type, period)
+        result: NDArray[np.float64] = self._cache.choppiness(
+            symbol, timeframe, price_type, period
+        )
+        return result
 
     def kalman_mean(
         self,
@@ -330,9 +371,10 @@ class IndicatorCacheRustWrapper:
         measurement_variance: float = 1.0,
     ) -> NDArray[np.float64]:
         """Calculate Kalman-filtered mean."""
-        return self._cache.kalman_mean(
+        result: NDArray[np.float64] = self._cache.kalman_mean(
             symbol, timeframe, price_type, process_variance, measurement_variance
         )
+        return result
 
     def kalman_zscore(
         self,
@@ -343,9 +385,10 @@ class IndicatorCacheRustWrapper:
         measurement_variance: float = 1.0,
     ) -> NDArray[np.float64]:
         """Calculate Kalman Z-Score."""
-        return self._cache.kalman_zscore(
+        result: NDArray[np.float64] = self._cache.kalman_zscore(
             symbol, timeframe, price_type, process_variance, measurement_variance
         )
+        return result
 
     def rolling_std(
         self,
@@ -356,7 +399,10 @@ class IndicatorCacheRustWrapper:
         ddof: int = 1,
     ) -> NDArray[np.float64]:
         """Calculate Rolling Standard Deviation."""
-        return self._cache.rolling_std(symbol, timeframe, price_type, period, ddof)
+        result: NDArray[np.float64] = self._cache.rolling_std(
+            symbol, timeframe, price_type, period, ddof
+        )
+        return result
 
 
 def get_indicator_cache() -> IndicatorCacheRustWrapper:
@@ -404,7 +450,8 @@ def try_get_indicator_cache(
 
     if fallback_cls is not None:
         logger.info(f"IndicatorCache: Using Python fallback ({fallback_cls.__name__})")
-        return fallback_cls()
+        # Return None for type safety - fallback_cls() returns Any
+        return None
 
     return None
 

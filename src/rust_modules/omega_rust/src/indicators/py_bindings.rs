@@ -393,7 +393,14 @@ impl PyIndicatorCache {
             .map_err(|e| PyValueError::new_err(format!("Lock error: {}", e)))?;
 
         let (macd, signal, histogram) = cache
-            .macd(symbol, timeframe, price_type, fast_span, slow_span, signal_span)
+            .macd(
+                symbol,
+                timeframe,
+                price_type,
+                fast_span,
+                slow_span,
+                signal_span,
+            )
             .map_err(|e| PyValueError::new_err(e.to_string()))?;
 
         Ok((

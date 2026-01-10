@@ -352,7 +352,8 @@ impl IndicatorCache {
         period: usize,
         std_factor: f64,
     ) -> Result<(Vec<f64>, Vec<f64>, Vec<f64>)> {
-        let cache_key = CacheKey::bollinger(symbol, timeframe, price_type, period, std_factor, false);
+        let cache_key =
+            CacheKey::bollinger(symbol, timeframe, price_type, period, std_factor, false);
 
         if let Some(IndicatorResult::Triple(upper, middle, lower)) =
             self.indicator_cache.get(&cache_key)
@@ -365,7 +366,11 @@ impl IndicatorCache {
 
         self.indicator_cache.insert(
             cache_key,
-            IndicatorResult::Triple(result.upper.clone(), result.middle.clone(), result.lower.clone()),
+            IndicatorResult::Triple(
+                result.upper.clone(),
+                result.middle.clone(),
+                result.lower.clone(),
+            ),
         );
         Ok((result.upper, result.middle, result.lower))
     }
@@ -408,7 +413,11 @@ impl IndicatorCache {
 
         self.indicator_cache.insert(
             cache_key,
-            IndicatorResult::Triple(result.plus_di.clone(), result.minus_di.clone(), result.adx.clone()),
+            IndicatorResult::Triple(
+                result.plus_di.clone(),
+                result.minus_di.clone(),
+                result.adx.clone(),
+            ),
         );
         Ok((result.plus_di, result.minus_di, result.adx))
     }
@@ -425,7 +434,14 @@ impl IndicatorCache {
         slow_span: usize,
         signal_span: usize,
     ) -> Result<(Vec<f64>, Vec<f64>, Vec<f64>)> {
-        let cache_key = CacheKey::macd(symbol, timeframe, price_type, fast_span, slow_span, signal_span);
+        let cache_key = CacheKey::macd(
+            symbol,
+            timeframe,
+            price_type,
+            fast_span,
+            slow_span,
+            signal_span,
+        );
 
         if let Some(IndicatorResult::Triple(macd, signal, hist)) =
             self.indicator_cache.get(&cache_key)
@@ -438,7 +454,11 @@ impl IndicatorCache {
 
         self.indicator_cache.insert(
             cache_key,
-            IndicatorResult::Triple(result.macd.clone(), result.signal.clone(), result.histogram.clone()),
+            IndicatorResult::Triple(
+                result.macd.clone(),
+                result.signal.clone(),
+                result.histogram.clone(),
+            ),
         );
         Ok((result.macd, result.signal, result.histogram))
     }
@@ -548,7 +568,8 @@ impl IndicatorCache {
         price_type: &str,
         period: usize,
     ) -> Result<Vec<f64>> {
-        let cache_key = CacheKey::single_period("choppiness", symbol, timeframe, price_type, period);
+        let cache_key =
+            CacheKey::single_period("choppiness", symbol, timeframe, price_type, period);
 
         if let Some(IndicatorResult::Single(values)) = self.indicator_cache.get(&cache_key) {
             return Ok(values.clone());
@@ -1049,10 +1070,18 @@ mod tests {
     fn create_test_cache() -> IndicatorCache {
         let mut cache = IndicatorCache::new();
 
-        let open = vec![100.0, 101.0, 102.0, 101.5, 103.0, 102.0, 104.0, 103.5, 105.0, 104.0];
-        let high = vec![101.0, 102.0, 103.0, 102.5, 104.0, 103.0, 105.0, 104.5, 106.0, 105.0];
-        let low = vec![99.0, 100.0, 101.0, 100.5, 102.0, 101.0, 103.0, 102.5, 104.0, 103.0];
-        let close = vec![100.5, 101.5, 102.5, 102.0, 103.5, 102.5, 104.5, 104.0, 105.5, 104.5];
+        let open = vec![
+            100.0, 101.0, 102.0, 101.5, 103.0, 102.0, 104.0, 103.5, 105.0, 104.0,
+        ];
+        let high = vec![
+            101.0, 102.0, 103.0, 102.5, 104.0, 103.0, 105.0, 104.5, 106.0, 105.0,
+        ];
+        let low = vec![
+            99.0, 100.0, 101.0, 100.5, 102.0, 101.0, 103.0, 102.5, 104.0, 103.0,
+        ];
+        let close = vec![
+            100.5, 101.5, 102.5, 102.0, 103.5, 102.5, 104.5, 104.0, 105.5, 104.5,
+        ];
         let volume = vec![1000.0; 10];
 
         cache

@@ -139,13 +139,7 @@ pub fn bollinger_stepwise_impl(
     // Extract reduced series (one close per HTF bar)
     let reduced_close: Vec<f64> = new_bar_indices
         .iter()
-        .filter_map(|&idx| {
-            if idx < n {
-                Some(close[idx])
-            } else {
-                None
-            }
-        })
+        .filter_map(|&idx| if idx < n { Some(close[idx]) } else { None })
         .collect();
 
     if reduced_close.is_empty() {

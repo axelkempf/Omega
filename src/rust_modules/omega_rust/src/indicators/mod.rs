@@ -66,10 +66,10 @@ pub mod atr;
 pub use atr::{atr_from_tr, atr_impl};
 
 // EMA (existing + extended with stepwise)
-mod ema_impl;
 pub mod ema_extended;
-pub use ema_impl::{ema, exponential_moving_average};
+mod ema_impl;
 pub use ema_extended::{dema_impl, ema_impl as ema_generic, ema_stepwise_impl, tema_impl};
+pub use ema_impl::{ema, exponential_moving_average};
 
 // SMA + Rolling Std
 pub mod sma;
@@ -105,9 +105,7 @@ pub use choppiness::choppiness_impl;
 
 // Kalman Filter
 pub mod kalman;
-pub use kalman::{
-    kalman_impl, kalman_zscore_impl, kalman_zscore_stepwise_impl, KalmanResult,
-};
+pub use kalman::{kalman_impl, kalman_zscore_impl, kalman_zscore_stepwise_impl, KalmanResult};
 
 // GARCH Volatility (Wave 1 - Python-only indicators)
 pub mod garch;

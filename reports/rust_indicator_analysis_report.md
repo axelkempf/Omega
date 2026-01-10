@@ -217,11 +217,12 @@ def ema(self, tf, price_type, period):
 
 ## 7. Test Files Created
 
+<!-- docs-lint:planned - Test files to be finalized during Wave 1 completion -->
 | Datei | Zweck |
 |-------|-------|
 | `tools/quick_parity_test.py` | Schneller Paritätstest (alle Indikatoren) |
 | `tools/kalman_debug.py` | Detaillierte Kalman-Analyse |
-| `tests/test_indicator_rust_python_parity.py` | Pytest-kompatible Testsuite |
+| `tests/test_indicator_rust_python_parity.py` | Pytest-kompatible Testsuite | <!-- docs-lint:planned -->
 
 ---
 

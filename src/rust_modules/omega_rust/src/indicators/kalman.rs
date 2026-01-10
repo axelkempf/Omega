@@ -221,7 +221,8 @@ pub fn kalman_adaptive_impl(values: &[f64], window: usize, alpha: f64) -> Result
 
         // Update noise estimates (after sufficient data)
         if errors.len() >= window / 2 {
-            let error_variance = errors.iter().map(|e| e.powi(2)).sum::<f64>() / errors.len() as f64;
+            let error_variance =
+                errors.iter().map(|e| e.powi(2)).sum::<f64>() / errors.len() as f64;
             r = alpha * error_variance + (1.0 - alpha) * r;
             q = alpha * r * 0.1 + (1.0 - alpha) * q; // Q proportional to R
         }
@@ -282,13 +283,7 @@ pub fn kalman_zscore_stepwise_impl(
     // Extract values at new_bar_indices only
     let reduced_values: Vec<f64> = new_bar_indices
         .iter()
-        .filter_map(|&idx| {
-            if idx < n {
-                Some(values[idx])
-            } else {
-                None
-            }
-        })
+        .filter_map(|&idx| if idx < n { Some(values[idx]) } else { None })
         .collect();
 
     if reduced_values.is_empty() {

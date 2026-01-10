@@ -917,12 +917,13 @@ def macd_schema() -> pa.Schema:
 
 ### 6.2 Test-Dateien
 
+<!-- docs-lint:planned - Test files to be created during Wave 1.1 implementation -->
 | Datei | Phase | Beschreibung |
 |-------|-------|--------------|
-| `tests/test_indicator_cache_array_api.py` | 1 | NumPy-Array-API Parität |
-| `tests/test_indicator_cache_batch.py` | 2 | Batch-API Funktionalität |
-| `tests/test_indicator_cache_arrow.py` | 3 | Arrow IPC Zero-Copy |
-| `tests/benchmarks/test_bench_wave_1_1.py` | Alle | Performance Regression |
+| `tests/test_indicator_cache_array_api.py` | 1 | NumPy-Array-API Parität | <!-- docs-lint:planned -->
+| `tests/test_indicator_cache_batch.py` | 2 | Batch-API Funktionalität | <!-- docs-lint:planned -->
+| `tests/test_indicator_cache_arrow.py` | 3 | Arrow IPC Zero-Copy | <!-- docs-lint:planned -->
+| `tests/benchmarks/test_bench_wave_1_1.py` | Alle | Performance Regression | <!-- docs-lint:planned -->
 
 ### 6.3 Benchmark-Suite
 

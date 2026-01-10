@@ -135,7 +135,6 @@ pub fn choppiness_impl(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use approx::assert_relative_eq;
 
     #[test]
     fn test_choppiness_basic() {

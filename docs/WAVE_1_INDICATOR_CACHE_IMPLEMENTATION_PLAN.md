@@ -459,18 +459,19 @@ src/
 └── shared/
     └── arrow_schemas.py                  # OHLCV_SCHEMA, INDICATOR_SCHEMA
 
+<!-- docs-lint:planned - Test structure for Wave 1 implementation -->
 tests/
 ├── golden/
-│   ├── test_golden_indicator_cache.py    # NEU: Golden-Tests für Indikatoren
+│   ├── test_golden_indicator_cache.py    # NEU: Golden-Tests für Indikatoren <!-- docs-lint:planned -->
 │   └── reference/
 │       └── indicators/
-│           └── indicator_cache_v1.json   # NEU: Golden-Reference
+│           └── indicator_cache_v1.json   # NEU: Golden-Reference <!-- docs-lint:planned -->
 ├── benchmarks/
 │   └── test_bench_indicator_cache.py     # Bestehend, erweitern für Rust
 ├── property/
 │   └── test_prop_indicators.py           # Bestehend, Property-Based Tests
 └── integration/
-    └── test_indicator_cache_rust_parity.py  # NEU: Rust↔Python Parität
+    └── test_indicator_cache_rust_parity.py  # NEU: Rust↔Python Parität <!-- docs-lint:planned -->
 ```
 
 ---
@@ -848,10 +849,11 @@ Die Rust-Implementierung verwendet einen identischen Key-Raum, sodass Python-Fal
 
 ### 6.3 Test-Dateien
 
+<!-- docs-lint:planned - Test files to be created during Wave 1 implementation -->
 | Datei | Typ | Beschreibung | CI Gate |
 |-------|-----|--------------|---------|
-| `tests/golden/test_golden_indicator_cache.py` | Golden | Hash-basierte Determinismus-Prüfung | ✅ Blocking |
-| `tests/integration/test_indicator_cache_rust_parity.py` | Integration | Rust↔Python Parität für alle Indikatoren | ✅ Blocking |
+| `tests/golden/test_golden_indicator_cache.py` | Golden | Hash-basierte Determinismus-Prüfung | ✅ Blocking | <!-- docs-lint:planned -->
+| `tests/integration/test_indicator_cache_rust_parity.py` | Integration | Rust↔Python Parität für alle Indikatoren | ✅ Blocking | <!-- docs-lint:planned -->
 | `tests/property/test_prop_indicators.py` | Property | Bestehend, erweitern für Edge Cases | ✅ Blocking |
 | `tests/benchmarks/test_bench_indicator_cache.py` | Benchmark | Bestehend + Rust-Varianten | ✅ Regression |
 | `src/rust_modules/omega_rust/src/indicators/*.rs` | Rust Unit | `#[cfg(test)]` Module | ✅ cargo test |
@@ -929,7 +931,7 @@ def test_indicator_cache_ffi_contract():
 
 ### 6.5 Golden-File Format
 
-**Datei:** `tests/golden/reference/indicators/indicator_cache_v1.json`
+**Datei:** `tests/golden/reference/indicators/indicator_cache_v1.json` <!-- docs-lint:planned -->
 
 ```json
 {
@@ -1188,7 +1190,7 @@ konkrete Guardrails für künftige Waves und für die Vollendung von Wave 1 dien
 - [x] Property-Based Tests vorhanden (`tests/property/test_prop_indicators.py`)
 - [x] Rust Build-System funktioniert (Wave 0 & 2 validiert)
 - [x] Migration Readiness ✅ (`docs/MIGRATION_READINESS_VALIDATION.md`)
-- [ ] Golden-Tests vorbereitet (`tests/golden/test_golden_indicator_cache.py`)
+- [ ] Golden-Tests vorbereitet (`tests/golden/test_golden_indicator_cache.py`) <!-- docs-lint:planned -->
 - [ ] Lokale Entwicklungsumgebung verifiziert (Rust 1.75+, ndarray, numpy)
 
 ### 10.2 Implementation Checklist

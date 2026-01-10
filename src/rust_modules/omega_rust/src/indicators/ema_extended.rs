@@ -128,13 +128,7 @@ pub fn ema_stepwise_impl(
     // Extract values only at new bar indices
     let reduced: Vec<f64> = new_bar_indices
         .iter()
-        .filter_map(|&idx| {
-            if idx < n {
-                Some(values[idx])
-            } else {
-                None
-            }
-        })
+        .filter_map(|&idx| if idx < n { Some(values[idx]) } else { None })
         .collect();
 
     if reduced.is_empty() {

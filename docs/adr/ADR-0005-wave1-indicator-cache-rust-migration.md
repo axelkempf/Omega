@@ -152,14 +152,14 @@ Python API Layer (indicator_cache_rust.py)
 
 | Datei | Beschreibung |
 |-------|--------------|
-| `src/shared/indicator_cache_rust.py` | Feature-Flag-Wrapper + IndicatorCacheRustWrapper |
+| `src/backtest_engine/core/indicator_cache_rust.py` | Feature-Flag-Wrapper + IndicatorCacheRustWrapper |
 | `tests/test_indicator_cache_rust.py` | 17 pytest Tests |
 
 ## Usage
 
 ```python
 # Standard-Import (nutzt automatisch Rust wenn verfügbar)
-from src.shared.indicator_cache_rust import get_indicator_cache, is_rust_enabled
+from src.backtest_engine.core.indicator_cache_rust import get_indicator_cache, is_rust_enabled
 
 # Prüfen ob Rust aktiv
 if is_rust_enabled():

@@ -120,7 +120,13 @@ pub struct CacheKey {
 
 impl CacheKey {
     /// Create a new cache key.
-    pub fn new(indicator: &str, symbol: &str, timeframe: &str, price_type: &str, params: &str) -> Self {
+    pub fn new(
+        indicator: &str,
+        symbol: &str,
+        timeframe: &str,
+        price_type: &str,
+        params: &str,
+    ) -> Self {
         Self {
             indicator: indicator.to_string(),
             symbol: symbol.to_string(),
@@ -133,7 +139,13 @@ impl CacheKey {
     /// Create a cache key from a parameter slice.
     ///
     /// This is useful when parameters are computed as f64 values.
-    pub fn from_params(indicator: &str, symbol: &str, timeframe: &str, price_type: &str, params: &[f64]) -> Self {
+    pub fn from_params(
+        indicator: &str,
+        symbol: &str,
+        timeframe: &str,
+        price_type: &str,
+        params: &[f64],
+    ) -> Self {
         let params_str = params
             .iter()
             .map(|p| format!("{:.10}", p))
@@ -143,8 +155,20 @@ impl CacheKey {
     }
 
     /// Create cache key for single-period indicators (EMA, SMA, RSI, etc.).
-    pub fn single_period(indicator: &str, symbol: &str, timeframe: &str, price_type: &str, period: usize) -> Self {
-        Self::new(indicator, symbol, timeframe, price_type, &period.to_string())
+    pub fn single_period(
+        indicator: &str,
+        symbol: &str,
+        timeframe: &str,
+        price_type: &str,
+        period: usize,
+    ) -> Self {
+        Self::new(
+            indicator,
+            symbol,
+            timeframe,
+            price_type,
+            &period.to_string(),
+        )
     }
 
     /// Create cache key for MACD.
