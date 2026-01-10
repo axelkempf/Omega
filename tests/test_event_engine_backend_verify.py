@@ -50,7 +50,9 @@ class TestEventEngineBackendVerify:
         # Clear env var if set
         with patch.dict(os.environ, {}, clear=True):
             backend = get_active_backend()
-            assert backend == "rust", f"Default backend should be 'rust', got '{backend}'"
+            assert (
+                backend == "rust"
+            ), f"Default backend should be 'rust', got '{backend}'"
 
     def test_feature_flag_auto(self):
         """Test OMEGA_USE_RUST_EVENT_ENGINE=auto behavior."""
@@ -129,9 +131,10 @@ class TestEventEngineRustInit:
 
     def test_rust_engine_init_with_data(self):
         """Verify EventEngineRust can be initialized with candle data."""
-        import omega_rust
         from dataclasses import dataclass
         from datetime import datetime
+
+        import omega_rust
 
         # Create mock candle objects
         @dataclass

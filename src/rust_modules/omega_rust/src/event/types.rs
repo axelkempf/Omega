@@ -214,36 +214,42 @@ impl TradeSignalRust {
             .and_then(|s| s.extract())
             .unwrap_or_else(|_| "UNKNOWN".to_string());
 
-        let size: f64 = obj
-            .getattr("size")
-            .and_then(|s| s.extract())
-            .unwrap_or(1.0);
+        let size: f64 = obj.getattr("size").and_then(|s| s.extract()).unwrap_or(1.0);
 
         // Extract optional fields
-        let entry_price: Option<f64> = obj
-            .getattr("entry_price")
-            .ok()
-            .and_then(|p| if p.is_none() { None } else { p.extract().ok() });
+        let entry_price: Option<f64> = obj.getattr("entry_price").ok().and_then(|p| {
+            if p.is_none() {
+                None
+            } else {
+                p.extract().ok()
+            }
+        });
 
-        let stop_loss: Option<f64> = obj
-            .getattr("stop_loss")
-            .ok()
-            .and_then(|p| if p.is_none() { None } else { p.extract().ok() });
+        let stop_loss: Option<f64> = obj.getattr("stop_loss").ok().and_then(|p| {
+            if p.is_none() {
+                None
+            } else {
+                p.extract().ok()
+            }
+        });
 
-        let take_profit: Option<f64> = obj
-            .getattr("take_profit")
-            .ok()
-            .and_then(|p| if p.is_none() { None } else { p.extract().ok() });
+        let take_profit: Option<f64> = obj.getattr("take_profit").ok().and_then(|p| {
+            if p.is_none() {
+                None
+            } else {
+                p.extract().ok()
+            }
+        });
 
         let timestamp: i64 = obj
             .getattr("timestamp")
             .and_then(|t| t.extract())
             .unwrap_or(0);
 
-        let reason: Option<String> = obj
-            .getattr("reason")
-            .ok()
-            .and_then(|r| if r.is_none() { None } else { r.extract().ok() });
+        let reason: Option<String> =
+            obj.getattr("reason")
+                .ok()
+                .and_then(|r| if r.is_none() { None } else { r.extract().ok() });
 
         Ok(Some(Self {
             direction,

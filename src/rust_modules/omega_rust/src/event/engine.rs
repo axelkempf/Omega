@@ -276,18 +276,16 @@ impl EventEngineRust {
 
                         // Create simple Python objects from dicts for evaluate_exits
                         // The executor expects Candle objects, so we pass the raw candle data
-                        executor.call_method1(
-                            py,
-                            "evaluate_exits_from_dict",
-                            (bid_dict, ask_dict),
-                        ).or_else(|_| {
-                            // Fallback: If evaluate_exits_from_dict doesn't exist,
-                            // we need to convert back to Python Candle objects.
-                            // This is less efficient but maintains compatibility.
-                            let bid_py = self.candle_to_pyobject(py, bid_candle)?;
-                            let ask_py = self.candle_to_pyobject(py, ask_candle)?;
-                            executor.call_method1(py, "evaluate_exits", (bid_py, ask_py))
-                        })?;
+                        executor
+                            .call_method1(py, "evaluate_exits_from_dict", (bid_dict, ask_dict))
+                            .or_else(|_| {
+                                // Fallback: If evaluate_exits_from_dict doesn't exist,
+                                // we need to convert back to Python Candle objects.
+                                // This is less efficient but maintains compatibility.
+                                let bid_py = self.candle_to_pyobject(py, bid_candle)?;
+                                let ask_py = self.candle_to_pyobject(py, ask_candle)?;
+                                executor.call_method1(py, "evaluate_exits", (bid_py, ask_py))
+                            })?;
 
                         self.stats.exits_processed += 1;
                         self.stats.execution_time_ms += exec_start.elapsed().as_secs_f64() * 1000.0;
