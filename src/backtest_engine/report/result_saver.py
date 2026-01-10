@@ -89,10 +89,15 @@ def save_backtest_result(
         json.dump(trades, f, indent=2, default=_json_default)
 
     # 3. Equity-Kurve (CSV)
-    equity_data = [
-        {"timestamp": timestamp.isoformat(), "equity": equity}
-        for timestamp, equity in portfolio.get_equity_curve()
-    ]
+    equity_data = []
+    for timestamp, equity in portfolio.get_equity_curve():
+        # Handle both datetime objects and integer timestamps (from Rust backend)
+        if isinstance(timestamp, (int, float)):
+            # Rust backend returns microseconds since epoch
+            ts_iso = datetime.utcfromtimestamp(timestamp / 1_000_000).isoformat()
+        else:
+            ts_iso = timestamp.isoformat()
+        equity_data.append({"timestamp": ts_iso, "equity": equity})
     pd.DataFrame(equity_data).to_csv(result_dir / "equity.csv", index=False)
 
     # 4. Meta-Info

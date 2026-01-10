@@ -750,7 +750,13 @@ def save_equity_curve(portfolio: Any, dest_dir: Path) -> bool:
         if ts is None:
             continue
         try:
-            ts_str = ts.isoformat()
+            # Handle both datetime objects and integer timestamps (from Rust backend)
+            if isinstance(ts, (int, float)):
+                # Rust backend returns microseconds since epoch
+                from datetime import datetime
+                ts_str = datetime.utcfromtimestamp(ts / 1_000_000).isoformat()
+            else:
+                ts_str = ts.isoformat()
         except Exception:
             ts_str = str(ts)
         try:
