@@ -241,7 +241,7 @@ impl EventEngineRust {
 
                 // Check if it's a list or single signal
                 let signals_list = if signals_result.bind(py).is_instance_of::<PyList>() {
-                    signals_result.bind(py).downcast::<PyList>()?.to_owned()
+                    signals_result.extract::<Bound<'_, PyList>>(py)?
                 } else {
                     // Single signal - wrap in list
                     let list = PyList::empty(py);
@@ -282,8 +282,8 @@ impl EventEngineRust {
                                 // Fallback: If evaluate_exits_from_dict doesn't exist,
                                 // we need to convert back to Python Candle objects.
                                 // This is less efficient but maintains compatibility.
-                                let bid_py = self.candle_to_pyobject(py, bid_candle)?;
-                                let ask_py = self.candle_to_pyobject(py, ask_candle)?;
+                                let bid_py = Self::candle_to_pyobject(py, bid_candle)?;
+                                let ask_py = Self::candle_to_pyobject(py, ask_candle)?;
                                 executor.call_method1(py, "evaluate_exits", (bid_py, ask_py))
                             })?;
 
@@ -301,8 +301,8 @@ impl EventEngineRust {
                     if let Ok(len) = active_positions.bind(py).len() {
                         if len > 0 {
                             // Call position management callback with (slice_obj, bid_candle, ask_candle)
-                            let bid_py = self.candle_to_pyobject(py, bid_candle)?;
-                            let ask_py = self.candle_to_pyobject(py, ask_candle)?;
+                            let bid_py = Self::candle_to_pyobject(py, bid_candle)?;
+                            let ask_py = Self::candle_to_pyobject(py, ask_candle)?;
                             pm_callback.call1(py, (&slice_obj, bid_py, ask_py))?;
                         }
                     }
@@ -377,7 +377,7 @@ impl EventEngineRust {
     ///
     /// This is used when we need to pass candles to Python methods that
     /// expect Candle objects rather than dicts.
-    fn candle_to_pyobject(&self, py: Python<'_>, candle: &CandleData) -> PyResult<Py<PyAny>> {
+    fn candle_to_pyobject(py: Python<'_>, candle: &CandleData) -> PyResult<Py<PyAny>> {
         // Import the Candle class
         let candle_module = py.import("backtest_engine.data.candle")?;
         let candle_class = candle_module.getattr("Candle")?;
@@ -419,6 +419,7 @@ impl EventEngineRust {
 /// backtesting has additional complexity around timestamp synchronization
 /// and will be implemented after single-symbol is validated.
 #[pyclass]
+#[allow(dead_code)] // Placeholder struct - fields will be used in future implementation
 pub struct CrossSymbolEventEngineRust {
     // Placeholder fields
     symbols: Vec<String>,
