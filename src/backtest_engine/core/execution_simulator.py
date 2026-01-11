@@ -1,4 +1,23 @@
+"""Execution Simulator: Signalverarbeitung und Trade-Management.
+
+Wave 4 Phase 6: Wenn OMEGA_USE_RUST_EXECUTION_SIMULATOR=always gesetzt ist,
+delegiert dieser Modul ALLE Logik an die Rust-Implementierung.
+
+Zentrale Komponenten:
+- ExecutionSimulator: Hauptklasse für Trade-Lifecycle-Management
+- Integration mit Portfolio für Balance/Exposure-Tracking
+- Unterstützung für Market/Limit/Stop-Orders
+- Slippage-Modelle und Kommissionen
+
+Feature Flag:
+    OMEGA_USE_RUST_EXECUTION_SIMULATOR=always -> verwendet Rust-Backend
+    (andere Werte -> ValueError, Rollback ist deployment-based)
+"""
+
+from __future__ import annotations
+
 import math
+import os
 from typing import Any, Dict, List, Optional, Union
 
 from backtest_engine.core.portfolio import Portfolio, PortfolioPosition
@@ -9,19 +28,47 @@ from backtest_engine.sizing.commission import CommissionModel
 from backtest_engine.sizing.commission import Side as CommSide
 from backtest_engine.sizing.lot_sizer import LotSizer
 from backtest_engine.sizing.rate_provider import RateProvider
-from backtest_engine.sizing.symbol_specs_registry import (  # falls du Registry injizierst
-    SymbolSpec,
-    SymbolSpecsRegistry,
-)
+from backtest_engine.sizing.symbol_specs_registry import SymbolSpec, SymbolSpecsRegistry
 from backtest_engine.strategy.strategy_wrapper import TradeSignal
 
 # Für Forex: Standard Lotgröße
 LOT_SIZE = 100_000
 
 
+def _check_rust_feature_flag() -> bool:
+    """Check if Rust backend is required.
+
+    Wave 4: OMEGA_USE_RUST_EXECUTION_SIMULATOR=always is mandatory.
+    Returns True if env var is 'always', raises ValueError otherwise.
+    """
+    val = os.environ.get("OMEGA_USE_RUST_EXECUTION_SIMULATOR", "always").lower()
+    if val != "always":
+        raise ValueError(
+            "Wave 4 requires OMEGA_USE_RUST_EXECUTION_SIMULATOR=always "
+            f"(got {val!r}); rollback is deployment-based, not runtime fallback."
+        )
+    return True
+
+
+# Try to import Rust wrapper (will be used when feature flag is set)
+try:
+    from backtest_engine.core.execution_simulator_rust import (
+        ExecutionSimulatorRustWrapper,
+    )
+
+    _RUST_WRAPPER_AVAILABLE = True
+except ImportError:
+    _RUST_WRAPPER_AVAILABLE = False
+    ExecutionSimulatorRustWrapper = None  # type: ignore
+
+
 class ExecutionSimulator:
     """
     Simuliert die Orderausführung (Market, Limit, Stop) im Backtest.
+
+    Wave 4 Phase 6:
+        Wenn OMEGA_USE_RUST_EXECUTION_SIMULATOR=always gesetzt ist (default),
+        delegiert diese Klasse über `__new__` direkt an den Rust-Wrapper.
 
     Args:
         portfolio: Portfolio-Objekt.
@@ -29,6 +76,45 @@ class ExecutionSimulator:
         slippage_model: Optionales Slippage-Modell.
         fee_model: Optionales Gebührenmodell.
     """
+
+    def __new__(
+        cls,
+        portfolio: Portfolio,
+        risk_per_trade: float = 100.0,
+        slippage_model: Optional[SlippageModel] = None,
+        fee_model: Optional[FeeModel] = None,
+        symbol_specs: Optional[
+            Union[Dict[str, SymbolSpec], SymbolSpecsRegistry]
+        ] = None,
+        lot_sizer: Optional[LotSizer] = None,
+        commission_model: Optional[CommissionModel] = None,
+        rate_provider: Optional[RateProvider] = None,
+        **kwargs: Any,
+    ) -> "ExecutionSimulator":
+        """Create instance, delegating to Rust wrapper when feature flag is set."""
+        # Wave 4: Check feature flag (raises ValueError if not 'always')
+        _check_rust_feature_flag()
+
+        # Delegate to Rust wrapper
+        if _RUST_WRAPPER_AVAILABLE and ExecutionSimulatorRustWrapper is not None:
+            return ExecutionSimulatorRustWrapper(
+                portfolio=portfolio,
+                risk_per_trade=risk_per_trade,
+                slippage_model=slippage_model,
+                fee_model=fee_model,
+                symbol_specs=symbol_specs,
+                lot_sizer=lot_sizer,
+                commission_model=commission_model,
+                rate_provider=rate_provider,
+                **kwargs,
+            )  # type: ignore
+
+        # Fallback to Python implementation (should not happen in Wave 4)
+        # This branch raises ValueError because Rust is mandatory
+        raise RuntimeError(
+            "Rust wrapper not available but OMEGA_USE_RUST_EXECUTION_SIMULATOR=always. "
+            "Please ensure omega_rust is properly installed."
+        )
 
     def __init__(
         self,
@@ -42,7 +128,10 @@ class ExecutionSimulator:
         lot_sizer: Optional[LotSizer] = None,
         commission_model: Optional[CommissionModel] = None,
         rate_provider: Optional[RateProvider] = None,
+        **kwargs: Any,
     ) -> None:
+        # Note: This __init__ is never called when __new__ returns Rust wrapper.
+        # Kept for type hints and documentation purposes only.
         self.portfolio = portfolio
         self.active_positions: List[PortfolioPosition] = []
         self.risk_per_trade = risk_per_trade

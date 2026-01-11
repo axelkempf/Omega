@@ -25,9 +25,7 @@ from joblib import Parallel, delayed
 from joblib.externals.loky import get_reusable_executor
 
 from backtest_engine.optimizer._settings import get_selection_config
-from backtest_engine.optimizer.final_param_selector import (
-    run_final_parameter_selection,
-)
+from backtest_engine.optimizer.final_param_selector import run_final_parameter_selection
 from backtest_engine.optimizer.instrumentation import (
     StageRecorder,
     _format_stage_summary,
@@ -46,9 +44,7 @@ from backtest_engine.report.metrics import calculate_metrics
 from backtest_engine.runner import run_backtest_and_return_portfolio
 from hf_engine.infra.config.paths import PARQUET_DIR, WALKFORWARD_RESULTS_DIR
 from hf_engine.infra.logging.log_manager import log_optuna_report
-from hf_engine.infra.monitoring.telegram_bot import (
-    send_walkforward_telegram_message,
-)
+from hf_engine.infra.monitoring.telegram_bot import send_walkforward_telegram_message
 
 
 def _ensure_utf8_stdout() -> None:

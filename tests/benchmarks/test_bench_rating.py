@@ -36,9 +36,7 @@ from backtest_engine.rating.stress_penalty import (
     compute_penalty_profit_drawdown_sharpe,
     score_from_penalty,
 )
-from backtest_engine.rating.trade_dropout_score import (
-    simulate_trade_dropout_metrics,
-)
+from backtest_engine.rating.trade_dropout_score import simulate_trade_dropout_metrics
 
 from .conftest import (
     BENCHMARK_SEED,

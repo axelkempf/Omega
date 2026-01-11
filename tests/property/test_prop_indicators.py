@@ -23,12 +23,7 @@ from hypothesis import assume, given, settings
 
 from backtest_engine.core.indicator_cache import IndicatorCache
 
-from .conftest import (
-    indicator_periods,
-    multi_tf_candle_data,
-    ohlcv_data,
-    price_arrays,
-)
+from .conftest import indicator_periods, multi_tf_candle_data, ohlcv_data, price_arrays
 
 # ══════════════════════════════════════════════════════════════════════════════
 # BOUNDS AND RANGE TESTS

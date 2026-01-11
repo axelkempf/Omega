@@ -42,10 +42,11 @@ rand = "0.9"
 rand_chacha = "0.9"
 num-traits = "0.2"
 
-# Arrow Zero-Copy FFI (for future DataFrame integration)
-# arrow = { version = "50.0", features = ["ffi"], optional = true }
-# arrow-array = { version = "50.0", optional = true }
-# arrow-schema = { version = "50.0", optional = true }
+# Arrow Zero-Copy FFI (Wave 4: ExecutionSimulator IPC)
+arrow = { version = "54.0", features = ["ffi"] }
+arrow-array = "54.0"
+arrow-schema = "54.0"
+arrow-ipc = "54.0"
 
 # Error Handling
 anyhow = "1.0"
@@ -73,10 +74,8 @@ approx = "0.5"
 
 [features]
 default = []
-# Enable Arrow FFI for zero-copy data transfer
-# arrow-ffi = ["arrow", "arrow-array", "arrow-schema"]
-# Enable all optional features
-# full = ["arrow-ffi"]
+# Full feature set including all optional components
+full = []
 
 # ==============================================================================
 # Build Profiles

@@ -161,6 +161,10 @@ pub enum OmegaError {
     /// Item not found
     #[error("[{code}] Not found: {item}", code = ErrorCode::InvalidState.as_i32())]
     NotFound { item: String },
+
+    /// Arrow IPC error
+    #[error("[{code}] Arrow error: {0}", code = ErrorCode::FfiSchemaMismatch.as_i32())]
+    ArrowError(String),
 }
 
 impl OmegaError {
@@ -172,6 +176,7 @@ impl OmegaError {
             Self::NumericalError(_) => ErrorCode::ComputationFailed,
             Self::InternalError(_) => ErrorCode::InternalError,
             Self::NotFound { .. } => ErrorCode::InvalidState,
+            Self::ArrowError(_) => ErrorCode::FfiSchemaMismatch,
         }
     }
 }
@@ -187,9 +192,9 @@ impl From<OmegaError> for PyErr {
             OmegaError::InvalidParameter { .. }
             | OmegaError::InsufficientData { .. }
             | OmegaError::NotFound { .. } => PyValueError::new_err(err.to_string()),
-            OmegaError::NumericalError(_) | OmegaError::InternalError(_) => {
-                PyRuntimeError::new_err(err.to_string())
-            }
+            OmegaError::NumericalError(_)
+            | OmegaError::InternalError(_)
+            | OmegaError::ArrowError(_) => PyRuntimeError::new_err(err.to_string()),
         }
     }
 }

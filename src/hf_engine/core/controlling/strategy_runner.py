@@ -18,9 +18,7 @@ from hf_engine.core.risk.risk_manager import RiskManager
 from hf_engine.infra.config.time_utils import now_utc
 from hf_engine.infra.logging.error_handler import safe_execute
 from hf_engine.infra.logging.log_service import log_service
-from strategies._base.base_position_manager import (
-    strategy_position_manager_factory,
-)
+from strategies._base.base_position_manager import strategy_position_manager_factory
 
 
 class StrategyRunner:

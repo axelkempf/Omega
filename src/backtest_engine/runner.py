@@ -1716,9 +1716,7 @@ def _compute_backtest_robust_metrics(
         compute_multi_run_trade_dropout_score,
         simulate_trade_dropout_metrics_multi,
     )
-    from backtest_engine.rating.ulcer_index_score import (
-        compute_ulcer_index_and_score,
-    )
+    from backtest_engine.rating.ulcer_index_score import compute_ulcer_index_and_score
     from backtest_engine.report.metrics import calculate_metrics
 
     rep = config.get("reporting", {}) or {}
@@ -1928,7 +1926,7 @@ def _compute_backtest_robust_metrics(
         try:
             params_now = strat_params if isinstance(strat_params, dict) else {}
             jitter_names: List[str] = []
-            for k, v in (params_now.items() if isinstance(params_now, dict) else []):
+            for k, v in params_now.items() if isinstance(params_now, dict) else []:
                 if include_eff is not None and k not in include_eff:
                     continue
                 if k in exclude_eff:
