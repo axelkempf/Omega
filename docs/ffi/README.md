@@ -26,6 +26,12 @@ Dieses Verzeichnis enthält detaillierte Interface-Spezifikationen für Module, 
 | `slippage_and_fee.py` | [slippage_fee.md](slippage_fee.md) | Rust | P6-03 | ✅ Spezifiziert |
 | `portfolio.py` | [portfolio.md](portfolio.md) | Rust | P6-04 | ✅ Spezifiziert |
 
+### Wave 4 Module (Data Layer)
+
+| Modul | Datei | Zielsprache | Task-ID | Status |
+|-------|-------|-------------|---------|--------|
+| `data_handler.py` | [data_handler.md](data_handler.md) | Rust | W4-01 | 📋 Draft |
+
 ### Konventionen & Dokumentation
 
 | Dokument | Datei | Status |
