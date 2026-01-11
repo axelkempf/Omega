@@ -706,12 +706,17 @@ Rationale: Wave 4 ist “full migration”; Rollback erfolgt über Deployment-Ro
 
 ## 7. Test-Strategie
 
-### 7.1 Rust Unit Tests (`src/rust_modules/omega_rust/src/execution/tests/`)
+### 7.1 Rust Unit Tests (inline in `src/rust_modules/omega_rust/src/execution/*.rs`)
 
-- `test_signal.rs`: parsing/validation, enums, metadata JSON
-- `test_sizing.rs`: quantization parity, risk preservation property
-- `test_trigger.rs`: limit/stop trigger matrix (long/short, bid/ask)
-- `test_exit.rs`: SL/TP detection, entry-candle special case, break-even reason
+Die Rust-Tests sind **inline** in den jeweiligen Modulen mittels `#[cfg(test)]` definiert:
+
+- `simulator.rs`: test_empty_results, test_single_signal_position_creation
+- `signal.rs`: test_signal_direction_from_str, parsing/validation tests
+- `sizing.rs`: test_lot_size_quantization, risk preservation tests
+- `trigger.rs`: test_trigger_price_calculations, limit/stop trigger matrix
+- `position.rs`: test_position_creation, SL/TP detection tests
+- `slippage.rs`: test_slippage_calculations, cost model tests
+- `arrow.rs`: Arrow Schema Serialization/Deserialization tests
 
 **Coverage Target:** ≥90% line coverage im `execution/` Modul (realistisch über fokussierte unit tests + property tests).
 
