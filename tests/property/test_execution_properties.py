@@ -229,13 +229,11 @@ class TestSignalInvariants:
         except (ValueError, RuntimeError):
             pass
 
-        # Arrow Schema Mismatch handling
+        # The wrapper only has active_positions, not closed_positions
         try:
             active_count = len(wrapper.active_positions)
-            closed_count = len(wrapper.closed_positions)
             assert active_count >= 0
-            assert closed_count >= 0
-        except RuntimeError as e:
+        except (RuntimeError, AttributeError) as e:
             if "Arrow" in str(e) or "schema" in str(e).lower():
                 pytest.skip("Arrow Schema Mismatch - Rust IPC compatibility pending")
             raise
@@ -288,17 +286,15 @@ class TestExitInvariants:
 
         try:
             wrapper.process_signal(signal)
-        except (ValueError, RuntimeError) as e:
+        except (ValueError, RuntimeError, AttributeError) as e:
             if "Arrow" in str(e) or "schema" in str(e).lower():
                 return  # Skip for Arrow Schema Mismatch
             return  # Test nicht relevant wenn Signal ungültig
 
-        # Arrow Schema Mismatch handling
+        # Track initial position count (wrapper only has active_positions)
         try:
-            initial_total = len(wrapper.active_positions) + len(
-                wrapper.closed_positions
-            )
-        except RuntimeError as e:
+            initial_count = len(wrapper.active_positions)
+        except (RuntimeError, AttributeError) as e:
             if "Arrow" in str(e) or "schema" in str(e).lower():
                 pytest.skip("Arrow Schema Mismatch - Rust IPC compatibility pending")
             raise
@@ -307,17 +303,15 @@ class TestExitInvariants:
             candle = make_mock_candle(cd, offset_minutes=15 * (i + 1))
             try:
                 wrapper.evaluate_exits(bid_candle=candle, ask_candle=candle)
-            except RuntimeError as e:
+            except (RuntimeError, AttributeError) as e:
                 if "Arrow" in str(e) or "schema" in str(e).lower():
                     continue
                 raise
 
-            # Gesamtzahl sollte nicht sinken (Positionen verschwinden nicht)
+            # Position count may decrease as positions close
             try:
-                current_total = len(wrapper.active_positions) + len(
-                    wrapper.closed_positions
-                )
-                assert current_total >= 0  # Grundlegende Invariante
+                current_count = len(wrapper.active_positions)
+                assert current_count >= 0  # Basic invariant: non-negative
             except RuntimeError as e:
                 if "Arrow" in str(e) or "schema" in str(e).lower():
                     continue

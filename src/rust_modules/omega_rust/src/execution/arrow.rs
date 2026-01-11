@@ -392,16 +392,20 @@ pub fn decode_candles(ipc_bytes: &[u8]) -> Result<Vec<Candle>> {
 /// Encode positions to Arrow IPC bytes.
 pub fn encode_positions(positions: &[Position]) -> Result<Vec<u8>> {
     use arrow::array::{
-        ArrayRef, Float64Builder, Int64Builder,
+        ArrayRef, Float64Builder,
         StringDictionaryBuilder,
     };
+    use arrow::array::TimestampMicrosecondBuilder;
 
     let num_rows = positions.len();
     let schema = Arc::new(build_position_schema());
 
-    // Build arrays
-    let mut entry_time_builder = Int64Builder::with_capacity(num_rows);
-    let mut exit_time_builder = Int64Builder::with_capacity(num_rows);
+    // Build arrays using proper timestamp types (not Int64!)
+    // This fixes the Arrow Schema Mismatch: Timestamp(Microsecond, UTC) vs Int64
+    let mut entry_time_builder =
+        TimestampMicrosecondBuilder::with_capacity(num_rows).with_timezone("UTC");
+    let mut exit_time_builder =
+        TimestampMicrosecondBuilder::with_capacity(num_rows).with_timezone("UTC");
     let mut direction_builder: StringDictionaryBuilder<Int32Type> =
         StringDictionaryBuilder::new();
     let mut symbol_builder: StringDictionaryBuilder<Int32Type> =
