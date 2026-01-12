@@ -412,7 +412,7 @@ lazy_static::lazy_static! {
         
         // Mean Reversion Z-Score
         m.insert(
-            "mean_reversion_zscore".to_string(),
+            "mean_reversion_z_score".to_string(),
             Box::new(MeanReversionZScoreRust::default()) as Box<dyn RustStrategy>
         );
         

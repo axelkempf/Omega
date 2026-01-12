@@ -84,7 +84,7 @@ def run_performance_summary():
         bid_candles, ask_candles = create_mock_candles(num_bars)
 
         start = time.perf_counter()
-        result = run_rust_backtest("mean_reversion_zscore", config, bid_candles, ask_candles)
+        result = run_rust_backtest("mean_reversion_z_score", config, bid_candles, ask_candles)
         elapsed = (time.perf_counter() - start) * 1000
 
         throughput = f"{num_bars / (elapsed / 1000):,.0f} bars/s"
@@ -100,7 +100,7 @@ def run_performance_summary():
     print("-" * 70)
 
     bid_candles, ask_candles = create_mock_candles(10000)
-    result = run_rust_backtest("mean_reversion_zscore", config, bid_candles, ask_candles)
+    result = run_rust_backtest("mean_reversion_z_score", config, bid_candles, ask_candles)
 
     print(f"  Bars Processed:     {result.bars_processed:>15,}")
     print(f"  Total Trades:       {result.total_trades:>15,}")

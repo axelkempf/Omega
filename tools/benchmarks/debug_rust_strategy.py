@@ -147,7 +147,7 @@ def debug_strategy_params():
     
     from backtest_engine.core.rust_strategy_bridge import get_strategy_default_params
     
-    params = get_strategy_default_params("mean_reversion_zscore")
+    params = get_strategy_default_params("mean_reversion_z_score")
     print("  Default parameters:")
     for key, value in sorted(params.items()):
         print(f"    {key}: {value}")
@@ -227,7 +227,7 @@ def debug_backtest_run():
     print(f"  Config: {config['strategy_params']}")
     
     result = run_rust_backtest(
-        strategy_name="mean_reversion_zscore",
+        strategy_name="mean_reversion_z_score",
         config=config,
         bid_candles=bid_candles,
         ask_candles=ask_candles,

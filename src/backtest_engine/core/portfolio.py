@@ -172,6 +172,12 @@ class PortfolioPosition:
         """
         Gibt das R-Multiple (Chance-Risiko-Verhältnis) der Position zurück.
         """
+        if hasattr(self, "_precomputed_r_multiple"):
+            try:
+                return float(getattr(self, "_precomputed_r_multiple"))
+            except Exception:
+                return 0.0
+
         if self.exit_price is None:
             return 0.0
         initial_sl = (

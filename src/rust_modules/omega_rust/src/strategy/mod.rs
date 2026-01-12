@@ -45,7 +45,7 @@
 //! from omega_rust import run_backtest_rust, StrategyConfig
 //!
 //! config = StrategyConfig("EURUSD", "M5")
-//! result = run_backtest_rust("mean_reversion_zscore", config, candle_data)
+//! result = run_backtest_rust("mean_reversion_z_score", config, candle_data)
 //! print(f"Trades: {len(result.trades)}, Time: {result.execution_time_ms}ms")
 //! ```
 

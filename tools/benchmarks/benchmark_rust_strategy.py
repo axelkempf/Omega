@@ -199,7 +199,7 @@ def benchmark_rust_backtest(bid_candles: dict, ask_candles: dict, iterations: in
     for _ in range(iterations):
         t0 = time.perf_counter()
         result = run_rust_backtest(
-            strategy_name="mean_reversion_zscore",
+            strategy_name="mean_reversion_z_score",
             config=config,
             bid_candles=bid_candles,
             ask_candles=ask_candles,
@@ -234,7 +234,7 @@ def benchmark_memory_usage(bid_candles: dict, ask_candles: dict) -> dict:
     tracemalloc.start()
     
     result = run_rust_backtest(
-        strategy_name="mean_reversion_zscore",
+        strategy_name="mean_reversion_z_score",
         config=config,
         bid_candles=bid_candles,
         ask_candles=ask_candles,

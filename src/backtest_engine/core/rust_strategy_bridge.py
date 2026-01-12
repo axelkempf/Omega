@@ -45,7 +45,7 @@ from src.backtest_engine.core.rust_strategy_bridge import (
 # Check availability
 if should_use_rust_strategy():
     result = run_rust_backtest(
-        strategy_name="mean_reversion_zscore",
+        strategy_name="mean_reversion_z_score",
         config=backtest_config,
         bid_candles=bid_data,
         ask_candles=ask_data,
@@ -57,7 +57,7 @@ else:
 
 ## Supported Strategies
 
-- mean_reversion_zscore: Mean Reversion with Kalman-filtered Z-Score
+- mean_reversion_z_score: Mean Reversion with Kalman-filtered Z-Score
 
 ## Implementation Notes
 
@@ -418,7 +418,7 @@ def run_rust_backtest(
     
     Args:
         strategy_name: Name of the registered Rust strategy 
-            (e.g., "mean_reversion_zscore").
+            (e.g., "mean_reversion_z_score").
         config: Backtest configuration dictionary containing:
             - symbol: Trading symbol (e.g., "EURUSD")
             - primary_timeframe: Main timeframe (e.g., "H1")
@@ -439,7 +439,7 @@ def run_rust_backtest(
     
     Example:
         >>> result = run_rust_backtest(
-        ...     strategy_name="mean_reversion_zscore",
+        ...     strategy_name="mean_reversion_z_score",
         ...     config={
         ...         "symbol": "EURUSD",
         ...         "primary_timeframe": "H1",
@@ -477,33 +477,37 @@ def run_rust_backtest(
     )
     
     # Convert candles to native Rust CandleData objects
+    # Filter out None values that may appear from alignment gaps
     rust_bid: Dict[str, List[Any]] = {}
     rust_ask: Dict[str, List[Any]] = {}
     
+    def _candle_to_rust(c: Any) -> Any:
+        """Convert a single candle to Rust CandleData, handling None safely."""
+        if c is None:
+            return None
+        ts = c.timestamp
+        if hasattr(ts, 'timestamp'):
+            ts_us = int(ts.timestamp() * 1_000_000)
+        else:
+            ts_us = int(ts * 1_000_000)
+        return _RUST_MODULE.CandleData(
+            ts_us,
+            float(c.open),
+            float(c.high),
+            float(c.low),
+            float(c.close),
+            float(getattr(c, "volume", 0.0)),
+        )
+    
     for timeframe, candles in bid_candles.items():
+        # Filter None values and convert to Rust
         rust_bid[timeframe] = [
-            _RUST_MODULE.CandleData(
-                int(c.timestamp.timestamp() * 1_000_000) if hasattr(c.timestamp, 'timestamp') else int(c.timestamp * 1_000_000),
-                float(c.open),
-                float(c.high),
-                float(c.low),
-                float(c.close),
-                float(getattr(c, "volume", 0.0)),
-            )
-            for c in candles
+            rc for rc in (_candle_to_rust(c) for c in candles) if rc is not None
         ]
     
     for timeframe, candles in ask_candles.items():
         rust_ask[timeframe] = [
-            _RUST_MODULE.CandleData(
-                int(c.timestamp.timestamp() * 1_000_000) if hasattr(c.timestamp, 'timestamp') else int(c.timestamp * 1_000_000),
-                float(c.open),
-                float(c.high),
-                float(c.low),
-                float(c.close),
-                float(getattr(c, "volume", 0.0)),
-            )
-            for c in candles
+            rc for rc in (_candle_to_rust(c) for c in candles) if rc is not None
         ]
     
     # Get or create Rust indicator cache
@@ -519,15 +523,16 @@ def run_rust_backtest(
         # Create new Rust cache
         rust_indicator_cache = _RUST_MODULE.IndicatorCacheRust()
         
-        # Register OHLCV data
+        # Register OHLCV data (filter None values from alignment)
         for timeframe, candles in bid_candles.items():
-            if candles:
-                opens = np.array([c.open for c in candles], dtype=np.float64)
-                highs = np.array([c.high for c in candles], dtype=np.float64)
-                lows = np.array([c.low for c in candles], dtype=np.float64)
-                closes = np.array([c.close for c in candles], dtype=np.float64)
+            valid_candles = [c for c in candles if c is not None]
+            if valid_candles:
+                opens = np.array([c.open for c in valid_candles], dtype=np.float64)
+                highs = np.array([c.high for c in valid_candles], dtype=np.float64)
+                lows = np.array([c.low for c in valid_candles], dtype=np.float64)
+                closes = np.array([c.close for c in valid_candles], dtype=np.float64)
                 volumes = np.array(
-                    [getattr(c, "volume", 0.0) for c in candles], 
+                    [getattr(c, "volume", 0.0) for c in valid_candles], 
                     dtype=np.float64
                 )
                 
@@ -543,13 +548,14 @@ def run_rust_backtest(
                 )
         
         for timeframe, candles in ask_candles.items():
-            if candles:
-                opens = np.array([c.open for c in candles], dtype=np.float64)
-                highs = np.array([c.high for c in candles], dtype=np.float64)
-                lows = np.array([c.low for c in candles], dtype=np.float64)
-                closes = np.array([c.close for c in candles], dtype=np.float64)
+            valid_candles = [c for c in candles if c is not None]
+            if valid_candles:
+                opens = np.array([c.open for c in valid_candles], dtype=np.float64)
+                highs = np.array([c.high for c in valid_candles], dtype=np.float64)
+                lows = np.array([c.low for c in valid_candles], dtype=np.float64)
+                closes = np.array([c.close for c in valid_candles], dtype=np.float64)
                 volumes = np.array(
-                    [getattr(c, "volume", 0.0) for c in candles],
+                    [getattr(c, "volume", 0.0) for c in valid_candles],
                     dtype=np.float64
                 )
                 
@@ -604,7 +610,7 @@ def list_available_strategies() -> List[str]:
     
     # Currently hardcoded - could expose registry from Rust
     return [
-        "mean_reversion_zscore",
+        "mean_reversion_z_score",
     ]
 
 
@@ -618,7 +624,7 @@ def get_strategy_default_params(strategy_name: str) -> Dict[str, Any]:
         Dictionary of default parameter values.
     """
     defaults = {
-        "mean_reversion_zscore": {
+        "mean_reversion_z_score": {
             # Z-Score Parameters
             "z_score_lookback": 100,
             "z_score_entry_threshold": 2.0,

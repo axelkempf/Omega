@@ -328,13 +328,36 @@ impl Position {
         }
     }
 
-    /// Unrealisierter P&L
+    /// Unrealisierter P&L in Kontowährung (für Forex: Pips * PipValue * Lots)
+    /// 
+    /// Für EURUSD und andere 4-stellige Paare:
+    /// - 1 Pip = 0.0001 (für JPY-Paare: 0.01)
+    /// - PipValue für 1 Standard-Lot ≈ $10 (für EURUSD)
+    /// 
+    /// Formel: (Exit - Entry) * 10000 * PipValue * Lots
     pub fn unrealized_pnl(&self, current_price: f64) -> f64 {
-        let diff = current_price - self.entry_price;
+        let pips = (current_price - self.entry_price) * self.pip_multiplier();
+        let pip_value = self.pip_value_per_lot();
         match self.direction {
-            Direction::Long => diff * self.size,
-            Direction::Short => -diff * self.size,
+            Direction::Long => pips * pip_value * self.size,
+            Direction::Short => -pips * pip_value * self.size,
         }
+    }
+    
+    /// Pip-Multiplikator basierend auf Symbol (10000 für 4-stellig, 100 für JPY)
+    fn pip_multiplier(&self) -> f64 {
+        if self.symbol.contains("JPY") {
+            100.0
+        } else {
+            10_000.0
+        }
+    }
+    
+    /// Pip-Wert pro Standard-Lot in USD
+    fn pip_value_per_lot(&self) -> f64 {
+        // Vereinfacht: $10 pro Pip für die meisten Paare
+        // In der Realität variiert dies je nach Quotewährung
+        10.0
     }
 
     /// Check ob SL/TP erreicht

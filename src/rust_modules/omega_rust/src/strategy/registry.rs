@@ -95,7 +95,7 @@ pub fn register_strategy(factory: Box<dyn StrategyFactory>) {
 ///
 /// ```rust,ignore
 /// let config = StrategyConfig::new("EURUSD", Timeframe::M5, 10000.0, 0.01);
-/// let strategy = create_strategy("mean_reversion_zscore", &config)?;
+/// let strategy = create_strategy("mean_reversion_z_score", &config)?;
 /// ```
 pub fn create_strategy(
     name: &str,

@@ -221,7 +221,7 @@ class TestDataConversion:
         """Test conversion of Python config to Rust format."""
         from backtest_engine.core.rust_strategy_bridge import convert_config_to_rust
         
-        rust_config = convert_config_to_rust("mean_reversion_zscore", mean_reversion_config)
+        rust_config = convert_config_to_rust("mean_reversion_z_score", mean_reversion_config)
         
         # Check StrategyConfig properties 
         assert rust_config.symbol == "EURUSD"
@@ -235,9 +235,9 @@ class TestDataConversion:
         )
         
         strategies = list_available_strategies()
-        assert "mean_reversion_zscore" in strategies
+        assert "mean_reversion_z_score" in strategies
         
-        params = get_strategy_default_params("mean_reversion_zscore")
+        params = get_strategy_default_params("mean_reversion_z_score")
         # Parameter names with underscore separation
         assert "z_score_entry_threshold" in params
         assert "z_score_lookback" in params
@@ -277,14 +277,14 @@ class TestPureRustBacktest:
         bid_candles, ask_candles = synthetic_candle_data
         
         result = run_rust_backtest(
-            strategy_name="mean_reversion_zscore",
+            strategy_name="mean_reversion_z_score",
             config=mean_reversion_config,
             bid_candles=bid_candles,
             ask_candles=ask_candles,
         )
         
         assert result is not None
-        assert result.strategy_name == "mean_reversion_zscore"
+        assert result.strategy_name == "mean_reversion_z_score"
         assert result.symbol == "EURUSD"
         assert result.initial_capital == 100000.0
         assert result.bars_processed > 0
@@ -311,7 +311,7 @@ class TestPureRustBacktest:
         config["zscore_entry_threshold"] = 1.5
         
         result = run_rust_backtest(
-            strategy_name="mean_reversion_zscore",
+            strategy_name="mean_reversion_z_score",
             config=config,
             bid_candles=bid_candles,
             ask_candles=ask_candles,
@@ -339,14 +339,14 @@ class TestPureRustBacktest:
         
         # Run twice with same inputs
         result1 = run_rust_backtest(
-            strategy_name="mean_reversion_zscore",
+            strategy_name="mean_reversion_z_score",
             config=mean_reversion_config,
             bid_candles=bid_candles,
             ask_candles=ask_candles,
         )
         
         result2 = run_rust_backtest(
-            strategy_name="mean_reversion_zscore",
+            strategy_name="mean_reversion_z_score",
             config=mean_reversion_config,
             bid_candles=bid_candles,
             ask_candles=ask_candles,
@@ -450,7 +450,7 @@ class TestPerformanceBenchmark:
         for _ in range(3):  # Reduced iterations for speed
             start = time.perf_counter()
             result = run_rust_backtest(
-                strategy_name="mean_reversion_zscore",
+                strategy_name="mean_reversion_z_score",
                 config=mean_reversion_config,
                 bid_candles=bid_candles,
                 ask_candles=ask_candles,
@@ -543,7 +543,7 @@ class TestErrorHandling:
         
         # Should not raise - defaults are applied
         result = run_rust_backtest(
-            strategy_name="mean_reversion_zscore",
+            strategy_name="mean_reversion_z_score",
             config=minimal_config,
             bid_candles=bid_candles,
             ask_candles=ask_candles,
@@ -564,7 +564,7 @@ class TestErrorHandling:
         
         with pytest.raises(Exception):
             run_rust_backtest(
-                strategy_name="mean_reversion_zscore",
+                strategy_name="mean_reversion_z_score",
                 config=mean_reversion_config,
                 bid_candles={"M5": []},
                 ask_candles={"M5": []},

@@ -157,6 +157,7 @@ pub struct MeanReversionZScore {
     params: MeanReversionParams,
     enabled_scenarios: Vec<u8>,
     direction_filter: String,
+    primary_timeframe: Timeframe,
     
     // Mutable state wrapped in RwLock for interior mutability + Send+Sync
     // This allows &self methods to update internal state
@@ -170,11 +171,16 @@ pub struct MeanReversionZScore {
 
 impl MeanReversionZScore {
     /// Erstellt eine neue Instanz mit den gegebenen Parametern.
-    pub fn new(params: MeanReversionParams) -> Self {
+    /// 
+    /// # Arguments
+    /// * `params` - Strategy parameters
+    /// * `primary_timeframe` - Optional primary timeframe, defaults to M5 if None
+    pub fn new(params: MeanReversionParams, primary_timeframe: Option<Timeframe>) -> Self {
         Self {
             params,
             enabled_scenarios: vec![1, 2, 3, 4, 5, 6],
             direction_filter: "both".to_string(),
+            primary_timeframe: primary_timeframe.unwrap_or(Timeframe::M5),
             daily_trade_count: RwLock::new(0),
             last_trade_day: RwLock::new(0),
             kalman_mean: RwLock::new(0.0),
@@ -187,9 +193,13 @@ impl MeanReversionZScore {
     /// Note: enabled_scenarios and direction_filter use defaults since
     /// StrategyConfig.params only supports f64 values. All 6 scenarios
     /// are enabled by default, and direction_filter defaults to "both".
+    /// 
+    /// The primary_timeframe is parsed from config.primary_timeframe string,
+    /// falling back to M5 if the timeframe string is invalid.
     pub fn from_config(config: &StrategyConfig) -> Self {
         let params = MeanReversionParams::from_config(config);
-        Self::new(params)
+        let timeframe = Timeframe::from_str(&config.primary_timeframe);
+        Self::new(params, timeframe)
         // All scenarios enabled by default, direction_filter = "both"
     }
     
@@ -381,7 +391,7 @@ impl MeanReversionZScore {
 
 impl RustStrategy for MeanReversionZScore {
     fn name(&self) -> &str {
-        "mean_reversion_zscore"
+        "mean_reversion_z_score"
     }
     
     fn version(&self) -> &str {
@@ -393,7 +403,7 @@ impl RustStrategy for MeanReversionZScore {
     }
     
     fn primary_timeframe(&self) -> Timeframe {
-        Timeframe::M5
+        self.primary_timeframe
     }
     
     fn warmup_bars(&self) -> usize {
@@ -603,7 +613,7 @@ pub struct MeanReversionZScoreFactory;
 
 impl StrategyFactory for MeanReversionZScoreFactory {
     fn name(&self) -> &str {
-        "mean_reversion_zscore"
+        "mean_reversion_z_score"
     }
     
     fn create(&self, config: &StrategyConfig) -> Result<Box<dyn RustStrategy>, StrategyError> {
@@ -632,7 +642,7 @@ mod tests {
 
     #[test]
     fn test_market_state_classification() {
-        let strategy = MeanReversionZScore::new(MeanReversionParams::default());
+        let strategy = MeanReversionZScore::new(MeanReversionParams::default(), None);
         
         // Low volatility, no trend
         let state = strategy.classify_market_state(0.2, false, 0.3, false);
@@ -652,10 +662,11 @@ mod tests {
 
     #[test]
     fn test_zscore_calculation() {
-        let strategy = MeanReversionZScore::new(MeanReversionParams::default());
+        let strategy = MeanReversionZScore::new(MeanReversionParams::default(), None);
         
         let prices: Vec<f64> = (0..100).map(|i| 100.0 + (i as f64) * 0.01).collect();
-        let zscore = strategy.calculate_zscore(&prices, 20);
+        // Use calculate_classic_zscore with (closes, lookback, current_idx)
+        let zscore = strategy.calculate_classic_zscore(&prices, 20, 99);
         
         assert!(zscore.is_some());
         // Last price is highest, so z-score should be positive
@@ -664,27 +675,28 @@ mod tests {
 
     #[test]
     fn test_kalman_zscore() {
-        let strategy = MeanReversionZScore::new(MeanReversionParams::default());
+        let strategy = MeanReversionZScore::new(MeanReversionParams::default(), None);
         
-        // Feed constant price
+        // Feed constant price - first call initializes with warmup
+        strategy.calculate_kalman_zscore(100.0, true);
         for _ in 0..100 {
-            strategy.calculate_kalman_zscore(100.0);
+            strategy.calculate_kalman_zscore(100.0, false);
         }
         
         // Z-score should be near 0 for constant price
-        let z = strategy.calculate_kalman_zscore(100.0);
+        let z = strategy.calculate_kalman_zscore(100.0, false);
         assert!(z.abs() < 0.5);
         
         // Large deviation should give large z-score
-        let z_high = strategy.calculate_kalman_zscore(110.0);
+        let z_high = strategy.calculate_kalman_zscore(110.0, false);
         assert!(z_high > 2.0);
     }
 
     #[test]
     fn test_strategy_trait_methods() {
-        let strategy = MeanReversionZScore::new(MeanReversionParams::default());
+        let strategy = MeanReversionZScore::new(MeanReversionParams::default(), None);
         
-        assert_eq!(strategy.name(), "mean_reversion_zscore");
+        assert_eq!(strategy.name(), "mean_reversion_z_score");
         assert_eq!(strategy.version(), "1.0.0");
         assert_eq!(strategy.primary_timeframe(), Timeframe::M5);
         assert_eq!(strategy.max_positions(), 1);
@@ -692,8 +704,16 @@ mod tests {
     }
 
     #[test]
+    fn test_strategy_with_custom_timeframe() {
+        let strategy = MeanReversionZScore::new(MeanReversionParams::default(), Some(Timeframe::H1));
+        
+        assert_eq!(strategy.name(), "mean_reversion_z_score");
+        assert_eq!(strategy.primary_timeframe(), Timeframe::H1);
+    }
+
+    #[test]
     fn test_entry_calculation() {
-        let strategy = MeanReversionZScore::new(MeanReversionParams::default());
+        let strategy = MeanReversionZScore::new(MeanReversionParams::default(), None);
         
         let (entry, sl, tp) = strategy.calculate_entry(
             Direction::Long,
@@ -713,7 +733,7 @@ mod tests {
     #[test]
     fn test_factory_registration() {
         let factory = MeanReversionZScoreFactory;
-        assert_eq!(factory.name(), "mean_reversion_zscore");
+        assert_eq!(factory.name(), "mean_reversion_z_score");
         
         let config = StrategyConfig {
             symbol: "EURUSD".to_string(),
@@ -727,6 +747,22 @@ mod tests {
         assert!(result.is_ok());
         
         let strategy = result.unwrap();
-        assert_eq!(strategy.name(), "mean_reversion_zscore");
+        assert_eq!(strategy.name(), "mean_reversion_z_score");
+    }
+    
+    #[test]
+    fn test_factory_with_custom_timeframe() {
+        let factory = MeanReversionZScoreFactory;
+        
+        let config = StrategyConfig {
+            symbol: "EURUSD".to_string(),
+            primary_timeframe: "H1".to_string(),
+            initial_capital: 10000.0,
+            risk_per_trade: 0.01,
+            params: HashMap::new(),
+        };
+        
+        let strategy = factory.create(&config).unwrap();
+        assert_eq!(strategy.primary_timeframe(), Timeframe::H1);
     }
 }
