@@ -15,6 +15,8 @@ Where:
 
 ## Schema
 
+`UTC time` ist die **Open-Time** (Beginn) der Kerze und ist **UTC timezone-aware**.
+
 ```csv
 UTC time,Open,High,Low,Close,Volume
 2024-01-01 00:00:00+00:00,1.10450,1.10475,1.10430,1.10460,125

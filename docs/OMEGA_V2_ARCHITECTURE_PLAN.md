@@ -81,7 +81,7 @@ Das aktuelle Omega-System leidet unter folgenden strukturellen Problemen:
 │                                                                              │
 │  ┌─────────────────────────────────────────────────────────────────────┐    │
 │  │                     DATA LOADER                                      │    │
-│  │  • Parquet direkt lesen (arrow/polars)                              │    │
+│  │  • Parquet direkt lesen (`arrow-rs`)                                │    │
 │  │  • Bid/Ask in Rust-Structs (Vec<Candle>)                            │    │
 │  │  • Multi-TF Alignment (M1 → M5 → H1 → D1)                           │    │
 │  │  • Market Hours Filter                                               │    │
@@ -241,6 +241,7 @@ rust_core/                     ← Workspace Root
 | R4 | **Eigene Error-Typen** | Jedes Modul definiert eigene Fehler, `types` hat gemeinsamen `CoreError` |
 | R5 | **Keine Globals** | Kein `lazy_static!`, kein `thread_local!`, kein `static mut` |
 | R6 | **Explizite Abhängigkeiten** | Alles wird durchgereicht (Dependency Injection) |
+| R7 | **UTC/Timestamp-Contract (A)** | Parquet: Arrow `Timestamp(Nanosecond, "UTC")`; Core: `i64` epoch-ns UTC; Candle-Timestamp ist **Open-Time** |
 
 ### 4.2 Code-Qualitäts-Regeln
 
@@ -279,10 +280,10 @@ rust_core/                     ← Workspace Root
 
 | # | Frage | Optionen | Status |
 |---|-------|----------|--------|
-| T1 | Parquet-Library | `arrow-rs` vs. `polars` | Offen |
+| T1 | Parquet-Library | `arrow-rs` vs. `polars` | **Entschieden: `arrow-rs`** |
 | T2 | JSON-Library | `serde_json` (Standard) | Vorläufig entschieden |
-| T3 | Parallelisierung | `rayon` für Indikator-Berechnung? | Offen |
-| T4 | Warmup-Handling | Explizit in Config oder automatisch? | Offen |
+| T3 | Parallelisierung | `rayon` für Indikator-Berechnung? | Später (nach 1:1 Parität/Determinismus) |
+| T4 | Warmup-Handling | Explizit in Config oder automatisch? | **Entschieden: explizit in Config (Default 500)** |
 | T5 | HTF-Daten | Separate Parquets oder aus M1 aggregieren? | Offen |
 
 ### 5.2 Strategie-Design
@@ -290,7 +291,7 @@ rust_core/                     ← Workspace Root
 | # | Frage | Kontext |
 |---|-------|---------|
 | S1 | Wie viele Szenarien hat Mean Reversion Z-Score? | Aktuell 6 Szenarien, alle migrieren? |
-| S2 | News-Filter in Rust? | Aktuell Python-basiert mit CSV |
+| S2 | News-Filter in Rust? | **Ja**: Rust-native, Input als Parquet (CSV→Parquet Konverter in Python), Laden in Phase 2 |
 | S3 | Position Manager Logik? | Max Holding Time, Trailing Stop, etc. |
 | S4 | HTF-EMA Filter Details? | 2 Ebenen (D1 + auto HTF) |
 
@@ -300,7 +301,7 @@ rust_core/                     ← Workspace Root
 |---|-------|---------|------|
 | O1 | Trade-Liste Format | JSON mit allen Details | Beibehalten |
 | O2 | Equity Curve | Liste von Floats | Beibehalten |
-| O3 | Metriken | ~30 verschiedene | Alle übernehmen? |
+| O3 | Metriken | ~30 verschiedene | MVP: definierte Kernmetriken (Profit raw/after fees, DD, Winrate, R, Fees, Wins/Losses); Rest später |
 | O4 | Logging während Backtest | Python logging | Rust tracing? |
 
 ### 5.4 Migration
@@ -309,7 +310,7 @@ rust_core/                     ← Workspace Root
 |---|-------|------------|
 | M1 | Reihenfolge der Module | Bottom-up (types → data → ...) oder Top-down? |
 | M2 | Parallel zum alten System? | Neues System in separatem Ordner entwickeln? |
-| M3 | Validierung | Wie sicherstellen, dass Ergebnisse identisch sind? |
+| M3 | Validierung | DEV-Mode: Trade-Event-Parity (Entry/Exit) vs. V1 + toleranzbasierte Metrik-Checks |
 | M4 | Performance-Baseline | Aktuelles System benchmarken vor Migration? |
 
 ---

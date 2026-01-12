@@ -14,6 +14,11 @@ data/parquet/{SYMBOL}/{SYMBOL}_{TIMEFRAME}_{TYPE}.parquet
 - **Type preservation** – datetime/numeric types preserved
 - **Smaller size** – typically 5-10x smaller than CSV
 
+## Schema
+
+- `UTC time`: **Candle Open-Time** in UTC, gespeichert als tz-aware `timestamp[ns, tz=UTC]` (Arrow: `Timestamp(Nanosecond, "UTC")`).
+- `Open`, `High`, `Low`, `Close`, `Volume`: numerische Spalten.
+
 ## Generation
 
 Convert from CSV using:

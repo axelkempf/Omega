@@ -174,7 +174,7 @@ rust_core/                              ← Workspace Root
 | Datei | Verantwortlichkeit | Wichtigste Exports |
 |-------|-------------------|-------------------|
 | `lib.rs` | Re-exports aller Module, Crate-Dokumentation | `pub use` für alle öffentlichen Typen |
-| `candle.rs` | Repräsentation einer Kurs-Kerze (OHLCV) | `Candle { timestamp, open, high, low, close, volume }` |
+| `candle.rs` | Repräsentation einer Kurs-Kerze (OHLCV) | `Candle { timestamp_ns, open, high, low, close, volume }` |
 | `signal.rs` | Trading-Signale von Strategien | `enum Signal { Long, Short, Exit, None }` |
 | `trade.rs` | Abgeschlossener Trade mit allen Details | `Trade { entry_time, exit_time, pnl, fees, ... }` |
 | `position.rs` | Offene Position im Portfolio | `Position { direction, entry_price, size, sl, tp, ... }` |
@@ -190,6 +190,12 @@ serde = { version = "1.0", features = ["derive"] }
 chrono = { version = "0.4", features = ["serde"] }
 ```
 
+**Zeit-/Timestamp-Contract (Vorschlag A):**
+
+- `timestamp_ns` ist ein `i64` in **epoch-nanoseconds (UTC)**.
+- Für Candles ist `timestamp_ns` die **Open-Time** (Beginn der Kerze).
+- Zeitreihen sind **strictly monotonic increasing** und **unique** (keine Duplikate) pro Datei/Stream.
+
 ---
 
 ### 3.2 Crate: `data` (Daten-Layer)
@@ -199,18 +205,20 @@ chrono = { version = "0.4", features = ["serde"] }
 | Datei | Verantwortlichkeit | Wichtigste Exports |
 |-------|-------------------|-------------------|
 | `lib.rs` | Re-exports, Modul-Koordination | `pub use loader::*, store::*, alignment::*` |
-| `loader.rs` | Parquet-Dateien laden (arrow-rs/polars) | `load_candles(path: &Path) -> Result<Vec<Candle>>` |
+| `loader.rs` | Parquet-Dateien laden (`arrow-rs`) | `load_candles(path: &Path) -> Result<Vec<Candle>>` |
 | `alignment.rs` | Bid/Ask Timestamp-Alignment (Inner Join) | `align_bid_ask(bid: &[Candle], ask: &[Candle]) -> AlignedData` |
 | `store.rs` | Speichert geladene Daten, Multi-TF Zugriff | `CandleStore { bid: Vec<Candle>, ask: Vec<Candle>, ... }` |
 | `validation.rs` | Datenqualitäts-Checks (monoton, keine NaN, etc.) | `validate_candles(candles: &[Candle]) -> ValidationResult` |
 | `market_hours.rs` | Filtert Candles außerhalb Handelszeiten | `filter_market_hours(candles: &[Candle], hours: &MarketHours)` |
+| `alt_data.rs` | Alternative Data Store (z.B. News) | `AltDataStore { news: Option<NewsCalendarIndex>, ... }` |
+| `news.rs` | News Calendar laden + Index/Mask erzeugen | `load_news(path) -> NewsCalendarIndex` |
 | `error.rs` | Datenladen-spezifische Fehler | `enum DataError { FileNotFound, ParseError, AlignmentError, ... }` |
 
 **Abhängigkeiten (Cargo.toml)**:
 ```toml
 [dependencies]
 omega_types = { path = "../types" }
-arrow = "51"       # oder polars = "0.39"
+arrow = "51"
 parquet = "51"
 ```
 
@@ -250,10 +258,11 @@ omega_types = { path = "../types" }
 
 | Datei | Verantwortlichkeit | Wichtigste Exports |
 |-------|-------------------|-------------------|
-| `lib.rs` | Re-exports | `pub use engine::*, slippage::*, fees::*` |
+| `lib.rs` | Re-exports | `pub use engine::*, slippage::*, fees::*, costs::*` |
 | `engine.rs` | Execution Engine Orchestrierung | `ExecutionEngine::execute(signal, portfolio)` |
 | `slippage.rs` | Slippage-Modelle | `trait SlippageModel`, `FixedSlippage`, `VolatilitySlippage` |
 | `fees.rs` | Gebühren-Modelle | `trait FeeModel`, `PercentageFee`, `FixedFee`, `TieredFee` |
+| `costs.rs` | YAML→Kostenmodell (Configs) | `load_costs(execution_costs, symbol_specs) -> ExecutionCosts` |
 | `fill.rs` | Order Fill Logik | `compute_fill_price(order, bid, ask, slippage)` |
 | `error.rs` | Execution-spezifische Fehler | `enum ExecutionError { InsufficientBalance, ... }` |
 
@@ -261,6 +270,8 @@ omega_types = { path = "../types" }
 ```toml
 [dependencies]
 omega_types = { path = "../types" }
+serde = { version = "1.0", features = ["derive"] }
+serde_yaml = "0.9"
 ```
 
 ---
@@ -295,7 +306,7 @@ omega_execution = { path = "../execution" }
 |-------|-------------------|-------------------|
 | `lib.rs` | Re-exports | `pub use traits::Strategy, context::BarContext` |
 | `traits.rs` | Strategy Trait Definition | `trait Strategy { fn on_bar(&mut self, ctx: &BarContext) -> Option<Signal>; }` |
-| `context.rs` | Bar Context (read-only Snapshot) | `BarContext { idx, candles, indicators, htf_data }` |
+| `context.rs` | Bar Context (read-only Snapshot) | `BarContext { idx, candles, indicators, htf_data, session_open, news_blocked }` |
 | `registry.rs` | Strategie-Registrierung | `StrategyRegistry::register(name, factory_fn)` |
 | `error.rs` | Strategie-spezifische Fehler | `enum StrategyError { ConfigError, ... }` |
 | `impl/mod.rs` | Sub-Modul für Implementierungen | Re-exports |
@@ -583,7 +594,7 @@ lib.rs
 | Crate | Externe Dependencies | Zweck |
 |-------|---------------------|-------|
 | **types** | `serde`, `chrono` | Serialisierung, Zeitstempel |
-| **data** | `arrow`/`polars`, `parquet` | Parquet I/O |
+| **data** | `arrow`, `parquet` | Parquet I/O |
 | **indicators** | (keine) | Pure Rust Berechnungen |
 | **execution** | (keine) | Pure Rust Logik |
 | **portfolio** | (keine) | Pure Rust State |

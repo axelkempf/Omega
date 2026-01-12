@@ -41,6 +41,22 @@
                       während Backtest)
 ```
 
+### 1.3 UTC/Timestamp-Contract (Vorschlag A – festgezogen)
+
+Dieser Contract gilt **für alle Zeitachsen** im V2-Core (Candles, News-Events, Equity, Trades).
+
+| Ebene | Repräsentation | Semantik |
+|------:|----------------|----------|
+| Parquet (Disk) | Arrow `Timestamp(Nanosecond, "UTC")` in Spalte **`UTC time`** | **Candle Open-Time** (Beginn der Kerze) bzw. bei Events die Event-Zeit als UTC-Instant |
+| Rust (Core) | `i64` **epoch-nanoseconds** in UTC (`timestamp_ns`) | Unix epoch in Nanosekunden; **strictly monotonic increasing** und **unique** pro Zeitreihe |
+| Python (Orchestrator/Reporter) | timezone-aware UTC Datetimes (z.B. `datetime64[ns, UTC]`) | Nur Serialisierung/Reporting; keine Zeitlogik im Hot-Path |
+
+**Invarianten:**
+
+- Candle-`UTC time` ist **Open-Time**, nicht Close-Time.
+- Zeitzone ist immer **UTC** (keine lokale Zeitzone, kein DST).
+- `timestamp_ns` wird im Core als `i64` geführt; Vergleiche/Filter (Start/Ende) erfolgen in derselben Einheit.
+
 ---
 
 ## 2. Detaillierter Data Flow
@@ -61,10 +77,16 @@
 │ • start_date    │
 │ • end_date      │
 │ • primary_tf    │
+│ • mode           │  ← dev|prod (Determinismus/Regression)
+│ • rng_seed       │  ← optional (v.a. für dev)
 │ • parameters    │
 │ • warmup        │  ← NEU: Konfigurierbare Warmup-Bars
 │   • primary_tf  │     Default: 500
 │   • htf         │     Default: 500
+│ • sessions       │  ← optional: Trading Sessions (UTC)
+│ • execution      │  ← optional: Order-Typen/Direction/Max-Positions
+│ • costs          │  ← YAML Pfade: execution_costs + symbol_specs
+│ • news_filter    │  ← optional: News Parquet + Window/Impact
 └────────┬────────┘
          │
          │ Laden & Validieren
@@ -125,6 +147,8 @@ Phase 2 ist die **zentrale Stelle für alle Datenqualitäts-Operationen**. Hier 
 - Bid/Ask Alignment sichergestellt
 - Datenqualität validiert
 - Warmup-Verfügbarkeit geprüft
+- Optionale Alternative-Data (News) geladen und indiziert
+- Kosten-/Symbol-Configs (YAML) als Input für Execution vorbereitet
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────────────┐
@@ -141,6 +165,9 @@ Phase 2 ist die **zentrale Stelle für alle Datenqualitäts-Operationen**. Hier 
 │  • primary_tf: "M5"                                                              │
 │  • htf_filter.timeframe: "D1" (optional)                                         │
 │  • data_root: "/data/parquet"  (Environment oder Default)                        │
+│  • execution_costs_path: ".../configs/execution_costs.yaml" (optional/Default)   │
+│  • symbol_specs_path: ".../configs/symbol_specs.yaml" (optional/Default)         │
+│  • news_filter.parquet_path: ".../news/news_calendar.parquet" (optional)          │
 │                                                                                  │
 │  Automatisch generierte Pfade:                                                   │
 │  ┌─────────────────────────────────────────────────────────────────────────┐    │
@@ -180,14 +207,14 @@ Phase 2 ist die **zentrale Stelle für alle Datenqualitäts-Operationen**. Hier 
 │  │ .parquet        │     │ .parquet        │                                     │
 │  └────────┬────────┘     └────────┬────────┘                                     │
 │           │                       │                                              │
-│           │  arrow-rs/polars      │                                              │ 
+│           │  arrow-rs             │                                              │
 │           │  read_parquet()       │                                              │
 │           ▼                       ▼                                              │
 │  ┌─────────────────────────────────────────┐                                     │
 │  │           RAW CANDLE DATA               │                                     │
 │  │                                         │                                     │
 │  │  Vec<RawCandle> {                       │                                     │
-│  │        timestamp: i64,                  │                                     │
+│  │        timestamp_ns: i64,               │                                     │
 │  │        high: f64,                       │                                     │
 │  │        low: f64,                        │                                     │
 │  │        close: f64,                      │                                     │
@@ -283,6 +310,42 @@ Phase 2 ist die **zentrale Stelle für alle Datenqualitäts-Operationen**. Hier 
 │  • end_date aus Config (inklusiv)                                                │
 │                                                                                  │
 │  candles = candles.filter(|c| c.timestamp >= start && c.timestamp <= end);       │
+│                                                                                  │
+└─────────────────────────────────────────────────────────────────────────────────┘
+                                          │
+                                          ▼
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│  STEP 2.5b: NEWS PARQUET LADEN & INDEX (optional)                               │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                  │
+│  Nur wenn news_filter.enabled == true (oder news_filter.parquet_path gesetzt):   │
+│                                                                                  │
+│  1. News Parquet laden (arrow-rs)                                                │
+│     • Erwartet Arrow `Timestamp(Nanosecond, "UTC")` (tz-aware)                  │
+│       – im Core als `i64` epoch-nanoseconds UTC (`timestamp_ns`)                 │
+│     • Fail Fast bei nicht-monotonen oder ungültigen Zeiten                       │
+│                                                                                  │
+│  2. Date Range Filter (optional erweitert um Window pre/post)                    │
+│                                                                                  │
+│  3. News Index erzeugen (für O(1) Zugriff im Event-Loop)                         │
+│                                                                                  │
+│     Beispiel-Policy (vereinfachte Darstellung):                                  │
+│     ┌───────────────────────────────────────────────────────────────────────┐    │
+│     │  NewsEvent {                                                          │    │
+│     │      timestamp_ns: i64,   // UTC epoch-ns (Event-Time)                 │    │
+│     │      impact: u8,       // z.B. 1=low, 2=medium, 3=high                 │    │
+│     │      currency: String, // optional                                     │    │
+│     │  }                                                                     │    │
+│     │                                                                       │    │
+│     │  Für jeden Candle Timestamp ts:                                       │    │
+│     │  is_blocked = exists event e mit                                     │    │
+│     │      e.impact >= config.news_filter.min_impact                        │    │
+│     │  und ts in [e.ts - pre_window, e.ts + post_window]                    │    │
+│     └───────────────────────────────────────────────────────────────────────┘    │
+│                                                                                  │
+│  Output: NewsCalendarIndex / NewsMask (Länge == candles.len())                   │
+│                                                                                  │
+│  ❌ FEHLER wenn enabled aber Datei fehlt/korrupt → Backtest ABBRUCH              │
 │                                                                                  │
 └─────────────────────────────────────────────────────────────────────────────────┘
                                           │
@@ -555,6 +618,14 @@ Phase 2 ist die **zentrale Stelle für alle Datenqualitäts-Operationen**. Hier 
 
 ### 2.4 Phase 4: Event Loop (Rust-intern)
 
+Vor Start des Loops wird die **ExecutionEngine** einmalig initialisiert:
+
+- **Fees/Costs**: Laden aus `configs/execution_costs.yaml` + `configs/symbol_specs.yaml` (YAML → Rust Structs)
+- **Slippage RNG**:
+    - `mode=dev`: deterministisch via `rng_seed`
+    - `mode=prod`: nicht-deterministisch (Stochastik erlaubt)
+
+
 ```
 ┌──────────────────────────────────────────────────────────────────────────────────┐
 │                         RUST: EVENT LOOP                                          │
@@ -565,6 +636,9 @@ Phase 2 ist die **zentrale Stelle für alle Datenqualitäts-Operationen**. Hier 
                      │                                         │
                      │  • CandleStore (bid, ask)               │
                      │  • IndicatorCache                       │
+                     │  • SessionSchedule (UTC)                │
+                     │  • NewsCalendarIndex (optional)          │
+                     │  • ExecutionCosts (Fees/Slippage, YAML)  │
                      │  • Strategy Instance                    │
                      │  • ExecutionEngine                      │
                      │  • Portfolio (initial)                  │
@@ -588,7 +662,20 @@ Phase 2 ist die **zentrale Stelle für alle Datenqualitäts-Operationen**. Hier 
 │  │      ask: &Candle,                      // candles.ask[idx]                │   │
 │  │      indicators: &IndicatorCache,       // Read-only Zugriff               │   │
 │  │      htf_idx: Option<usize>,            // Index in HTF-Store              │   │
+│  │      session_open: bool,                // nur Entries innerhalb Sessions    │   │
+│  │      news_blocked: bool,                // optional: News Window aktiv       │   │
 │  │  }                                                                         │   │
+│  └───────────────────────────────────────────────────────────────────────────┘   │
+│                                          │                                        │
+│                                          ▼                                        │
+│  ┌───────────────────────────────────────────────────────────────────────────┐   │
+│  │  STEP 1b: Entry-Gates (Session/News)                                       │   │
+│  │                                                                            │   │
+│  │  entry_allowed = ctx.session_open && !ctx.news_blocked;                    │   │
+│  │                                                                            │   │
+│  │  // Indikatoren sind bereits berechnet. Entry-Signale werden nur           │   │
+│  │  // bei entry_allowed evaluiert. Positions-/Exit-Logik (z.B. SL/TP)        │   │
+│  │  // bleibt unabhängig davon.                                               │   │
 │  └───────────────────────────────────────────────────────────────────────────┘   │
 │                                          │                                        │
 │                                          ▼                                        │
@@ -600,6 +687,7 @@ Phase 2 ist die **zentrale Stelle für alle Datenqualitäts-Operationen**. Hier 
 │  │  • ctx.get_indicator("ATR", M5, {14})[idx]                                 │   │
 │  │  • ctx.bid.close, ctx.ask.close                                            │   │
 │  │  • ctx.get_htf_indicator("EMA", D1, {50})                                  │   │
+│  │  • ctx.session_open / ctx.news_blocked (Entry-Gates)                       │   │
 │  │                                                                            │   │
 │  │  Strategie gibt zurück:                                                    │   │
 │  │  Option<Signal>                                                            │   │
