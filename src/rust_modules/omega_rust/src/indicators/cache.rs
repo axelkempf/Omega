@@ -195,6 +195,44 @@ impl IndicatorCache {
     }
 
     // ========================================================================
+    // Raw Data Access Methods
+    // ========================================================================
+
+    /// Get close prices for a symbol/timeframe/price_type.
+    ///
+    /// # Arguments
+    ///
+    /// * `symbol` - Trading symbol
+    /// * `timeframe` - Timeframe
+    /// * `price_type` - Price type
+    ///
+    /// # Returns
+    ///
+    /// Vector of close prices.
+    pub fn closes(&self, symbol: &str, timeframe: &str, price_type: &str) -> Result<Vec<f64>> {
+        let ohlcv = self.get_ohlcv(symbol, timeframe, price_type)?;
+        Ok(ohlcv.close.clone())
+    }
+
+    /// Get high prices for a symbol/timeframe/price_type.
+    pub fn highs(&self, symbol: &str, timeframe: &str, price_type: &str) -> Result<Vec<f64>> {
+        let ohlcv = self.get_ohlcv(symbol, timeframe, price_type)?;
+        Ok(ohlcv.high.clone())
+    }
+
+    /// Get low prices for a symbol/timeframe/price_type.
+    pub fn lows(&self, symbol: &str, timeframe: &str, price_type: &str) -> Result<Vec<f64>> {
+        let ohlcv = self.get_ohlcv(symbol, timeframe, price_type)?;
+        Ok(ohlcv.low.clone())
+    }
+
+    /// Get open prices for a symbol/timeframe/price_type.
+    pub fn opens(&self, symbol: &str, timeframe: &str, price_type: &str) -> Result<Vec<f64>> {
+        let ohlcv = self.get_ohlcv(symbol, timeframe, price_type)?;
+        Ok(ohlcv.open.clone())
+    }
+
+    // ========================================================================
     // Indicator Methods
     // ========================================================================
 

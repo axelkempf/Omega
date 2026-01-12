@@ -44,6 +44,7 @@ pub mod error;
 pub mod event;
 pub mod indicators;
 pub mod portfolio;
+pub mod strategy;
 
 use costs::{calculate_fee, calculate_fee_batch, calculate_slippage, calculate_slippage_batch};
 use error::get_error_code_constants;
@@ -51,6 +52,7 @@ use event::{get_event_engine_backend, EventEngineRust, EventEngineStats};
 use indicators::py_bindings::register_indicator_cache;
 use indicators::{ema, exponential_moving_average, rolling_std, rsi};
 use portfolio::{BatchResult, PortfolioRust, PositionRust};
+use strategy::{run_backtest_rust, BacktestResult, CandleData, StrategyConfig, TradeResult};
 
 /// Omega Rust Extension Module
 ///
@@ -86,6 +88,13 @@ fn omega_rust(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<EventEngineRust>()?;
     m.add_class::<EventEngineStats>()?;
     m.add_function(wrap_pyfunction!(get_event_engine_backend, m)?)?;
+
+    // Register Strategy classes and functions (Wave 4)
+    m.add_class::<BacktestResult>()?;
+    m.add_class::<TradeResult>()?;
+    m.add_class::<StrategyConfig>()?;
+    m.add_class::<CandleData>()?;
+    m.add_function(wrap_pyfunction!(run_backtest_rust, m)?)?;
 
     // Register error code constants for cross-language verification
     m.add_function(wrap_pyfunction!(get_error_code_constants, m)?)?;

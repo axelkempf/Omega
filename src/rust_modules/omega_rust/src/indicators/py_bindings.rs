@@ -37,7 +37,7 @@ use crate::indicators::cache::IndicatorCache;
 /// Thread-safe via internal Mutex.
 #[pyclass(name = "IndicatorCacheRust")]
 pub struct PyIndicatorCache {
-    inner: Mutex<IndicatorCache>,
+    pub(crate) inner: Mutex<IndicatorCache>,
 }
 
 #[pymethods]
