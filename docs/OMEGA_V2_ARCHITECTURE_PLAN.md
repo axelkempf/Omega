@@ -2,7 +2,18 @@
 
 > **Status**: Planungsphase  
 > **Erstellt**: 12. Januar 2026  
-> **Zweck**: Übergeordneter Architekturplan für die Neugestaltung des Backtesting-Kerns
+> **Zweck**: Übergeordneter Architekturplan für die Neugestaltung des Backtesting-Kerns  
+> **Referenz**: Teil der OMEGA_V2 Planungs-Suite
+
+---
+
+## Verwandte Dokumente
+
+| Dokument | Fokus |
+|----------|-------|
+| [OMEGA_V2_VISION_PLAN.md](OMEGA_V2_VISION_PLAN.md) | **Vision, strategische Ziele, Erfolgskriterien** |
+| [OMEGA_V2_DATA_FLOW_PLAN.md](OMEGA_V2_DATA_FLOW_PLAN.md) | Detaillierter Datenfluss, Phasen, Validierung |
+| [OMEGA_V2_MODULE_STRUCTURE_PLAN.md](OMEGA_V2_MODULE_STRUCTURE_PLAN.md) | Datei- und Verzeichnisstruktur, Interfaces |
 
 ---
 

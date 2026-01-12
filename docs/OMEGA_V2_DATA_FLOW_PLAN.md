@@ -2,7 +2,18 @@
 
 > **Status**: Planungsphase  
 > **Erstellt**: 12. Januar 2026  
-> **Zweck**: Vollständige Spezifikation des Datenflusses im Omega V2 Backtesting-System
+> **Zweck**: Vollständige Spezifikation des Datenflusses im Omega V2 Backtesting-System  
+> **Referenz**: Teil der OMEGA_V2 Planungs-Suite
+
+---
+
+## Verwandte Dokumente
+
+| Dokument | Fokus |
+|----------|-------|
+| [OMEGA_V2_VISION_PLAN.md](OMEGA_V2_VISION_PLAN.md) | Vision, strategische Ziele, Erfolgskriterien |
+| [OMEGA_V2_ARCHITECTURE_PLAN.md](OMEGA_V2_ARCHITECTURE_PLAN.md) | Übergeordneter Blueprint, Module, Regeln |
+| [OMEGA_V2_MODULE_STRUCTURE_PLAN.md](OMEGA_V2_MODULE_STRUCTURE_PLAN.md) | Datei- und Verzeichnisstruktur, Interfaces |
 
 ---
 

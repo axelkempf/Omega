@@ -3,7 +3,17 @@
 > **Status**: Planungsphase  
 > **Erstellt**: 12. Januar 2026  
 > **Zweck**: Detaillierte Spezifikation der Ordner-, Datei- und Modul-Struktur für das Omega V2 Backtesting-System  
-> **Referenz**: Abgeleitet aus [OMEGA_V2_ARCHITECTURE_PLAN.md](OMEGA_V2_ARCHITECTURE_PLAN.md) Abschnitt 3
+> **Referenz**: Teil der OMEGA_V2 Planungs-Suite
+
+---
+
+## Verwandte Dokumente
+
+| Dokument | Fokus |
+|----------|-------|
+| [OMEGA_V2_VISION_PLAN.md](OMEGA_V2_VISION_PLAN.md) | Vision, strategische Ziele, Erfolgskriterien |
+| [OMEGA_V2_ARCHITECTURE_PLAN.md](OMEGA_V2_ARCHITECTURE_PLAN.md) | Übergeordneter Blueprint, Module, Regeln |
+| [OMEGA_V2_DATA_FLOW_PLAN.md](OMEGA_V2_DATA_FLOW_PLAN.md) | Detaillierter Datenfluss, Phasen, Validierung |
 
 ---
 
