@@ -1,17 +1,17 @@
 {
   "meta": {
-    "generated_at": "2026-01-03T21:37:23Z",
+    "generated_at": "2026-01-12T08:30:01Z",
     "iterations": 100000,
     "seed": 321
   },
   "slippage_model": {
-    "seconds": 0.437713,
-    "peak_mb": 0.000607,
-    "ops_per_sec": 228460.22
+    "seconds": 1.22642,
+    "peak_mb": 0.001154,
+    "ops_per_sec": 81538.16
   },
   "fee_model": {
-    "seconds": 0.298294,
-    "peak_mb": 0.000881,
-    "ops_per_sec": 335240.26
+    "seconds": 1.004697,
+    "peak_mb": 0.001428,
+    "ops_per_sec": 99532.47
   }
 }

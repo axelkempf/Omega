@@ -73,7 +73,7 @@ jobs:
 
       - name: Setup Python (required for PyO3 abi3-py312)
         if: steps.check_rust.outputs.rust_exists == 'true'
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.12'
 
@@ -160,7 +160,7 @@ jobs:
 
       - name: Setup Python (required for PyO3 abi3-py312)
         if: steps.check_rust.outputs.rust_exists == 'true'
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.12'
 
@@ -201,7 +201,7 @@ jobs:
 
       - name: Setup Python (required for PyO3 abi3-py312)
         if: steps.check_rust.outputs.rust_exists == 'true'
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.12'
 
@@ -288,7 +288,7 @@ jobs:
 
       - name: Setup Python
         if: steps.check_rust.outputs.rust_exists == 'true'
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python }}
           cache: 'pip'
@@ -359,7 +359,7 @@ jobs:
 
       - name: Setup Python
         if: steps.check_rust.outputs.rust_exists == 'true'
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.12'
           cache: 'pip'
@@ -422,7 +422,7 @@ jobs:
 
       - name: Setup Python (required for PyO3 abi3-py312)
         if: steps.check_rust.outputs.rust_exists == 'true'
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.12'
 

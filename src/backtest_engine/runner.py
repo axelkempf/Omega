@@ -33,7 +33,11 @@ from backtest_engine.core.multi_strategy_controller import (
     StrategyEnvironment,
 )
 from backtest_engine.core.multi_tick_controller import MultiTickController
-from backtest_engine.core.portfolio import Portfolio
+from backtest_engine.core.portfolio import Portfolio, PortfolioPosition
+from backtest_engine.core.rust_strategy_bridge import (
+    run_rust_backtest,
+    should_use_rust_strategy,
+)
 from backtest_engine.core.slippage_and_fee import FeeModel, SlippageModel
 from backtest_engine.core.tick_event_engine import TickEventEngine
 from backtest_engine.data.data_handler import CSVDataHandler
@@ -891,6 +895,176 @@ def load_data(
         return symbol_map, bid, ask, tick_data
 
 
+# ============================================================================
+# Pure Rust Strategy Pipeline (Wave 4)
+# ============================================================================
+
+
+def _is_single_strategy_config(config: dict) -> bool:
+    return "strategy" in config and "strategies" not in config
+
+
+def _extract_numeric_params(params: Dict[str, Any]) -> Dict[str, float]:
+    numeric: Dict[str, float] = {}
+    for k, v in (params or {}).items():
+        if isinstance(v, (int, float)):
+            numeric[str(k)] = float(v)
+    return numeric
+
+
+def _infer_rust_strategy_name(strat_conf: Dict[str, Any]) -> str:
+    module_path = str(strat_conf.get("module", ""))
+    if module_path:
+        base = module_path.split(".")[0]
+        return base.split("/")[-1]
+    cls = str(strat_conf.get("class", ""))
+    return cls.lower() if cls else ""
+
+
+def _build_rust_strategy_config(config: dict, primary_tf: str) -> Dict[str, Any]:
+    strat_conf = config.get("strategy", {}) or {}
+    params = strat_conf.get("parameters", {}) or {}
+    numeric_params = _extract_numeric_params(params)
+
+    initial_capital = float(
+        config.get("initial_balance", config.get("initial_capital", 100000.0))
+    )
+
+    raw_risk = config.get("risk_per_trade", 0.01)
+    try:
+        risk_val = float(raw_risk)
+    except Exception:
+        risk_val = 0.01
+    if risk_val > 1.0 and initial_capital > 0:
+        risk_fraction = min(1.0, risk_val / initial_capital)
+    else:
+        risk_fraction = risk_val
+
+    return {
+        "symbol": config.get("symbol", strat_conf.get("symbol", "")),
+        "primary_timeframe": primary_tf,
+        "initial_capital": initial_capital,
+        "risk_per_trade": risk_fraction,
+        "strategy_params": numeric_params,
+    }
+
+
+def _rust_result_to_portfolio(
+    result: Any, risk_fraction: float
+) -> Portfolio:
+    risk_amount = max(result.initial_capital * max(risk_fraction, 0.0), 0.0)
+    portfolio = Portfolio(initial_balance=result.initial_capital)
+
+    equity = result.initial_capital
+    equity_curve = [
+        (datetime.min.replace(year=2000, month=1, day=1), result.initial_capital)
+    ]
+
+    trades_sorted = sorted(result.trades, key=lambda t: t.exit_timestamp)
+    for trade in trades_sorted:
+        pos = PortfolioPosition(
+            entry_time=trade.entry_timestamp,
+            direction=trade.direction,
+            symbol=trade.symbol,
+            entry_price=trade.entry_price,
+            stop_loss=trade.entry_price,
+            take_profit=trade.exit_price,
+            size=getattr(trade, "size", 0.0) or 0.0,
+            risk_per_trade=risk_amount if risk_amount > 0 else trade.pnl,
+        )
+        pos.exit_time = trade.exit_timestamp
+        pos.exit_price = trade.exit_price
+        pos.result = trade.pnl
+        pos.reason = trade.exit_reason
+        pos.is_closed = True
+        pos.status = "closed"
+        if risk_amount > 0:
+            pos._precomputed_r_multiple = trade.pnl / risk_amount
+        portfolio.closed_positions.append(pos)
+
+        equity += trade.pnl
+        equity_curve.append((trade.exit_timestamp, equity))
+
+    portfolio.cash = equity
+    portfolio.equity = equity
+    portfolio.max_equity = max((e for _, e in equity_curve), default=equity)
+
+    def _max_drawdown_from_curve(vals: List[float]) -> float:
+        if not vals:
+            return 0.0
+        run_max = []
+        current_max = vals[0]
+        for v in vals:
+            current_max = max(current_max, v)
+            run_max.append(current_max - v)
+        return float(max(run_max) if run_max else 0.0)
+
+    portfolio.max_drawdown = _max_drawdown_from_curve([e for _, e in equity_curve])
+    portfolio.initial_max_drawdown = portfolio.max_drawdown
+    portfolio.equity_curve = equity_curve
+    return portfolio
+
+
+def _maybe_run_rust_strategy(
+    config: dict,
+    symbol_map: dict,
+    bid_candles: Dict[str, List[Any]],
+    ask_candles: Dict[str, List[Any]],
+    start_dt: datetime,
+    timer: Optional[_BacktestTimer] = None,
+) -> Optional[Dict[str, Any]]:
+    if not should_use_rust_strategy():
+        return None
+    if not _is_single_strategy_config(config):
+        return None
+    if config.get("mode", "candle") != "candle":
+        return None
+    if "multi_symbols" in config:
+        return None
+
+    tf_config = config.get("timeframes", {}) or {}
+    primary_tf = tf_config.get("primary")
+    if not primary_tf:
+        return None
+
+    try:
+        _, _, multi_candle_aligned = _get_or_build_alignment(
+            symbol_map=symbol_map,
+            primary_tf=primary_tf,
+            config=config,
+            start_dt=start_dt,
+        )
+        if timer:
+            timer.mark("data_align")
+    except Exception as e:
+        print(f"⚠️ Rust-Backtest Alignment fehlgeschlagen, fallback auf Python: {e}")
+        return None
+
+    # Convert multi_candle_aligned {tf: {"bid": [...], "ask": [...]}} 
+    # to separate bid/ask dicts {tf: [...]}
+    bid_candles_dict: Dict[str, List[Any]] = {}
+    ask_candles_dict: Dict[str, List[Any]] = {}
+    for tf, sides in multi_candle_aligned.items():
+        bid_candles_dict[tf] = sides.get("bid", [])
+        ask_candles_dict[tf] = sides.get("ask", [])
+
+    strat_conf = config.get("strategy", {}) or {}
+    strategy_name = _infer_rust_strategy_name(strat_conf)
+    rust_cfg = _build_rust_strategy_config(config, primary_tf)
+
+    try:
+        result = run_rust_backtest(strategy_name, rust_cfg, bid_candles_dict, ask_candles_dict)
+    except Exception as e:
+        print(f"⚠️ Rust-Backtest fehlgeschlagen, fallback auf Python: {e}")
+        return None
+
+    if timer:
+        timer.mark("engine_loop")
+
+    portfolio = _rust_result_to_portfolio(result, rust_cfg.get("risk_per_trade", 0.0))
+    return {"portfolio": portfolio, "result": result, "strategy_name": strategy_name}
+
+
 def prepare_strategies(
     config: dict,
     symbol_map: dict,
@@ -1178,6 +1352,42 @@ def run_backtest(config: dict) -> None:
     )
     timer.mark("data_load")
 
+    # Schneller Weg: Pure Rust Strategy (wenn verfügbar)
+    rust_run = _maybe_run_rust_strategy(
+        config,
+        symbol_map,
+        bid_candles,
+        ask_candles,
+        start_dt,
+        timer=timer,
+    )
+    if rust_run is not None:
+        portfolio = rust_run["portfolio"]
+        strategy_name = rust_run["strategy_name"] or config.get("strategy", {}).get(
+            "class", "strategy"
+        )
+
+        print(f"\n📈 Ergebnisse für {strategy_name} (Rust):")
+        for k, v in portfolio.get_summary().items():
+            print(f"{k}: {v}")
+
+        save_backtest_result(
+            portfolio,
+            config,
+            strategy_name=strategy_name,
+            strategy_wrapper=None,
+        )
+
+        timer.mark("reporting")
+        timings = timer.summary()
+        try:
+            setattr(portfolio, "backtest_timings", timings)
+        except Exception:
+            pass
+        timer.print_summary()
+        print("\n✅ Backtest abgeschlossen (Rust-Backend).")
+        return
+
     if config.get("timestamp_alignment", {}).get("diagnostics", True):
         diagnose_alignment(symbol_map, primary_tf)
 
@@ -1464,6 +1674,24 @@ def run_backtest_and_return_portfolio(
         config, mode, extended_start, end_dt, preloaded_data=preloaded_data
     )
     timer.mark("data_load")
+
+    rust_run = _maybe_run_rust_strategy(
+        config,
+        symbol_map,
+        bid_candles,
+        ask_candles,
+        start_dt,
+        timer=timer,
+    )
+    if rust_run is not None:
+        portfolio = rust_run["portfolio"]
+        timer.mark("reporting")
+        timings = timer.summary()
+        try:
+            setattr(portfolio, "backtest_timings", timings)
+        except Exception:
+            pass
+        return portfolio, None
     t_load = time.perf_counter() - t0 if profiling_enabled else 0.0
     # --- Slippage/Fee Modelle inkl. Multiplikatoren (zentral + Overrides) ---
     exec_costs = _load_execution_costs(config)
