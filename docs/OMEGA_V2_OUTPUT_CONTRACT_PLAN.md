@@ -16,6 +16,7 @@
 | [OMEGA_V2_DATA_FLOW_PLAN.md](OMEGA_V2_DATA_FLOW_PLAN.md) | Datenfluss, Bar/Time-Kontrakte, Result-Building |
 | [OMEGA_V2_EXECUTION_MODEL_PLAN.md](OMEGA_V2_EXECUTION_MODEL_PLAN.md) | Ausführungsmodell: Fills/Exits erzeugen Trades + Reasons |
 | [OMEGA_V2_MODULE_STRUCTURE_PLAN.md](OMEGA_V2_MODULE_STRUCTURE_PLAN.md) | Module/Crates, Result-Typen, Serialisierung |
+| [OMEGA_V2_METRICS_DEFINITION_PLAN.md](OMEGA_V2_METRICS_DEFINITION_PLAN.md) | Normative Metrik-Keys, Definitionen/Units, Scores, Rundung |
 | [OMEGA_V2_CONFIG_SCHEMA_PLAN.md](OMEGA_V2_CONFIG_SCHEMA_PLAN.md) | Normatives Config-Schema (Input) |
 
 ---
@@ -184,7 +185,7 @@ Die folgenden Felder sind **MUSS** (minimaler, stabiler Contract):
 | `stop_loss` | SOLL | number | SL-Preis (Quote) |
 | `take_profit` | SOLL | number | TP-Preis (Quote) |
 | `size` | SOLL | number | Positionsgröße (Lot/Units, siehe Strategy/Config) |
-| `result` | SOLL | number | Realisierte PnL in `account_currency` (ohne Suffix im Feldnamen) |
+| `result` | SOLL | number | Realisierte PnL in `account_currency` **vor** expliziten Fees/Commission (Fees werden separat aggregiert) |
 | `r_multiple` | SOLL | number | R-Multiple (dimensionslos) |
 | `reason` | SOLL | string | Exit-Grund (z.B. `take_profit`, `stop_loss`, `manual`, `timeout`) |
 | `meta` | SOLL | object | Freie, serialisierbare Zusatzinfos (szenario/labels/etc.) |
@@ -270,18 +271,25 @@ Das konkrete Set der Kernmetriken ist inhaltlich Teil des MVP-Scopes. Für den O
 
 - `metrics.json` enthält ein flaches Objekt `metrics` und ein Objekt `definitions`.
 - `metrics` enthält nur Zahlen/Booleans/Strings (keine Arrays), damit es leicht aggregierbar ist.
+- Das **konkrete Key-Set inkl. Semantik und `definitions`-Felder** ist normiert in: `OMEGA_V2_METRICS_DEFINITION_PLAN.md`.
+
+Hinweis: Das folgende JSON-Beispiel ist **minimal**; in V2 werden in `definitions` zusätzliche Felder wie `description`, `domain`, `source` und `type` erwartet (siehe Metrics-Definition-Plan).
 
 | Feld | Pflicht? | Typ | Bedeutung |
 |------|----------|-----|----------|
 | `metrics` | MUSS | object | Key → Value |
 | `definitions` | MUSS | object | Key → (Unit/Definition) |
 
-**Empfohlene Kern-Keys (SOLL, MVP):**
+**Empfohlene Kern-Keys (SOLL, MVP-Minimum):**
 
 - `total_trades`, `wins`, `losses`, `win_rate`
 - `profit_gross`, `profit_net`, `fees_total`
-- `max_drawdown`, `max_drawdown_duration_bars`
+- `max_drawdown`, `max_drawdown_abs`, `max_drawdown_duration_bars`
 - `avg_r_multiple`, `profit_factor`
+
+**Optionale Kern-Keys (SOLL, MVP+):**
+
+- `avg_trade_pnl`, `expectancy`, `active_days`, `trades_per_day`
 
 **Units/Definition (Beispiel):**
 

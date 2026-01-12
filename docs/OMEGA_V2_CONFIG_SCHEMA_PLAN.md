@@ -15,6 +15,7 @@
 | [OMEGA_V2_ARCHITECTURE_PLAN.md](OMEGA_V2_ARCHITECTURE_PLAN.md) | Blueprint, Module, Regeln, Single FFI Boundary |
 | [OMEGA_V2_DATA_FLOW_PLAN.md](OMEGA_V2_DATA_FLOW_PLAN.md) | Datenfluss, Phasen, Datenqualitäts-Checkpoints |
 | [OMEGA_V2_MODULE_STRUCTURE_PLAN.md](OMEGA_V2_MODULE_STRUCTURE_PLAN.md) | Struktur, Zuständigkeiten, Config/Result Location |
+| [OMEGA_V2_METRICS_DEFINITION_PLAN.md](OMEGA_V2_METRICS_DEFINITION_PLAN.md) | Normative Metrik-Keys + Parameterisierung (`metrics.*`) |
 | [OMEGA_V2_EXECUTION_MODEL_PLAN.md](OMEGA_V2_EXECUTION_MODEL_PLAN.md) | Ausführungsmodell (Bid/Ask, Fills, SL/TP, Slippage/Fees, Sizing) |
 | [OMEGA_V2_OUTPUT_CONTRACT_PLAN.md](OMEGA_V2_OUTPUT_CONTRACT_PLAN.md) | Normativer Output-Contract (Artefakte, Schema, Zeit/Units, Pfade) |
 
@@ -93,6 +94,7 @@ Stattdessen wird über **Environment Defaults** und **fixed Layout** gearbeitet 
 | `costs` | `object \| null` | defaults | Kostenmodell-Toggles/Multipliers (ohne Pfade) |
 | `news_filter` | `object \| null` | defaults | News-Filter (enabled + Parameter, ohne Pfade) |
 | `logging` | `object \| null` | defaults | Logging-Toggles (artefaktbezogen) |
+| `metrics` | `object \| null` | defaults | Parameter für Metrik-/Robustness-Orchestrierung (Optimizer/Rating) |
 
 ---
 
@@ -215,6 +217,81 @@ Stattdessen wird über **Environment Defaults** und **fixed Layout** gearbeitet 
 | `logging_mode` | `string` | `"trades_only"` | Erweiterbar (z.B. `"all"`) |
 
 ---
+
+### 4.7 `metrics`
+
+Dieses Objekt steuert **metrische Auswertungen und Robustness-/Stress-Orchestrierung**.
+
+**Wichtig:** Die Parameter werden primär im **Optimizer-/Rating-Layer** verwendet (Multi-Run). Single-Run `metrics.json` wird davon nicht beeinflusst.
+
+Referenz: `OMEGA_V2_METRICS_DEFINITION_PLAN.md`.
+
+```json
+{
+  "metrics": {
+    "robustness": {
+      "enabled": false,
+      "mode": "full",
+      "jitter_frac": 0.05,
+      "jitter_repeats": 5,
+      "dropout_frac": 0.10,
+      "dropout_runs": 1,
+      "cost_shock_factors": [1.25, 1.50, 2.00]
+    },
+    "data_jitter": {
+      "repeats": 5,
+      "atr_period": 14,
+      "sigma_atr": 0.10,
+      "penalty_cap": 0.5,
+      "min_price": 1e-9,
+      "fraq": 0.0
+    },
+    "timing_jitter": {
+      "divisors": [10, 5, 20],
+      "min_months": 1
+    },
+    "ulcer": {
+      "ulcer_cap": 10.0
+    }
+  }
+}
+```
+
+#### 4.7.1 `metrics.robustness`
+
+| Feld | Typ | Default | Validierung | Beschreibung |
+|------|-----|---------|------------|--------------|
+| `enabled` | `boolean` | `false` | - | Aktiviert Robustness/Stress-Scoring im Optimizer |
+| `mode` | `string` | `"full"` | `"full"|"fast"|"off"` | Auswahl des Robustness-Sets (Implementierungsdetails) |
+| `jitter_frac` | `number` | `0.05` | `>=0` | Relative Param-Jitter Stärke (V1-kompatibel) |
+| `jitter_repeats` | `integer` | `5` | `>=0` | Wiederholungen für Param-Jitter |
+| `dropout_frac` | `number` | `0.10` | `0..1` | Anteil entfallender Trades (Trade-Dropout) |
+| `dropout_runs` | `integer` | `1` | `>=0` | Anzahl Runs für Trade-Dropout |
+| `cost_shock_factors` | `array<number>` | `[1.25, 1.50, 2.00]` | alle `>=1` | Multiplikative Kosten-Schocks |
+
+#### 4.7.2 `metrics.data_jitter`
+
+| Feld | Typ | Default | Validierung | Beschreibung |
+|------|-----|---------|------------|--------------|
+| `repeats` | `integer` | `5` | `>=0` | Anzahl Jitter-Samples |
+| `atr_period` | `integer` | `14` | `>0` | ATR-Periode für Skalierung |
+| `sigma_atr` | `number` | `0.10` | `>=0` | Jitter-Sigma relativ zu ATR |
+| `penalty_cap` | `number` | `0.5` | `>0` | Cap im Penalty-Modell (V1-kompatibel) |
+| `min_price` | `number` | `1e-9` | `>0` | Untere Schranke für Preise |
+| `fraq` | `number` | `0.0` | `>=0` | V1-Kompatibilitätsparameter (Data-Jitter) |
+
+#### 4.7.3 `metrics.timing_jitter`
+
+| Feld | Typ | Default | Validierung | Beschreibung |
+|------|-----|---------|------------|--------------|
+| `divisors` | `array<integer>` | `[10, 5, 20]` | alle `>0` | Window→Monatsshift Ableitung (V1-kompatibel) |
+| `min_months` | `integer` | `1` | `>=0` | Minimaler Monatsshift |
+
+#### 4.7.4 `metrics.ulcer`
+
+| Feld | Typ | Default | Validierung | Beschreibung |
+|------|-----|---------|------------|--------------|
+| `ulcer_cap` | `number` | `10.0` | `>0` | Cap für `ulcer_index_score = 1 - ulcer/ulcer_cap` |
 
 ## 5. Validierung und Normalisierung (Normativ)
 

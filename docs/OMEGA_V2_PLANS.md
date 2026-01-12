@@ -11,10 +11,10 @@
 | Status | Bedeutung | Anzahl |
 |--------|-----------|--------|
 | ✅ | Existiert und vollständig | 1 |
-| 🟡 | Existiert, offene Punkte | 6 |
-| 🔲 | Geplant, noch nicht erstellt | 7 |
+| 🟡 | Existiert, offene Punkte | 7 |
+| 🔲 | Geplant, noch nicht erstellt | 6 |
 
-**Gesamt: 14 Pläne** | **Fortschritt: 7/14 erstellt (50%)**
+**Gesamt: 14 Pläne** | **Fortschritt: 8/14 erstellt (57%)**
 
 ---
 
@@ -74,8 +74,16 @@
 **Zweck**: Exakte Artefakt-Spezifikation für `trades.json`, `equity.csv`, `metrics.json`, `meta.json` inkl. Feldnamen, Typen, Einheiten, Zeit-Contract und Output-Pfad.
 
 **Offene Punkte**:
-- [ ] MVP-Kernmetriken-Set in `metrics.json` finalisieren (Keys + Definitionen)
 - [ ] Golden-File Vergleichsregeln (Float-Toleranzen/Normalisierung) konkretisieren
+
+---
+
+### 🟡 OMEGA_V2_METRICS_DEFINITION_PLAN.md
+**Zweck**: Normative Definition aller Performance-Metriken und Score-Keys (Units/Domain/Quelle/Edge-Cases) inkl. Policy für Rundung und Output-Ort (Single-Run vs. Optimizer).
+
+**Offene Punkte**:
+- [ ] Sharpe/Sortino: exakte Formeln + Annualisierung/Frequenz (Trade-R vs. Daily Equity) konkretisieren
+- [ ] Optimizer-/Rating-Aggregate-Contract für Robustness-Scores spezifizieren (separates Artefakt)
 
 ---
 
@@ -85,13 +93,6 @@
 ---
 
 ## Geplante Pläne
-
----
-
-### 🔲 OMEGA_V2_METRICS_DEFINITION_PLAN.md
-**Zweck**: Formale Definition aller Performance-Metriken (Sharpe, Sortino, Drawdown, etc.) inkl. Inputs, Sampling-Frequenz und Timeframe-Skalierung.
-
-**Priorität**: 🟡 Mittel (kann parallel zu Core entwickelt werden)
 
 ---
 
@@ -161,4 +162,5 @@ Alle Pläne befinden sich in `docs/` und folgen der Namenskonvention `OMEGA_V2_<
 | 1.0 | 12.01.2026 | Initiale Version mit 4 existierenden und 10 geplanten Plänen |
 | 1.1 | 12.01.2026 | Output-Contract-Plan erstellt und Tracker aktualisiert |
 | 1.2 | 12.01.2026 | Execution-Model-Plan erstellt, Querverweise/Tracker aktualisiert |
+| 1.3 | 12.01.2026 | Metrics-Definition-Plan erstellt, Querverweise/Tracker aktualisiert |
 
