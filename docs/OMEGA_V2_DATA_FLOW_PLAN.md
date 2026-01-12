@@ -49,9 +49,11 @@
 │ • symbol        │
 │ • start_date    │
 │ • end_date      │
-│ • timeframe     │
+│ • primary_tf    │
 │ • parameters    │
-│ • data_paths    │
+│ • warmup        │  ← NEU: Konfigurierbare Warmup-Bars
+│   • primary_tf  │     Default: 500
+│   • htf         │     Default: 500
 └────────┬────────┘
          │
          │ Laden & Validieren
@@ -107,68 +109,368 @@
 
 ### 2.2 Phase 2: Daten laden (Rust-intern)
 
+Phase 2 ist die **zentrale Stelle für alle Datenqualitäts-Operationen**. Hier werden:
+- Pfade automatisch aus Config-Parametern abgeleitet
+- Bid/Ask Alignment sichergestellt
+- Datenqualität validiert
+- Warmup-Verfügbarkeit geprüft
+
 ```
 ┌──────────────────────────────────────────────────────────────────────────────────┐
 │                         RUST: DATA LOADING                                        │
+│                    (Zentrale Datenqualitäts-Phase)                                │
 └──────────────────────────────────────────────────────────────────────────────────┘
 
-┌─────────────────┐     ┌─────────────────┐
-│  BID Parquet    │     │  ASK Parquet    │
-│  (Disk)         │     │  (Disk)         │
-│                 │     │                 │
-│ EURUSD_M5_BID   │     │ EURUSD_M5_ASK   │
-│ .parquet        │     │ .parquet        │
-└────────┬────────┘     └────────┬────────┘
-         │                       │
-         │  arrow-rs/polars      │
-         │  read_parquet()       │
-         ▼                       ▼
-┌─────────────────────────────────────────┐
-│           RAW CANDLE DATA               │
-│                                         │
-│  Vec<RawCandle> {                       │
-│      timestamp: i64,                    │
-│      open: f64,                         │
-│      high: f64,                         │
-│      low: f64,                          │
-│      close: f64,                        │
-│      volume: f64,                       │
-│  }                                      │
-└────────────────────┬────────────────────┘
-                     │
-                     │ Filterung:
-                     │ • Date Range
-                     │ • Market Hours
-                     │ • Lücken-Handling
-                     ▼
-┌─────────────────────────────────────────┐
-│           CANDLE STORE                   │
-│                                         │
-│  CandleStore {                          │
-│      bid: Vec<Candle>,                  │
-│      ask: Vec<Candle>,                  │
-│      timestamps: Vec<i64>,              │
-│      len: usize,                        │
-│  }                                      │
-│                                         │
-│  Candle {                               │
-│      o: f64, h: f64, l: f64, c: f64,   │
-│  }                                      │
-└────────────────────┬────────────────────┘
-                     │
-                     │ Falls HTF benötigt:
-                     │ Aggregation M5 → H1 → D1
-                     ▼
-┌─────────────────────────────────────────┐
-│        MULTI-TIMEFRAME STORE            │
-│                                         │
-│  MultiTfStore {                         │
-│      m5: CandleStore,                   │
-│      h1: CandleStore,     // optional   │
-│      d1: CandleStore,     // optional   │
-│      htf_index_map: HashMap<i64, usize>,│
-│  }                                      │
-└─────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│  STEP 2.1: AUTOMATISCHE PATH RESOLUTION                                          │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                  │
+│  Input aus Config:                                                               │
+│  • symbol: "EURUSD"                                                              │
+│  • primary_tf: "M5"                                                              │
+│  • htf_filter.timeframe: "D1" (optional)                                         │
+│  • data_root: "/data/parquet"  (Environment oder Default)                        │
+│                                                                                  │
+│  Automatisch generierte Pfade:                                                   │
+│  ┌─────────────────────────────────────────────────────────────────────────┐    │
+│  │  PRIMARY TIMEFRAME (M5):                                                 │    │
+│  │  • bid_path = {data_root}/{symbol}/{symbol}_{primary_tf}_BID.parquet    │    │
+│  │  • ask_path = {data_root}/{symbol}/{symbol}_{primary_tf}_ASK.parquet    │    │
+│  │                                                                          │    │
+│  │  Beispiel:                                                               │    │
+│  │  • /data/parquet/EURUSD/EURUSD_M5_BID.parquet                           │    │
+│  │  • /data/parquet/EURUSD/EURUSD_M5_ASK.parquet                           │    │
+│  └─────────────────────────────────────────────────────────────────────────┘    │
+│                                                                                  │
+│  ┌─────────────────────────────────────────────────────────────────────────┐    │
+│  │  HTF TIMEFRAMES (falls htf_filter.enabled):                              │    │
+│  │  • htf_bid_path = {data_root}/{symbol}/{symbol}_{htf_tf}_BID.parquet    │    │
+│  │  • htf_ask_path = {data_root}/{symbol}/{symbol}_{htf_tf}_ASK.parquet    │    │
+│  │                                                                          │    │
+│  │  Beispiel (D1):                                                          │    │
+│  │  • /data/parquet/EURUSD/EURUSD_D1_BID.parquet                           │    │
+│  │  • /data/parquet/EURUSD/EURUSD_D1_ASK.parquet                           │    │
+│  └─────────────────────────────────────────────────────────────────────────┘    │
+│                                                                                  │
+│  ❌ FEHLER wenn Datei nicht existiert → Backtest ABBRUCH                         │
+│                                                                                  │
+└─────────────────────────────────────────────────────────────────────────────────┘
+                                          │
+                                          ▼
+┌──────────────────────────────────────────────────────────────────────────────────┐
+│  STEP 2.2: PARQUET LADEN (Pro Timeframe)                                         │
+├──────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                  │
+│  ┌─────────────────┐     ┌─────────────────┐                                     │
+│  │  BID Parquet    │     │  ASK Parquet    │                                     │
+│  │  (Disk)         │     │  (Disk)         │                                     │
+│  │                 │     │                 │                                     │
+│  │ EURUSD_M5_BID   │     │ EURUSD_M5_ASK   │                                     │
+│  │ .parquet        │     │ .parquet        │                                     │
+│  └────────┬────────┘     └────────┬────────┘                                     │
+│           │                       │                                              │
+│           │  arrow-rs/polars      │                                              │ 
+│           │  read_parquet()       │                                              │
+│           ▼                       ▼                                              │
+│  ┌─────────────────────────────────────────┐                                     │
+│  │           RAW CANDLE DATA               │                                     │
+│  │                                         │                                     │
+│  │  Vec<RawCandle> {                       │                                     │
+│  │        timestamp: i64,                  │                                     │
+│  │        high: f64,                       │                                     │
+│  │        low: f64,                        │                                     │
+│  │        close: f64,                      │                                     │
+│  │        volume: f64,                     │                                     │
+│  │  }                                      │                                     │
+│  └─────────────────────────────────────────┘                                     │
+│                                                                                  │
+└──────────────────────────────────────────────────────────────────────────────────┘
+                                          │
+                                          ▼
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│  STEP 2.3: BID/ASK ALIGNMENT (KRITISCH!)                                         │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                  │
+│  Problem: Bid und Ask Parquets können unterschiedliche Timestamps haben!         │
+│                                                                                  │
+│  ┌───────────────────────────────────────────────────────────────────────────┐  │
+│  │  Alignment-Strategie: INNER JOIN auf Timestamps                           │  │
+│  │                                                                           │  │
+│  │  BID Timestamps:  [00:00, 00:05, 00:10, 00:20, 00:25, 00:30]              │  │
+│  │  ASK Timestamps:  [00:00, 00:05, 00:15, 00:20, 00:25, 00:30]              │  │
+│  │                          ↓                                                │  │
+│  │  ALIGNED:         [00:00, 00:05, 00:20, 00:25, 00:30]                     │  │
+│  │                                                                           │  │
+│  │  → Nur Timestamps behalten, die in BEIDEN vorhanden sind                  │  │
+│  │  → Fehlende Bars werden NICHT interpoliert (Datenintegrität!)             │  │
+│                                                                                  │
+│                                                                                  │
+│  Logging:                                                                        │
+│  • Anzahl Bid-Bars vor Alignment                                                 │
+│  • Anzahl Ask-Bars vor Alignment                                                 │
+│  • Anzahl Bars nach Alignment                                                    │
+│  • Anzahl verworfener Bars (Warning wenn > 1%)                                   │
+│                                                                                  │
+└─────────────────────────────────────────────────────────────────────────────────┘
+                                          │
+                                          ▼
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│  STEP 2.4: DATENQUALITÄTS-VALIDIERUNG                                            │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                  │
+│  ┌─────────────────────────────────────────────────────────────────────────┐    │
+│  │  CHECK 1: Timestamps monoton steigend                                    │    │
+│  │  for i in 1..len {                                                       │    │
+│  │      assert!(timestamps[i] > timestamps[i-1]);                           │    │
+│  │  }                                                                       │    │
+│  │  ❌ Fehler → Backtest ABBRUCH (korrupte Daten)                           │    │
+│  └─────────────────────────────────────────────────────────────────────────┘    │
+│                                                                                  │
+│  ┌─────────────────────────────────────────────────────────────────────────┐    │
+│  │  CHECK 2: Bid ≤ Ask für alle Bars                                        │    │
+│  │  for i in 0..len {                                                       │    │
+│  │      assert!(bid[i].close <= ask[i].close);                              │    │
+│  │      assert!(bid[i].high <= ask[i].high);                                │    │
+│  │  }                                                                       │    │
+│  │  ❌ Fehler → Backtest ABBRUCH (ungültige Spread-Daten)                   │    │
+│  └─────────────────────────────────────────────────────────────────────────┘    │
+│                                                                                  │
+│  ┌─────────────────────────────────────────────────────────────────────────┐    │
+│  │  CHECK 3: Keine NaN/Inf in OHLC                                          │    │
+│  │  for candle in candles {                                                 │    │
+│  │      assert!(candle.o.is_finite() && candle.h.is_finite() ...);          │    │
+│  │  }                                                                       │    │
+│  │  ❌ Fehler → Backtest ABBRUCH (korrupte Preisdaten)                      │    │
+│  └─────────────────────────────────────────────────────────────────────────┘    │
+│                                                                                  │
+│  ┌─────────────────────────────────────────────────────────────────────────┐    │
+│  │  CHECK 4: OHLC Konsistenz                                                │    │
+│  │  for candle in candles {                                                 │    │
+│  │      assert!(candle.l <= candle.o && candle.l <= candle.c);              │    │
+│  │      assert!(candle.h >= candle.o && candle.h >= candle.c);              │    │
+│  │      assert!(candle.l <= candle.h);                                      │    │
+│  │  }                                                                       │    │
+│  │  ❌ Fehler → Backtest ABBRUCH (inkonsistente OHLC)                       │    │
+│  └─────────────────────────────────────────────────────────────────────────┘    │
+│                                                                                  │
+│  ┌─────────────────────────────────────────────────────────────────────────┐    │
+│  │  CHECK 5: Lücken-Analyse (Warning, kein Abbruch)                         │    │
+│  │  Gap = timestamp[i] - timestamp[i-1] > expected_interval * 2             │    │
+│  │  → Logging: Anzahl und Positionen der Gaps                               │    │
+│  │  → Warning wenn > 5% der erwarteten Bars fehlen                          │    │
+│  └─────────────────────────────────────────────────────────────────────────┘    │
+│                                                                                  │
+└─────────────────────────────────────────────────────────────────────────────────┘
+                                          │
+                                          ▼
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│  STEP 2.5: DATE RANGE FILTER                                                     │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                  │
+│  Filterung auf Config-Zeitraum:                                                  │
+│  • start_date aus Config (inklusiv)                                              │
+│  • end_date aus Config (inklusiv)                                                │
+│                                                                                  │
+│  candles = candles.filter(|c| c.timestamp >= start && c.timestamp <= end);       │
+│                                                                                  │
+└─────────────────────────────────────────────────────────────────────────────────┘
+                                          │
+                                          ▼
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│  STEP 2.6: WARMUP-VALIDIERUNG (KRITISCH!)                                        │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                  │
+│  Warmup-Konfiguration:                                                           │
+│  ┌─────────────────────────────────────────────────────────────────────────┐    │
+│  │  WICHTIG: Warmup ist KONFIGURIERBAR, nicht indikator-abhängig!           │    │
+│  │                                                                          │    │
+│  │  Grund: Konsistenz zwischen Live-Trading und Backtest.                   │    │
+│  │  Im Live-Trading werden immer N Kerzen geladen, unabhängig               │    │
+│  │  von den verwendeten Indikatoren.                                        │    │
+│  │                                                                          │    │
+│  │  ┌─────────────────────────────────────────────────────────────────┐    │    │
+│  │  │  CONFIG WARMUP SETTINGS:                                         │    │    │
+│  │  │                                                                  │    │    │
+│  │  │  warmup: {                                                       │    │    │
+│  │  │      primary_tf: 500,    // Warmup für Primary Timeframe         │    │    │
+│  │  │      htf: 500,           // Warmup für HTF (falls enabled)       │    │    │
+│  │  │  }                                                               │    │    │
+│  │  │                                                                  │    │    │
+│  │  │  DEFAULT = 500 Bars pro Timeframe (wie im Live-Trading)          │    │    │
+│  │  └─────────────────────────────────────────────────────────────────┘    │    │
+│  │                                                                          │    │
+│  │  Warmup-Auflösung:                                                       │    │
+│  │  ┌─────────────────────────────────────────────────────────────────┐    │    │
+│  │  │  primary_warmup = config.warmup.primary_tf.unwrap_or(500)        │    │    │
+│  │  │  htf_warmup = config.warmup.htf.unwrap_or(500)                   │    │    │
+│  │  └─────────────────────────────────────────────────────────────────┘    │    │
+│  │                                                                          │    │
+│  │  Beispiele mit Default (500):                                            │    │
+│  │  • M5 Primary TF: 500 M5-Bars = ~42 Stunden                              │    │
+│  │  • H1 Primary TF: 500 H1-Bars = ~21 Tage                                 │    │
+│  │  • D1 HTF: 500 D1-Bars = ~2 Jahre                                        │    │
+│  │                                                                          │    │
+│  │  Custom Beispiele:                                                       │    │
+│  │  • warmup.primary_tf = 1000 → Doppelte Warmup-Phase                      │    │
+│  │  • warmup.htf = 200 → Reduzierter HTF-Warmup                             │    │
+│  └─────────────────────────────────────────────────────────────────────────┘    │
+│                                                                                  │
+│  Validierung:                                                                    │
+│  ┌─────────────────────────────────────────────────────────────────────────┐    │
+│  │  available_bars = candles.len()                                          │    │
+│  │  required_warmup = config.warmup.primary_tf.unwrap_or(500)               │    │
+│  │                                                                          │    │
+│  │  if available_bars < required_warmup + MIN_TRADING_BARS {                │    │
+│  │      return Err(BacktestError::InsufficientData {                        │    │
+│  │          required: required_warmup + MIN_TRADING_BARS,                   │    │
+│  │          available: available_bars,                                      │    │
+│  │          configured_warmup: required_warmup,                             │    │
+│  │          symbol: config.symbol.clone(),                                  │    │
+│  │          timeframe: config.primary_tf.clone(),                           │    │
+│  │      });                                                                 │    │
+│  │  }                                                                       │    │
+│  │                                                                          │    │
+│  │  MIN_TRADING_BARS = 100  // Mindestens 100 Bars zum Traden               │    │
+│  │                                                                          │    │
+│  │  ❌ Fehler → Backtest ABBRUCH (nicht genug Daten für Warmup)             │    │
+│  └─────────────────────────────────────────────────────────────────────────┘    │
+│                                                                                  │
+│  HTF Warmup-Validierung (falls htf_filter.enabled):                              │
+│  ┌─────────────────────────────────────────────────────────────────────────┐    │
+│  │  htf_available = htf_candles.len()                                       │    │
+│  │  htf_required = config.warmup.htf.unwrap_or(500)                         │    │
+│  │                                                                          │    │
+│  │  if htf_available < htf_required {                                       │    │
+│  │      return Err(BacktestError::InsufficientHTFData { ... });             │    │
+│  │  }                                                                       │    │
+│  └─────────────────────────────────────────────────────────────────────────┘    │
+│                                                                                  │
+│  Erfolgs-Logging:                                                                │
+│  • "Primary Warmup: {primary_warmup} Bars (configured), Trading: {n} Bars"       │
+│  • "HTF Warmup: {htf_warmup} Bars (configured)" (falls HTF enabled)              │
+│                                                                                  │
+└─────────────────────────────────────────────────────────────────────────────────┘
+                                          │
+                                          ▼
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│  STEP 2.7: CANDLE STORE ERSTELLEN                                                │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                  │
+│  ┌─────────────────────────────────────────┐                                     │
+│  │           CANDLE STORE                   │                                     │
+│  │                                         │                                     │
+│  │  CandleStore {                          │                                     │
+│  │      bid: Vec<Candle>,                  │                                     │
+│  │      ask: Vec<Candle>,                  │                                     │
+│  │      timestamps: Vec<i64>,              │                                     │
+│  │      len: usize,                        │                                     │
+│  │      warmup_periods: usize,             │  // NEU: Warmup aus Validierung     │
+│  │  }                                      │                                     │
+│  │                                         │                                     │
+│  │  Candle {                               │                                     │
+│  │      o: f64, h: f64, l: f64, c: f64,   │                                     │
+│  │  }                                      │                                     │
+│  └─────────────────────────────────────────┘                                     │
+│                                                                                  │
+└─────────────────────────────────────────────────────────────────────────────────┘
+                                          │
+                                          ▼
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│  STEP 2.8: HTF LADEN & ALIGNMENT (falls konfiguriert)                            │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                  │
+│  Falls htf_filter.enabled == true:                                               │
+│                                                                                  │
+│  1. HTF Parquets laden (automatisch abgeleitete Pfade)                           │
+│  2. HTF Bid/Ask Alignment (wie bei Primary TF)                                   │
+│  3. HTF Datenqualitäts-Validierung                                               │
+│  4. HTF Date Range Filter                                                        │
+│  5. HTF Warmup-Validierung                                                       │
+│                                                                                  │
+│  HTF Index Mapping erstellen:                                                    │
+│  ┌─────────────────────────────────────────────────────────────────────────┐    │
+│  │  htf_index_map: HashMap<i64, usize>                                      │    │
+│  │                                                                          │    │
+│  │  Für jeden Primary-TF Timestamp:                                         │    │
+│  │  → Finde zugehörigen HTF-Bar-Index                                       │    │
+│  │  → Speichere Mapping: primary_ts → htf_idx                               │    │
+│  │                                                                          │    │
+│  │  htf_index_map[m5_ts] = find_htf_bar_index(m5_ts, htf_timestamps)        │    │
+│  └─────────────────────────────────────────────────────────────────────────┘    │
+│                                                                                  │
+└─────────────────────────────────────────────────────────────────────────────────┘
+                                          │
+                                          ▼
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│  OUTPUT: MULTI-TIMEFRAME STORE                                                   │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                  │
+│  ┌─────────────────────────────────────────┐                                     │
+│  │        MULTI-TIMEFRAME STORE            │                                     │
+│  │                                         │                                     │
+│  │  MultiTfStore {                         │                                     │
+│  │      primary: CandleStore,              │  // M5 (Bid+Ask aligned)            │
+│  │      htf: Option<CandleStore>,          │  // D1 (Bid+Ask aligned)            │
+│  │      htf_index_map: HashMap<i64, usize>,│  // M5_ts → D1_idx                  │
+│  │      data_quality_report: DataReport,   │  // Statistiken                     │
+│  │  }                                      │                                     │
+│  │                                         │                                     │
+│  │  DataReport {                           │                                     │
+│  │      primary_bars_raw: usize,           │                                     │
+│  │      primary_bars_aligned: usize,       │                                     │
+│  │      htf_bars_raw: Option<usize>,       │                                     │
+│  │      htf_bars_aligned: Option<usize>,   │                                     │
+│  │      gaps_detected: usize,              │                                     │
+│  │      warmup_periods: usize,             │                                     │
+│  │      trading_periods: usize,            │                                     │
+│  │  }                                      │                                     │
+│  └─────────────────────────────────────────┘                                     │
+│                                                                                  │
+└─────────────────────────────────────────────────────────────────────────────────┘
+```
+
+### 2.2.1 Data Loading Error Handling
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                    DATA LOADING FEHLERBEHANDLUNG                                 │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                  │
+│  ABBRUCH-FEHLER (Backtest wird nicht gestartet):                                 │
+│  ─────────────────────────────────────────────────────────────────────────────  │
+│                                                                                  │
+│  ❌ FileNotFound                                                                 │
+│     → Parquet-Datei existiert nicht                                              │
+│     → Error: "Data file not found: {path}"                                       │
+│                                                                                  │
+│  ❌ InsufficientData                                                             │
+│     → Nicht genug Bars für Warmup + Trading                                      │
+│     → Error: "Insufficient data: need {n}, have {m}"                             │
+│                                                                                  │
+│  ❌ CorruptData                                                                  │
+│     → NaN/Inf in Preisen, nicht-monotone Timestamps                              │
+│     → Error: "Corrupt data at index {i}: {details}"                              │
+│                                                                                  │
+│  ❌ InvalidSpread                                                                │
+│     → Bid > Ask (unmöglicher Zustand)                                            │
+│     → Error: "Invalid spread at {timestamp}: bid={bid}, ask={ask}"               │
+│                                                                                  │
+│  ❌ AlignmentFailure                                                             │
+│     → Keine gemeinsamen Timestamps zwischen Bid und Ask                          │
+│     → Error: "Bid/Ask alignment failed: no common timestamps"                    │
+│                                                                                  │
+│  WARNINGS (Backtest läuft weiter, aber loggt):                                   │
+│  ─────────────────────────────────────────────────────────────────────────────  │
+│                                                                                  │
+│  ⚠️ LargeGaps                                                                    │
+│     → > 5% der erwarteten Bars fehlen                                            │
+│     → Warning: "Large gaps detected: {n} missing bars ({pct}%)"                  │
+│                                                                                  │
+│  ⚠️ AlignmentLoss                                                                │
+│     → > 1% der Bars durch Alignment verloren                                     │
+│     → Warning: "Alignment discarded {n} bars ({pct}%)"                           │
+│                                                                                  │
+└─────────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ### 2.3 Phase 3: Indikator-Berechnung (Rust-intern)
@@ -511,116 +813,12 @@
 └─────────────────┘     └─────────────────┘
 ```
 
----
-
-## 3. Datenstrukturen im Detail
-
-### 3.1 Config JSON Schema (Python → Rust)
-
-```json
-{
-  "strategy": {
-    "name": "MeanReversionZScore",
-    "parameters": {
-      "atr_length": 14,
-      "atr_mult": 1.5,
-      "bb_length": 20,
-      "std_factor": 2.0,
-      "z_score_long": -2.0,
-      "z_score_short": 2.0,
-      "ema_length": 20,
-      "enabled_scenarios": ["A", "B", "C"],
-      "htf_filter": {
-        "enabled": true,
-        "timeframe": "D1",
-        "ema_length": 50
-      }
-    }
-  },
-  "backtest": {
-    "symbol": "EURUSD",
-    "timeframe": "M5",
-    "start_date": "2020-01-01T00:00:00Z",
-    "end_date": "2023-12-31T23:59:59Z",
-    "initial_capital": 100000.0,
-    "position_size": 0.01
-  },
-  "data": {
-    "bid_path": "/data/parquet/EURUSD/EURUSD_M5_BID.parquet",
-    "ask_path": "/data/parquet/EURUSD/EURUSD_M5_ASK.parquet",
-    "htf_bid_path": "/data/parquet/EURUSD/EURUSD_D1_BID.parquet",
-    "htf_ask_path": "/data/parquet/EURUSD/EURUSD_D1_ASK.parquet"
-  },
-  "execution": {
-    "slippage_model": "fixed",
-    "slippage_pips": 0.5,
-    "fee_model": "spread",
-    "spread_pips": 0.8
-  }
-}
-```
-
-### 3.2 Result JSON Schema (Rust → Python)
-
-```json
-{
-  "status": "success",
-  "config_echo": { ... },
-  "execution_time_ms": 1234,
-  "candle_count": 524160,
-  "metrics": {
-    "total_return": 0.2534,
-    "cagr": 0.0821,
-    "sharpe_ratio": 1.42,
-    "sortino_ratio": 2.15,
-    "calmar_ratio": 1.89,
-    "max_drawdown": -0.0435,
-    "max_drawdown_duration_days": 45,
-    "volatility": 0.12,
-    "var_95": -0.0123,
-    "cvar_95": -0.0189,
-    "total_trades": 1847,
-    "win_rate": 0.523,
-    "profit_factor": 1.67,
-    "avg_trade_pnl": 13.72,
-    "avg_win_pnl": 45.23,
-    "avg_loss_pnl": -32.18,
-    "expectancy": 8.45,
-    "max_consecutive_wins": 12,
-    "max_consecutive_losses": 7,
-    "trades_per_day": 0.46,
-    "scenario_metrics": {
-      "A": { "trades": 523, "win_rate": 0.54, "pnl": 8934.23 },
-      "B": { "trades": 412, "win_rate": 0.51, "pnl": 6721.12 }
-    }
-  },
-  "trades": [
-    {
-      "id": 1,
-      "entry_time": "2020-01-15T10:35:00Z",
-      "exit_time": "2020-01-15T14:20:00Z",
-      "direction": "long",
-      "entry_price": 1.11234,
-      "exit_price": 1.11389,
-      "size": 0.01,
-      "pnl": 15.50,
-      "pnl_pips": 15.5,
-      "scenario": "A",
-      "exit_reason": "take_profit",
-      "fees": 0.80,
-      "slippage": 0.50
-    }
-  ],
-  "equity_curve": [100000.0, 100015.50, 99985.20, ...],
-  "timestamps": [1579084500, 1579085400, ...]
-}
-```
 
 ---
 
-## 4. Data Flow Regeln
+## 3. Data Flow Regeln
 
-### 4.1 Richtung und Ownership
+### 3.1 Richtung und Ownership
 
 | Daten | Richtung | Ownership | Lebensdauer |
 |-------|----------|-----------|-------------|
@@ -634,7 +832,7 @@
 | Trades | Rust-intern | Vec<Trade> | Backtest-Dauer |
 | Result JSON | Rust → Python | Python übernimmt | Nach Backtest |
 
-### 4.2 Zero-Copy Prinzipien
+### 3.2 Zero-Copy Prinzipien
 
 ```
 ╔═══════════════════════════════════════════════════════════════════════════════╗
@@ -667,7 +865,7 @@
 ╚═══════════════════════════════════════════════════════════════════════════════╝
 ```
 
-### 4.3 Keine Rückflüsse während Backtest
+### 3.3 Keine Rückflüsse während Backtest
 
 ```
 ╔═══════════════════════════════════════════════════════════════════════════════╗
@@ -692,9 +890,9 @@
 
 ---
 
-## 5. Multi-Timeframe Data Flow
+## 4. Multi-Timeframe Data Flow
 
-### 5.1 HTF-Daten Alignment
+### 4.1 HTF-Daten Alignment
 
 ```
 ┌────────────────────────────────────────────────────────────────────────────────┐
@@ -729,7 +927,7 @@ H1:      │    0    │                            │    1    │
 └─────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-### 5.2 HTF Indicator Access Pattern
+### 4.2 HTF Indicator Access Pattern
 
 ```
 ┌────────────────────────────────────────────────────────────────────────────────┐
@@ -760,21 +958,25 @@ BarContext.get_htf_indicator(name, tf, params):
 
 ---
 
-## 6. Data Flow Validierung
+## 5. Data Flow Validierung
 
-### 6.1 Invarianten die geprüft werden müssen
+### 5.1 Invarianten die geprüft werden müssen
 
-| # | Invariante | Prüfung |
-|---|------------|---------|
-| I1 | Keine Lookahead-Bias | HTF-Daten nur von abgeschlossenen Bars |
-| I2 | Timestamps monoton steigend | candles[i].timestamp < candles[i+1].timestamp |
-| I3 | Bid ≤ Ask | Für jede Bar: bid.close ≤ ask.close |
-| I4 | Indikatoren aligned | indicators.len() == candles.len() |
-| I5 | NaN nur in Warmup | indicators[warmup:] enthält keine NaN |
-| I6 | Portfolio Balance konsistent | cash + margin + unrealized_pnl == equity |
-| I7 | Trades vollständig | Jeder geschlossene Trade hat entry + exit |
+| # | Invariante | Prüfung | Phase | Bei Verletzung |
+|---|------------|---------|-------|----------------|
+| I1 | Keine Lookahead-Bias | HTF-Daten nur von abgeschlossenen Bars | Phase 4 | ABBRUCH |
+| I2 | Timestamps monoton steigend | candles[i].timestamp < candles[i+1].timestamp | Phase 2 | ABBRUCH |
+| I3 | Bid ≤ Ask | Für jede Bar: bid.close ≤ ask.close | Phase 2 | ABBRUCH |
+| I4 | Indikatoren aligned | indicators.len() == candles.len() | Phase 3 | ABBRUCH |
+| I5 | NaN nur in Warmup | indicators[warmup:] enthält keine NaN | Phase 3 | ABBRUCH |
+| I6 | Portfolio Balance konsistent | cash + margin + unrealized_pnl == equity | Phase 4 | ABBRUCH |
+| I7 | Trades vollständig | Jeder geschlossene Trade hat entry + exit | Phase 5 | WARNING |
+| **I8** | **Bid/Ask Alignment** | **Gleiche Timestamps für Bid und Ask auf allen TFs** | **Phase 2** | **ABBRUCH** |
+| **I9** | **Warmup verfügbar** | **available_bars >= required_warmup + MIN_TRADING_BARS** | **Phase 2** | **ABBRUCH** |
+| **I10** | **HTF Alignment** | **Jeder Primary-TF Timestamp hat gültigen HTF-Index** | **Phase 2** | **ABBRUCH** |
+| **I11** | **Pfade existieren** | **Alle automatisch generierten Datenpfade existieren** | **Phase 2** | **ABBRUCH** |
 
-### 6.2 Checkpoints im Flow
+### 5.2 Checkpoints im Flow
 
 ```
 ┌────────────────────────────────────────────────────────────────────────────────┐
@@ -813,7 +1015,7 @@ CHECKPOINT 5: Vor Result Serialization
 
 ---
 
-## 7. Zusammenfassung: Data Flow auf einen Blick
+## 6. Zusammenfassung: Data Flow auf einen Blick
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────────┐
