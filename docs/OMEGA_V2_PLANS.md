@@ -11,10 +11,10 @@
 | Status | Bedeutung | Anzahl |
 |--------|-----------|--------|
 | ✅ | Existiert und vollständig | 1 |
-| 🟡 | Existiert, offene Punkte | 4 |
-| 🔲 | Geplant, noch nicht erstellt | 9 |
+| 🟡 | Existiert, offene Punkte | 5 |
+| 🔲 | Geplant, noch nicht erstellt | 8 |
 
-**Gesamt: 14 Pläne** | **Fortschritt: 5/14 erstellt (36%)**
+**Gesamt: 14 Pläne** | **Fortschritt: 6/14 erstellt (43%)**
 
 ---
 
@@ -61,6 +61,15 @@
 
 ---
 
+### 🟡 OMEGA_V2_OUTPUT_CONTRACT_PLAN.md
+**Zweck**: Exakte Artefakt-Spezifikation für `trades.json`, `equity.csv`, `metrics.json`, `meta.json` inkl. Feldnamen, Typen, Einheiten, Zeit-Contract und Output-Pfad.
+
+**Offene Punkte**:
+- [ ] MVP-Kernmetriken-Set in `metrics.json` finalisieren (Keys + Definitionen)
+- [ ] Golden-File Vergleichsregeln (Float-Toleranzen/Normalisierung) konkretisieren
+
+---
+
 ### ✅ OMEGA_V2_CONFIG_SCHEMA_PLAN.md
 **Zweck**: Normatives JSON-Schema für Backtest-Konfiguration mit Pflichtfeldern, Defaults, Ranges, Validierungsregeln und Migrations-Guide.
 
@@ -68,13 +77,6 @@
 
 ## Geplante Pläne
 
-
----
-
-### 🔲 OMEGA_V2_OUTPUT_CONTRACT_PLAN.md
-**Zweck**: Exakte Artefakt-Spezifikation für `trades.json`, `equity.csv`, `metrics.json` inkl. Feldnamen, Typen, Einheiten und V1-Kompatibilität.
-
-**Priorität**: 🔴 Hoch (blockiert Regression-Tests)
 
 ---
 
@@ -156,4 +158,5 @@ Alle Pläne befinden sich in `docs/` und folgen der Namenskonvention `OMEGA_V2_<
 | Version | Datum | Änderung |
 |---------|-------|----------|
 | 1.0 | 12.01.2026 | Initiale Version mit 4 existierenden und 10 geplanten Plänen |
+| 1.1 | 12.01.2026 | Output-Contract-Plan erstellt und Tracker aktualisiert |
 

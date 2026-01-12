@@ -15,6 +15,7 @@
 | [OMEGA_V2_DATA_FLOW_PLAN.md](OMEGA_V2_DATA_FLOW_PLAN.md) | Detaillierter Datenfluss, Phasen, Validierung |
 | [OMEGA_V2_MODULE_STRUCTURE_PLAN.md](OMEGA_V2_MODULE_STRUCTURE_PLAN.md) | Datei- und Verzeichnisstruktur, Interfaces |
 | [OMEGA_V2_CONFIG_SCHEMA_PLAN.md](OMEGA_V2_CONFIG_SCHEMA_PLAN.md) | Normatives JSON-Config-Schema (Felder, Defaults, Validierung, Migration) |
+| [OMEGA_V2_OUTPUT_CONTRACT_PLAN.md](OMEGA_V2_OUTPUT_CONTRACT_PLAN.md) | Normativer Output-Contract (Artefakte, Schema, Zeit/Units, Pfade) |
 
 ## 1. Zusammenfassung
 
@@ -169,7 +170,7 @@ Das bestehende Omega-System ist organisch gewachsen und weist fundamentale struk
 | Live-Trading in Rust | Live-Engine (MT5) bleibt Python-basiert |
 | Multi-Symbol Backtests | Phase 2 (nach erfolgreicher Single-Symbol Migration) |
 | Python-Strategien in V2 | V2 unterstützt nur Rust-native Strategien |
-| Rückwärtskompatibilität zur V1 Python-API | Clean Break (neue API). **Output-Artefakte** bleiben jedoch V1-kompatibel (Schema/Dateinamen). |
+| Rückwärtskompatibilität zur V1 Python-API | Clean Break (neue API). **Output-Artefakte** bleiben jedoch V1-freundlich (Dateinamen + Kernfelder) und sind normativ spezifiziert (siehe Output-Contract). |
 | GPU-Beschleunigung | Premature Optimization, CPU reicht für Zielsetzung |
 | Parallelisierung im Core-Loop (rayon) | Erst Korrektheit/Determinismus und 1:1 Parität, dann Parallelität |
 
@@ -182,7 +183,7 @@ Der MVP ist bewusst eng geschnitten: **1 Symbol, 1 Strategie, 1:1 Parität**.
 - **Kostenmodell**: Spread aus Bid/Ask; Fees + Slippage aus bestehenden YAML-Configs (`configs/`)
 - **News Filter**: Rust-native Alternative-Data (News Calendar) aus Parquet (wird in Phase 2 geladen)
 - **Sessions**: Indikatoren über alle Bars; Entry-Signale nur innerhalb konfigurierter Trading-Sessions
-- **Artefakte**: `trades.json` + `equity.csv` im V1-Schema, plus `metrics.json`
+- **Artefakte**: `trades.json`, `equity.csv`, `metrics.json`, `meta.json` (gemäß Output-Contract)
 
 ---
 
@@ -311,7 +312,7 @@ Omega V2 gilt als erfolgreich abgeschlossen, wenn:
 | **E4** | Keine Panics in Production | Fuzzing + Integration Tests |
 | **E5** | Mean Reversion Z-Score vollständig portiert | Alle 6 Szenarien funktional |
 | **E6** | Dokumentation vollständig | Alle `pub` Items dokumentiert |
-| **E7** | Output-Artefakte sind V1-kompatibel | Schema-/Golden-File-Tests für `trades.json`/`equity.csv` |
+| **E7** | Output-Artefakte sind stabil und validierbar | Schema-/Golden-File-Tests für `trades.json`/`equity.csv`/`metrics.json`/`meta.json` |
 
 ### 6.2 Meilensteine
 
@@ -322,7 +323,7 @@ Omega V2 gilt als erfolgreich abgeschlossen, wenn:
 | **M2** | `indicators` funktional | EMA, ATR, Bollinger gegen V1 verifiziert |
 | **M3** | `portfolio` + `execution` funktional | Order-Fill mit Slippage/Fees korrekt |
 | **M4** | `strategy` funktional | Mean Reversion portiert |
-| **M5** | End-to-End Backtest | Kompletter Durchlauf, DEV-Mode: Trades = V1, Artefakte im V1-Schema |
+| **M5** | End-to-End Backtest | Kompletter Durchlauf, DEV-Mode: Trades = V1, Artefakte gemäß Output-Contract |
 | **M6** | Performance-Ziel erreicht | < 500ms für 10k Candles |
 
 ### 6.3 Risiken & Mitigationen
@@ -339,9 +340,10 @@ Omega V2 gilt als erfolgreich abgeschlossen, wenn:
 
 Omega V2 liefert für jeden Backtest **stabile, validierbare Artefakte** (auch für CI/Regression):
 
-- `trades.json` (V1 Schema): Trade-/Order-Events (Entry/Exit) inkl. Szenario-Label
-- `equity.csv` (V1 Schema): Equity Curve / Balance über Zeit
+- `trades.json`: Trade-/Order-Events (Entry/Exit) inkl. Szenario-Label
+- `equity.csv`: Equity Curve / Balance über Zeit (pro Bar)
 - `metrics.json`: Kernmetriken für Vergleiche und Optimizer
+- `meta.json`: Run-Metadaten (Provenance/Config/Versionen)
 
 **Metriken (MVP, mindestens):**
 
@@ -410,6 +412,8 @@ Falls V2 nicht die Erwartungen erfüllt:
 | [OMEGA_V2_ARCHITECTURE_PLAN.md](OMEGA_V2_ARCHITECTURE_PLAN.md) | Übergeordneter Blueprint, Module, Regeln |
 | [OMEGA_V2_DATA_FLOW_PLAN.md](OMEGA_V2_DATA_FLOW_PLAN.md) | Detaillierter Datenfluss, Phasen, Validierung |
 | [OMEGA_V2_MODULE_STRUCTURE_PLAN.md](OMEGA_V2_MODULE_STRUCTURE_PLAN.md) | Datei- und Verzeichnisstruktur, Interfaces |
+| [OMEGA_V2_CONFIG_SCHEMA_PLAN.md](OMEGA_V2_CONFIG_SCHEMA_PLAN.md) | Normatives JSON-Config-Schema (Felder, Defaults, Validierung, Migration) |
+| [OMEGA_V2_OUTPUT_CONTRACT_PLAN.md](OMEGA_V2_OUTPUT_CONTRACT_PLAN.md) | Normativer Output-Contract (Artefakte, Schema, Zeit/Units, Pfade) |
 
 ---
 

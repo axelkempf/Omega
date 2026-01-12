@@ -15,6 +15,7 @@
 | [OMEGA_V2_CONFIG_SCHEMA_PLAN.md](OMEGA_V2_CONFIG_SCHEMA_PLAN.md) | Normatives JSON-Config-Schema (Felder, Defaults, Validierung, Migration) |
 | [OMEGA_V2_DATA_FLOW_PLAN.md](OMEGA_V2_DATA_FLOW_PLAN.md) | Detaillierter Datenfluss, Phasen, Validierung |
 | [OMEGA_V2_MODULE_STRUCTURE_PLAN.md](OMEGA_V2_MODULE_STRUCTURE_PLAN.md) | Datei- und Verzeichnisstruktur, Interfaces |
+| [OMEGA_V2_OUTPUT_CONTRACT_PLAN.md](OMEGA_V2_OUTPUT_CONTRACT_PLAN.md) | Normativer Output-Contract (Artefakte, Schema, Zeit/Units, Pfade) |
 
 ---
 
@@ -301,7 +302,7 @@ rust_core/                     ← Workspace Root
 | # | Frage | Aktuell | Ziel |
 |---|-------|---------|------|
 | O1 | Trade-Liste Format | JSON mit allen Details | Beibehalten |
-| O2 | Equity Curve | Liste von Floats | Beibehalten |
+| O2 | Equity Curve | Zeitreihe pro Bar (timestamped) → `equity.csv` | Beibehalten |
 | O3 | Metriken | ~30 verschiedene | MVP: definierte Kernmetriken (Profit raw/after fees, DD, Winrate, R, Fees, Wins/Losses); Rest später |
 | O4 | Logging während Backtest | Python logging | Rust tracing? |
 
