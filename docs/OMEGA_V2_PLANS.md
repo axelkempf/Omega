@@ -10,11 +10,11 @@
 
 | Status | Bedeutung | Anzahl |
 |--------|-----------|--------|
-| ✅ | Existiert und vollständig | 1 |
+| ✅ | Existiert und vollständig | 2 |
 | 🟡 | Existiert, offene Punkte | 7 |
-| 🔲 | Geplant, noch nicht erstellt | 6 |
+| 🔲 | Geplant, noch nicht erstellt | 5 |
 
-**Gesamt: 14 Pläne** | **Fortschritt: 8/14 erstellt (57%)**
+**Gesamt: 14 Pläne** | **Fortschritt: 9/14 erstellt (64%)**
 
 ---
 
@@ -92,6 +92,11 @@
 
 ---
 
+### ✅ OMEGA_V2_TECH_STACK_PLAN.md
+**Zweck**: Version-Pinning (Rust Toolchain, arrow/parquet, PyO3/maturin), Build-Matrix, OS-Support sowie normierte Logging-/RNG-/Error-Contracts.
+
+---
+
 ## Geplante Pläne
 
 ---
@@ -100,13 +105,6 @@
 **Zweck**: GitHub Actions Workflow für Rust+Python CI: fmt/clippy/tests, maturin build, artifact checks, golden-file regression und Benchmarks.
 
 **Priorität**: 🟡 Mittel (wichtig ab Phase 2)
-
----
-
-### 🔲 OMEGA_V2_TECH_STACK_PLAN.md
-**Zweck**: Version-Pinning (Rust toolchain, arrow/parquet, pyo3/maturin), Build-Matrix, OS-Support und Rationale für Technologie-Entscheidungen.
-
-**Priorität**: 🟡 Mittel (vor Implementierungsstart)
 
 ---
 
@@ -163,4 +161,5 @@ Alle Pläne befinden sich in `docs/` und folgen der Namenskonvention `OMEGA_V2_<
 | 1.1 | 12.01.2026 | Output-Contract-Plan erstellt und Tracker aktualisiert |
 | 1.2 | 12.01.2026 | Execution-Model-Plan erstellt, Querverweise/Tracker aktualisiert |
 | 1.3 | 12.01.2026 | Metrics-Definition-Plan erstellt, Querverweise/Tracker aktualisiert |
+| 1.4 | 12.01.2026 | Tech-Stack-Plan erstellt und Tracker aktualisiert |
 
