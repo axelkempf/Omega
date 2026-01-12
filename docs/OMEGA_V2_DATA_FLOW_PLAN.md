@@ -78,7 +78,8 @@ Dieser Contract gilt **für alle Zeitachsen** im V2-Core (Candles, News-Events, 
 │ • symbol        │
 │ • start_date    │
 │ • end_date      │
-│ • primary_tf    │
+│ • timeframes    │
+│   - primary     │
 │ • run_mode       │  ← dev|prod (Determinismus/Regression)
 │ • data_mode      │  ← candle|tick (Daten-Granularität)
 │ • rng_seed       │  ← optional (v.a. für dev)
@@ -97,7 +98,6 @@ Dieser Contract gilt **für alle Zeitachsen** im V2-Core (Candles, News-Events, 
 │  (Python Dict)  │
 │                 │
 │ Anreichern mit: │
-│ • Absolute Paths│
 │ • Defaults      │
 │ • Validierung   │
 └────────┬────────┘
@@ -161,20 +161,22 @@ Phase 2 ist die **zentrale Stelle für alle Datenqualitäts-Operationen**. Hier 
 │  STEP 2.1: AUTOMATISCHE PATH RESOLUTION                                          │
 ├─────────────────────────────────────────────────────────────────────────────────┤
 │                                                                                  │
-│  Input aus Config:                                                               │
+│  Input aus Config (siehe docs/OMEGA_V2_CONFIG_SCHEMA_PLAN.md):                    │
 │  • symbol: "EURUSD"                                                              │
-│  • primary_tf: "M5"                                                              │
-│  • htf_filter.timeframe: "D1" (optional)                                         │
+│  • timeframes.primary: "M5"                                                      │
+│  • timeframes.htf_filter.timeframe: "D1" (optional)                              │
+│                                                                                  │
+│  Input aus Environment/Defaults (nicht in Config):                                │
 │  • data_root: "/data/parquet"  (Environment oder Default)                        │
-│  • execution_costs_file: (fixed / Env, nicht in Config)                            │
-│  • symbol_specs_file: (fixed / Env, nicht in Config)                               │
-│  • news_calendar_file: (fixed / Env, nicht in Config)                              │
+│  • execution_costs_file: (fixed / Env)                                            │
+│  • symbol_specs_file: (fixed / Env)                                               │
+│  • news_calendar_file: (fixed / Env)                                              │
 │                                                                                  │
 │  Automatisch generierte Pfade:                                                   │
 │  ┌─────────────────────────────────────────────────────────────────────────┐    │
-│  │  PRIMARY TIMEFRAME (M5):                                                 │    │
-│  │  • bid_path = {data_root}/{symbol}/{symbol}_{primary_tf}_BID.parquet    │    │
-│  │  • ask_path = {data_root}/{symbol}/{symbol}_{primary_tf}_ASK.parquet    │    │
+│  │  PRIMARY TIMEFRAME (timeframes.primary = M5):                            │    │
+│  │  • bid_path = {data_root}/{symbol}/{symbol}_{timeframes.primary}_BID.parquet │    │
+│  │  • ask_path = {data_root}/{symbol}/{symbol}_{timeframes.primary}_ASK.parquet │    │
 │  │                                                                          │    │
 │  │  Beispiel:                                                               │    │
 │  │  • /data/parquet/EURUSD/EURUSD_M5_BID.parquet                           │    │
@@ -182,7 +184,7 @@ Phase 2 ist die **zentrale Stelle für alle Datenqualitäts-Operationen**. Hier 
 │  └─────────────────────────────────────────────────────────────────────────┘    │
 │                                                                                  │
 │  ┌─────────────────────────────────────────────────────────────────────────┐    │
-│  │  HTF TIMEFRAMES (falls htf_filter.enabled):                              │    │
+│  │  HTF TIMEFRAMES (falls timeframes.htf_filter.enabled):                   │    │
 │  │  • htf_bid_path = {data_root}/{symbol}/{symbol}_{htf_tf}_BID.parquet    │    │
 │  │  • htf_ask_path = {data_root}/{symbol}/{symbol}_{htf_tf}_ASK.parquet    │    │
 │  │                                                                          │    │
@@ -901,11 +903,14 @@ Vor Start des Loops wird die **ExecutionEngine** einmalig initialisiert:
 ┌─────────────────┐     ┌─────────────────┐
 │  JSON speichern │     │  Visualisierung │
 │                 │     │                 │
-│ • Trades JSON   │     │ • Equity Curve  │
-│ • Metrics JSON  │     │ • Drawdown Plot │
-│ • Config Echo   │     │ • Trade Chart   │
+│ • Outputs (SoT) │
+│ • Config (SoT)  │
 └─────────────────┘     └─────────────────┘
 ```
+
+Normativ (Outputs): `docs/OMEGA_V2_OUTPUT_CONTRACT_PLAN.md`
+
+Normativ (Config): `docs/OMEGA_V2_CONFIG_SCHEMA_PLAN.md`
 
 
 ---
