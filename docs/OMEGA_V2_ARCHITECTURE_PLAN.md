@@ -142,22 +142,22 @@ Das aktuelle Omega-System leidet unter folgenden strukturellen Problemen:
 ### 3.1 Crate-Struktur
 
 ```
-omega_core/                    ← Workspace Root
+rust_core/                     ← Workspace Root
 ├── Cargo.toml                 ← Workspace Definition
 │
 ├── crates/
-│   ├── omega_types/           ← Gemeinsame Datentypen (keine Abhängigkeiten)
-│   ├── omega_data/            ← Data Loading (Parquet → Structs)
-│   ├── omega_indicators/      ← Indikator-Engine
-│   ├── omega_strategy/        ← Strategy Trait + Implementierungen
-│   ├── omega_execution/       ← Order-Ausführung, Slippage, Fees
-│   ├── omega_portfolio/       ← Portfolio State Management
-│   ├── omega_backtest/        ← Event Loop + Orchestrierung
-│   ├── omega_metrics/         ← Performance-Metriken Berechnung
-│   └── omega_ffi/             ← Python-Binding (PyO3)
+│   ├── types/                 ← Gemeinsame Datentypen (keine Abhängigkeiten)
+│   ├── data/                  ← Data Loading (Parquet → Structs)
+│   ├── indicators/            ← Indikator-Engine
+│   ├── strategy/              ← Strategy Trait + Implementierungen
+│   ├── execution/             ← Order-Ausführung, Slippage, Fees
+│   ├── portfolio/             ← Portfolio State Management
+│   ├── backtest/              ← Event Loop + Orchestrierung
+│   ├── metrics/               ← Performance-Metriken Berechnung
+│   └── ffi/                   ← Python-Binding (PyO3)
 │
 └── python/
-    └── omega/                 ← Python Package (dünner Wrapper)
+    └── bt/                    ← Python Package (dünner Wrapper)
         ├── __init__.py
         ├── runner.py          ← Config → FFI → Result
         └── report.py          ← Visualisierung
@@ -167,38 +167,38 @@ omega_core/                    ← Workspace Root
 
 ```
                     ┌─────────────────┐
-                    │   omega_types   │  ← Keine Abhängigkeiten
+                    │      types      │  ← Keine Abhängigkeiten
                     └────────┬────────┘
                              │
          ┌───────────────────┼───────────────────┐
          │                   │                   │
          ▼                   ▼                   ▼
 ┌─────────────────┐ ┌─────────────────┐ ┌─────────────────┐
-│   omega_data    │ │omega_indicators │ │ omega_execution │
+│      data       │ │   indicators    │ │    execution    │
 └────────┬────────┘ └────────┬────────┘ └────────┬────────┘
          │                   │                   │
          └───────────────────┼───────────────────┘
                              │
                              ▼
               ┌─────────────────────────┐
-              │     omega_portfolio     │
+              │       portfolio         │
               └───────────┬─────────────┘
                           │
                           ▼
               ┌─────────────────────────┐
-              │     omega_strategy      │
+              │        strategy         │
               └───────────┬─────────────┘
                           │
                           ▼
               ┌─────────────────────────┐
-              │     omega_backtest      │
+              │        backtest         │
               └───────────┬─────────────┘
                           │
           ┌───────────────┴───────────────┐
           │                               │
           ▼                               ▼
 ┌─────────────────┐             ┌─────────────────┐
-│  omega_metrics  │             │    omega_ffi    │
+│     metrics     │             │       ffi       │
 └─────────────────┘             └─────────────────┘
 ```
 
@@ -206,15 +206,15 @@ omega_core/                    ← Workspace Root
 
 | Modul | Verantwortung | Wichtigste Exports |
 |-------|---------------|-------------------|
-| **omega_types** | Gemeinsame Datenstrukturen | `Candle`, `Signal`, `Trade`, `Position`, `BacktestConfig`, `BacktestResult` |
-| **omega_data** | Parquet lesen, TF-Alignment | `load_candles()`, `CandleStore`, `align_timeframes()` |
-| **omega_indicators** | Indikator-Berechnungen | `trait Indicator`, `IndicatorCache`, `IndicatorRegistry` |
-| **omega_execution** | Slippage, Fees, Order-Fill | `trait SlippageModel`, `trait FeeModel`, `ExecutionEngine` |
-| **omega_portfolio** | Cash, Positions, Equity | `Portfolio`, `open_position()`, `close_position()` |
-| **omega_strategy** | Strategy-Interface | `trait Strategy`, `BarContext`, `MeanReversionZScore` |
-| **omega_backtest** | Event Loop Orchestrierung | `BacktestEngine::run()` |
-| **omega_metrics** | Performance-Metriken | `compute_metrics()`, `Metrics` |
-| **omega_ffi** | Python-Binding | `run_backtest(config_json)` |
+| **types** | Gemeinsame Datenstrukturen | `Candle`, `Signal`, `Trade`, `Position`, `BacktestConfig`, `BacktestResult` |
+| **data** | Parquet lesen, TF-Alignment | `load_candles()`, `CandleStore`, `align_timeframes()` |
+| **indicators** | Indikator-Berechnungen | `trait Indicator`, `IndicatorCache`, `IndicatorRegistry` |
+| **execution** | Slippage, Fees, Order-Fill | `trait SlippageModel`, `trait FeeModel`, `ExecutionEngine` |
+| **portfolio** | Cash, Positions, Equity | `Portfolio`, `open_position()`, `close_position()` |
+| **strategy** | Strategy-Interface | `trait Strategy`, `BarContext`, `MeanReversionZScore` |
+| **backtest** | Event Loop Orchestrierung | `BacktestEngine::run()` |
+| **metrics** | Performance-Metriken | `compute_metrics()`, `Metrics` |
+| **ffi** | Python-Binding | `run_backtest(config_json)` |
 
 ---
 
@@ -226,8 +226,8 @@ omega_core/                    ← Workspace Root
 |---|-------|------------|
 | R1 | **Einweg-Abhängigkeiten** | Modul A darf B nutzen ⟺ B ist tiefer in der Hierarchie. Keine Zyklen! |
 | R2 | **Klare Schnittstellen** | Nur `pub` für Structs, Traits, Factory-Funktionen. Interna bleiben `pub(crate)` |
-| R3 | **Kein Cross-Cutting** | `omega_data` kennt nicht `Portfolio`, `omega_indicators` kennt nicht `Strategy` |
-| R4 | **Eigene Error-Typen** | Jedes Modul definiert eigene Fehler, `omega_types` hat gemeinsamen `OmegaError` |
+| R3 | **Kein Cross-Cutting** | `data` kennt nicht `Portfolio`, `indicators` kennt nicht `Strategy` |
+| R4 | **Eigene Error-Typen** | Jedes Modul definiert eigene Fehler, `types` hat gemeinsamen `CoreError` |
 | R5 | **Keine Globals** | Kein `lazy_static!`, kein `thread_local!`, kein `static mut` |
 | R6 | **Explizite Abhängigkeiten** | Alles wird durchgereicht (Dependency Injection) |
 
@@ -237,7 +237,7 @@ omega_core/                    ← Workspace Root
 |---|-------|-----------|
 | Q1 | **Jedes Modul testbar** | Eigenes `tests/` Verzeichnis pro Crate |
 | Q2 | **Unit-Tests isoliert** | Testen nur eigenes Modul, keine externen Abhängigkeiten |
-| Q3 | **Integration-Tests zentral** | Nur in `omega_backtest/tests/` |
+| Q3 | **Integration-Tests zentral** | Nur in `backtest/tests/` |
 | Q4 | **Dokumentation pflicht** | `///` für alle `pub` Items |
 | Q5 | **Clippy clean** | `cargo clippy -- -D warnings` |
 | Q6 | **Formatierung einheitlich** | `cargo fmt` |
@@ -312,32 +312,32 @@ omega_core/                    ← Workspace Root
 - [ ] JSON-Result Schema definieren
 
 ### Phase 1: Fundament
-- [ ] `omega_types` Crate erstellen
-- [ ] `omega_data` Crate erstellen (Parquet laden)
+- [ ] `types` Crate erstellen
+- [ ] `data` Crate erstellen (Parquet laden)
 - [ ] Erste Tests: Daten laden und verifizieren
 
 ### Phase 2: Indikatoren
-- [ ] `omega_indicators` Crate erstellen
+- [ ] `indicators` Crate erstellen
 - [ ] Basis-Indikatoren implementieren (EMA, ATR, Bollinger)
 - [ ] Tests gegen Python-Referenz
 
 ### Phase 3: Execution
-- [ ] `omega_execution` Crate erstellen
-- [ ] `omega_portfolio` Crate erstellen
+- [ ] `execution` Crate erstellen
+- [ ] `portfolio` Crate erstellen
 - [ ] Slippage/Fee-Modelle implementieren
 
 ### Phase 4: Strategy
-- [ ] `omega_strategy` Crate erstellen
+- [ ] `strategy` Crate erstellen
 - [ ] Strategy Trait definieren
 - [ ] Mean Reversion Z-Score portieren
 
 ### Phase 5: Integration
-- [ ] `omega_backtest` Crate erstellen
-- [ ] `omega_metrics` Crate erstellen
+- [ ] `backtest` Crate erstellen
+- [ ] `metrics` Crate erstellen
 - [ ] End-to-End Test
 
 ### Phase 6: FFI
-- [ ] `omega_ffi` Crate erstellen
+- [ ] `ffi` Crate erstellen
 - [ ] Python-Wrapper
 - [ ] Vergleich Alt vs. Neu
 
