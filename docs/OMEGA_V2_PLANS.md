@@ -11,10 +11,10 @@
 | Status | Bedeutung | Anzahl |
 |--------|-----------|--------|
 | ✅ | Existiert und vollständig | 1 |
-| 🟡 | Existiert, offene Punkte | 5 |
-| 🔲 | Geplant, noch nicht erstellt | 8 |
+| 🟡 | Existiert, offene Punkte | 6 |
+| 🔲 | Geplant, noch nicht erstellt | 7 |
 
-**Gesamt: 14 Pläne** | **Fortschritt: 6/14 erstellt (43%)**
+**Gesamt: 14 Pläne** | **Fortschritt: 7/14 erstellt (50%)**
 
 ---
 
@@ -51,6 +51,15 @@
 
 ---
 
+### 🟡 OMEGA_V2_EXECUTION_MODEL_PLAN.md
+**Zweck**: Bid/Ask-Regeln, Fill-Algorithmen, Intrabar-Tie-Breaks, Stop/TP-Prioritäten, Limit/Market-Semantik, Slippage/Fees und deterministische Ausführung.
+
+**Offene Punkte**:
+- [ ] Exakte Feldquelle/-name für „minimale SL-Distanz“ pro Symbol festlegen (z.B. Erweiterung `configs/symbol_specs.yaml` vs. Execution-Costs-Config)
+- [ ] Finales Set an `reason`-Werten für Exits im Output-Contract bestätigen (Enum vs. freie Strings + `meta`)
+
+---
+
 ### 🟡 OMEGA_V2_MODULE_STRUCTURE_PLAN.md
 **Zweck**: Detaillierte Ordner-, Datei- und Modul-Struktur des Rust-Workspace mit Abhängigkeits-Matrix und Test-Strategie pro Crate.
 
@@ -76,14 +85,6 @@
 ---
 
 ## Geplante Pläne
-
-
----
-
-### 🔲 OMEGA_V2_EXECUTION_MODEL_PLAN.md
-**Zweck**: Bid/Ask-Regeln, Fill-Algorithmen, Intrabar-Tie-Breaks, Stop/TP-Prioritäten, Limit/Market-Semantik, Netting/Hedging und Margin-Modell.
-
-**Priorität**: 🔴 Hoch (höchstes Korrektheits-Risiko)
 
 ---
 
@@ -159,4 +160,5 @@ Alle Pläne befinden sich in `docs/` und folgen der Namenskonvention `OMEGA_V2_<
 |---------|-------|----------|
 | 1.0 | 12.01.2026 | Initiale Version mit 4 existierenden und 10 geplanten Plänen |
 | 1.1 | 12.01.2026 | Output-Contract-Plan erstellt und Tracker aktualisiert |
+| 1.2 | 12.01.2026 | Execution-Model-Plan erstellt, Querverweise/Tracker aktualisiert |
 
