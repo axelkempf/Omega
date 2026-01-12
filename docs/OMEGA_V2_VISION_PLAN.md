@@ -7,6 +7,15 @@
 
 ---
 
+## Verwandte Dokumente
+
+| Dokument | Fokus |
+|----------|-------|
+| [OMEGA_V2_ARCHITECTURE_PLAN.md](OMEGA_V2_ARCHITECTURE_PLAN.md) | Übergeordneter Blueprint, Module, Regeln |
+| [OMEGA_V2_DATA_FLOW_PLAN.md](OMEGA_V2_DATA_FLOW_PLAN.md) | Detaillierter Datenfluss, Phasen, Validierung |
+| [OMEGA_V2_MODULE_STRUCTURE_PLAN.md](OMEGA_V2_MODULE_STRUCTURE_PLAN.md) | Datei- und Verzeichnisstruktur, Interfaces |
+| [OMEGA_V2_CONFIG_SCHEMA_PLAN.md](OMEGA_V2_CONFIG_SCHEMA_PLAN.md) | Normatives JSON-Config-Schema (Felder, Defaults, Validierung, Migration) |
+
 ## 1. Zusammenfassung
 
 Dieses Dokument definiert das **strategische Zielbild** für Omega V2. Es beantwortet die Fragen:
@@ -14,10 +23,7 @@ Dieses Dokument definiert das **strategische Zielbild** für Omega V2. Es beantw
 - **Was** soll erreicht werden?
 - **Wie** messen wir Erfolg?
 
-Die technischen Details zur Umsetzung finden sich in den komplementären Plänen:
-- [OMEGA_V2_DATA_FLOW_PLAN.md](OMEGA_V2_DATA_FLOW_PLAN.md) – Datenfluss-Spezifikation
-- [OMEGA_V2_MODULE_STRUCTURE_PLAN.md](OMEGA_V2_MODULE_STRUCTURE_PLAN.md) – Modul- und Dateistruktur
-- [OMEGA_V2_ARCHITECTURE_PLAN.md](OMEGA_V2_ARCHITECTURE_PLAN.md) – Übergeordneter Blueprint
+Die technischen Details zur Umsetzung finden sich in den verlinkten Dokumenten im Abschnitt **Verwandte Dokumente**.
 
 ---
 

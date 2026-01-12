@@ -10,11 +10,11 @@
 
 | Status | Bedeutung | Anzahl |
 |--------|-----------|--------|
-| ✅ | Existiert und vollständig | 0 |
+| ✅ | Existiert und vollständig | 1 |
 | 🟡 | Existiert, offene Punkte | 4 |
-| 🔲 | Geplant, noch nicht erstellt | 10 |
+| 🔲 | Geplant, noch nicht erstellt | 9 |
 
-**Gesamt: 14 Pläne** | **Fortschritt: 4/14 erstellt (29%)**
+**Gesamt: 14 Pläne** | **Fortschritt: 5/14 erstellt (36%)**
 
 ---
 
@@ -61,12 +61,13 @@
 
 ---
 
-## Geplante Pläne
-
-### 🔲 OMEGA_V2_CONFIG_SCHEMA_PLAN.md
+### ✅ OMEGA_V2_CONFIG_SCHEMA_PLAN.md
 **Zweck**: Normatives JSON-Schema für Backtest-Konfiguration mit Pflichtfeldern, Defaults, Ranges, Validierungsregeln und Migrations-Guide.
 
-**Priorität**: 🔴 Hoch (blockiert Implementierung)
+---
+
+## Geplante Pläne
+
 
 ---
 

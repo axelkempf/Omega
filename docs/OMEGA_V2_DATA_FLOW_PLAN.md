@@ -13,6 +13,7 @@
 |----------|-------|
 | [OMEGA_V2_VISION_PLAN.md](OMEGA_V2_VISION_PLAN.md) | Vision, strategische Ziele, Erfolgskriterien |
 | [OMEGA_V2_ARCHITECTURE_PLAN.md](OMEGA_V2_ARCHITECTURE_PLAN.md) | Übergeordneter Blueprint, Module, Regeln |
+| [OMEGA_V2_CONFIG_SCHEMA_PLAN.md](OMEGA_V2_CONFIG_SCHEMA_PLAN.md) | Normatives JSON-Config-Schema (Felder, Defaults, Validierung, Migration) |
 | [OMEGA_V2_MODULE_STRUCTURE_PLAN.md](OMEGA_V2_MODULE_STRUCTURE_PLAN.md) | Datei- und Verzeichnisstruktur, Interfaces |
 
 ---
@@ -77,16 +78,15 @@ Dieser Contract gilt **für alle Zeitachsen** im V2-Core (Candles, News-Events, 
 │ • start_date    │
 │ • end_date      │
 │ • primary_tf    │
-│ • mode           │  ← dev|prod (Determinismus/Regression)
+│ • run_mode       │  ← dev|prod (Determinismus/Regression)
+│ • data_mode      │  ← candle|tick (Daten-Granularität)
 │ • rng_seed       │  ← optional (v.a. für dev)
 │ • parameters    │
-│ • warmup        │  ← NEU: Konfigurierbare Warmup-Bars
-│   • primary_tf  │     Default: 500
-│   • htf         │     Default: 500
+│ • warmup_bars   │  ← Default: 500
 │ • sessions       │  ← optional: Trading Sessions (UTC)
 │ • execution      │  ← optional: Order-Typen/Direction/Max-Positions
-│ • costs          │  ← YAML Pfade: execution_costs + symbol_specs
-│ • news_filter    │  ← optional: News Parquet + Window/Impact
+│ • costs          │  ← keine Pfade (fixed / environment driven)
+│ • news_filter    │  ← optional: enabled + Window/Impact (keine Pfade)
 └────────┬────────┘
          │
          │ Laden & Validieren
@@ -165,9 +165,9 @@ Phase 2 ist die **zentrale Stelle für alle Datenqualitäts-Operationen**. Hier 
 │  • primary_tf: "M5"                                                              │
 │  • htf_filter.timeframe: "D1" (optional)                                         │
 │  • data_root: "/data/parquet"  (Environment oder Default)                        │
-│  • execution_costs_path: ".../configs/execution_costs.yaml" (optional/Default)   │
-│  • symbol_specs_path: ".../configs/symbol_specs.yaml" (optional/Default)         │
-│  • news_filter.parquet_path: ".../news/news_calendar.parquet" (optional)          │
+│  • execution_costs_file: (fixed / Env, nicht in Config)                            │
+│  • symbol_specs_file: (fixed / Env, nicht in Config)                               │
+│  • news_calendar_file: (fixed / Env, nicht in Config)                              │
 │                                                                                  │
 │  Automatisch generierte Pfade:                                                   │
 │  ┌─────────────────────────────────────────────────────────────────────────┐    │
@@ -318,7 +318,7 @@ Phase 2 ist die **zentrale Stelle für alle Datenqualitäts-Operationen**. Hier 
 │  STEP 2.5b: NEWS PARQUET LADEN & INDEX (optional)                               │
 ├─────────────────────────────────────────────────────────────────────────────────┤
 │                                                                                  │
-│  Nur wenn news_filter.enabled == true (oder news_filter.parquet_path gesetzt):   │
+│  Nur wenn news_filter.enabled == true:                                            │
 │                                                                                  │
 │  1. News Parquet laden (arrow-rs)                                                │
 │     • Erwartet Arrow `Timestamp(Nanosecond, "UTC")` (tz-aware)                  │
@@ -365,18 +365,14 @@ Phase 2 ist die **zentrale Stelle für alle Datenqualitäts-Operationen**. Hier 
 │  │  ┌─────────────────────────────────────────────────────────────────┐    │    │
 │  │  │  CONFIG WARMUP SETTINGS:                                         │    │    │
 │  │  │                                                                  │    │    │
-│  │  │  warmup: {                                                       │    │    │
-│  │  │      primary_tf: 500,    // Warmup für Primary Timeframe         │    │    │
-│  │  │      htf: 500,           // Warmup für HTF (falls enabled)       │    │    │
-│  │  │  }                                                               │    │    │
+│  │  │  warmup_bars: 500,   // Warmup-Bars (global, pro TF angewendet)  │    │    │
 │  │  │                                                                  │    │    │
-│  │  │  DEFAULT = 500 Bars pro Timeframe (wie im Live-Trading)          │    │    │
+│  │  │  DEFAULT = 500 Bars (wie im Live-Trading)                        │    │    │
 │  │  └─────────────────────────────────────────────────────────────────┘    │    │
 │  │                                                                          │    │
 │  │  Warmup-Auflösung:                                                       │    │
 │  │  ┌─────────────────────────────────────────────────────────────────┐    │    │
-│  │  │  primary_warmup = config.warmup.primary_tf.unwrap_or(500)        │    │    │
-│  │  │  htf_warmup = config.warmup.htf.unwrap_or(500)                   │    │    │
+│  │  │  warmup = config.warmup_bars.unwrap_or(500)                      │    │    │
 │  │  └─────────────────────────────────────────────────────────────────┘    │    │
 │  │                                                                          │    │
 │  │  Beispiele mit Default (500):                                            │    │
@@ -385,34 +381,32 @@ Phase 2 ist die **zentrale Stelle für alle Datenqualitäts-Operationen**. Hier 
 │  │  • D1 HTF: 500 D1-Bars = ~2 Jahre                                        │    │
 │  │                                                                          │    │
 │  │  Custom Beispiele:                                                       │    │
-│  │  • warmup.primary_tf = 1000 → Doppelte Warmup-Phase                      │    │
-│  │  • warmup.htf = 200 → Reduzierter HTF-Warmup                             │    │
+│  │  • warmup_bars = 1000 → Doppelte Warmup-Phase                            │    │
+│  │  • warmup_bars = 200 → Reduzierter Warmup                                │    │
 │  └─────────────────────────────────────────────────────────────────────────┘    │
 │                                                                                  │
 │  Validierung:                                                                    │
 │  ┌─────────────────────────────────────────────────────────────────────────┐    │
 │  │  available_bars = candles.len()                                          │    │
-│  │  required_warmup = config.warmup.primary_tf.unwrap_or(500)               │    │
+│  │  required_warmup = config.warmup_bars.unwrap_or(500)                     │    │
 │  │                                                                          │    │
-│  │  if available_bars < required_warmup + MIN_TRADING_BARS {                │    │
+│  │  if available_bars <= required_warmup {                                  │    │
 │  │      return Err(BacktestError::InsufficientData {                        │    │
-│  │          required: required_warmup + MIN_TRADING_BARS,                   │    │
+│  │          required: required_warmup + 1,                                  │    │
 │  │          available: available_bars,                                      │    │
 │  │          configured_warmup: required_warmup,                             │    │
 │  │          symbol: config.symbol.clone(),                                  │    │
-│  │          timeframe: config.primary_tf.clone(),                           │    │
+│  │          timeframe: config.timeframes.primary.clone(),                   │    │
 │  │      });                                                                 │    │
 │  │  }                                                                       │    │
-│  │                                                                          │    │
-│  │  MIN_TRADING_BARS = 100  // Mindestens 100 Bars zum Traden               │    │
 │  │                                                                          │    │
 │  │  ❌ Fehler → Backtest ABBRUCH (nicht genug Daten für Warmup)             │    │
 │  └─────────────────────────────────────────────────────────────────────────┘    │
 │                                                                                  │
-│  HTF Warmup-Validierung (falls htf_filter.enabled):                              │
+│  HTF Warmup-Validierung (falls zusätzliche TFs aktiv sind):                       │
 │  ┌─────────────────────────────────────────────────────────────────────────┐    │
 │  │  htf_available = htf_candles.len()                                       │    │
-│  │  htf_required = config.warmup.htf.unwrap_or(500)                         │    │
+│  │  htf_required = config.warmup_bars.unwrap_or(500)                        │    │
 │  │                                                                          │    │
 │  │  if htf_available < htf_required {                                       │    │
 │  │      return Err(BacktestError::InsufficientHTFData { ... });             │    │
@@ -1071,7 +1065,7 @@ BarContext.get_htf_indicator(name, tf, params):
 | I6 | Portfolio Balance konsistent | cash + margin + unrealized_pnl == equity | Phase 4 | ABBRUCH |
 | I7 | Trades vollständig | Jeder geschlossene Trade hat entry + exit | Phase 5 | WARNING |
 | **I8** | **Bid/Ask Alignment** | **Gleiche Timestamps für Bid und Ask auf allen TFs** | **Phase 2** | **ABBRUCH** |
-| **I9** | **Warmup verfügbar** | **available_bars >= required_warmup + MIN_TRADING_BARS** | **Phase 2** | **ABBRUCH** |
+| **I9** | **Warmup verfügbar** | **available_bars > required_warmup** | **Phase 2** | **ABBRUCH** |
 | **I10** | **HTF Alignment** | **Jeder Primary-TF Timestamp hat gültigen HTF-Index** | **Phase 2** | **ABBRUCH** |
 | **I11** | **Pfade existieren** | **Alle automatisch generierten Datenpfade existieren** | **Phase 2** | **ABBRUCH** |
 
