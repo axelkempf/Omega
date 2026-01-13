@@ -10,11 +10,11 @@
 
 | Status | Bedeutung | Anzahl |
 |--------|-----------|--------|
-| ✅ | Existiert und vollständig | 3 |
+| ✅ | Existiert und vollständig | 4 |
 | 🟡 | Existiert, offene Punkte | 7 |
-| 🔲 | Geplant, noch nicht erstellt | 4 |
+| 🔲 | Geplant, noch nicht erstellt | 3 |
 
-**Gesamt: 14 Pläne** | **Fortschritt: 10/14 erstellt (71%)**
+**Gesamt: 14 Pläne** | **Fortschritt: 11/14 erstellt (79%)**
 
 ---
 
@@ -48,6 +48,11 @@
 - [ ] Gap-Policy (akzeptieren/pausieren/abbrechen) festlegen
 - [ ] HTF `htf_idx-1` Edge-Case bei frühen Bars klären
 - [ ] Timestamp-Duplikat-Handling (abort/deduplizieren/aggregieren)
+
+---
+
+### ✅ OMEGA_V2_DATA_GOVERNANCE_PLAN.md
+**Zweck**: Normative Data-Quality-Policies (Alignment/Gaps/Duplicates), News-Governance (Parquet), sowie reproduzierbare Dataset-Snapshots (Hashes/Manifests).
 
 ---
 
@@ -125,13 +130,6 @@
 
 ---
 
-### 🔲 OMEGA_V2_DATA_GOVERNANCE_PLAN.md
-**Zweck**: Data-Quality-Thresholds, Gap-Policy, Alignment-Loss-Policy, Naming-Conventions und reproduzierbare Dataset-Snapshots.
-
-**Priorität**: 🟡 Mittel (vor Production-Daten)
-
----
-
 ## Querverweise
 
 Alle Pläne befinden sich in `docs/` und folgen der Namenskonvention `OMEGA_V2_<TOPIC>_PLAN.md`.
@@ -159,4 +157,5 @@ Alle Pläne befinden sich in `docs/` und folgen der Namenskonvention `OMEGA_V2_<
 | 1.3 | 12.01.2026 | Metrics-Definition-Plan erstellt, Querverweise/Tracker aktualisiert |
 | 1.4 | 12.01.2026 | Tech-Stack-Plan erstellt und Tracker aktualisiert |
 | 1.5 | 13.01.2026 | CI-Workflow-Plan erstellt und Tracker aktualisiert |
+| 1.6 | 13.01.2026 | Data-Governance-Plan erstellt, Tracker aktualisiert |
 

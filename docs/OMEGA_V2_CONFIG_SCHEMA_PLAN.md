@@ -14,6 +14,7 @@
 | [OMEGA_V2_VISION_PLAN.md](OMEGA_V2_VISION_PLAN.md) | Vision, strategische Ziele, Erfolgskriterien |
 | [OMEGA_V2_ARCHITECTURE_PLAN.md](OMEGA_V2_ARCHITECTURE_PLAN.md) | Blueprint, Module, Regeln, Single FFI Boundary |
 | [OMEGA_V2_DATA_FLOW_PLAN.md](OMEGA_V2_DATA_FLOW_PLAN.md) | Datenfluss, Phasen, Datenqualitäts-Checkpoints |
+| [OMEGA_V2_DATA_GOVERNANCE_PLAN.md](OMEGA_V2_DATA_GOVERNANCE_PLAN.md) | Data-Quality-Policies (Alignment/Gaps/Duplicates), News=Parquet, Snapshots/Manifests |
 | [OMEGA_V2_MODULE_STRUCTURE_PLAN.md](OMEGA_V2_MODULE_STRUCTURE_PLAN.md) | Struktur, Zuständigkeiten, Config/Result Location |
 | [OMEGA_V2_METRICS_DEFINITION_PLAN.md](OMEGA_V2_METRICS_DEFINITION_PLAN.md) | Normative Metrik-Keys + Parameterisierung (`metrics.*`) |
 | [OMEGA_V2_EXECUTION_MODEL_PLAN.md](OMEGA_V2_EXECUTION_MODEL_PLAN.md) | Ausführungsmodell (Bid/Ask, Fills, SL/TP, Slippage/Fees, Sizing) |
@@ -342,10 +343,10 @@ Optional übersteuert via Env:
 
 ### 6.3 News Calendar
 
-- Default Location: `news/news_calender_history.parquet` (oder äquivalentes, versioniertes Format)
+- Default Location: `data/news/news_calender_history.parquet` (oder äquivalentes, versioniertes Format)
 - Optional via Env: `OMEGA_NEWS_CALENDAR_FILE`
 
-**Hinweis**: Das aktuelle Repo enthält `news/news_calender_history.csv`. Für V2 wird ein Parquet/Arrow-Format erwartet; der Konvertierungsschritt ist Teil des Data-Layers bzw. der Datenpipeline, nicht der Config.
+**Hinweis**: Das aktuelle Repo enthält `data/news/news_calender_history.csv`. Für V2 wird ein Parquet/Arrow-Format erwartet; der Konvertierungsschritt ist Teil des Data-Layers bzw. der Datenpipeline, nicht der Config.
 
 ---
 

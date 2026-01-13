@@ -14,6 +14,7 @@
 | [OMEGA_V2_VISION_PLAN.md](OMEGA_V2_VISION_PLAN.md) | Zielbild, MVP-Scope, Qualitätskriterien |
 | [OMEGA_V2_ARCHITECTURE_PLAN.md](OMEGA_V2_ARCHITECTURE_PLAN.md) | Architektur, FFI-Grenze, Verantwortlichkeiten |
 | [OMEGA_V2_DATA_FLOW_PLAN.md](OMEGA_V2_DATA_FLOW_PLAN.md) | Datenfluss, Bar/Time-Kontrakte, Result-Building |
+| [OMEGA_V2_DATA_GOVERNANCE_PLAN.md](OMEGA_V2_DATA_GOVERNANCE_PLAN.md) | Data-Quality-Policies, News=Parquet, Snapshots/Manifests, Provenance |
 | [OMEGA_V2_EXECUTION_MODEL_PLAN.md](OMEGA_V2_EXECUTION_MODEL_PLAN.md) | Ausführungsmodell: Fills/Exits erzeugen Trades + Reasons |
 | [OMEGA_V2_MODULE_STRUCTURE_PLAN.md](OMEGA_V2_MODULE_STRUCTURE_PLAN.md) | Module/Crates, Result-Typen, Serialisierung |
 | [OMEGA_V2_METRICS_DEFINITION_PLAN.md](OMEGA_V2_METRICS_DEFINITION_PLAN.md) | Normative Metrik-Keys, Definitionen/Units, Scores, Rundung |
@@ -144,13 +145,16 @@ Omega V2 nutzt UTC als einzige Zeitzone.
 | `config` | MUSS | object | Snapshot oder Referenz der verwendeten Config |
 | `config.source` | SOLL | string | z.B. Pfad zur JSON-Datei |
 | `config.hash` | MUSS | string | Hash des normierten Config-JSON |
-| `dataset` | SOLL | object | Datenbasis (Symbol/TF/Provider) |
+| `dataset` | MUSS | object | Datenbasis (Symbol/TF/Provider) + Governance-Provenance |
 | `dataset.symbol` | MUSS | string | z.B. `EURUSD` |
 | `dataset.timeframe` | MUSS | string | z.B. `M1` |
 | `dataset.start_time` | MUSS | string (ISO) | Startzeit des Backtests (UTC) |
 | `dataset.start_time_ns` | MUSS | integer | Startzeit (UTC, ns) |
 | `dataset.end_time` | MUSS | string (ISO) | Endzeit des Backtests (UTC) |
 | `dataset.end_time_ns` | MUSS | integer | Endzeit (UTC, ns) |
+| `dataset.manifest_sha256` | MUSS | string | Hash des Dataset-Manifests (Snapshot-ID; siehe Data Governance Plan) |
+| `dataset.manifest_ref` | SOLL | string | Referenz/Ort des Manifests (typisch unter `var/`) |
+| `dataset.governance` | SOLL | object | Summary der Governance Checks (z.B. Alignment-Loss, Dedupe, Drops) |
 | `account` | SOLL | object | Währung/Initialwerte |
 | `account.account_currency` | SOLL | string | z.B. `EUR` |
 | `account.initial_balance` | SOLL | number | Start-Balance in `account_currency` |
