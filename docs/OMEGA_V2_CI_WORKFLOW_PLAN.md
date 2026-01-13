@@ -22,6 +22,7 @@
 | [OMEGA_V2_METRICS_DEFINITION_PLAN.md](OMEGA_V2_METRICS_DEFINITION_PLAN.md) | Metrik-Keys/Units/Rundung (Golden-File Stabilität) |
 | [OMEGA_V2_TECH_STACK_PLAN.md](OMEGA_V2_TECH_STACK_PLAN.md) | Toolchain/Pinning, PyO3+maturin, OS-Support, Error-Contract |
 | [OMEGA_V2_OBSERVABILITY_PROFILING_PLAN.md](OMEGA_V2_OBSERVABILITY_PROFILING_PLAN.md) | Logging/Tracing (tracing), Profiling (flamegraph/pprof), Performance-Counter, Determinismus |
+| [OMEGA_V2_TESTING_VALIDATION_PLAN.md](OMEGA_V2_TESTING_VALIDATION_PLAN.md) | Teststrategie, Golden-Files, PR-Gates vs nightly, Parität/Determinismus |
 
 ---
 

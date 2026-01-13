@@ -11,10 +11,10 @@
 | Status | Bedeutung | Anzahl |
 |--------|-----------|--------|
 | ✅ | Existiert und vollständig | 5 |
-| 🟡 | Existiert, offene Punkte | 7 |
-| 🔲 | Geplant, noch nicht erstellt | 2 |
+| 🟡 | Existiert, offene Punkte | 8 |
+| 🔲 | Geplant, noch nicht erstellt | 1 |
 
-**Gesamt: 14 Pläne** | **Fortschritt: 12/14 erstellt (86%)**
+**Gesamt: 14 Pläne** | **Fortschritt: 13/14 erstellt (93%)**
 
 ---
 
@@ -106,19 +106,21 @@
 
 ---
 
+### 🟡 OMEGA_V2_TESTING_VALIDATION_PLAN.md
+**Zweck**: Testpyramide (unit/property/integration/contract), deterministische Fixtures, Golden-File Regeln, Paritäts-Tests gegen V1 sowie CI-Integration (PR-Gates vs nightly).
+
+**Offene Punkte**:
+- [ ] Sharpe/Sortino: Annualisierung/Frequenz (Trade-R vs. Daily Equity) finalisieren
+- [ ] MVP-Gate-Kriterien für „ready-to-merge“ (zusätzlicher Gate-Mechanismus) spezifizieren (explizit offen)
+
+---
+
 ### ✅ OMEGA_V2_OBSERVABILITY_PROFILING_PLAN.md
 **Zweck**: Normative Spezifikation der Observability-Strategie für Omega V2 (Logging/Tracing via tracing, Profiling via flamegraph/pprof, Performance-Counter, CI-Integration, Determinismus-Guardrails).
 
 ---
 
 ## Geplante Pläne
----
-
-### 🔲 OMEGA_V2_TESTING_VALIDATION_PLAN.md
-**Zweck**: Testpyramide (unit/property/integration), deterministische Fixtures, Paritäts-Tests gegen V1, Fuzzing-Strategie und Lookahead-Tests.
-
-**Priorität**: 🟡 Mittel (parallel zur Implementierung)
-
 ---
 
 ### 🔲 OMEGA_V2_AGENT_INSTRUCTION_PLAN.md
@@ -157,4 +159,5 @@ Alle Pläne befinden sich in `docs/` und folgen der Namenskonvention `OMEGA_V2_<
 | 1.5 | 13.01.2026 | CI-Workflow-Plan erstellt und Tracker aktualisiert |
 | 1.6 | 13.01.2026 | Data-Governance-Plan erstellt, Tracker aktualisiert |
 | 1.7 | 13.01.2026 | Observability-Profiling-Plan erstellt, Tracker aktualisiert |
+| 1.8 | 13.01.2026 | Testing-Validation-Plan erstellt, Tracker aktualisiert |
 
