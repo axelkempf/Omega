@@ -135,6 +135,7 @@ Beispiel:
 
 - **Single-Run-Metriken**: werden aus `trades.json` und `equity.csv` berechnet und in `metrics.json` geschrieben.
 - **Optimizer/Rating-Metriken** (Robustness/Stress/Confidence): werden aus *mehreren Runs* abgeleitet und sind daher `source: optimizer`.
+- Optimizer/Rating-Metriken werden in einem separaten Artefakt `optimizer_metrics.json` ausgegeben (ME-2 entschieden).
 
 ---
 
@@ -269,6 +270,15 @@ V2 definiert beide Varianten als separate Keys:
 
 **Risk-free Rate:** im MVP nicht unterstützt (implizit 0; kein Config-Feld).
 
+**Annualisierung / Frequenz (ME-1 entschieden):**
+
+- `sharpe_equity_daily` / `sortino_equity_daily`:
+  - Basis: Daily Equity Returns (UTC-Tage).
+  - Annualisierung: mit $\sqrt{252}$ (Trading Days).
+- `sharpe_trade_r` / `sortino_trade_r`:
+  - Basis: $R$-Multiples pro Trade.
+  - **Keine** Annualisierung (Faktor 1), da Trade-Frequenz nicht zeitbasiert normiert ist.
+
 **Insufficient-Samples Policy (normativ):**
 
 - Wenn die Berechnungsgrundlage weniger als 2 Samples hat, wird der Wert als String geschrieben:
@@ -280,19 +290,42 @@ Damit sind diese Keys effektiv `type: "number|string"`.
 
 ## 8. Robustness/Stress/Confidence (Optimizer-Layer, V1 `rating/`)
 
-### 8.1 Status & Output-Ort
+### 8.1 Artefakt: `optimizer_metrics.json` (ME-2 entschieden)
+
+Dieses Artefakt ist das normativ definierte Output-Target für Optimizer-/Rating-Aggregate.
+
+- Shape entspricht `metrics.json` (Root enthält mindestens `metrics` und `definitions`).
+- `definitions[*].source` ist für diese Keys immer `optimizer`.
+- `metrics` bleibt flach (keine Arrays), damit Aggregatoren und Golden-Checks stabil bleiben.
+
+Pflicht-Keys (Optimizer-Aggregat, MVP+ / Phase 2):
+
+- `robustness_score` (0..1)
+- `stability_score` (0..1)
+- `parameter_sensitivity` (0..1)
+
+Normative Ableitungen (V2, stabil):
+
+- `parameter_sensitivity := robustness_1_score`
+- `robustness_score := min(robustness_1_score, data_jitter_score, cost_shock_score, timing_jitter_score, trade_dropout_score, tp_sl_stress_score, ulcer_index_score, stability_score)`
+
+Hinweis: Die darunter definierten Einzel-Scores bleiben **first-class Keys**, auch wenn `robustness_score` als zusammenfassender Gate-/Ranking-Score verwendet wird.
+
+### 8.2 Status & Output-Ort
 
 Diese Metriken sind **definiert** (Keys + Semantik), werden aber gemäß Entscheidung **nicht** in `metrics.json` des Base-Runs ausgegeben.
 
 - `source`: `optimizer`
-- Erwarteter Zielort: Optimizer-/Walkforward-Aggregate (separater Contract, nicht MVP).
+- Erwarteter Zielort: `optimizer_metrics.json` (separater Contract, nicht MVP).
 
-### 8.2 Definierte Score-Keys (V2)
+### 8.3 Definierte Score-Keys (V2)
 
 Alle Scores werden auf $[0,1]$ geclamped (`domain: 0..1`, `unit: ratio`).
 
 | Key | Domain | Kurzdefinition | V1-Referenz |
 |-----|--------|----------------|-------------|
+| `robustness_score` | 0..1 | Aggregierter Robustheits-Score (konservativ via `min(...)`, siehe 8.1) | (neu in V2) |
+| `parameter_sensitivity` | 0..1 | Parameter-Sensitivität (Alias: `robustness_1_score`, siehe 8.1) | (neu in V2) |
 | `robustness_1_score` | 0..1 | Parameter-Jitter Robustheit (Penalty-Modell) | `src/old/backtest_engine/rating/robustness_score_1.py` |
 | `data_jitter_score` | 0..1 | ATR-skaliertes OHLC-Jitter Robustheit | `src/old/backtest_engine/rating/data_jitter_score.py` |
 | `cost_shock_score` | 0..1 | Kosten-Schock Robustheit (Faktoren 1.25/1.50/2.00) | `src/old/backtest_engine/rating/cost_shock_score.py` |
@@ -303,7 +336,7 @@ Alle Scores werden auf $[0,1]$ geclamped (`domain: 0..1`, `unit: ratio`).
 | `ulcer_index` | >=0 | Ulcer Index (weekly, drawdown in %) | `src/old/backtest_engine/rating/ulcer_index_score.py` |
 | `ulcer_index_score` | 0..1 | `1 - ulcer_index/ulcer_cap` | `src/old/backtest_engine/rating/ulcer_index_score.py` |
 
-### 8.3 p-Values (V2)
+### 8.4 p-Values (V2)
 
 - `p_value_mean_r_gt_0` (bootstrap p-value für Hypothese $E[R] > 0$)
 - `p_value_net_profit_gt_0` (bootstrap p-value für Hypothese $E[profit] > 0$)

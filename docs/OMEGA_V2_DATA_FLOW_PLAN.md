@@ -459,7 +459,7 @@ Phase 2 ist die **zentrale Stelle für alle Datenqualitäts-Operationen**. Hier 
 │                                                                                  │
 │  Falls htf_filter.enabled == true:                                               │
 │                                                                                  │
-│  1. HTF Parquets laden (automatisch abgeleitete Pfade)                           │
+│  1. HTF Parquets laden (automatisch abgeleitete Pfade; MVP: separate Parquets)   │
 │  2. HTF Bid/Ask Alignment (wie bei Primary TF)                                   │
 │  3. HTF Datenqualitäts-Validierung                                               │
 │  4. HTF Date Range Filter                                                        │
@@ -1028,8 +1028,9 @@ H1:      │    0    │                            │    1    │
 │  m5_idx: 0  1  2  3  4  5  6  7  8  9  10 11 12                                  │
 │  h1_idx: 0  0  0  0  0  0  0  0  0  0  0  0  1                                   │
 │                                                                                  │
-│  Bei M5 idx=5 (00:25): HTF-Indikator für H1 bar 0 (00:00-00:59) verwenden       │
-│  → Kein Lookahead! H1 bar 0 ist erst um 01:00 "fertig"                          │
+│  Bei M5 idx=5 (00:25): htf_index_map zeigt auf H1 bar 0 (00:00-00:59)            │
+│  → Kein Lookahead: Signale nutzen nur abgeschlossene HTF-Bars                    │
+│  → "letzte abgeschlossene" HTF-Bar ist daher (0 - 1) = -1 (falls vorhanden)     │
 └─────────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -1043,17 +1044,19 @@ H1:      │    0    │                            │    1    │
 BarContext.get_htf_indicator(name, tf, params):
 
     1. Aktuellen M5 idx kennen
-    2. HTF idx aus Mapping holen: htf_idx = htf_index_map[m5_idx]
-    3. WICHTIG: htf_idx - 1 verwenden (letzte ABGESCHLOSSENE Bar!)
-    4. Indikatorwert zurückgeben: indicators[(name, tf, params)][htf_idx - 1]
+     2. HTF idx aus Mapping holen: htf_idx = htf_index_map[m5_idx]
+     3. WICHTIG: nur abgeschlossene HTF-Bars verwenden
+         - completed_idx = htf_idx - 1
+         - Edge-Case (D-3, entschieden): wenn htf_idx == 0 → return None/NaN
+     4. Indikatorwert zurückgeben: indicators[(name, tf, params)][completed_idx]
 
 ┌─────────────────────────────────────────────────────────────────────────────────┐
 │  LOOKAHEAD PREVENTION:                                                           │
 │                                                                                  │
 │  Um 00:25 (M5 idx=5):                                                            │
 │  • H1 Bar 0 (00:00-00:59) ist NICHT abgeschlossen                                │
-│  • Wir dürfen NUR H1 Bar -1 (vorheriger Tag) verwenden                          │
-│  • Oder: "H1 EMA bei Tagesanfang" (Close von gestern)                            │
+│  • Wir dürfen NUR die letzte abgeschlossene H1-Bar verwenden                      │
+│  • Wenn es keine abgeschlossene H1-Bar gibt (htf_idx==0) → None/NaN               │
 │                                                                                  │
 │  Um 01:05 (M5 idx=13):                                                           │
 │  • H1 Bar 0 (00:00-00:59) ist jetzt abgeschlossen                                │
@@ -1079,7 +1082,7 @@ BarContext.get_htf_indicator(name, tf, params):
 | I7 | Trades vollständig | Jeder geschlossene Trade hat entry + exit | Phase 5 | WARNING |
 | **I8** | **Bid/Ask Alignment** | **Gleiche Timestamps für Bid und Ask auf allen TFs** | **Phase 2** | **ABBRUCH** |
 | **I9** | **Warmup verfügbar** | **available_bars > required_warmup** | **Phase 2** | **ABBRUCH** |
-| **I10** | **HTF Alignment** | **Jeder Primary-TF Timestamp hat gültigen HTF-Index** | **Phase 2** | **ABBRUCH** |
+| **I10** | **HTF Alignment** | **Jeder Primary-TF Timestamp mappt auf einen HTF-Index im Bereich `[0..len-1]` (Index kann 0 sein)** | **Phase 2** | **ABBRUCH** |
 | **I11** | **Pfade existieren** | **Alle automatisch generierten Datenpfade existieren** | **Phase 2** | **ABBRUCH** |
 
 ### 5.2 Checkpoints im Flow

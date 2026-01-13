@@ -21,7 +21,7 @@
 | [OMEGA_V2_CONFIG_SCHEMA_PLAN.md](OMEGA_V2_CONFIG_SCHEMA_PLAN.md) | Config-Schema (run_mode/data_mode/rng_seed), Defaults/Normalisierung |
 | [OMEGA_V2_TECH_STACK_PLAN.md](OMEGA_V2_TECH_STACK_PLAN.md) | Toolchain/Pinning, Error-Contract, RNG-Policy, Packaging |
 | [OMEGA_V2_OBSERVABILITY_PROFILING_PLAN.md](OMEGA_V2_OBSERVABILITY_PROFILING_PLAN.md) | Determinismus-sichere Observability, Profiling (nightly/manuell) |
-| [OMEGA_V2_CI_WORKFLOW_PLAN.md](OMEGA_V2_CI_WORKFLOW_PLAN.md) | CI-Gates, Build-Matrix, Scheduling (Golden: nightly + release) |
+| [OMEGA_V2_CI_WORKFLOW_PLAN.md](OMEGA_V2_CI_WORKFLOW_PLAN.md) | CI-Gates, Build-Matrix, Scheduling (Golden-Smoke PR-Gate, Full-Golden nightly + release) |
 
 ---
 
@@ -165,7 +165,7 @@ Diese Struktur ist kompatibel zum Modul-Struktur-Plan (Tests/Fixtures im Backtes
 - Loader kann Parquet lesen
 - Schema-/Normalisierungsregeln werden eingehalten
 
-Die Strategie-Nutzung von News ist nicht Gate im MVP.
+Die Strategie kann News im MVP als Entry-Gate über `BarContext.news_blocked` berücksichtigen. Im PR-Gate wird dafür zunächst nur die Masken-Erzeugung (Loader/Schema/Determinismus) contract-getestet; zusätzliche Signal-/PnL-Effekte sind optional.
 
 ---
 
@@ -186,9 +186,9 @@ Die Strategie-Nutzung von News ist nicht Gate im MVP.
 
 Ziel: Unterschiede aus nicht-deterministischen Feldern (z.B. Erstellzeit) werden eliminiert, ohne die fachliche Aussage zu verfälschen.
 
-Beispiele (nicht abschließend):
+Beispiele (normativ, O-1 entschieden):
 
-- `meta.json`: Felder wie `generated_at`, `generated_at_ns` werden für Vergleichszwecke neutralisiert.
+- `meta.json`: **nur** `generated_at` und `generated_at_ns` werden für Vergleichszwecke neutralisiert.
 - JSON: stabile Key-Order (kanonische Serialisierung) und deterministische Reihenfolge, wo relevant.
 
 ### 6.3 Float-Vergleich
@@ -207,12 +207,10 @@ Beispiele (nicht abschließend):
 
 ### 6.5 Scheduling (CI)
 
-**Normativ:** Golden-Regression läuft **nur**:
+**Normativ:** Golden-Regression ist zweistufig:
 
-- nightly
-- release
-
-Sie ist **kein** PR-Gate (siehe CI-Workflow-Plan).
+- **PR-Gate (T-2 entschieden):** Golden-Smoke auf kleinen, versionierten Fixtures.
+- **Nightly/Release:** Vollständige Golden-Regression + Cross-OS Determinismus + Benchmarks.
 
 ---
 
@@ -246,6 +244,11 @@ Toleranzen werden dort definiert, wo Units und Rundung normiert sind (Execution-
 6. Mix aus Sessions/Warmup/HTF-Einflüssen, der die Strategie-Signalbildung deterministisch abdeckt
 
 **Hinweis:** Die genaue Ausgestaltung (Fixture + Config) wird in den Test-Files dokumentiert; dieses Dokument normiert die Pflicht zur Existenz und Stabilität.
+
+**Gate-Kategorisierung (T-3 entschieden):**
+
+- Alle 6 Szenarien sind Bestandteil des **PR-Gates** als Golden-Smoke (kleine, committed Fixtures).
+- Full-Golden (nightly/release) darf dieselben Szenarien mit größeren Fixtures ergänzen, um Drift/Edge-Cases zu erhöhen.
 
 **Zusatz (Sessions):** Sessions sind Bestandteil von Szenario 6. Zusätzlich sind isolierte Session-Contract-Tests zulässig (z.B. „keine Trades außerhalb Session-Fenster“, deterministisch, fixture-basiert).
 
@@ -348,13 +351,7 @@ Zusätzlich sind Sanity-Checks zulässig, die keine fragile Verteilungsannahmen 
 
 ### 11.2 Annualisierung Sharpe/Sortino (offen)
 
-**Offen:** Der Metrics-Plan nennt Annualisierung als offenen Punkt.
-
-**Policy in diesem Dokument:**
-
-- Bis Annualisierung/Frequenz endgültig festgezogen ist, werden Sharpe/Sortino Tests so gestaltet, dass sie
-  - Rundung/Domain/NaN-Handling absichern,
-  - aber keine implizite Annualisierungs-Konvention erzwingen.
+**Update (ME-1/T-1 entschieden):** Annualisierung/Frequenz ist normativ in `OMEGA_V2_METRICS_DEFINITION_PLAN.md` festgelegt.
 
 ---
 
@@ -364,7 +361,7 @@ Zusätzlich sind Sanity-Checks zulässig, die keine fragile Verteilungsannahmen 
 
 **Normativ:**
 
-- PR-Gate: schnelle Unit/Property/Integration + Contract Checks
+- PR-Gate: schnelle Unit/Property/Integration + Contract Checks **inkl. Golden-Smoke** auf kleinen Fixtures
 - Nightly/Release: Golden-Regression + Cross-OS Determinismus + Benchmarks
 
 ### 12.2 Benchmarks
@@ -375,5 +372,4 @@ Zusätzlich sind Sanity-Checks zulässig, die keine fragile Verteilungsannahmen 
 
 ## 13. Offene Punkte
 
-1. **Sharpe/Sortino Annualisierung**: finale Definition (Formel/Frequenz) muss im Metrics-Plan festgezogen werden.
-2. **12.1 (User-Planung offen, MVP-Gate)**: Es existiert mindestens ein zusätzlicher Pflichtpunkt, der als MVP-Gate in den Testing/Validation Plan aufgenommen werden soll. Dieser Punkt ist bewusst noch nicht spezifiziert und muss in einem Follow-up konkretisiert werden.
+Keine (T-3 entschieden: alle 6 Szenarien sind PR-Gate/Golden-Smoke; Full-Golden darf größere Fixtures ergänzen).

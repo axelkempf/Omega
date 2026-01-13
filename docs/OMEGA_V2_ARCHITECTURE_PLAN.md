@@ -290,9 +290,9 @@ rust_core/                     ← Workspace Root
 |---|-------|----------|--------|
 | T1 | Parquet-Library | `arrow-rs` vs. `polars` | **Entschieden: `arrow-rs`** |
 | T2 | JSON-Library | `serde_json` (Standard) | Vorläufig entschieden |
-| T3 | Parallelisierung | `rayon` für Indikator-Berechnung? | Später (nach 1:1 Parität/Determinismus) |
+| T3 | Parallelisierung | `rayon` für Indikator-Berechnung? | **Entschieden (MVP): kein `rayon`**; Post-MVP nur nach Messung + Parität/Determinismus |
 | T4 | Warmup-Handling | Explizit in Config oder automatisch? | **Entschieden: explizit in Config (Default 500)** |
-| T5 | HTF-Daten | Separate Parquets oder aus M1 aggregieren? | Offen |
+| T5 | HTF-Daten | Separate Parquets oder aus M1 aggregieren? | **Entschieden (MVP): Separate Parquets**; Aggregation aus Primary Post-MVP |
 
 ### 5.2 Strategie-Design
 

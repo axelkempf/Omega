@@ -44,7 +44,7 @@ Dieses Dokument definiert die **universale Wahrheit** für die Omega V2 CI/CD-Pi
 - Concurrency ist aktiv und bricht alte Runs pro Branch ab.
 - Python-Tests laufen auf **3.12 und 3.13**.
 - Wheels werden als **Full-Matrix** bereits auf PRs gebaut.
-- Golden-File Regression läuft **nur nightly + release**.
+- Golden ist zweistufig: **Golden-Smoke als PR-Gate**, Full-Golden nur nightly + release.
 - Release publiziert Wheels als **GitHub Release Assets** (kein PyPI).
 
 ---
@@ -202,12 +202,16 @@ Wheels werden auf PRs bereits in voller Zielmatrix gebaut.
 
 **SOLL:** Upload der Wheels als Workflow-Artifacts.
 
-### 6.8 Job: `golden_files` (nightly + release)
+### 6.8 Job: `golden_files`
 
-**MUSS (nur nightly + release):**
+**MUSS (PR-Gate):**
 
-- Golden-File Regression gegen kleines, versioniertes Fixture-Dataset im Repo.
-- Vergleich folgt Output-Contract + Metrics-Definition (Rundung/Units).
+- Golden-Smoke Regression gegen **kleines**, versioniertes Fixture-Dataset im Repo.
+- Vergleich folgt Output-Contract + Metrics-Definition (Rundung/Units, exakter Vergleich nach Contract-Rundung).
+
+**MUSS (nightly + release):**
+
+- Vollständige Golden-Regression (größere Fixture-Abdeckung, Cross-OS Determinismus, Benchmarks nach Bedarf).
 
 ---
 
@@ -285,4 +289,6 @@ Ein PR, der V2-Core-Code ändert, ist nur mergebar, wenn:
 - `security_codeql` keine blockierenden Findings hat
 - `build_wheels` grün ist (Full-Matrix)
 
-Golden-File Regression ist kein PR-Gate (nightly/release-only).
+Zusätzlich ist `golden_files` (Golden-Smoke) im PR-Gate grün.
+
+Full-Golden Regression läuft zusätzlich nightly/release.

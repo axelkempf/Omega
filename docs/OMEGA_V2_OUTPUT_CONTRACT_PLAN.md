@@ -61,6 +61,8 @@ Dieses Dokument definiert die **universale Wahrheit** für Omega V2 Backtest-Out
 - UI-/Live-Engine Artefakte.
 - Streaming-/Realtime-Outputs während eines laufenden Backtests.
 
+**Hinweis:** Der Optimizer-/Rating-Aggregate-Contract wird separat geführt (ME-2): `optimizer_metrics.json` (Details/Keys: `OMEGA_V2_METRICS_DEFINITION_PLAN.md`).
+
 ---
 
 ## 3. Output-Layout & Naming
@@ -81,6 +83,12 @@ Jeder Backtest-Run schreibt genau einen Output-Ordner:
 | `trades.json` | MUSS | JSON | Liste abgeschlossener Trades (Entry/Exit) |
 | `equity.csv` | MUSS | CSV | Equity/Balances **pro Bar** |
 | `metrics.json` | MUSS | JSON | Kernmetriken für Vergleich/Optimizer |
+
+### 3.3 Optionale Unterordner (nicht MVP, aber reserviert)
+
+- `profiling/` (SOLL, optional): Profiling-/Performance-Artefakte pro Run.
+  - Referenz: `OMEGA_V2_OBSERVABILITY_PROFILING_PLAN.md`
+  - **Wichtig:** Das Vorhandensein dieses Ordners ist **kein** Bestandteil des MVP-Output-Contracts.
 
 ---
 
@@ -195,7 +203,7 @@ Die folgenden Felder sind **MUSS** (minimaler, stabiler Contract):
 | `size` | SOLL | number | Positionsgröße (Lot/Units, siehe Strategy/Config) |
 | `result` | SOLL | number | Realisierte PnL in `account_currency` **vor** expliziten Fees/Commission (Fees werden separat aggregiert) |
 | `r_multiple` | SOLL | number | R-Multiple (dimensionslos) |
-| `reason` | SOLL | string | Exit-Grund (z.B. `take_profit`, `stop_loss`, `manual`, `timeout`) |
+| `reason` | SOLL | string | Exit-Grund (MVP: `take_profit` oder `stop_loss`; weitere Labels über `meta`) |
 | `meta` | SOLL | object | Freie, serialisierbare Zusatzinfos (szenario/labels/etc.) |
 
 **Sortierung (SOLL):** Trades sind nach `exit_time_ns` aufsteigend sortiert.
@@ -341,8 +349,14 @@ Hinweis: Das folgende JSON-Beispiel ist **minimal**; in V2 werden in `definition
 
 - Für deterministische Backtests (fixe Daten, fixe Seeds) werden Golden-Files (Artefakte) in CI verglichen.
 - Vergleichs-Strategie:
-  - JSON: sortierte Keys/normalisierte Floats.
-  - CSV: strikte Header-Reihenfolge, numerische Toleranzen bei floats.
+  - **Normalisierung (O-1, entschieden):**
+    - `meta.json`: **nur** `generated_at` und `generated_at_ns` werden für Vergleichszwecke neutralisiert.
+    - JSON: kanonische Serialisierung (stabile Key-Order).
+  - **Vergleich:**
+    - Floats werden nach Contract-Rundung **exakt** verglichen (keine Toleranzen).
+    - CSV: strikte Header-Reihenfolge; Wertevergleich erfolgt auf normalisierten/kanonisch formatierten Zahlen.
+
+Hinweis: Der Golden-Prozess (Update-Policy, Scheduling, Fixture-Größen) ist normativ in `OMEGA_V2_TESTING_VALIDATION_PLAN.md` beschrieben.
 
 ---
 
@@ -351,6 +365,14 @@ Hinweis: Das folgende JSON-Beispiel ist **minimal**; in V2 werden in `definition
 - Zusätzliche Artefakte (optional): `orders.json`, `fills.json`, `positions.json`, `events.json`.
 - Streaming-Logs/Tracing Artefakte.
 - Aggregation über Runs (Optimizer/Walkforward Reports) in separaten Contracts.
+
+### 11.1 Optimizer-/Rating-Aggregate (ME-2)
+
+Für Multi-Run Optimizer-/Rating-Auswertungen gilt ein separater Contract, der bewusst **nicht** in den Single-Run Output-Ordner geschrieben wird.
+
+- Output-Pfad (reserviert): `var/results/optimizers/<optimizer_run_id>/`
+- Pflicht-Artefakt (Phase 2): `optimizer_metrics.json`
+- `optimizer_metrics.json` verwendet denselben Shape wie `metrics.json` (Root enthält mindestens `metrics` und `definitions`), aber ausschließlich Keys mit `source: optimizer`.
 
 ---
 

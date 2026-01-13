@@ -130,7 +130,9 @@ Stattdessen wird über **Environment Defaults** und **fixed Layout** gearbeitet 
 | `additional` | `array<string>` | `[]` | Uppercase, dedupliziert, darf `primary` nicht enthalten |
 | `additional_source` | `"separate_parquet"|"aggregate_from_primary"` | `"separate_parquet"` | Quelle für zusätzliche TFs (HTF) |
 
-**Entscheidung**: HTF kann via separate Parquet-Dateien oder Aggregation aus Primary generiert werden.
+**Entscheidung (MVP)**: Zusätzliche TFs (HTF) werden **ausschließlich** via separate Parquet-Dateien geladen (`additional_source="separate_parquet"`).
+
+`additional_source="aggregate_from_primary"` bleibt als **Post-MVP Option** reserviert und ist im MVP **nicht supported** (Validator: hard fail), da Aggregation zusätzliche Data-Governance-/Lookahead- und Candle-Contract-Regeln erfordert.
 
 ### 4.2 `sessions`
 
@@ -394,7 +396,7 @@ Optional übersteuert via Env:
   "run_mode": "prod",
   "execution_variant": "v2",
   "data_mode": "candle",
-  "timeframes": {"primary": "M5", "additional": ["H1", "D1"], "additional_source": "aggregate_from_primary"},
+  "timeframes": {"primary": "M5", "additional": ["H1", "D1"], "additional_source": "separate_parquet"},
   "warmup_bars": 500,
   "sessions": [{"start": "08:00", "end": "17:00"}],
   "account": {"initial_balance": 10000.0, "account_currency": "EUR", "risk_per_trade": 100.0},

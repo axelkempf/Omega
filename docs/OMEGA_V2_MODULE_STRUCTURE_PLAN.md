@@ -219,8 +219,8 @@ chrono = { version = "0.4", features = ["serde"] }
 | `store.rs` | Speichert geladene Daten, Multi-TF Zugriff | `CandleStore { bid: Vec<Candle>, ask: Vec<Candle>, ... }` |
 | `validation.rs` | Datenqualitäts-Checks (monoton, keine NaN, etc.) | `validate_candles(candles: &[Candle]) -> ValidationResult` |
 | `market_hours.rs` | Filtert Candles außerhalb Handelszeiten | `filter_market_hours(candles: &[Candle], hours: &MarketHours)` |
-| `alt_data.rs` | Alternative Data Store (z.B. News) | `AltDataStore { news: Option<NewsCalendarIndex>, ... }` |
-| `news.rs` | News Calendar laden + Index/Mask erzeugen | `load_news(path) -> NewsCalendarIndex` |
+| `alt_data.rs` | Alternative Data Store (z.B. News) | `AltDataStore { news: Option<NewsCalendarIndex>, news_mask: Option<Vec<bool>>, ... }` |
+| `news.rs` | News Calendar laden + Index/Mask erzeugen | `load_news(path, cfg) -> (NewsCalendarIndex, Vec<bool>)` |
 | `error.rs` | Datenladen-spezifische Fehler | `enum DataError { FileNotFound, ParseError, AlignmentError, ... }` |
 
 **Abhängigkeiten (Cargo.toml)**:
@@ -230,6 +230,13 @@ omega_types = { path = "../types" }
 arrow = "51"
 parquet = "51"
 ```
+
+**News-Integration (M-2, entschieden):**
+
+- News werden als deterministische, per-Bar Maske modelliert: `news_mask: Vec<bool>` mit `len == primary_candles.len()`.
+- `BarContext.news_blocked` ist für Bar `idx` definiert als `news_mask[idx]`.
+- Aktivierung erfolgt ausschließlich über `config.news_filter.enabled`.
+- Schema/Normalisierung der News-Daten ist normativ in `OMEGA_V2_DATA_GOVERNANCE_PLAN.md` geregelt.
 
 ---
 
@@ -666,9 +673,9 @@ thiserror = "1.0"
 | Crate | Unit Tests | Integration Tests | Property Tests |
 |-------|-----------|-------------------|----------------|
 | **types** | ✓ Serialisierung | - | ✓ Serde roundtrip |
-| **data** | ✓ Loader, Alignment | ✓ Mit Fixtures | - |
+| **data** | ✓ Loader, Alignment | ✓ Mit Fixtures | ✓ Alignment/Monotonie/News-Mask Invarianten |
 | **indicators** | ✓ Jeder Indikator | - | ✓ Numerische Stabilität |
-| **execution** | ✓ Fill, Slippage, Fees | - | - |
+| **execution** | ✓ Fill, Slippage, Fees | - | ✓ Invarianten (z.B. Exit nach Entry, Tie-Break Regeln) |
 | **portfolio** | ✓ Position Lifecycle | - | - |
 | **strategy** | ✓ Signal Generation | - | - |
 | **backtest** | - | ✓ Full Backtest | - |
@@ -698,6 +705,24 @@ crates/
     └── tests/
         └── python_test.py  ← Python Integration Test
 ```
+
+**Fixtures-Policy (M-1, entschieden):**
+
+- Fixtures werden **im Repository committed** (klein, deterministisch, offline/CI-stabil).
+- Fixture-Manifests (SHA-256) sind Bestandteil der Contract-/Golden-Checks (Details: `OMEGA_V2_TESTING_VALIDATION_PLAN.md`).
+
+**Property-/Coverage-Ziele (M-3, entschieden):**
+
+- Zielwerte sind normativ im `OMEGA_V2_TESTING_VALIDATION_PLAN.md` festgelegt und gelten als Qualitätsindikatoren (zunächst **kein PR-Blocker**).
+- Startwerte (aus Testing-Plan, konsistent):
+    - `types`: **95%**
+    - `data`: **90%**
+    - `execution`: **90%**
+    - `portfolio`: **90%**
+    - `strategy`: **85%**
+    - `backtest`: **80%**
+    - `metrics`: **85%**
+    - `ffi`: **60%**
 
 ---
 
