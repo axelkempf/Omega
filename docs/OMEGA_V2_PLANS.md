@@ -10,11 +10,11 @@
 
 | Status | Bedeutung | Anzahl |
 |--------|-----------|--------|
-| ✅ | Existiert und vollständig | 4 |
+| ✅ | Existiert und vollständig | 5 |
 | 🟡 | Existiert, offene Punkte | 7 |
-| 🔲 | Geplant, noch nicht erstellt | 3 |
+| 🔲 | Geplant, noch nicht erstellt | 2 |
 
-**Gesamt: 14 Pläne** | **Fortschritt: 11/14 erstellt (79%)**
+**Gesamt: 14 Pläne** | **Fortschritt: 12/14 erstellt (86%)**
 
 ---
 
@@ -106,6 +106,11 @@
 
 ---
 
+### ✅ OMEGA_V2_OBSERVABILITY_PROFILING_PLAN.md
+**Zweck**: Normative Spezifikation der Observability-Strategie für Omega V2 (Logging/Tracing via tracing, Profiling via flamegraph/pprof, Performance-Counter, CI-Integration, Determinismus-Guardrails).
+
+---
+
 ## Geplante Pläne
 ---
 
@@ -123,13 +128,6 @@
 
 ---
 
-### 🔲 OMEGA_V2_OBSERVABILITY_PROFILING_PLAN.md
-**Zweck**: Tracing/Telemetry-Strategie, Performance-Counter, Flamegraph-Integration und Logging-Policy ohne Python-Callbacks.
-
-**Priorität**: 🟢 Niedrig (nach MVP)
-
----
-
 ## Querverweise
 
 Alle Pläne befinden sich in `docs/` und folgen der Namenskonvention `OMEGA_V2_<TOPIC>_PLAN.md`.
@@ -143,7 +141,7 @@ Alle Pläne befinden sich in `docs/` und folgen der Namenskonvention `OMEGA_V2_<
 | **Config/Output** | CONFIG_SCHEMA_PLAN | OUTPUT_CONTRACT_PLAN |
 | **Qualität** | TESTING_VALIDATION_PLAN | CI_WORKFLOW_PLAN |
 | **Entwicklung** | AGENT_INSTRUCTION_PLAN | TECH_STACK_PLAN |
-| **Betrieb** | OBSERVABILITY_PROFILING_PLAN | - |
+| **Betrieb** | OBSERVABILITY_PROFILING_PLAN | CI_WORKFLOW_PLAN |
 
 ---
 
@@ -158,4 +156,5 @@ Alle Pläne befinden sich in `docs/` und folgen der Namenskonvention `OMEGA_V2_<
 | 1.4 | 12.01.2026 | Tech-Stack-Plan erstellt und Tracker aktualisiert |
 | 1.5 | 13.01.2026 | CI-Workflow-Plan erstellt und Tracker aktualisiert |
 | 1.6 | 13.01.2026 | Data-Governance-Plan erstellt, Tracker aktualisiert |
+| 1.7 | 13.01.2026 | Observability-Profiling-Plan erstellt, Tracker aktualisiert |
 
