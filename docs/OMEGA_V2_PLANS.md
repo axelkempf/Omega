@@ -51,6 +51,13 @@
 
 ---
 
+### ✅ OMEGA_V2_STRATEGIES_PLAN.md
+**Zweck**: Normative Spezifikation der Strategie-Schicht (MVP: Mean Reversion Z-Score) inkl. Szenarien 1–6, Guards/Filter (Sessions/News/Cooldown), benötigter Indikatoren, Modul-Zerlegung und Paritätsanforderungen zu V1.
+
+**Status**: Vollständig - MRZ Szenarien/Guards normiert; Position Manager explizit als separater Plan vorgesehen
+
+---
+
 ### ✅ OMEGA_V2_OUTPUT_CONTRACT_PLAN.md
 **Zweck**: Exakte Artefakt-Spezifikation für `trades.json`, `equity.csv`, `metrics.json`, `meta.json` inkl. Feldnamen, Typen, Einheiten, Zeit-Contract und Output-Pfad.
 
@@ -99,13 +106,15 @@
 
 ---
 
-## Geplante Pläne
+### ✅ OMEGA_V2_FORMATTING_PLAN.md
+**Zweck**: Normative Formatierungsregeln für Dokumentation, Code und Kommentare: Tooling (Black, isort, flake8, mypy, cargo fmt/clippy), Kommentar-Policy (WHY not WHAT), Durchsetzung via pre-commit + CI.
+
+**Status**: Vollständig - Tool-driven Formatierung, Hybrid Single Source of Truth (Prinzipien hier, Parameter in Config-Dateien), ADR-Pflicht bei Konflikten
+
 ---
 
-### 🔲 OMEGA_V2_FORMATTING_PLAN.md
-**Zweck**: Normative Formatierungsregeln für Dokumentation, Code und Kommentare: Naming, Layout, Lint/Formatter-Policy, Doc-Patterns sowie Artefakt-/JSON-Stabilität für Golden-Files.
-
-**Priorität**: 🟡 Hoch (MVP-Qualitätsgate)
+## Geplante Pläne
+---
 
 ### 🔲 OMEGA_V2_AGENT_INSTRUCTION_PLAN.md
 **Zweck**: Contributor-Guidelines für AI-Agenten und Entwickler: Crate-Boundaries, Code-Style, Error-Handling-Patterns, Review-Checklist und PR-DoD.
@@ -122,6 +131,7 @@ Alle Pläne befinden sich in `docs/` und folgen der Namenskonvention `OMEGA_V2_<
 |---------|--------------|------------------|
 | **Vision & Ziele** | VISION_PLAN | - |
 | **Architektur** | ARCHITECTURE_PLAN | MODULE_STRUCTURE_PLAN |
+| **Strategien** | STRATEGIES_PLAN | CONFIG_SCHEMA_PLAN, EXECUTION_MODEL_PLAN, MODULE_STRUCTURE_PLAN |
 | **Daten** | DATA_FLOW_PLAN | DATA_GOVERNANCE_PLAN |
 | **Execution** | EXECUTION_MODEL_PLAN | METRICS_DEFINITION_PLAN |
 | **Config/Output** | CONFIG_SCHEMA_PLAN | OUTPUT_CONTRACT_PLAN |
@@ -177,4 +187,6 @@ Alle Pläne befinden sich in `docs/` und folgen der Namenskonvention `OMEGA_V2_<
 | 2.1 | 14.01.2026 | Runde 1 Entscheidungen eingepflegt: A-1, D-3, E-1, E-2, O-1, O-2, ME-1/T-1, T-2; Tracker bereinigt |
 | 2.2 | 14.01.2026 | Runde 2 Entscheidungen eingepflegt: A-3, M-1, M-2, M-3, ME-2, T-3; Pläne konsistent gemacht |
 | 2.3 | 14.01.2026 | Formatting-Plan als geplanter Qualitäts-Gate aufgenommen |
+| 2.4 | 13.01.2026 | Formatting-Plan erstellt und vollständig: Tool-driven (Black/isort/flake8/mypy + cargo fmt/clippy), pre-commit + CI Gates |
+| 2.5 | 14.01.2026 | Strategies-Plan erstellt (`OMEGA_V2_STRATEGIES_PLAN.md`) und Querverweise in allen Plänen ergänzt |
 
