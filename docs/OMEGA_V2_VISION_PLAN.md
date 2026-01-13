@@ -186,11 +186,32 @@ Das bestehende Omega-System ist organisch gewachsen und weist fundamentale struk
 Der MVP ist bewusst eng geschnitten: **1 Symbol, 1 Strategie, 1:1 Parität**.
 
 - **Strategie**: Mean Reversion Z-Score (inkl. aller HTF-Features wie in V1)
-- **Order-Typen**: Market + Limit (MVP), Direction (long/short/both), max. Positionen konfigurierbar
+- **Order-Typen**: Market + Limit + Stop (MVP), Direction (long/short/both), max. Positionen konfigurierbar
 - **Kostenmodell**: Spread aus Bid/Ask; Fees + Slippage aus bestehenden YAML-Configs (`configs/`)
 - **News Filter**: Rust-native Alternative-Data (News Calendar) aus Parquet (wird in Phase 2 geladen)
 - **Sessions**: Indikatoren über alle Bars; Entry-Signale nur innerhalb konfigurierter Trading-Sessions
 - **Artefakte**: `trades.json`, `equity.csv`, `metrics.json`, `meta.json` (gemäß Output-Contract)
+
+### 3.5 Kanonische 6 Szenarien (Mean Reversion Z-Score, MVP)
+
+**Zweck:** Diese Szenarien sind die fachliche Minimal-Suite, um Feature-Parität und Regressionen eindeutig zu messen.
+
+**Kanonische Test-Baseline (für alle 6 Szenarien, sofern nicht anders begründet):**
+
+- Symbol: `EURUSD`
+- Primary TF: `M5`
+- Additional TFs: `D1`
+
+**Szenarien (exakt 6):**
+
+1. Market-Entry Long → Take-Profit
+2. Market-Entry Long → Stop-Loss
+3. Pending Entry (Limit/Stop) → Trigger ab `next_bar` → Exit
+4. Same-Bar SL/TP Tie → SL-Priorität
+5. `in_entry_candle` Spezialfall inkl. Limit-TP Regel
+6. Mix aus Sessions/Warmup/HTF-Einflüssen, der die Strategie-Signalbildung deterministisch abdeckt
+
+**Hinweis:** Zusätzlich zu Szenario 6 sind isolierte Session-Contract-Tests zulässig (z.B. „keine Trades außerhalb Session-Fenster“), aber Sessions sind damit nicht aus der kanonischen Suite ausgeklammert.
 
 ---
 
@@ -314,12 +335,27 @@ Omega V2 gilt als erfolgreich abgeschlossen, wenn:
 | # | Kriterium | Messbar durch |
 |---|-----------|---------------|
 | **E1** | 10k-Candle Backtest in < 500ms | Benchmark-Suite |
-| **E2** | **DEV-Mode**: identische Trades wie V1 (Entry/Exit-Events) | Regressionstest (Trade-Event-Vergleich) |
+| **E2** | **DEV-Mode (Paritäts-Variante)**: Events matchen V1 exakt (`entry_time_ns`, `exit_time_ns`, `direction`, `reason`, Anzahl/Sortierung); Preise matchen nach Tick-Quantisierung; PnL/Fees innerhalb definierter Toleranzen | Regressionstest (Trade-Event/Preis/PnL-Vergleich) |
 | **E3** | Jedes Crate hat > 80% Test-Coverage | `cargo tarpaulin` |
 | **E4** | Keine Panics in Production | Fuzzing + Integration Tests |
 | **E5** | Mean Reversion Z-Score vollständig portiert | Alle 6 Szenarien funktional |
 | **E6** | Dokumentation vollständig | Alle `pub` Items dokumentiert |
 | **E7** | Output-Artefakte sind stabil und validierbar | Schema-/Golden-File-Tests für `trades.json`/`equity.csv`/`metrics.json`/`meta.json` |
+
+#### 6.1.1 Paritäts- und Vergleichsregeln (DEV)
+
+Omega V2 unterstützt zwei Ausführungs-Varianten:
+
+- `execution_variant = "v2"` (**Default**): kanonische V2-Execution (siehe Execution Model Plan).
+- `execution_variant = "v1_parity"`: Paritäts-Variante für V1↔V2 Vergleich (Regression/CI), um die V1-Event-Parität zuverlässig messbar zu machen.
+
+**Vergleichsregeln (Paritäts-Variante, normativ):**
+
+- **Events:** exakt, basierend auf `entry_time_ns`, `exit_time_ns`, `direction`, `reason` sowie Anzahl und Sortierung.
+- **Preise:** vor Vergleich auf `tick_size` quantisieren (aus `configs/symbol_specs.yaml`), danach **exakt** vergleichen.
+- **PnL/Fees (account currency):**
+    - pro Trade `result` (gerundet auf 2 Dezimalstellen) darf um **±0.05** abweichen.
+    - Aggregat (`metrics.json`): `profit_net` und `fees_total` (2 Dezimalstellen) dürfen jeweils um **±0.01** abweichen.
 
 ### 6.2 Meilensteine
 
@@ -409,6 +445,20 @@ Falls V2 nicht die Erwartungen erfüllt:
 2. Keine V1-Code-Änderungen für V2-Entwicklung
 3. V2 kann jederzeit verworfen werden ohne V1-Impact
 4. Feature-Flags erlauben A/B-Vergleich vor finalem Cutover
+
+### 7.4 Optimizer: DEV/PROD Policy (normativ)
+
+**Grundsatz:** Optimizer-Runs folgen der `run_mode` Policy der V2-Config.
+
+- `run_mode = dev`: deterministisch (Sampling/Seeds/Ordering reproduzierbar).
+- `run_mode = prod`: stochastisch (Seed aus OS-RNG), **aber** Seeds pro Trial werden in Artefakten/Meta mitgeschrieben, sodass Runs replaybar bleiben.
+
+**Tie-Break für "Best Params" (wenn Score gleich):**
+
+1. `score desc`
+2. `profit_net desc`
+3. `max_drawdown asc`
+4. `config.hash asc`
 
 ---
 

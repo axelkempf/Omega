@@ -225,6 +225,13 @@ Sie ist **kein** PR-Gate (siehe CI-Workflow-Plan).
 - **Events/Trades müssen übereinstimmen** (Entry/Exit Zeitpunkte, Reihenfolge, Richtung, Exit-Reason).
 - **PnL/Fees müssen innerhalb enger Toleranzen übereinstimmen**.
 
+**Normativ (Execution-Varianten):** Für DEV-Paritäts- und CI-Regressionstests wird die V2-Engine in zwei Varianten betrieben:
+
+- `execution_variant = "v2"` (Default): kanonische V2-Semantik
+- `execution_variant = "v1_parity"`: V1-Paritätsmodus für Regressionen (setzt V1-nahe Fill-/Slippage-Regeln, um Event-Parität gegen V1 zu ermöglichen)
+
+Diese Trennung ist erforderlich, weil die kanonische V2-Ausführung bewusst Abweichungen zu V1 enthält (siehe Execution Model Plan).
+
 Toleranzen werden dort definiert, wo Units und Rundung normiert sind (Execution-/Metrics-/Output-Contract). Dieses Dokument definiert keine neuen Units.
 
 ### 7.2 Kanonische 6 Szenarien (MUSS)
@@ -239,6 +246,26 @@ Toleranzen werden dort definiert, wo Units und Rundung normiert sind (Execution-
 6. Mix aus Sessions/Warmup/HTF-Einflüssen, der die Strategie-Signalbildung deterministisch abdeckt
 
 **Hinweis:** Die genaue Ausgestaltung (Fixture + Config) wird in den Test-Files dokumentiert; dieses Dokument normiert die Pflicht zur Existenz und Stabilität.
+
+**Zusatz (Sessions):** Sessions sind Bestandteil von Szenario 6. Zusätzlich sind isolierte Session-Contract-Tests zulässig (z.B. „keine Trades außerhalb Session-Fenster“, deterministisch, fixture-basiert).
+
+### 7.3 Vergleichsregeln (DEV, normativ)
+
+Für Paritätsläufe gilt:
+
+1. **Engine-Auswahl:**
+  - V1 Referenzlauf
+  - V2 Lauf im `execution_variant = "v1_parity"`
+2. **Event-Gleichheit (exakt):**
+  - Trade-Count, Trade-Reihenfolge
+  - `entry_time_ns`, `exit_time_ns`
+  - Richtung (`long|short`) und `reason`
+3. **Preisvergleich (tick-quantisiert):**
+  - Vor Vergleich werden Entry/Exit-Preise auf `tick_size` quantisiert (Quelle: `configs/symbol_specs.yaml`).
+  - Danach **exakte** Gleichheit.
+4. **PnL/Fees-Toleranzen:**
+  - pro Trade: `profit_net` (inkl. Fees) innerhalb von ±0.05 (nach 2dp Contract-Rundung)
+  - Aggregat: `profit_net` und `fees_total` innerhalb von ±0.01 (nach 2dp Contract-Rundung)
 
 ---
 

@@ -71,6 +71,12 @@ Stattdessen wird über **Environment Defaults** und **fixed Layout** gearbeitet 
   - Randomness soll **stochastisch** sein (Seed aus OS-RNG).
   - `rng_seed` ist optional; wenn gesetzt, darf er zur Reproduzierbarkeit genutzt werden.
 
+**Zusatz (Parität/Regression):**
+
+- `execution_variant` steuert die Ausführungssemantik der V2-Engine.
+- Default ist die kanonische V2-Semantik.
+- Für V1↔V2 Regressionen in DEV ist eine explizite Paritätsvariante zulässig (siehe Vision- und Testing-Plan).
+
 ---
 
 ## 3. Top-Level Schema (Normativ)
@@ -92,6 +98,7 @@ Stattdessen wird über **Environment Defaults** und **fixed Layout** gearbeitet 
 
 | Feld | Typ | Default | Beschreibung |
 |------|-----|---------|--------------|
+| `execution_variant` | `"v2"|"v1_parity"` | `"v2"` | Auswahl der Execution-Semantik (Default: kanonisches V2; `v1_parity` nur für DEV-Regressionen) |
 | `rng_seed` | `integer \| null` | `42` (nur `dev`) | RNG-Seed für deterministische Runs |
 | `warmup_bars` | `integer` | `500` | Warmup-Bars pro Timeframe (global angewendet) |
 | `sessions` | `array \| null` | `null` | Trading-Sessions in UTC |
@@ -303,6 +310,9 @@ Referenz: `OMEGA_V2_METRICS_DEFINITION_PLAN.md`.
 ### 5.1 Typ- und Wertevalidierung
 
 - `start_date <= end_date`
+- `execution_variant`:
+  - Default: `"v2"`.
+  - `"v1_parity"` ist **nur** erlaubt, wenn `run_mode = "dev"` (ansonsten Validierungsfehler; verhindert stille Produktionsabweichungen).
 - `symbol` und Timeframes werden **uppercase-normalisiert**
 - `timeframes.additional` wird **dedupliziert** und darf `primary` nicht enthalten
 - `warmup_bars >= 0`
@@ -364,6 +374,7 @@ Optional übersteuert via Env:
   "start_date": "2020-01-01",
   "end_date": "2021-01-01",
   "run_mode": "dev",
+  "execution_variant": "v2",
   "data_mode": "candle",
   "rng_seed": 42,
   "timeframes": {"primary": "M5", "additional": ["D1"], "additional_source": "separate_parquet"},
@@ -381,6 +392,7 @@ Optional übersteuert via Env:
   "start_date": "2020-01-01",
   "end_date": "2021-01-01",
   "run_mode": "prod",
+  "execution_variant": "v2",
   "data_mode": "candle",
   "timeframes": {"primary": "M5", "additional": ["H1", "D1"], "additional_source": "aggregate_from_primary"},
   "warmup_bars": 500,

@@ -11,8 +11,8 @@
 
 | Status | Bedeutung | Anzahl |
 |--------|-----------|--------|
-| ✅ | Existiert und vollständig | 5 |
-| 🟡 | Existiert, offene Punkte | 8 |
+| ✅ | Existiert und vollständig | 6 |
+| 🟡 | Existiert, offene Punkte | 7 |
 | 🔲 | Geplant, noch nicht erstellt | 1 |
 
 **Gesamt: 14 Pläne** | **Fortschritt: 13/14 erstellt (93%)**
@@ -25,37 +25,15 @@
 
 Nach systematischer Analyse aller 13 existierenden Planungsdokumente wurden folgende Erkenntnisse identifiziert:
 
-| Kategorie | Anzahl |
-|-----------|--------|
-| **Offene Entscheidungen** | 14 |
-| **Cross-Dokument Abhängigkeiten** | 6 |
-| **Bereits gelöst (in späteren Plänen)** | 4 |
-
-### Bereits gelöste Punkte
-
-Die folgenden Punkte wurden in späteren Plänen normativ festgelegt:
-
-1. ~~Alignment-Loss Schwelle~~ → **Gelöst** in DATA_GOVERNANCE_PLAN: `>1% = hard fail`
-2. ~~Gap-Policy~~ → **Gelöst** in DATA_GOVERNANCE_PLAN: `drop-bars + session-aware`
-3. ~~Timestamp-Duplikat-Handling~~ → **Gelöst** in DATA_GOVERNANCE_PLAN: `keep-first wenn identisch, hard fail wenn unterschiedlich`
-4. ~~Logging-Strategie~~ → **Gelöst** in OBSERVABILITY_PROFILING_PLAN: `tracing (Rust) + separates Python logging`
 
 ---
 
 ## Existierende Pläne
 
-### 🟡 OMEGA_V2_VISION_PLAN.md
+### ✅ OMEGA_V2_VISION_PLAN.md
 **Zweck**: Definiert das strategische Zielbild, die Problemanalyse des V1-Systems und messbare Erfolgskriterien für die V2-Migration.
 
-**Offene Punkte**:
-- [ ] **V-1**: Exakte Paritätstoleranz (Entry/Exit-Events vs. PnL/Fees) spezifizieren
-  - *Abhängigkeit*: Wird in TESTING_VALIDATION_PLAN benötigt für Paritätstests
-- [ ] **V-2**: 6 Szenarien der Mean-Reversion-Strategie dokumentieren
-  - *Abhängigkeit*: Referenziert in TESTING_VALIDATION_PLAN Abschnitt 7.2
-- [ ] **V-3**: DEV/PROD-Mode Policy für Optimizer finalisieren
-  - *Kontext*: Derzeit nur für Single-Backtest spezifiziert, Optimizer-Runs unklar
-
-**Vollständigkeit**: ~85% - Kernvision klar, Detailspezifikationen fehlen
+**Vollständigkeit**: 100% - offene Punkte entschieden und dokumentiert
 
 ---
 
@@ -201,8 +179,8 @@ Die folgenden Punkte wurden in späteren Plänen normativ festgelegt:
   - *Kontext*: Explizit als offen markiert im Dokument (Abschnitt 13, Punkt 2)
   - *Kandidaten*: Determinismus-Test grün, Golden-Regression grün, Parität-Tests grün
 - [ ] **T-3**: 6 kanonische Szenarien ausarbeiten
-  - *Abhängigkeit*: Blockiert durch V-2 (VISION_PLAN)
-  - *Status*: Szenario-Typen definiert, aber konkrete Fixtures/Configs fehlen
+  - *Abhängigkeit*: nicht mehr blockiert (V-2 ist entschieden)
+  - *Status*: Szenario-Typen + Baseline sind normativ festgelegt; konkrete Fixtures/Configs fehlen
 
 **Vollständigkeit**: ~85% - Teststrategie klar, spezifische Gate-Kriterien fehlen
 
@@ -249,13 +227,11 @@ Alle Pläne befinden sich in `docs/` und folgen der Namenskonvention `OMEGA_V2_<
 | ID | Beschreibung | Plan | Blockiert |
 |----|--------------|------|-----------|
 | **ME-1** | Sharpe/Sortino Annualisierung/Frequenz | METRICS_DEFINITION | T-1 Tests |
-| **V-2** | 6 kanonische Szenarien dokumentieren | VISION | T-3 Tests |
 
 ### Hohe Priorität (MVP-relevant)
 
 | ID | Beschreibung | Plan | Empfehlung |
 |----|--------------|------|------------|
-| **V-1** | Paritätstoleranz spezifizieren | VISION | Events exakt, PnL ±0.01 |
 | **A-1** | HTF-Datenquelle entscheiden | ARCHITECTURE | Separate Parquets |
 | **E-1** | SL-Distanz Feldquelle | EXECUTION_MODEL | symbol_specs.yaml |
 | **E-2** | Exit-Reason Enum finalisieren | EXECUTION_MODEL | Enum mit `other` Fallback |
@@ -275,7 +251,6 @@ Alle Pläne befinden sich in `docs/` und folgen der Namenskonvention `OMEGA_V2_<
 
 | ID | Beschreibung | Plan |
 |----|--------------|------|
-| **V-3** | Optimizer DEV/PROD Policy | VISION |
 | **A-3** | Rayon Parallelisierung Policy | ARCHITECTURE |
 | **M-3** | Property-Test Coverage-Ziele | MODULE_STRUCTURE |
 | **ME-2** | Optimizer-Aggregate Contract | METRICS_DEFINITION |

@@ -32,7 +32,8 @@ Dieses Dokument definiert die **universale Wahrheit** für das Omega V2 Backtest
 
 **Primäres Ziel:**
 
-- **V1-Semantik so genau wie möglich replizieren** (insb. Bid/Ask-Handling, `pip_buffer`, `in_entry_candle`, Limit-TP-Spezialfall), mit explizit dokumentierten Abweichungen.
+- **Kanonische V2-Semantik** (Default) mit explizit dokumentierten Abweichungen zu V1.
+- Zusätzlich existiert ein **V1-Paritätsmodus** (`execution_variant = "v1_parity"`) für Regression/CI, der die V1-Semantik so nah wie möglich repliziert.
 
 **Normativ (MVP):**
 
@@ -277,6 +278,8 @@ V2 weicht an folgenden Punkten **bewusst** von V1 ab:
 3. **Exit-Slippage mit invertierter Richtung** (adverse Exit-Fills; V1 nutzt `pos.direction`).
 
 Diese Abweichungen sind Teil der universalen Wahrheit von V2 und müssen bei Paritäts-Tests separat bewertet werden (z.B. über Feature-Flags oder golden-file Varianten).
+
+**Normativ (Hybrid-Parität):** Für V1↔V2 Paritätsläufe in DEV/CI wird die V2-Engine im `execution_variant = "v1_parity"` betrieben. Kanonische V2-Golden/Determinismus-Läufe verwenden `execution_variant = "v2"`.
 
 ---
 
