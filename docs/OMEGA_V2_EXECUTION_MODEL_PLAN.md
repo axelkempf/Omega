@@ -213,6 +213,16 @@ Omega V2 behandelt `FeeModel` und `CommissionModel` als **gleiches Konzept**: Tr
 - Pro Entry/Exit wird **genau einmal** eine Gebühr gebucht.
 - Die konkrete Implementierung (per_lot, per_million_notional, percent_of_notional, min_fee) ist Konfigurationsdetail (siehe `configs/execution_costs.yaml`).
 
+**Abgrenzung Spread/Slippage vs. `fees_total` (normativ):**
+
+| Kostenart | Wirkung | Erfassung in `fees_total` |
+|-----------|---------|---------------------------|
+| **Spread** | Implizit über Bid/Ask-Differenz im Fill-Preis | ❌ Nein (im Trade-PnL enthalten) |
+| **Slippage** | Implizit über adverses Fill (Entry/Exit) | ❌ Nein (im Trade-PnL enthalten) |
+| **Commission/Fee** | Explizite Gebühr pro Order/Seite | ✅ Ja (in `fees_total` summiert) |
+
+**Wichtig:** Die Metrik `fees_total` (siehe `OMEGA_V2_METRICS_DEFINITION_PLAN.md`) enthält **nur explizite** Broker-Gebühren/Commission. Spread und Slippage wirken **implizit** über die Fill-Preise und sind damit bereits im Trade-PnL (`result`) enthalten.
+
 ---
 
 ## 9. Determinismus & RNG

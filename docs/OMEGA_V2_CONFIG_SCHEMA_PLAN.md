@@ -126,7 +126,7 @@ Stattdessen wird über **Environment Defaults** und **fixed Layout** gearbeitet 
 
 | Feld | Typ | Default | Regeln |
 |------|-----|---------|-------|
-| `primary` | `string` | `"M15"` | Uppercase; muss in erlaubter Menge sein (z.B. `M1, M5, M15, M30, H1, H4, D1`) |
+| `primary` | `string` | `"M5"` | Uppercase; muss in erlaubter Menge sein (z.B. `M1, M5, M15, M30, H1, H4, D1`) |
 | `additional` | `array<string>` | `[]` | Uppercase, dedupliziert, darf `primary` nicht enthalten |
 | `additional_source` | `"separate_parquet"|"aggregate_from_primary"` | `"separate_parquet"` | Quelle für zusätzliche TFs (HTF) |
 

@@ -275,11 +275,14 @@ Phase 2 ist die **zentrale Stelle für alle Datenqualitäts-Operationen**. Hier 
 │  └─────────────────────────────────────────────────────────────────────────┘    │
 │                                                                                  │
 │  ┌─────────────────────────────────────────────────────────────────────────┐    │
-│  │  CHECK 2: Bid ≤ Ask für alle Bars                                        │    │
+│  │  CHECK 2: Bid/Ask Side-Order (siehe DATA_GOVERNANCE 5.3)                 │    │
+│  │  Normative Prüfungen:                                                    │    │
 │  │  for i in 0..len {                                                       │    │
-│  │      assert!(bid[i].close <= ask[i].close);                              │    │
-│  │      assert!(bid[i].high <= ask[i].high);                                │    │
+│  │      assert!(bid[i].close <= ask[i].close);  // Preisliche Side-Order    │    │
+│  │      assert!(bid[i].open <= ask[i].open);    // Preisliche Side-Order    │    │
 │  │  }                                                                       │    │
+│  │  Hinweis: High/Low müssen NICHT zwingend Bid≤Ask erfüllen (Artefakte)    │    │
+│  │  → Vollständige Regeln: OMEGA_V2_DATA_GOVERNANCE_PLAN.md Abschnitt 5.3   │    │
 │  │  ❌ Fehler → Backtest ABBRUCH (ungültige Spread-Daten)                   │    │
 │  └─────────────────────────────────────────────────────────────────────────┘    │
 │                                                                                  │

@@ -249,6 +249,34 @@ Verletzung ⇒ **hard fail**.
 - Konvertierung MUSS deterministisch sein (stable sort, type normalization).
 - Der erzeugte Parquet-Output MUSS in die Dataset-Manifests eingehen.
 
+**Konvertierungsschritte (normativ):**
+
+1. **Input:** `data/news/news_calender_history.csv`
+2. **Parsing:**
+   - `UTC time` → Arrow `Timestamp(Nanosecond, "UTC")`
+   - `Impact` → Normalisiert auf `LOW|MEDIUM|HIGH`
+   - `Currency` → Uppercase, 3-letter (Validierung)
+3. **Sortierung:** Nach `UTC time` (stable sort)
+4. **Deduplizierung:** Nach `Id` (keep-first bei Duplikaten)
+5. **Output:** `data/news/news_calender_history.parquet`
+6. **Manifest-Update:** SHA-256 Hash des erzeugten Parquets wird erfasst
+
+**Empfohlenes Utility:**
+
+```python
+# scripts/convert_news_csv_to_parquet.py
+import pandas as pd
+import pyarrow as pa
+import pyarrow.parquet as pq
+
+df = pd.read_csv("data/news/news_calender_history.csv")
+df["UTC time"] = pd.to_datetime(df["UTC time"], utc=True)
+df["Currency"] = df["Currency"].str.upper()
+df["Impact"] = df["Impact"].str.upper().map({"LOW": "LOW", "MEDIUM": "MEDIUM", "HIGH": "HIGH"})
+df = df.sort_values("UTC time").drop_duplicates(subset=["Id"], keep="first")
+pq.write_table(pa.Table.from_pandas(df), "data/news/news_calender_history.parquet")
+```
+
 ---
 
 ## 7. Support-Daten Governance (Costs/Specs)
