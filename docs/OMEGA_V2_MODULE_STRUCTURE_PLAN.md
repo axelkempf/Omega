@@ -14,6 +14,7 @@
 | [OMEGA_V2_VISION_PLAN.md](OMEGA_V2_VISION_PLAN.md) | Vision, strategische Ziele, Erfolgskriterien |
 | [OMEGA_V2_ARCHITECTURE_PLAN.md](OMEGA_V2_ARCHITECTURE_PLAN.md) | Übergeordneter Blueprint, Module, Regeln |
 | [OMEGA_V2_STRATEGIES_PLAN.md](OMEGA_V2_STRATEGIES_PLAN.md) | Strategie-Spezifikation (MVP: Mean Reversion Z-Score), Szenarien 1–6, Guards/Filter, Indikatoren |
+| [OMEGA_V2_INDICATOR_CACHE__PLAN.md](OMEGA_V2_INDICATOR_CACHE__PLAN.md) | Indikator-Cache: Multi-TF, Stepwise-Semantik, V1-Parität |
 | [OMEGA_V2_DATA_FLOW_PLAN.md](OMEGA_V2_DATA_FLOW_PLAN.md) | Detaillierter Datenfluss, Phasen, Validierung |
 | [OMEGA_V2_DATA_GOVERNANCE_PLAN.md](OMEGA_V2_DATA_GOVERNANCE_PLAN.md) | Data-Quality-Policies (Alignment/Gaps/Duplicates), News Governance, Manifest-Snapshots |
 | [OMEGA_V2_CONFIG_SCHEMA_PLAN.md](OMEGA_V2_CONFIG_SCHEMA_PLAN.md) | Normatives JSON-Config-Schema (Felder, Defaults, Validierung, Migration) |
@@ -96,8 +97,13 @@ rust_core/                              ← Workspace Root
 │   │           ├── atr.rs              ← ATR-Indikator
 │   │           ├── bollinger.rs        ← Bollinger Bands
 │   │           ├── z_score.rs          ← Z-Score
-│   │           ├── kalman.rs           ← Kalman Filter
-│   │           └── garch.rs            ← GARCH Volatility
+│   │           ├── kalman_mean.rs      ← Kalman Mean
+│   │           ├── kalman_zscore.rs    ← Kalman Z-Score
+│   │           ├── garch_volatility.rs ← GARCH Volatility (global)
+│   │           ├── garch_volatility_local.rs ← GARCH Volatility (local window)
+│   │           ├── kalman_garch_zscore.rs ← Kalman+GARCH Z-Score (global)
+│   │           ├── kalman_garch_zscore_local.rs ← Kalman+GARCH Z (local scalar)
+│   │           └── vol_cluster_series.rs ← Vol-Cluster Feature-Serie (Helper)
 │   │
 │   ├── execution/                      ← [CRATE] Order-Ausführung
 │   │   ├── Cargo.toml
@@ -257,10 +263,15 @@ parquet = "51"
 | `impl/ema.rs` | Exponential Moving Average | `struct EMA { period: usize }` |
 | `impl/sma.rs` | Simple Moving Average | `struct SMA { period: usize }` |
 | `impl/atr.rs` | Average True Range | `struct ATR { period: usize }` |
-| `impl/bollinger.rs` | Bollinger Bands | `struct BollingerBands { period, std_dev }` |
+| `impl/bollinger.rs` | Bollinger Bands | `struct BollingerBands { period, std_factor }` |
 | `impl/z_score.rs` | Z-Score Berechnung | `struct ZScore { window: usize }` |
-| `impl/kalman.rs` | Kalman Filter | `struct KalmanFilter { r, q }` |
-| `impl/garch.rs` | GARCH Volatilitätsmodell | `struct Garch { alpha, beta, omega }` |
+| `impl/kalman_mean.rs` | Kalman Mean (Level) | `struct KalmanMean { r, q }` |
+| `impl/kalman_zscore.rs` | Kalman Z-Score (inkl. Stepwise) | `struct KalmanZScore { window, r, q }` |
+| `impl/garch_volatility.rs` | GARCH Volatility (global) | `struct GarchVolatility { alpha, beta, omega, ... }` |
+| `impl/kalman_garch_zscore.rs` | Kalman+GARCH Z-Score (global) | `struct KalmanGarchZScore { kalman, garch, ... }` |
+| `impl/garch_volatility_local.rs` | GARCH Volatility (local window) | `fn garch_volatility_local(idx, lookback, ...) -> Vec<f64>` |
+| `impl/kalman_garch_zscore_local.rs` | Kalman+GARCH Z (local scalar) | `fn kalman_garch_zscore_local(idx, lookback, ...) -> Option<f64>` |
+| `impl/vol_cluster_series.rs` | Vol-Cluster Feature Serie (Helper) | `fn vol_cluster_series(...) -> Option<VolFeatureSeries>` |
 
 **Abhängigkeiten (Cargo.toml)**:
 ```toml
@@ -580,8 +591,13 @@ lib.rs
                    ├──► atr.rs        (impl Indicator)
                    ├──► bollinger.rs  (impl Indicator, nutzt sma)
                    ├──► z_score.rs    (impl Indicator, nutzt sma)
-                   ├──► kalman.rs     (impl Indicator)
-                   └──► garch.rs      (impl Indicator)
+                   ├──► kalman_mean.rs (impl Indicator/Helper)
+                   ├──► kalman_zscore.rs (impl Indicator, optional stepwise)
+                   ├──► garch_volatility.rs (impl Indicator)
+                   ├──► kalman_garch_zscore.rs (impl Indicator)
+                   ├──► garch_volatility_local.rs (local window helper)
+                   ├──► kalman_garch_zscore_local.rs (local scalar helper)
+                   └──► vol_cluster_series.rs (strategy helper)
 ```
 
 ### 5.3 Crate `backtest` (Interne Struktur)

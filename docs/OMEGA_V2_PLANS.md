@@ -51,6 +51,13 @@
 
 ---
 
+### ✅ OMEGA_V2_INDICATOR_CACHE__PLAN.md
+**Zweck**: Normative Spezifikation des Indikator-Cache (Multi-TF, Stepwise-Semantik, Cache-Keys, Missing-Values/NaN, V1-Parität) inkl. vollständigem Indikator-Inventar für MRZ Szenarien 1–6.
+
+**Vollständigkeit**: 100% - Scope und Semantik normiert, MRZ-Indikator-Inventar vollständig
+
+---
+
 ### ✅ OMEGA_V2_STRATEGIES_PLAN.md
 **Zweck**: Normative Spezifikation der Strategie-Schicht (MVP: Mean Reversion Z-Score) inkl. Szenarien 1–6, Guards/Filter (Sessions/News/Cooldown), benötigter Indikatoren, Modul-Zerlegung und Paritätsanforderungen zu V1.
 
@@ -132,6 +139,7 @@ Alle Pläne befinden sich in `docs/` und folgen der Namenskonvention `OMEGA_V2_<
 | **Vision & Ziele** | VISION_PLAN | - |
 | **Architektur** | ARCHITECTURE_PLAN | MODULE_STRUCTURE_PLAN |
 | **Strategien** | STRATEGIES_PLAN | CONFIG_SCHEMA_PLAN, EXECUTION_MODEL_PLAN, MODULE_STRUCTURE_PLAN |
+| **Indikatoren** | INDICATOR_CACHE__PLAN | STRATEGIES_PLAN, DATA_FLOW_PLAN, MODULE_STRUCTURE_PLAN, TESTING_VALIDATION_PLAN |
 | **Daten** | DATA_FLOW_PLAN | DATA_GOVERNANCE_PLAN |
 | **Execution** | EXECUTION_MODEL_PLAN | METRICS_DEFINITION_PLAN |
 | **Config/Output** | CONFIG_SCHEMA_PLAN | OUTPUT_CONTRACT_PLAN |
@@ -189,4 +197,5 @@ Alle Pläne befinden sich in `docs/` und folgen der Namenskonvention `OMEGA_V2_<
 | 2.3 | 14.01.2026 | Formatting-Plan als geplanter Qualitäts-Gate aufgenommen |
 | 2.4 | 13.01.2026 | Formatting-Plan erstellt und vollständig: Tool-driven (Black/isort/flake8/mypy + cargo fmt/clippy), pre-commit + CI Gates |
 | 2.5 | 14.01.2026 | Strategies-Plan erstellt (`OMEGA_V2_STRATEGIES_PLAN.md`) und Querverweise in allen Plänen ergänzt |
+| 2.6 | 13.01.2026 | Indicator-Cache-Plan erstellt (`OMEGA_V2_INDICATOR_CACHE__PLAN.md`) und Querverweise/Plan-Übersicht aktualisiert |
 
