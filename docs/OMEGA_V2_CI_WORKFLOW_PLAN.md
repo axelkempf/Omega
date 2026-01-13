@@ -23,6 +23,7 @@
 | [OMEGA_V2_TECH_STACK_PLAN.md](OMEGA_V2_TECH_STACK_PLAN.md) | Toolchain/Pinning, PyO3+maturin, OS-Support, Error-Contract |
 | [OMEGA_V2_OBSERVABILITY_PROFILING_PLAN.md](OMEGA_V2_OBSERVABILITY_PROFILING_PLAN.md) | Logging/Tracing (tracing), Profiling (flamegraph/pprof), Performance-Counter, Determinismus |
 | [OMEGA_V2_TESTING_VALIDATION_PLAN.md](OMEGA_V2_TESTING_VALIDATION_PLAN.md) | Teststrategie, Golden-Files, PR-Gates vs nightly, Parität/Determinismus |
+| [OMEGA_V2_FORMATTING_PLAN.md](OMEGA_V2_FORMATTING_PLAN.md) | Tooling-Standards (Black/isort/flake8/mypy/bandit/pydocstyle) und Durchsetzung via pre-commit + CI |
 
 ---
 

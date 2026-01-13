@@ -102,6 +102,11 @@
 ## Geplante Pläne
 ---
 
+### 🔲 OMEGA_V2_FORMATTING_PLAN.md
+**Zweck**: Normative Formatierungsregeln für Dokumentation, Code und Kommentare: Naming, Layout, Lint/Formatter-Policy, Doc-Patterns sowie Artefakt-/JSON-Stabilität für Golden-Files.
+
+**Priorität**: 🟡 Hoch (MVP-Qualitätsgate)
+
 ### 🔲 OMEGA_V2_AGENT_INSTRUCTION_PLAN.md
 **Zweck**: Contributor-Guidelines für AI-Agenten und Entwickler: Crate-Boundaries, Code-Style, Error-Handling-Patterns, Review-Checklist und PR-DoD.
 
@@ -121,6 +126,7 @@ Alle Pläne befinden sich in `docs/` und folgen der Namenskonvention `OMEGA_V2_<
 | **Execution** | EXECUTION_MODEL_PLAN | METRICS_DEFINITION_PLAN |
 | **Config/Output** | CONFIG_SCHEMA_PLAN | OUTPUT_CONTRACT_PLAN |
 | **Qualität** | TESTING_VALIDATION_PLAN | CI_WORKFLOW_PLAN |
+| **Standards** | FORMATTING_PLAN | AGENT_INSTRUCTION_PLAN |
 | **Entwicklung** | AGENT_INSTRUCTION_PLAN | TECH_STACK_PLAN |
 | **Betrieb** | OBSERVABILITY_PROFILING_PLAN | CI_WORKFLOW_PLAN |
 
@@ -170,4 +176,5 @@ Alle Pläne befinden sich in `docs/` und folgen der Namenskonvention `OMEGA_V2_<
 | 2.0 | 14.01.2026 | **Vollständigkeits-Analyse**: Alle 13 Pläne analysiert, offene Punkte konsolidiert, 4 Punkte als gelöst markiert, IDs und Empfehlungen hinzugefügt |
 | 2.1 | 14.01.2026 | Runde 1 Entscheidungen eingepflegt: A-1, D-3, E-1, E-2, O-1, O-2, ME-1/T-1, T-2; Tracker bereinigt |
 | 2.2 | 14.01.2026 | Runde 2 Entscheidungen eingepflegt: A-3, M-1, M-2, M-3, ME-2, T-3; Pläne konsistent gemacht |
+| 2.3 | 14.01.2026 | Formatting-Plan als geplanter Qualitäts-Gate aufgenommen |
 

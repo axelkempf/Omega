@@ -22,6 +22,7 @@
 | [OMEGA_V2_METRICS_DEFINITION_PLAN.md](OMEGA_V2_METRICS_DEFINITION_PLAN.md) | Trading-Metriken, Keys/Units, Rundung |
 | [OMEGA_V2_TECH_STACK_PLAN.md](OMEGA_V2_TECH_STACK_PLAN.md) | Toolchains (PyO3/maturin), Logging (`tracing`), Error-Contract |
 | [OMEGA_V2_TESTING_VALIDATION_PLAN.md](OMEGA_V2_TESTING_VALIDATION_PLAN.md) | Determinismus-Tests, Golden-Files, PR-Gates vs nightly |
+| [OMEGA_V2_FORMATTING_PLAN.md](OMEGA_V2_FORMATTING_PLAN.md) | Doku-/Code-Formatierung (Kommentarpflege), Tooling-Gates |
 | [OMEGA_V2_CI_WORKFLOW_PLAN.md](OMEGA_V2_CI_WORKFLOW_PLAN.md) | CI/CD Workflow, Quality Gates, Build-Matrix, Security |
 
 ---

@@ -21,6 +21,7 @@
 | [OMEGA_V2_CONFIG_SCHEMA_PLAN.md](OMEGA_V2_CONFIG_SCHEMA_PLAN.md) | Config-Schema (run_mode/data_mode/rng_seed), Defaults/Normalisierung |
 | [OMEGA_V2_TECH_STACK_PLAN.md](OMEGA_V2_TECH_STACK_PLAN.md) | Toolchain/Pinning, Error-Contract, RNG-Policy, Packaging |
 | [OMEGA_V2_OBSERVABILITY_PROFILING_PLAN.md](OMEGA_V2_OBSERVABILITY_PROFILING_PLAN.md) | Determinismus-sichere Observability, Profiling (nightly/manuell) |
+| [OMEGA_V2_FORMATTING_PLAN.md](OMEGA_V2_FORMATTING_PLAN.md) | Format-/Lint-/Docstring-Regeln (Code/Doku/Kommentare), Gates |
 | [OMEGA_V2_CI_WORKFLOW_PLAN.md](OMEGA_V2_CI_WORKFLOW_PLAN.md) | CI-Gates, Build-Matrix, Scheduling (Golden-Smoke PR-Gate, Full-Golden nightly + release) |
 
 ---
