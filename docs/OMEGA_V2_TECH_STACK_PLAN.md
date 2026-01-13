@@ -19,6 +19,7 @@
 | [OMEGA_V2_EXECUTION_MODEL_PLAN.md](OMEGA_V2_EXECUTION_MODEL_PLAN.md) | Ausführungsmodell (Bid/Ask, SL/TP, Slippage/Fees, Sizing) |
 | [OMEGA_V2_OUTPUT_CONTRACT_PLAN.md](OMEGA_V2_OUTPUT_CONTRACT_PLAN.md) | Output-Artefakte, Zeit/Units, Pfade |
 | [OMEGA_V2_METRICS_DEFINITION_PLAN.md](OMEGA_V2_METRICS_DEFINITION_PLAN.md) | Metrik-Keys, Units, Rundung, Edge-Cases |
+| [OMEGA_V2_CI_WORKFLOW_PLAN.md](OMEGA_V2_CI_WORKFLOW_PLAN.md) | CI/CD Workflow, Quality Gates, Build-Matrix, Security, Release-Assets |
 
 ---
 
@@ -50,7 +51,7 @@ Dieses Dokument definiert die **universale Wahrheit** für den Omega V2 Tech-Sta
 ### 2.2 Out of Scope
 
 - Live-Trading/MT5-Integration (V1 bleibt unverändert; MT5 ist Windows-only).
-- Konkrete CI-Workflow-YAML Implementierung (siehe geplanter `OMEGA_V2_CI_WORKFLOW_PLAN.md`).
+- Konkrete CI-Workflow-YAML Implementierung (siehe `OMEGA_V2_CI_WORKFLOW_PLAN.md`).
 
 ---
 

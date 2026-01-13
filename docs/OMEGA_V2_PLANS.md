@@ -10,11 +10,11 @@
 
 | Status | Bedeutung | Anzahl |
 |--------|-----------|--------|
-| ✅ | Existiert und vollständig | 2 |
+| ✅ | Existiert und vollständig | 3 |
 | 🟡 | Existiert, offene Punkte | 7 |
-| 🔲 | Geplant, noch nicht erstellt | 5 |
+| 🔲 | Geplant, noch nicht erstellt | 4 |
 
-**Gesamt: 14 Pläne** | **Fortschritt: 9/14 erstellt (64%)**
+**Gesamt: 14 Pläne** | **Fortschritt: 10/14 erstellt (71%)**
 
 ---
 
@@ -95,17 +95,13 @@
 ### ✅ OMEGA_V2_TECH_STACK_PLAN.md
 **Zweck**: Version-Pinning (Rust Toolchain, arrow/parquet, PyO3/maturin), Build-Matrix, OS-Support sowie normierte Logging-/RNG-/Error-Contracts.
 
+
+### ✅ OMEGA_V2_CI_WORKFLOW_PLAN.md
+**Zweck**: GitHub Actions Workflow für Omega V2: Python/Rust Checks, Full Wheel Build-Matrix (maturin), Security Scans (CodeQL/Dependency Review), Artefakte und Release-Assets.
+
 ---
 
 ## Geplante Pläne
-
----
-
-### 🔲 OMEGA_V2_CI_WORKFLOW_PLAN.md
-**Zweck**: GitHub Actions Workflow für Rust+Python CI: fmt/clippy/tests, maturin build, artifact checks, golden-file regression und Benchmarks.
-
-**Priorität**: 🟡 Mittel (wichtig ab Phase 2)
-
 ---
 
 ### 🔲 OMEGA_V2_TESTING_VALIDATION_PLAN.md
@@ -162,4 +158,5 @@ Alle Pläne befinden sich in `docs/` und folgen der Namenskonvention `OMEGA_V2_<
 | 1.2 | 12.01.2026 | Execution-Model-Plan erstellt, Querverweise/Tracker aktualisiert |
 | 1.3 | 12.01.2026 | Metrics-Definition-Plan erstellt, Querverweise/Tracker aktualisiert |
 | 1.4 | 12.01.2026 | Tech-Stack-Plan erstellt und Tracker aktualisiert |
+| 1.5 | 13.01.2026 | CI-Workflow-Plan erstellt und Tracker aktualisiert |
 
