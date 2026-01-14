@@ -17,6 +17,12 @@
 | DevOps | CI/CD, Deployment | `devops-core-principles.instructions.md` | Bash, Write |
 | Safety Auditor | Sicherheits-Review | `ai-prompt-engineering-safety-review.prompt.md` | Read, Grep |
 
+### V2 Backtest-spezifische Instruktion
+
+| Kontext | Instruktion | Beschreibung |
+|---------|------------|---------------|
+| Rust Core + Python Wrapper | `omega-v2-backtest.instructions.md` | Single FFI Boundary, Crate-Struktur, Golden Files |
+
 ---
 
 ## Rollen-Definitionen
@@ -45,12 +51,18 @@
 **Instruktionen:**
 - [`.github/instructions/architect.instructions.md`](.github/instructions/architect.instructions.md)
 - [`.github/instructions/ffi-boundaries.instructions.md`](.github/instructions/ffi-boundaries.instructions.md)
+- [`.github/instructions/omega-v2-backtest.instructions.md`](.github/instructions/omega-v2-backtest.instructions.md) (für V2 Backtest)
 - [`.github/instructions/performance-optimization.instructions.md`](.github/instructions/performance-optimization.instructions.md)
 
 **Omega-spezifische Guardrails:**
 - Keine Breaking Changes am Live-Engine ohne explizite Migration
 - Event-driven Architecture beibehalten
 - Resume-Semantik (magic_number) nicht brechen
+
+**V2-spezifische Guardrails:**
+- Single FFI Boundary einhalten (`run_backtest()` als einziger Entry-Point)
+- Crate-Abhängigkeiten nur in eine Richtung (keine Zyklen)
+- Determinismus via `rng_seed` im DEV-Mode garantieren
 
 ---
 
@@ -82,12 +94,19 @@
 - [`.github/instructions/self-explanatory-code-commenting.instructions.md`](.github/instructions/self-explanatory-code-commenting.instructions.md)
 - [`.github/instructions/rust.instructions.md`](.github/instructions/rust.instructions.md) (für Rust-Module)
 - [`.github/instructions/julia.instructions.md`](.github/instructions/julia.instructions.md) (für Julia-Module)
+- [`.github/instructions/omega-v2-backtest.instructions.md`](.github/instructions/omega-v2-backtest.instructions.md) (für V2 Backtest)
 
 **Omega-spezifische Guardrails:**
 - Dependencies nur in `pyproject.toml` hinzufügen
 - MT5-Code defensiv importieren (try/except)
 - Keine Secrets committen
 - `var/`-Layout nicht ändern ohne DevOps-Abstimmung
+
+**V2-spezifische Guardrails (Rust Core):**
+- `Cargo.lock` MUSS versioniert werden
+- Edition 2024 + `#![deny(clippy::all)]`
+- Niemals `panic!` über FFI-Grenze
+- Alle Fehler als `Result<T, E>` zurückgeben
 
 ---
 
@@ -156,6 +175,13 @@
 - MT5/Live-Pfade mocken
 - Lookahead-Bias Tests für Backtest-Code
 - Keine `time.sleep()` ohne Mock
+
+**V2-spezifische Anforderungen:**
+- **Golden-File Tests** für Output-Contract-Validierung
+- **V1↔V2 Parität**: 6 kanonische Szenarien MÜSSEN bestehen
+- **Property Tests** mit `proptest` für Rust-Crates
+- Golden-Updates nur mit expliziter Begründung im PR
+- Normalisierung von `meta.json` vor Vergleich (generated_at entfernen)
 
 ---
 
@@ -336,6 +362,8 @@ o = Optional/Unterstuetzend
 
 ### Kritische Pfade (Besondere Vorsicht erforderlich)
 
+#### V1 Live-Engine
+
 | Pfad | Risiko | Anforderung |
 |------|--------|-------------|
 | `src/hf_engine/core/execution/` | Live-Order-Ausführung | Safety Auditor + Human Approval |
@@ -344,12 +372,31 @@ o = Optional/Unterstuetzend
 | `configs/live/` | Live-Trading-Konfiguration | Human Approval |
 | `src/strategies/*/live/` | Live-Strategie-Logik | Safety Auditor |
 
+#### V2 Backtest-Core
+
+| Pfad | Risiko | Anforderung |
+|------|--------|-------------|
+| `rust_core/crates/execution/` | Fill-Logik, Tie-Breaks | Determinismus-Tests + V1-Parität |
+| `rust_core/crates/strategy/` | Signal-Generierung | 6 kanonische Szenarien MUSS |
+| `rust_core/crates/ffi/` | FFI Boundary | Contract-Tests + Type Stubs |
+| `python/bt/tests/golden/expected/` | Artefakt-Stabilität | Review bei JEDER Änderung |
+| `rust_core/Cargo.lock` | Dependency-Determinismus | MUSS versioniert sein |
+
 ### Nicht verhandelbare Invarianten
+
+#### V1 Live-Engine
 
 1. **Resume-Semantik:** Matching offener Positionen via `magic_number` darf nicht brechen
 2. **var/-Layout:** Runtime-State (`var/tmp/`, `var/logs/`, `var/results/`) ist operational kritisch
-3. **Determinismus:** Backtests müssen reproduzierbar sein (Seeds, keine Netz-Calls)
-4. **MT5-Isolation:** Live-Trading nur auf Windows, Backtests müssen ohne MT5 laufen
+3. **MT5-Isolation:** Live-Trading nur auf Windows, Backtests müssen ohne MT5 laufen
+
+#### V2 Backtest-Core
+
+4. **Single FFI Boundary:** `run_backtest(config_json)` ist der EINZIGE Entry-Point
+5. **Determinismus (DEV-Mode):** Gleicher `rng_seed` → bit-identische Ergebnisse
+6. **Golden-Stability:** Golden-File-Änderungen sind Breaking Changes und brauchen Review
+7. **V1↔V2 Parität:** Events/Trades MÜSSEN übereinstimmen, PnL innerhalb Toleranz
+8. **Crate-Abhängigkeiten:** Nur in eine Richtung (keine Zyklen im Dependency-Graph)
 
 ---
 
@@ -361,6 +408,14 @@ o = Optional/Unterstuetzend
 - **Upgrade Plan:** [`docs/agent_network_upgrade_plan/`](docs/agent_network_upgrade_plan/)
 - **Architektur:** [`architecture.md`](architecture.md)
 
+### V2-spezifische Referenzen
+
+- **V2 Backtest Instructions:** [`.github/instructions/omega-v2-backtest.instructions.md`](.github/instructions/omega-v2-backtest.instructions.md)
+- **V2 Architektur-Plan:** [`docs/OMEGA_V2_ARCHITECTURE_PLAN.md`](docs/OMEGA_V2_ARCHITECTURE_PLAN.md)
+- **V2 Tech Stack:** [`docs/OMEGA_V2_TECH_STACK_PLAN.md`](docs/OMEGA_V2_TECH_STACK_PLAN.md)
+- **V2 Testing:** [`docs/OMEGA_V2_TESTING_VALIDATION_PLAN.md`](docs/OMEGA_V2_TESTING_VALIDATION_PLAN.md)
+- **V2 CI Workflow:** [`docs/OMEGA_V2_CI_WORKFLOW_PLAN.md`](docs/OMEGA_V2_CI_WORKFLOW_PLAN.md)
+
 ---
 
 ## Changelog
@@ -368,3 +423,4 @@ o = Optional/Unterstuetzend
 | Version | Datum | Änderung |
 |---------|-------|----------|
 | 1.0 | 2025-01-14 | Initiale Version mit 7 Rollen |
+| 1.1 | 2026-01-14 | V2-spezifische Instruktionen, kritische Pfade und Invarianten hinzugefügt |

@@ -2,7 +2,7 @@
 
 > Explizite Definition aller KI-Agent-Rollen im Omega-Projekt
 
-**Status:** 🔴 Offen
+**Status:** 🟢 Abgeschlossen
 **Priorität:** Hoch
 **Komplexität:** Niedrig
 **Geschätzter Aufwand:** 2-4 Stunden

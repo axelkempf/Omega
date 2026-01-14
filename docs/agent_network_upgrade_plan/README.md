@@ -6,7 +6,7 @@
 
 | # | Upgrade | Status | Priorität | Komplexität |
 |---|---------|--------|-----------|-------------|
-| 1 | [Agent Roles](01_agent_roles.md) | 🔴 Offen | Hoch | Niedrig |
+| 1 | [Agent Roles](01_agent_roles.md) | 🟢 Abgeschlossen | Hoch | Niedrig |
 | 2 | [Instruction Deduplication](02_instruction_deduplication.md) | 🔴 Offen | Hoch | Niedrig |
 | 3 | [Orchestrator](03_orchestrator.md) | 🔴 Offen | Mittel | Mittel |
 | 4 | [Pre-Commit Validation](04_precommit_validation.md) | 🔴 Offen | Mittel | Mittel |
