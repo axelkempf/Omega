@@ -16,7 +16,6 @@ import pandas as pd
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-
 from backtest_engine.optimizer.instrumentation import StageRecorder
 
 # ---------- Public API ---------------------------------------------------------

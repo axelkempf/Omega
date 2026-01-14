@@ -185,10 +185,18 @@ def format_report(
             lines.append("")
             lines.append("This file follows the Omega Core Standards:")
             lines.append("")
-            lines.append("- Python: [_core/python-standards.instructions.md](_core/python-standards.instructions.md)")
-            lines.append("- Security: [_core/security-standards.instructions.md](_core/security-standards.instructions.md)")
-            lines.append("- Testing: [_core/testing-standards.instructions.md](_core/testing-standards.instructions.md)")
-            lines.append("- Errors: [_core/error-handling.instructions.md](_core/error-handling.instructions.md)")
+            lines.append(
+                "- Python: [_core/python-standards.instructions.md](_core/python-standards.instructions.md)"
+            )
+            lines.append(
+                "- Security: [_core/security-standards.instructions.md](_core/security-standards.instructions.md)"
+            )
+            lines.append(
+                "- Testing: [_core/testing-standards.instructions.md](_core/testing-standards.instructions.md)"
+            )
+            lines.append(
+                "- Errors: [_core/error-handling.instructions.md](_core/error-handling.instructions.md)"
+            )
             lines.append("```")
             lines.append("")
 
@@ -258,7 +266,9 @@ def main() -> int:
 
     # Return exit code
     if matches or missing_refs:
-        print(f"Found {len(matches)} redundancies and {len(missing_refs)} missing references")
+        print(
+            f"Found {len(matches)} redundancies and {len(missing_refs)} missing references"
+        )
         return 1
 
     return 0

@@ -2,10 +2,39 @@
 
 > Automatische Validierung von Agent-generierten Änderungen
 
-**Status:** 🔴 Offen
+**Status:** ✅ Abgeschlossen
 **Priorität:** Mittel
 **Komplexität:** Mittel
 **Geschätzter Aufwand:** 4-6 Stunden
+**Abgeschlossen:** 2025-01-20
+
+---
+
+## Implementation Summary
+
+### Erstellte Dateien
+
+- `scripts/hooks/__init__.py` - Modul-Definition
+- `scripts/hooks/pytest_changed.py` - Test-Runner für geänderte Dateien
+- `scripts/hooks/breaking_change_check.py` - API-Breaking-Change-Erkennung
+- `scripts/hooks/trading_safety_check.py` - Trading-Sicherheitsprüfung
+- `scripts/hooks/agent_output_validation.py` - Code-Qualitätsvalidierung (non-blocking)
+- `scripts/hooks/architecture_check.py` - Architektur-Konsistenzprüfung (non-blocking)
+
+### Geänderte Dateien
+
+- `.pre-commit-config.yaml` - 5 neue lokale Hooks hinzugefügt
+- `docs/PRE_COMMIT_HOOKS.md` - Vollständige Dokumentation erstellt
+
+### Hook-Übersicht
+
+| Hook | Blocking | Bypass |
+|------|----------|--------|
+| `pytest-changed` | ✅ | `--no-verify` |
+| `breaking-change-check` | ✅ | `BREAKING:` in Commit-Message |
+| `trading-safety-check` | ✅ | `SAFETY-REVIEWED:` oder `# noqa: trading-safety` |
+| `agent-output-validation` | ❌ | - |
+| `architecture-check` | ❌ | - |
 
 ---
 

@@ -3,12 +3,11 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 from typing import Any, Mapping, Sequence
 
-from dateutil.relativedelta import relativedelta
-
 from backtest_engine.rating.stress_penalty import (
     compute_penalty_profit_drawdown_sharpe,
     score_from_penalty,
 )
+from dateutil.relativedelta import relativedelta
 
 
 def _parse_date_string(s: str) -> datetime:

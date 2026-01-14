@@ -288,9 +288,7 @@ class WorkflowEngine:
         # Laufende Instanzen
         self._instances: dict[str, WorkflowInstance] = {}
 
-        logger.info(
-            f"WorkflowEngine initialized with workflow_dir={self.workflow_dir}"
-        )
+        logger.info(f"WorkflowEngine initialized with workflow_dir={self.workflow_dir}")
 
     # -------------------------------------------------------------------------
     # Workflow Loading
@@ -360,7 +358,9 @@ class WorkflowEngine:
             "steps": [
                 {
                     "name": s.name,
-                    "agent": s.agent.value if isinstance(s.agent, AgentRole) else s.agent,
+                    "agent": (
+                        s.agent.value if isinstance(s.agent, AgentRole) else s.agent
+                    ),
                     "parallel": s.parallel,
                 }
                 for s in workflow.steps
@@ -476,7 +476,11 @@ class WorkflowEngine:
                 instance.step_results[step.name] = StepResult(
                     step_name=step.name,
                     status=StepStatus.SKIPPED,
-                    agent=step.agent.value if isinstance(step.agent, AgentRole) else step.agent,
+                    agent=(
+                        step.agent.value
+                        if isinstance(step.agent, AgentRole)
+                        else step.agent
+                    ),
                     metadata={"reason": "Condition not met"},
                 )
                 continue
@@ -499,8 +503,12 @@ class WorkflowEngine:
         Returns:
             StepResult mit dem Ergebnis
         """
-        agent_role = step.agent if isinstance(step.agent, AgentRole) else AgentRole.IMPLEMENTER
-        agent_str = agent_role.value if isinstance(step.agent, AgentRole) else step.agent
+        agent_role = (
+            step.agent if isinstance(step.agent, AgentRole) else AgentRole.IMPLEMENTER
+        )
+        agent_str = (
+            agent_role.value if isinstance(step.agent, AgentRole) else step.agent
+        )
 
         result = StepResult(
             step_name=step.name,

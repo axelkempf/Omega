@@ -84,14 +84,16 @@ class OrchestratorConfig:
     enable_audit_logging: bool = True
     auto_instruction_aggregation: bool = True
     require_approval_for_critical: bool = True
-    critical_paths: list[str] = field(default_factory=lambda: [
-        "src/hf_engine/core/execution/",
-        "src/hf_engine/core/risk/",
-        "src/hf_engine/adapter/broker/",
-        "configs/live/",
-        "rust_core/crates/execution/",
-        "rust_core/crates/ffi/",
-    ])
+    critical_paths: list[str] = field(
+        default_factory=lambda: [
+            "src/hf_engine/core/execution/",
+            "src/hf_engine/core/risk/",
+            "src/hf_engine/adapter/broker/",
+            "configs/live/",
+            "rust_core/crates/execution/",
+            "rust_core/crates/ffi/",
+        ]
+    )
     workspace_root: Path = field(default_factory=lambda: Path.cwd())
 
 
@@ -484,9 +486,17 @@ class AgentOrchestrator:
                 "description": request.description,
                 "files": request.files,
                 "priority": request.priority.name,
-                "primary_agent": result.primary_agent.value if result.primary_agent else None,
-                "v2_context": result.v2_detection.is_v2_context if result.v2_detection else False,
-                "routing_rule": result.routing_result.matched_rule if result.routing_result else None,
+                "primary_agent": (
+                    result.primary_agent.value if result.primary_agent else None
+                ),
+                "v2_context": (
+                    result.v2_detection.is_v2_context if result.v2_detection else False
+                ),
+                "routing_rule": (
+                    result.routing_result.matched_rule
+                    if result.routing_result
+                    else None
+                ),
             },
         )
 
@@ -653,7 +663,9 @@ class AgentOrchestrator:
         for task in self._task_history:
             if task.primary_agent:
                 agent_name = task.primary_agent.value
-                agent_distribution[agent_name] = agent_distribution.get(agent_name, 0) + 1
+                agent_distribution[agent_name] = (
+                    agent_distribution.get(agent_name, 0) + 1
+                )
 
         avg_duration = 0.0
         if completed:
@@ -664,11 +676,14 @@ class AgentOrchestrator:
             "active_tasks": len(self._active_tasks),
             "total_completed": len(completed),
             "total_failed": len(failed),
-            "success_rate": len(completed) / len(self._task_history) if self._task_history else 0.0,
+            "success_rate": (
+                len(completed) / len(self._task_history) if self._task_history else 0.0
+            ),
             "average_duration_seconds": avg_duration,
             "agent_distribution": agent_distribution,
             "v2_tasks": sum(
-                1 for t in self._task_history
+                1
+                for t in self._task_history
                 if t.v2_detection and t.v2_detection.is_v2_context
             ),
             "approval_required_tasks": sum(

@@ -48,6 +48,65 @@ repos:
         exclude: ^tests/
 
   # ============================================================
+  # Omega Custom Validation Hooks
+  # ============================================================
+  # Diese Hooks validieren Omega-spezifische Regeln:
+  # - pytest-changed: Führt Tests für geänderte Dateien aus
+  # - breaking-change-check: Erkennt API-Breaking-Changes
+  # - trading-safety-check: Prüft Trading-Sicherheitsinvarianten
+  # - agent-output-validation: Validiert Code-Qualität (non-blocking)
+  # - architecture-check: Erinnerung bei neuen Modulen (non-blocking)
+  - repo: local
+    hooks:
+      - id: pytest-changed
+        name: Run pytest for changed files
+        description: Runs pytest only for files related to changed source files
+        entry: python scripts/hooks/pytest_changed.py
+        language: python
+        types: [python]
+        pass_filenames: true
+        stages: [pre-commit]
+        additional_dependencies: [pytest]
+
+      - id: breaking-change-check
+        name: Breaking Change Detection
+        description: Detects breaking API changes and requires explicit acknowledgment
+        entry: python scripts/hooks/breaking_change_check.py
+        language: python
+        types: [python]
+        pass_filenames: true
+        stages: [pre-commit]
+
+      - id: trading-safety-check
+        name: Trading Safety Check
+        description: Checks trading-related code for safety invariants
+        entry: python scripts/hooks/trading_safety_check.py
+        language: python
+        types: [python]
+        pass_filenames: true
+        stages: [pre-commit]
+
+      - id: agent-output-validation
+        name: Agent Output Quality (non-blocking)
+        description: Validates agent-generated code quality (suggestions only)
+        entry: python scripts/hooks/agent_output_validation.py
+        language: python
+        types: [python]
+        pass_filenames: true
+        stages: [pre-commit]
+        verbose: true
+
+      - id: architecture-check
+        name: Architecture Consistency (non-blocking)
+        description: Reminds to update architecture.md when src/ structure changes
+        entry: python scripts/hooks/architecture_check.py
+        language: python
+        types: [python]
+        pass_filenames: false
+        stages: [pre-commit]
+        verbose: true
+
+  # ============================================================
   # Rust Hooks (V2 Backtest-Core)
   # ============================================================
   # Diese Hooks werden nur ausgeführt wenn rust_core/ existiert

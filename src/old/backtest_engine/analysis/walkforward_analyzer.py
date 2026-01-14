@@ -33,7 +33,6 @@ from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 
 import numpy as np
 import pandas as pd
-
 from backtest_engine.analysis.metric_adjustments import (
     risk_adjusted,
     shrinkage_adjusted,

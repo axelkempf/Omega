@@ -13,7 +13,7 @@ Enthält Adapter für die verschiedenen Agent-Rollen:
 
 from __future__ import annotations
 
-from .base import BaseAgent, AgentContext, AgentResult
+from .base import AgentContext, AgentResult, BaseAgent
 
 __all__ = [
     "BaseAgent",

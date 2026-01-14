@@ -191,10 +191,8 @@ class TestV2Detector:
     def test_confidence_scaling(self, detector: V2Detector) -> None:
         """Test that confidence scales with evidence."""
         # Single pattern
-        result1 = detector.detect(
-            files=[Path("rust_core/Cargo.toml")], content=""
-        )
-        
+        result1 = detector.detect(files=[Path("rust_core/Cargo.toml")], content="")
+
         # Multiple patterns
         result2 = detector.detect(
             files=[
@@ -204,7 +202,7 @@ class TestV2Detector:
             ],
             content="run_backtest BacktestConfig PyO3",
         )
-        
+
         assert result2.confidence >= result1.confidence
 
     def test_detect_golden_file_paths(self, detector: V2Detector) -> None:

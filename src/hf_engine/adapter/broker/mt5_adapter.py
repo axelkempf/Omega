@@ -163,7 +163,11 @@ class MT5Adapter(BrokerInterface):
                 f"nutze Default-Filling",
                 level="WARNING",
             )
-            return self.default_filling_market if is_market else self.default_filling_pending
+            return (
+                self.default_filling_market
+                if is_market
+                else self.default_filling_pending
+            )
 
         filling_mode = getattr(info, "filling_mode", 0)
 
@@ -198,7 +202,7 @@ class MT5Adapter(BrokerInterface):
                     level="WARNING",
                 )
                 return mt5.ORDER_FILLING_RETURN
-            
+
     def _get_tick(self, symbol_b: str):
         self._ensure_symbol_selected(symbol_b)
         tick = mt5.symbol_info_tick(symbol_b)

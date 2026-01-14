@@ -2,10 +2,9 @@ from typing import List
 
 import matplotlib.pyplot as plt
 import pandas as pd
-from matplotlib.patches import Rectangle
-
 from backtest_engine.core.portfolio import PortfolioPosition
 from backtest_engine.data.candle import Candle
+from matplotlib.patches import Rectangle
 
 
 def plot_trades_on_candles(

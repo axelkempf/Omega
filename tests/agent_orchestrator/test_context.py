@@ -151,7 +151,7 @@ class TestContextManager:
         """Test that lookup follows scope hierarchy."""
         # Set at global scope
         manager.set("shared_key", "global_value", scope=ContextScope.GLOBAL)
-        
+
         # Should be accessible from task scope
         result = manager.get("shared_key", task_id="any-task")
         assert result == "global_value"
@@ -160,11 +160,11 @@ class TestContextManager:
         """Test that task scope overrides global scope."""
         manager.set("key", "global", scope=ContextScope.GLOBAL)
         manager.set("key", "task", scope=ContextScope.TASK, task_id="task-123")
-        
+
         # Task-specific lookup should get task value
         result = manager.get("key", task_id="task-123")
         assert result == "task"
-        
+
         # Global lookup should still get global value
         result = manager.get("key")
         assert result == "global"
@@ -183,7 +183,7 @@ class TestContextManager:
         """Test deleting context entry."""
         manager.set("to_delete", "value")
         assert manager.get("to_delete") == "value"
-        
+
         manager.delete("to_delete")
         assert manager.get("to_delete") is None
 
@@ -192,13 +192,13 @@ class TestContextManager:
         manager.set("key1", "value1", scope=ContextScope.TASK, task_id="task-123")
         manager.set("key2", "value2", scope=ContextScope.TASK, task_id="task-123")
         manager.set("key3", "value3", scope=ContextScope.GLOBAL)
-        
+
         manager.clear_task("task-123")
-        
+
         # Task entries should be gone
         assert manager.get("key1", task_id="task-123") is None
         assert manager.get("key2", task_id="task-123") is None
-        
+
         # Global should remain
         assert manager.get("key3") == "value3"
 
@@ -213,9 +213,9 @@ class TestContextManager:
             task_id="task-123",
             agent_id="impl",
         )
-        
+
         all_context = manager.get_all_for_task("task-123", agent_id="impl")
-        
+
         assert "global" in all_context
         assert "task" in all_context
         assert "agent" in all_context
@@ -233,7 +233,7 @@ class TestContextManager:
         )
         # Directly insert into manager (bypassing set)
         manager._global_context["expired"] = entry
-        
+
         # Should return None because expired
         result = manager.get("expired")
         assert result is None
@@ -242,7 +242,7 @@ class TestContextManager:
         """Test cleanup of expired entries."""
         # Add non-expired entry
         manager.set("fresh", "data", ttl_seconds=3600)
-        
+
         # Add expired entry directly
         past = datetime.utcnow() - timedelta(hours=2)
         expired_entry = ContextEntry(
@@ -253,10 +253,10 @@ class TestContextManager:
             ttl_seconds=3600,
         )
         manager._global_context["stale"] = expired_entry
-        
+
         # Cleanup
         cleaned = manager.cleanup_expired()
-        
+
         assert cleaned >= 1
         assert "fresh" in manager._global_context
         assert "stale" not in manager._global_context
@@ -273,7 +273,7 @@ class TestContextManagerThreadSafety:
     def test_concurrent_writes(self, manager: ContextManager) -> None:
         """Test concurrent writes don't corrupt state."""
         errors: list[Exception] = []
-        
+
         def writer(thread_id: int) -> None:
             try:
                 for i in range(100):
@@ -281,13 +281,13 @@ class TestContextManagerThreadSafety:
                     manager.set(key, f"value_{thread_id}_{i}")
             except Exception as e:
                 errors.append(e)
-        
+
         threads = [threading.Thread(target=writer, args=(i,)) for i in range(5)]
         for t in threads:
             t.start()
         for t in threads:
             t.join()
-        
+
         assert len(errors) == 0, f"Errors occurred: {errors}"
 
     def test_concurrent_reads_writes(self, manager: ContextManager) -> None:
@@ -295,7 +295,7 @@ class TestContextManagerThreadSafety:
         manager.set("shared", "initial")
         errors: list[Exception] = []
         read_values: list[str] = []
-        
+
         def reader() -> None:
             try:
                 for _ in range(100):
@@ -304,14 +304,14 @@ class TestContextManagerThreadSafety:
                         read_values.append(val)
             except Exception as e:
                 errors.append(e)
-        
+
         def writer() -> None:
             try:
                 for i in range(100):
                     manager.set("shared", f"value_{i}")
             except Exception as e:
                 errors.append(e)
-        
+
         threads = [
             threading.Thread(target=reader),
             threading.Thread(target=reader),
@@ -321,7 +321,7 @@ class TestContextManagerThreadSafety:
             t.start()
         for t in threads:
             t.join()
-        
+
         assert len(errors) == 0, f"Errors occurred: {errors}"
         # Should have read some values
         assert len(read_values) > 0
@@ -329,7 +329,7 @@ class TestContextManagerThreadSafety:
     def test_concurrent_task_operations(self, manager: ContextManager) -> None:
         """Test concurrent operations on different tasks."""
         errors: list[Exception] = []
-        
+
         def task_worker(task_id: str) -> None:
             try:
                 for i in range(50):
@@ -340,20 +340,19 @@ class TestContextManagerThreadSafety:
                         task_id=task_id,
                     )
                     _ = manager.get(f"key_{i}", task_id=task_id)
-                
+
                 manager.clear_task(task_id)
             except Exception as e:
                 errors.append(e)
-        
+
         threads = [
-            threading.Thread(target=task_worker, args=(f"task-{i}",))
-            for i in range(5)
+            threading.Thread(target=task_worker, args=(f"task-{i}",)) for i in range(5)
         ]
         for t in threads:
             t.start()
         for t in threads:
             t.join()
-        
+
         assert len(errors) == 0, f"Errors occurred: {errors}"
 
 
@@ -401,7 +400,7 @@ class TestContextManagerEdgeCases:
         manager.set("key:with:colons", "value1")
         manager.set("key.with.dots", "value2")
         manager.set("key/with/slashes", "value3")
-        
+
         assert manager.get("key:with:colons") == "value1"
         assert manager.get("key.with.dots") == "value2"
         assert manager.get("key/with/slashes") == "value3"

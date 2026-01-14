@@ -214,12 +214,12 @@ class TestTaskRouter:
             affected_crates=["types", "data"],
             recommended_instructions=["omega-v2-backtest.instructions.md"],
         )
-        
+
         result = router.route(
             "Implement the data loader in rust_core",
             v2_detection=v2_result,
         )
-        
+
         assert result.is_v2_context is True
         assert any("v2" in instr.lower() for instr in result.instructions)
 
@@ -227,14 +227,14 @@ class TestTaskRouter:
         """Test routing with file context."""
         files = [Path("rust_core/crates/types/src/lib.rs")]
         result = router.route("Update the type definitions", files=files)
-        
+
         # Should detect V2 context from files
         assert result.is_v2_context is True
 
     def test_route_unknown_task_defaults(self, router: TaskRouter) -> None:
         """Test routing unknown task type."""
         result = router.route("Do something vague and undefined")
-        
+
         # Should still return a result with default agent
         assert result.agent_role is not None
         assert result.confidence < 0.8  # Lower confidence for unclear tasks
@@ -247,9 +247,9 @@ class TestTaskRouter:
             agent_role=AgentRole.RESEARCHER,
             priority=100,  # High priority
         )
-        
+
         router.add_rule(custom_rule)
-        
+
         result = router.route("Train a neural network for prediction")
         assert result.agent_role == AgentRole.RESEARCHER
         assert result.matched_rule == "custom_ml_rule"
@@ -269,10 +269,10 @@ class TestTaskRouter:
             agent_role=AgentRole.REVIEWER,
             priority=100,
         )
-        
+
         router.add_rule(low_priority)
         router.add_rule(high_priority)
-        
+
         result = router.route("Review this code")
         assert result.matched_rule == "high_priority"
 
@@ -292,7 +292,7 @@ class TestTaskRouter:
             AgentRole.IMPLEMENTER,
             is_v2=True,
         )
-        
+
         # V2 should have more or different instructions
         assert len(instructions_v2) >= len(instructions_v1)
 
@@ -349,7 +349,7 @@ class TestTaskRouterEdgeCases:
             v2_only=True,
         )
         router.add_rule(v2_rule)
-        
+
         # Without V2 context, should not match this rule
         result = router.route("Update the crate")
         # Either doesn't match or matches a different rule
@@ -359,7 +359,7 @@ class TestTaskRouterEdgeCases:
     def test_remove_rule(self, router: TaskRouter) -> None:
         """Test removing a rule."""
         initial_count = len(router._rules)
-        
+
         custom_rule = RoutingRule(
             name="temp_rule",
             pattern=r"temporary",
@@ -368,7 +368,7 @@ class TestTaskRouterEdgeCases:
         )
         router.add_rule(custom_rule)
         assert len(router._rules) == initial_count + 1
-        
+
         router.remove_rule("temp_rule")
         assert len(router._rules) == initial_count
 
@@ -376,7 +376,7 @@ class TestTaskRouterEdgeCases:
         """Test clearing all rules."""
         router.clear_rules()
         assert len(router._rules) == 0
-        
+
         # Routing should still work with fallback
         result = router.route("Do something")
         assert result.agent_role is not None

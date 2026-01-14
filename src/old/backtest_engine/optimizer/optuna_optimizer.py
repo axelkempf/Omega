@@ -12,9 +12,6 @@ from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 import numpy as np
 import optuna
 import pandas as pd
-from optuna.pruners import MedianPruner
-from optuna.samplers import NSGAIISampler, TPESampler
-
 from backtest_engine.report.metrics import calculate_metrics
 from backtest_engine.runner import (
     _get_or_build_alignment,
@@ -22,6 +19,8 @@ from backtest_engine.runner import (
     prepare_time_window,
     run_backtest_and_return_portfolio,
 )
+from optuna.pruners import MedianPruner
+from optuna.samplers import NSGAIISampler, TPESampler
 
 
 # =========================

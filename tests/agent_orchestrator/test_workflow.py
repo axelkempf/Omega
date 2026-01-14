@@ -19,7 +19,6 @@ from src.agent_orchestrator.workflow import (
     WorkflowStatus,
 )
 
-
 # ============================================================================
 # Test StepDefinition
 # ============================================================================
@@ -299,9 +298,7 @@ steps:
         with pytest.raises(FileNotFoundError):
             engine.load_workflow(tmp_path / "nonexistent.yaml")
 
-    def test_load_workflow_invalid_yaml(
-        self, engine: WorkflowEngine, tmp_path: Path
-    ):
+    def test_load_workflow_invalid_yaml(self, engine: WorkflowEngine, tmp_path: Path):
         """Test loading invalid YAML raises error."""
         bad_yaml = tmp_path / "bad.yaml"
         bad_yaml.write_text("invalid: yaml: content: [")
@@ -324,9 +321,7 @@ steps:
         workflow = engine.get_workflow("nonexistent")
         assert workflow is None
 
-    def test_list_workflows(
-        self, engine: WorkflowEngine, sample_workflow_yaml: Path
-    ):
+    def test_list_workflows(self, engine: WorkflowEngine, sample_workflow_yaml: Path):
         """Test listing all registered workflows."""
         engine.load_workflow(sample_workflow_yaml)
 
@@ -477,9 +472,7 @@ class TestWorkflowEngineEdgeCases:
         instance = engine.create_instance("empty", {})
         assert instance is not None
 
-    def test_workflow_with_complex_inputs(
-        self, engine: WorkflowEngine, tmp_path: Path
-    ):
+    def test_workflow_with_complex_inputs(self, engine: WorkflowEngine, tmp_path: Path):
         """Test workflow with Jinja2 template inputs."""
         yaml_content = """
 name: complex_inputs
@@ -503,17 +496,13 @@ steps:
             "{{ task.base_path }}/{{ task.filename }}"
         )
 
-    def test_multiple_workflow_instances(
-        self, engine: WorkflowEngine
-    ):
+    def test_multiple_workflow_instances(self, engine: WorkflowEngine):
         """Test creating multiple instances of same workflow."""
         workflow = WorkflowDefinition(
             name="multi_instance",
             description="Multi-instance workflow",
             version="1.0.0",
-            steps=[
-                StepDefinition(name="step", agent="a", action="x", inputs={})
-            ],
+            steps=[StepDefinition(name="step", agent="a", action="x", inputs={})],
         )
         engine._workflows["multi_instance"] = workflow
 

@@ -255,12 +255,14 @@ class ContextManager:
             self._current_task_id = task.task_id
 
             if self._enable_audit:
-                self._audit_log.append({
-                    "action": "start_task",
-                    "task_id": task.task_id,
-                    "task_type": task.task_type,
-                    "timestamp": datetime.now(timezone.utc).isoformat(),
-                })
+                self._audit_log.append(
+                    {
+                        "action": "start_task",
+                        "task_id": task.task_id,
+                        "task_type": task.task_type,
+                        "timestamp": datetime.now(timezone.utc).isoformat(),
+                    }
+                )
 
             logger.info(f"Task gestartet: {task.task_id} ({task.task_type})")
             return task.task_id
@@ -274,7 +276,8 @@ class ContextManager:
         with self._lock:
             # Task-spezifische Einträge entfernen
             keys_to_remove = [
-                k for k, v in self._entries.items()
+                k
+                for k, v in self._entries.items()
                 if v.task_id == task_id and v.scope != ContextScope.GLOBAL
             ]
             for key in keys_to_remove:
@@ -284,12 +287,14 @@ class ContextManager:
                 self._current_task_id = None
 
             if self._enable_audit:
-                self._audit_log.append({
-                    "action": "end_task",
-                    "task_id": task_id,
-                    "timestamp": datetime.now(timezone.utc).isoformat(),
-                    "entries_cleaned": len(keys_to_remove),
-                })
+                self._audit_log.append(
+                    {
+                        "action": "end_task",
+                        "task_id": task_id,
+                        "timestamp": datetime.now(timezone.utc).isoformat(),
+                        "entries_cleaned": len(keys_to_remove),
+                    }
+                )
 
             logger.info(f"Task beendet: {task_id}")
 
@@ -346,8 +351,7 @@ class ContextManager:
         with self._lock:
             if scope:
                 keys_to_remove = [
-                    k for k, v in self._entries.items()
-                    if v.scope == scope
+                    k for k, v in self._entries.items() if v.scope == scope
                 ]
             else:
                 keys_to_remove = list(self._entries.keys())
@@ -356,12 +360,14 @@ class ContextManager:
                 del self._entries[key]
 
             if self._enable_audit:
-                self._audit_log.append({
-                    "action": "clear",
-                    "scope": scope.value if scope else "all",
-                    "timestamp": datetime.now(timezone.utc).isoformat(),
-                    "entries_cleared": len(keys_to_remove),
-                })
+                self._audit_log.append(
+                    {
+                        "action": "clear",
+                        "scope": scope.value if scope else "all",
+                        "timestamp": datetime.now(timezone.utc).isoformat(),
+                        "entries_cleared": len(keys_to_remove),
+                    }
+                )
 
             return len(keys_to_remove)
 
@@ -373,10 +379,7 @@ class ContextManager:
 
         with self._lock:
             data = {
-                "entries": {
-                    k: v.to_dict()
-                    for k, v in self._entries.items()
-                },
+                "entries": {k: v.to_dict() for k, v in self._entries.items()},
                 "tasks": {
                     k: {
                         "task_id": v.task_id,
@@ -414,9 +417,7 @@ class ContextManager:
             # Audit-Log laden
             self._audit_log = data.get("audit_log", [])
 
-            logger.info(
-                f"Context geladen: {len(self._entries)} Einträge"
-            )
+            logger.info(f"Context geladen: {len(self._entries)} Einträge")
         except (json.JSONDecodeError, KeyError) as e:
             logger.error(f"Fehler beim Laden des Context: {e}")
 
@@ -440,15 +441,17 @@ class ContextManager:
         agent: str,
     ) -> None:
         """Füge Audit-Eintrag hinzu."""
-        self._audit_log.append({
-            "action": action,
-            "key": key,
-            "value_type": type(value).__name__ if value is not None else None,
-            "scope": scope.value,
-            "agent": agent,
-            "task_id": self._current_task_id,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-        })
+        self._audit_log.append(
+            {
+                "action": action,
+                "key": key,
+                "value_type": type(value).__name__ if value is not None else None,
+                "scope": scope.value,
+                "agent": agent,
+                "task_id": self._current_task_id,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            }
+        )
 
 
 def create_task_id() -> str:

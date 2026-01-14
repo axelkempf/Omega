@@ -24,8 +24,6 @@ from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Union
 
 import numpy as np
 import pandas as pd
-from dateutil import tz
-
 from backtest_engine.core.event_engine import CrossSymbolEventEngine, EventEngine
 from backtest_engine.core.execution_simulator import ExecutionSimulator, SymbolSpec
 from backtest_engine.core.multi_strategy_controller import (
@@ -64,6 +62,8 @@ from backtest_engine.strategy.session_time_utils import (
 )
 from backtest_engine.strategy.strategy_wrapper import StrategyWrapper
 from backtest_engine.strategy.validators import validate_strategy_config
+from dateutil import tz
+
 from configs.backtest._config_validator import validate_config
 from hf_engine.infra.config.paths import BACKTEST_RESULTS_DIR
 
@@ -949,9 +949,7 @@ def _build_rust_strategy_config(config: dict, primary_tf: str) -> Dict[str, Any]
     }
 
 
-def _rust_result_to_portfolio(
-    result: Any, risk_fraction: float
-) -> Portfolio:
+def _rust_result_to_portfolio(result: Any, risk_fraction: float) -> Portfolio:
     risk_amount = max(result.initial_capital * max(risk_fraction, 0.0), 0.0)
     portfolio = Portfolio(initial_balance=result.initial_capital)
 
@@ -1040,7 +1038,7 @@ def _maybe_run_rust_strategy(
         print(f"⚠️ Rust-Backtest Alignment fehlgeschlagen, fallback auf Python: {e}")
         return None
 
-    # Convert multi_candle_aligned {tf: {"bid": [...], "ask": [...]}} 
+    # Convert multi_candle_aligned {tf: {"bid": [...], "ask": [...]}}
     # to separate bid/ask dicts {tf: [...]}
     bid_candles_dict: Dict[str, List[Any]] = {}
     ask_candles_dict: Dict[str, List[Any]] = {}
@@ -1053,7 +1051,9 @@ def _maybe_run_rust_strategy(
     rust_cfg = _build_rust_strategy_config(config, primary_tf)
 
     try:
-        result = run_rust_backtest(strategy_name, rust_cfg, bid_candles_dict, ask_candles_dict)
+        result = run_rust_backtest(
+            strategy_name, rust_cfg, bid_candles_dict, ask_candles_dict
+        )
     except Exception as e:
         print(f"⚠️ Rust-Backtest fehlgeschlagen, fallback auf Python: {e}")
         return None
@@ -1944,9 +1944,7 @@ def _compute_backtest_robust_metrics(
         compute_multi_run_trade_dropout_score,
         simulate_trade_dropout_metrics_multi,
     )
-    from backtest_engine.rating.ulcer_index_score import (
-        compute_ulcer_index_and_score,
-    )
+    from backtest_engine.rating.ulcer_index_score import compute_ulcer_index_and_score
     from backtest_engine.report.metrics import calculate_metrics
 
     rep = config.get("reporting", {}) or {}
@@ -2156,7 +2154,7 @@ def _compute_backtest_robust_metrics(
         try:
             params_now = strat_params if isinstance(strat_params, dict) else {}
             jitter_names: List[str] = []
-            for k, v in (params_now.items() if isinstance(params_now, dict) else []):
+            for k, v in params_now.items() if isinstance(params_now, dict) else []:
                 if include_eff is not None and k not in include_eff:
                     continue
                 if k in exclude_eff:

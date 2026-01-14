@@ -9,12 +9,12 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set, Tuple
 
 import numpy as np
-
 from backtest_engine.data.news_filter import NewsFilter
-from hf_engine.adapter.broker.broker_utils import get_pip_size
 from strategies.mean_reversion_z_score.backtest.position_manager import (  # noqa: E402
     BacktestPositionManager,
 )
+
+from hf_engine.adapter.broker.broker_utils import get_pip_size
 
 if TYPE_CHECKING:
     from backtest_engine.simulation.portfolio import Portfolio
@@ -1718,6 +1718,7 @@ if __name__ == "__main__":
     import json
 
     from backtest_engine.runner import run_backtest
+
     from hf_engine.infra.config.paths import BACKTEST_CONFIG_DIR
 
     config_path = BACKTEST_CONFIG_DIR / "mean_reversion_z_score.json"

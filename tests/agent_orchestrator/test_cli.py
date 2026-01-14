@@ -8,11 +8,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from src.agent_orchestrator.cli import (
-    OrchestratorCLI,
-    parse_args,
-)
-
+from src.agent_orchestrator.cli import OrchestratorCLI, parse_args
 
 # ============================================================================
 # Test Argument Parsing

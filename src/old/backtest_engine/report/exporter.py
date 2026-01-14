@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Optional
 
 from backtest_engine.core.portfolio import Portfolio
+
 from hf_engine.infra.config.paths import TRADE_LOGS_DIR
 
 

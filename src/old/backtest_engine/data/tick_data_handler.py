@@ -2,9 +2,9 @@ from datetime import datetime
 from typing import List, Optional
 
 import pandas as pd
-
 from backtest_engine.data.market_hours import is_valid_trading_time
 from backtest_engine.data.tick import Tick
+
 from hf_engine.infra.config.paths import PARQUET_DIR, RAW_DATA_DIR
 
 

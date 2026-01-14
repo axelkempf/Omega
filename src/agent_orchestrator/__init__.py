@@ -16,9 +16,9 @@ Beispiel:
 
 from __future__ import annotations
 
+from .context import ContextEntry, ContextManager
 from .orchestrator import AgentOrchestrator, OrchestratorConfig, TaskResult
 from .router import AgentRole, RoutingRule, TaskRouter
-from .context import ContextManager, ContextEntry
 from .v2_detector import V2Detector
 from .workflow import WorkflowDefinition, WorkflowEngine, WorkflowInstance
 

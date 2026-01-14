@@ -15,7 +15,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Callable
 
-from .v2_detector import V2Detector, V2DetectionResult
+from .v2_detector import V2DetectionResult, V2Detector
 
 logger = logging.getLogger(__name__)
 
@@ -338,11 +338,13 @@ class TaskRouter:
         is_v2 = v2_result.is_v2
 
         # Kombinierter Text für Pattern-Matching
-        combined_text = "\n".join([
-            task_description,
-            additional_context,
-            *[str(f) for f in (affected_files or [])],
-        ])
+        combined_text = "\n".join(
+            [
+                task_description,
+                additional_context,
+                *[str(f) for f in (affected_files or [])],
+            ]
+        )
 
         # Regeln nach Priorität sortieren und erste passende finden
         sorted_rules = sorted(self._rules, key=lambda r: -r.priority)
