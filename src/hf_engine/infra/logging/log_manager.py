@@ -6,10 +6,7 @@ from typing import Any, Optional, Tuple
 from hf_engine.infra.config.paths import (
     TRADE_LOGS_DIR,  # ggf. vom log_service genutzt; belassen für Klarheit/Kompatibilität
 )
-from hf_engine.infra.config.paths import (
-    ENTRY_LOGS_DIR,
-    OPTUNA_LOGS_DIR,
-)
+from hf_engine.infra.config.paths import ENTRY_LOGS_DIR, OPTUNA_LOGS_DIR
 from hf_engine.infra.config.time_utils import now_utc
 from hf_engine.infra.logging.log_service import log_service
 

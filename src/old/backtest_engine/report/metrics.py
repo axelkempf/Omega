@@ -2,7 +2,6 @@ from typing import Any, Dict, Iterable, Set
 
 import numpy as np
 import pandas as pd
-
 from backtest_engine.core.portfolio import Portfolio
 
 

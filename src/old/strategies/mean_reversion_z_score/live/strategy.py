@@ -7,13 +7,6 @@ import importlib
 from datetime import datetime, timedelta, timezone
 from typing import Any, override
 
-import hf_engine.core.risk.news_filter as news_filter
-from hf_engine.adapter.broker.broker_interface import BrokerInterface
-from hf_engine.adapter.broker.broker_utils import get_pip_size
-from hf_engine.adapter.data.mt5_data_provider import MT5DataProvider
-from hf_engine.core.execution.execution_tracker import ExecutionTracker
-from hf_engine.infra.config.environment import TIMEZONE
-from hf_engine.infra.config.time_utils import now_utc
 from strategies._base.base_strategy import Strategy, TradeSetup
 from strategies.mean_reversion_z_score.live.scenarios import SzenarioEvaluator
 from strategies.mean_reversion_z_score.live.utils import (
@@ -21,6 +14,14 @@ from strategies.mean_reversion_z_score.live.utils import (
     get_next_entry_time,
     in_session_utc,
 )
+
+import hf_engine.core.risk.news_filter as news_filter
+from hf_engine.adapter.broker.broker_interface import BrokerInterface
+from hf_engine.adapter.broker.broker_utils import get_pip_size
+from hf_engine.adapter.data.mt5_data_provider import MT5DataProvider
+from hf_engine.core.execution.execution_tracker import ExecutionTracker
+from hf_engine.infra.config.environment import TIMEZONE
+from hf_engine.infra.config.time_utils import now_utc
 
 
 def _decimals_from_tick(symbol: str, broker: BrokerInterface) -> int:

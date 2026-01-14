@@ -1,4 +1,7 @@
 repos:
+  # ============================================================
+  # Python Hooks (V1 + V2 Python Wrapper)
+  # ============================================================
   - repo: https://github.com/pycqa/isort
     rev: 5.13.2
     hooks:
@@ -15,7 +18,7 @@ repos:
     rev: 7.1.1
     hooks:
       - id: flake8
-        args: ["--max-line-length=120", "--extend-ignore=E203,W503"]
+        args: ["--max-line-length=88", "--extend-ignore=E203,W503"]
         additional_dependencies: [flake8-bugbear]
 
   - repo: https://github.com/PyCQA/bandit
@@ -43,3 +46,110 @@ repos:
       - id: pydocstyle
         args: ["--convention=google", "--add-ignore=D100,D104,D105,D107"]
         exclude: ^tests/
+
+  # ============================================================
+  # Omega Custom Validation Hooks
+  # ============================================================
+  # Diese Hooks validieren Omega-spezifische Regeln:
+  # - pytest-changed: Führt Tests für geänderte Dateien aus
+  # - breaking-change-check: Erkennt API-Breaking-Changes
+  # - trading-safety-check: Prüft Trading-Sicherheitsinvarianten
+  # - agent-output-validation: Validiert Code-Qualität (non-blocking)
+  # - architecture-check: Erinnerung bei neuen Modulen (non-blocking)
+  - repo: local
+    hooks:
+      - id: pytest-changed
+        name: Run pytest for changed files
+        description: Runs pytest only for files related to changed source files
+        entry: python scripts/hooks/pytest_changed.py
+        language: python
+        types: [python]
+        pass_filenames: true
+        stages: [pre-commit]
+        additional_dependencies: [pytest]
+
+      - id: breaking-change-check
+        name: Breaking Change Detection
+        description: Detects breaking API changes and requires explicit acknowledgment
+        entry: python scripts/hooks/breaking_change_check.py
+        language: python
+        types: [python]
+        pass_filenames: true
+        stages: [pre-commit]
+
+      - id: trading-safety-check
+        name: Trading Safety Check
+        description: Checks trading-related code for safety invariants
+        entry: python scripts/hooks/trading_safety_check.py
+        language: python
+        types: [python]
+        pass_filenames: true
+        stages: [pre-commit]
+
+      - id: agent-output-validation
+        name: Agent Output Quality (non-blocking)
+        description: Validates agent-generated code quality (suggestions only)
+        entry: python scripts/hooks/agent_output_validation.py
+        language: python
+        types: [python]
+        pass_filenames: true
+        stages: [pre-commit]
+        verbose: true
+
+      - id: architecture-check
+        name: Architecture Consistency (non-blocking)
+        description: Reminds to update architecture.md when src/ structure changes
+        entry: python scripts/hooks/architecture_check.py
+        language: python
+        types: [python]
+        pass_filenames: false
+        stages: [pre-commit]
+        verbose: true
+
+  # ============================================================
+  # Rust Hooks (V2 Backtest-Core)
+  # ============================================================
+  # Diese Hooks werden nur ausgeführt wenn rust_core/ existiert
+  # und Rust-Dateien geändert wurden.
+  - repo: local
+    hooks:
+      - id: cargo-fmt
+        name: Rust Format (cargo fmt)
+        description: Format Rust code with cargo fmt
+        entry: bash -c 'cd rust_core && cargo fmt --all -- --check || exit 0'
+        language: system
+        types: [rust]
+        pass_filenames: false
+
+      - id: cargo-clippy
+        name: Rust Lint (cargo clippy)
+        description: Lint Rust code with clippy
+        entry: bash -c 'cd rust_core && cargo clippy --all-targets -- -D warnings || exit 0'
+        language: system
+        types: [rust]
+        pass_filenames: false
+
+      - id: cargo-test
+        name: Rust Tests (cargo test)
+        description: Run Rust unit tests
+        entry: bash -c 'cd rust_core && cargo test --all || exit 0'
+        language: system
+        types: [rust]
+        pass_filenames: false
+        stages: [pre-push]
+
+  # ============================================================
+  # V2 Golden-File Smoke Test
+  # ============================================================
+  # Nur ausführen wenn python/bt/ existiert und relevante Dateien
+  # geändert wurden (execution, strategy, metrics, backtest crates)
+  - repo: local
+    hooks:
+      - id: golden-smoke
+        name: V2 Golden-Smoke Test
+        description: Quick golden file regression check for V2 Backtest-Core
+        entry: bash -c 'pytest python/bt/tests/test_golden.py -k smoke -q || exit 0'
+        language: system
+        files: "^(rust_core/crates/|python/bt/)"
+        pass_filenames: false
+        stages: [pre-push]

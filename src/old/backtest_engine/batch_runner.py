@@ -6,6 +6,7 @@ import os
 from typing import List
 
 from backtest_engine.runner import run_backtest
+
 from configs.backtest._config_validator import validate_config
 
 

@@ -96,44 +96,44 @@ _RUST_MODULE: Any = None
 
 def _check_rust_available() -> bool:
     """Check if Rust Pure Strategy module is available.
-    
+
     Returns:
         True if omega_rust.BacktestResult and omega_rust.run_backtest_rust
         are importable.
     """
     global _RUST_AVAILABLE, _RUST_MODULE
-    
+
     if _RUST_AVAILABLE is not None:
         return _RUST_AVAILABLE
-    
+
     try:
         import omega_rust
-        
+
         # Check for Wave 4 exports
         if not hasattr(omega_rust, "BacktestResult"):
             logger.debug("omega_rust.BacktestResult not found")
             _RUST_AVAILABLE = False
             return False
-            
+
         if not hasattr(omega_rust, "run_backtest_rust"):
             logger.debug("omega_rust.run_backtest_rust not found")
             _RUST_AVAILABLE = False
             return False
-        
+
         _RUST_MODULE = omega_rust
         _RUST_AVAILABLE = True
         logger.debug("Rust Pure Strategy module available")
-        
+
     except ImportError as e:
         logger.debug(f"Rust Pure Strategy not available: {e}")
         _RUST_AVAILABLE = False
-    
+
     return _RUST_AVAILABLE
 
 
 def is_rust_strategy_available() -> bool:
     """Check if Rust Pure Strategy is available.
-    
+
     Returns:
         True if the Rust module is properly installed and accessible.
     """
@@ -142,38 +142,38 @@ def is_rust_strategy_available() -> bool:
 
 def is_rust_enabled() -> bool:
     """Check if Rust Pure Strategy is enabled via feature flag.
-    
+
     Environment variable OMEGA_USE_RUST_STRATEGY:
     - "auto": Use Rust if available (default)
     - "true" / "1" / "yes" / "on": Force Rust
     - "false" / "0" / "no" / "off": Force Python
-    
+
     Returns:
         True if Rust should be used based on the feature flag.
     """
     flag = os.environ.get(FEATURE_FLAG, "auto").lower()
-    
+
     if flag in ("false", "0", "no", "off"):
         return False
-    
+
     if flag in ("true", "1", "yes", "on"):
         return True
-    
+
     # "auto" - use Rust if available
     return True
 
 
 def should_use_rust_strategy() -> bool:
     """Determine if Rust Pure Strategy should be used.
-    
+
     Combines feature flag check with availability check.
-    
+
     Returns:
         True if Rust should be used (enabled AND available).
     """
     enabled = is_rust_enabled()
     available = is_rust_strategy_available()
-    
+
     if enabled and not available:
         flag = os.environ.get(FEATURE_FLAG, "auto").lower()
         if flag in ("true", "1", "yes", "on"):
@@ -182,13 +182,13 @@ def should_use_rust_strategy() -> bool:
                 "but omega_rust module is not available. "
                 "Please build the Rust module or set OMEGA_USE_RUST_STRATEGY=auto"
             )
-    
+
     return enabled and available
 
 
 def get_active_backend() -> str:
     """Get the currently active strategy backend.
-    
+
     Returns:
         "rust" if using Pure Rust Strategy, "python" otherwise.
     """
@@ -199,9 +199,11 @@ def get_active_backend() -> str:
 # Data Conversion
 # =============================================================================
 
+
 @dataclass
 class RustCandle:
     """Rust-compatible candle representation."""
+
     timestamp_us: int
     open: float
     high: float
@@ -212,10 +214,10 @@ class RustCandle:
 
 def convert_candle_to_rust(candle: "Candle") -> Dict[str, Any]:
     """Convert Python Candle to Rust-compatible dict.
-    
+
     Args:
         candle: Python Candle object with timestamp, OHLCV fields.
-        
+
     Returns:
         Dictionary matching Rust CandleData struct.
     """
@@ -228,7 +230,7 @@ def convert_candle_to_rust(candle: "Candle") -> Dict[str, Any]:
     else:
         # Try to convert
         timestamp_us = int(candle.timestamp.timestamp() * 1_000_000)
-    
+
     return {
         "timestamp_us": timestamp_us,
         "open": float(candle.open),
@@ -243,10 +245,10 @@ def convert_candles_to_rust(
     candles: List["Candle"],
 ) -> List[Dict[str, Any]]:
     """Convert list of Python Candles to Rust-compatible format.
-    
+
     Args:
         candles: List of Python Candle objects.
-        
+
     Returns:
         List of dictionaries matching Rust CandleData struct.
     """
@@ -257,10 +259,10 @@ def convert_multi_candles_to_rust(
     candle_data: Dict[str, List["Candle"]],
 ) -> Dict[str, List[Dict[str, Any]]]:
     """Convert multi-timeframe candle data to Rust format.
-    
+
     Args:
         candle_data: Dict mapping timeframe -> list of candles.
-        
+
     Returns:
         Dict mapping timeframe string -> list of Rust CandleData dicts.
     """
@@ -275,22 +277,26 @@ def convert_config_to_rust(
     config: Dict[str, Any],
 ) -> Any:
     """Convert Python backtest config to Rust StrategyConfig.
-    
+
     Args:
         strategy_name: Name of the strategy to use.
         config: Python backtest configuration dictionary.
-        
+
     Returns:
         Native Rust StrategyConfig object.
     """
     if not _RUST_MODULE:
         raise RuntimeError("Rust module not available")
-    
+
     # Extract strategy params
     strategy_params = config.get("strategy_params", {})
     # Ensure all params are floats for Rust HashMap<String, f64>
-    params_float = {str(k): float(v) for k, v in strategy_params.items() if isinstance(v, (int, float))}
-    
+    params_float = {
+        str(k): float(v)
+        for k, v in strategy_params.items()
+        if isinstance(v, (int, float))
+    }
+
     # Create native Rust StrategyConfig
     rust_config = _RUST_MODULE.StrategyConfig(
         config.get("symbol", "EURUSD"),
@@ -299,7 +305,7 @@ def convert_config_to_rust(
         float(config.get("risk_per_trade", 0.01)),
         params_float,
     )
-    
+
     return rust_config
 
 
@@ -307,9 +313,11 @@ def convert_config_to_rust(
 # Result Conversion
 # =============================================================================
 
+
 @dataclass
 class TradeResultPython:
     """Python representation of a trade result."""
+
     id: int
     symbol: str
     direction: str
@@ -327,6 +335,7 @@ class TradeResultPython:
 @dataclass
 class BacktestResultPython:
     """Python representation of backtest results."""
+
     strategy_name: str
     symbol: str
     trades: List[TradeResultPython]
@@ -336,7 +345,7 @@ class BacktestResultPython:
     execution_time_ms: float
     strategy_time_ms: float
     open_positions: int
-    
+
     # Computed metrics
     total_trades: int
     winning_trades: int
@@ -349,10 +358,10 @@ class BacktestResultPython:
 
 def convert_result_from_rust(rust_result: Any) -> BacktestResultPython:
     """Convert Rust BacktestResult to Python format.
-    
+
     Args:
         rust_result: omega_rust.BacktestResult object.
-        
+
     Returns:
         BacktestResultPython with all metrics.
     """
@@ -378,7 +387,7 @@ def convert_result_from_rust(rust_result: Any) -> BacktestResultPython:
             scenario=rust_trade.scenario,
         )
         trades.append(trade)
-    
+
     return BacktestResultPython(
         strategy_name=rust_result.strategy_name,
         symbol=rust_result.symbol,
@@ -404,6 +413,7 @@ def convert_result_from_rust(rust_result: Any) -> BacktestResultPython:
 # Main API
 # =============================================================================
 
+
 def run_rust_backtest(
     strategy_name: str,
     config: Dict[str, Any],
@@ -412,12 +422,12 @@ def run_rust_backtest(
     indicator_cache: Optional["IndicatorCache"] = None,
 ) -> BacktestResultPython:
     """Run a complete backtest using Pure Rust Strategy.
-    
+
     This function executes the entire backtest loop in Rust, eliminating
     the ~150,000 FFI calls that occur with the Python callback approach.
-    
+
     Args:
-        strategy_name: Name of the registered Rust strategy 
+        strategy_name: Name of the registered Rust strategy
             (e.g., "mean_reversion_z_score").
         config: Backtest configuration dictionary containing:
             - symbol: Trading symbol (e.g., "EURUSD")
@@ -429,14 +439,14 @@ def run_rust_backtest(
         ask_candles: Dict mapping timeframe -> list of ask candles.
         indicator_cache: Optional pre-computed indicator cache.
             If not provided, indicators will be computed in Rust.
-    
+
     Returns:
         BacktestResultPython containing all trades and performance metrics.
-        
+
     Raises:
         RuntimeError: If Rust strategy is not available.
         ValueError: If strategy_name is not registered.
-    
+
     Example:
         >>> result = run_rust_backtest(
         ...     strategy_name="mean_reversion_z_score",
@@ -460,14 +470,18 @@ def run_rust_backtest(
             "Rust Pure Strategy not available. "
             "Either build omega_rust or use Python fallback."
         )
-    
+
     assert _RUST_MODULE is not None
-    
+
     # Convert config to native Rust StrategyConfig
     strategy_params = config.get("strategy_params", {})
     # Ensure all params are floats for Rust HashMap<String, f64>
-    params_float = {str(k): float(v) for k, v in strategy_params.items() if isinstance(v, (int, float))}
-    
+    params_float = {
+        str(k): float(v)
+        for k, v in strategy_params.items()
+        if isinstance(v, (int, float))
+    }
+
     rust_config = _RUST_MODULE.StrategyConfig(
         config.get("symbol", "EURUSD"),
         config.get("primary_timeframe", "H1"),
@@ -475,18 +489,18 @@ def run_rust_backtest(
         float(config.get("risk_per_trade", 0.01)),
         params_float,
     )
-    
+
     # Convert candles to native Rust CandleData objects
     # Filter out None values that may appear from alignment gaps
     rust_bid: Dict[str, List[Any]] = {}
     rust_ask: Dict[str, List[Any]] = {}
-    
+
     def _candle_to_rust(c: Any) -> Any:
         """Convert a single candle to Rust CandleData, handling None safely."""
         if c is None:
             return None
         ts = c.timestamp
-        if hasattr(ts, 'timestamp'):
+        if hasattr(ts, "timestamp"):
             ts_us = int(ts.timestamp() * 1_000_000)
         else:
             ts_us = int(ts * 1_000_000)
@@ -498,18 +512,18 @@ def run_rust_backtest(
             float(c.close),
             float(getattr(c, "volume", 0.0)),
         )
-    
+
     for timeframe, candles in bid_candles.items():
         # Filter None values and convert to Rust
         rust_bid[timeframe] = [
             rc for rc in (_candle_to_rust(c) for c in candles) if rc is not None
         ]
-    
+
     for timeframe, candles in ask_candles.items():
         rust_ask[timeframe] = [
             rc for rc in (_candle_to_rust(c) for c in candles) if rc is not None
         ]
-    
+
     # Get or create Rust indicator cache
     rust_indicator_cache = None
     if indicator_cache is not None:
@@ -518,11 +532,11 @@ def run_rust_backtest(
             rust_indicator_cache = indicator_cache._rust_cache
         elif hasattr(indicator_cache, "rust_cache"):
             rust_indicator_cache = indicator_cache.rust_cache
-    
+
     if rust_indicator_cache is None:
         # Create new Rust cache
         rust_indicator_cache = _RUST_MODULE.IndicatorCacheRust()
-        
+
         # Register OHLCV data (filter None values from alignment)
         for timeframe, candles in bid_candles.items():
             valid_candles = [c for c in candles if c is not None]
@@ -532,10 +546,9 @@ def run_rust_backtest(
                 lows = np.array([c.low for c in valid_candles], dtype=np.float64)
                 closes = np.array([c.close for c in valid_candles], dtype=np.float64)
                 volumes = np.array(
-                    [getattr(c, "volume", 0.0) for c in valid_candles], 
-                    dtype=np.float64
+                    [getattr(c, "volume", 0.0) for c in valid_candles], dtype=np.float64
                 )
-                
+
                 rust_indicator_cache.register_ohlcv(
                     symbol=config.get("symbol", "EURUSD"),
                     timeframe=timeframe,
@@ -546,7 +559,7 @@ def run_rust_backtest(
                     close=closes,
                     volume=volumes,
                 )
-        
+
         for timeframe, candles in ask_candles.items():
             valid_candles = [c for c in candles if c is not None]
             if valid_candles:
@@ -555,10 +568,9 @@ def run_rust_backtest(
                 lows = np.array([c.low for c in valid_candles], dtype=np.float64)
                 closes = np.array([c.close for c in valid_candles], dtype=np.float64)
                 volumes = np.array(
-                    [getattr(c, "volume", 0.0) for c in valid_candles],
-                    dtype=np.float64
+                    [getattr(c, "volume", 0.0) for c in valid_candles], dtype=np.float64
                 )
-                
+
                 rust_indicator_cache.register_ohlcv(
                     symbol=config.get("symbol", "EURUSD"),
                     timeframe=timeframe,
@@ -569,12 +581,12 @@ def run_rust_backtest(
                     close=closes,
                     volume=volumes,
                 )
-    
+
     logger.debug(
         f"Running Pure Rust backtest: strategy={strategy_name}, "
         f"symbol={config.get('symbol')}, bars={len(next(iter(bid_candles.values()), []))}"
     )
-    
+
     # Execute backtest in Rust (positional args)
     rust_result = _RUST_MODULE.run_backtest_rust(
         strategy_name,
@@ -583,15 +595,15 @@ def run_rust_backtest(
         rust_ask,
         rust_indicator_cache,
     )
-    
+
     # Convert result to Python
     result = convert_result_from_rust(rust_result)
-    
+
     logger.info(
         f"Pure Rust backtest complete: {result.bars_processed} bars in "
         f"{result.execution_time_ms:.1f}ms ({result.bars_processed / (result.execution_time_ms / 1000):.0f} bars/s)"
     )
-    
+
     return result
 
 
@@ -599,15 +611,16 @@ def run_rust_backtest(
 # Utility Functions
 # =============================================================================
 
+
 def list_available_strategies() -> List[str]:
     """List all registered Rust strategies.
-    
+
     Returns:
         List of strategy names that can be used with run_rust_backtest.
     """
     if not is_rust_strategy_available():
         return []
-    
+
     # Currently hardcoded - could expose registry from Rust
     return [
         "mean_reversion_z_score",
@@ -616,10 +629,10 @@ def list_available_strategies() -> List[str]:
 
 def get_strategy_default_params(strategy_name: str) -> Dict[str, Any]:
     """Get default parameters for a Rust strategy.
-    
+
     Args:
         strategy_name: Name of the registered strategy.
-        
+
     Returns:
         Dictionary of default parameter values.
     """

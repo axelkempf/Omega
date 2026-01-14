@@ -369,6 +369,7 @@ uvicorn src.ui_engine.main:app --port 8001
 
 ## Additional Resources
 
+- **Agent Roles Definition:** [`AGENT_ROLES.md`](AGENT_ROLES.md)
 - **Vollständige Instructions:** `.github/copilot-instructions.md`
 - **Architekturübersicht:** `architecture.md`
 - **Änderungshistorie:** `CHANGELOG.md`

@@ -1,0 +1,187 @@
+# Omega Code Review Workflow
+#
+# Multi-perspective code review workflow.
+# Coordinates multiple agents for comprehensive review.
+#
+# Reference: .github/instructions/code-review-generic.instructions.md
+
+name: code_review
+description: |
+  Comprehensive code review workflow with multiple perspectives.
+  Includes security, performance, and domain-specific reviews.
+version: "1.0.0"
+
+config:
+  timeout_minutes: 45
+  fail_fast: false
+  max_retries: 0
+
+inputs:
+  - name: files_to_review
+    description: Files or directory to review
+    required: true
+    
+  - name: review_type
+    description: Type of review (full, security, performance, quick)
+    required: false
+    default: "full"
+    
+  - name: pr_context
+    description: Pull request context or description
+    required: false
+    default: ""
+
+steps:
+  # Step 1: Context Analysis
+  - id: context_analysis
+    name: Context Analysis
+    agent: researcher
+    description: |
+      Analyze the code context and detect V1/V2.
+    prompt: |
+      Analyze the code to be reviewed:
+      
+      Files: {{ files_to_review }}
+      PR Context: {{ pr_context }}
+      
+      Determine:
+      1. V1 or V2 context
+      2. Critical paths involved
+      3. Applicable guidelines
+      4. Risk level
+    timeout_minutes: 5
+    
+  # Step 2: Security Review
+  - id: security_review
+    name: Security Review
+    agent: safety_auditor
+    description: |
+      Security-focused code review.
+    depends_on:
+      - context_analysis
+    condition: "{{ review_type in ['full', 'security'] }}"
+    prompt: |
+      Perform a security review of the code.
+      
+      Files: {{ files_to_review }}
+      Context: {{ steps.context_analysis.output }}
+      
+      ## Security Checklist
+      - [ ] No hardcoded secrets
+      - [ ] Input validation present
+      - [ ] SQL injection prevention
+      - [ ] Path traversal prevention
+      - [ ] Proper error handling (no info leaks)
+      
+      ## Trading-Specific
+      - [ ] Risk limits enforced
+      - [ ] No silent behavior changes
+      - [ ] Resume semantics preserved
+      
+      Provide security assessment.
+    timeout_minutes: 10
+    
+  # Step 3: Quality Review
+  - id: quality_review
+    name: Quality Review
+    agent: reviewer
+    description: |
+      Code quality and style review.
+    depends_on:
+      - context_analysis
+    prompt: |
+      Review code quality and style.
+      
+      Files: {{ files_to_review }}
+      Context: {{ steps.context_analysis.output }}
+      
+      ## Review Categories
+      
+      ### CRITICAL (block merge)
+      - Logic errors
+      - Data corruption risks
+      - Breaking changes
+      
+      ### IMPORTANT (requires discussion)
+      - SOLID violations
+      - Missing tests
+      - Performance issues
+      
+      ### SUGGESTION (non-blocking)
+      - Naming improvements
+      - Documentation gaps
+      - Minor optimizations
+      
+      Categorize all findings.
+    timeout_minutes: 15
+    
+  # Step 4: Performance Review (conditional)
+  - id: performance_review
+    name: Performance Review
+    agent: researcher
+    description: |
+      Performance-focused review.
+    depends_on:
+      - context_analysis
+    condition: "{{ review_type in ['full', 'performance'] }}"
+    prompt: |
+      Review code for performance concerns.
+      
+      Files: {{ files_to_review }}
+      
+      ## Performance Checklist
+      - [ ] No N+1 queries
+      - [ ] Efficient data structures
+      - [ ] No unnecessary allocations
+      - [ ] Caching where appropriate
+      - [ ] No blocking in hot paths
+      
+      Identify performance concerns.
+    timeout_minutes: 10
+    allow_empty_result: true
+
+  # Step 5: Summary
+  - id: summary
+    name: Review Summary
+    agent: reviewer
+    description: |
+      Consolidate all review findings.
+    depends_on:
+      - security_review
+      - quality_review
+      - performance_review
+    prompt: |
+      Consolidate the review findings into a summary.
+      
+      ## Security Review
+      {{ steps.security_review.output }}
+      
+      ## Quality Review
+      {{ steps.quality_review.output }}
+      
+      ## Performance Review
+      {{ steps.performance_review.output }}
+      
+      Create a consolidated review summary with:
+      1. Overall assessment (Approve/Request Changes)
+      2. Critical issues (must fix)
+      3. Important issues (should discuss)
+      4. Suggestions (nice to have)
+    timeout_minutes: 10
+
+output_template: |
+  # Code Review Complete
+  
+  ## Files Reviewed
+  {{ files_to_review }}
+  
+  ## Review Type
+  {{ review_type }}
+  
+  ## Summary
+  {{ steps.summary.output }}
+  
+  ## Individual Reviews
+  - Security: {{ steps.security_review.status }}
+  - Quality: {{ steps.quality_review.status }}
+  - Performance: {{ steps.performance_review.status }}

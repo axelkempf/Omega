@@ -139,6 +139,70 @@ class MT5Adapter(BrokerInterface):
             return round(steps * ts, int(info.digits or 5))
         return round(price, int(info.digits or 5))
 
+    def _get_filling_mode(self, symbol_b: str, is_market: bool = True) -> int:
+        """
+        Ermittelt den korrekten Filling-Mode für ein Symbol basierend auf
+        den vom Broker unterstützten Modes.
+
+        MT5 symbol_info.filling_mode ist ein Bitfeld:
+          - Bit 0 (1): ORDER_FILLING_FOK
+          - Bit 1 (2): ORDER_FILLING_IOC
+          - Bit 2 (4): ORDER_FILLING_RETURN (nur für Exchange-Märkte)
+
+        Args:
+            symbol_b: Broker-Symbol (bereits gemappt)
+            is_market: True für Market-Orders, False für Pending-Orders
+
+        Returns:
+            Der passende MT5 Filling-Mode
+        """
+        info = mt5.symbol_info(symbol_b)
+        if not info:
+            log_service.log_system(
+                f"[MT5Adapter] ⚠️ Symbol-Info nicht verfügbar für {symbol_b}, "
+                f"nutze Default-Filling",
+                level="WARNING",
+            )
+            return (
+                self.default_filling_market
+                if is_market
+                else self.default_filling_pending
+            )
+
+        filling_mode = getattr(info, "filling_mode", 0)
+
+        # Für Market-Orders: Präferenz IOC > FOK
+        if is_market:
+            if filling_mode & 2:  # IOC unterstützt
+                return mt5.ORDER_FILLING_IOC
+            elif filling_mode & 1:  # FOK unterstützt
+                return mt5.ORDER_FILLING_FOK
+            # elif filling_mode & 4:  # RETURN unterstützt (Exchange)
+            #     return mt5.ORDER_FILLING_RETURN
+            else:
+                # Fallback auf Default wenn keine Info
+                log_service.log_system(
+                    f"[MT5Adapter] ⚠️ Kein bekannter Filling-Mode für {symbol_b} "
+                    f"(filling_mode={filling_mode}), nutze FOK",
+                    level="WARNING",
+                )
+                return mt5.ORDER_FILLING_FOK
+        else:
+            # Für Pending-Orders: Präferenz RETURN > IOC > FOK
+            # if filling_mode & 4:  # RETURN unterstützt
+            #     return mt5.ORDER_FILLING_RETURN
+            if filling_mode & 2:  # IOC unterstützt
+                return mt5.ORDER_FILLING_IOC
+            elif filling_mode & 1:  # FOK unterstützt
+                return mt5.ORDER_FILLING_FOK
+            else:
+                log_service.log_system(
+                    f"[MT5Adapter] ⚠️ Kein bekannter Filling-Mode für {symbol_b} "
+                    f"(filling_mode={filling_mode}), nutze RETURN",
+                    level="WARNING",
+                )
+                return mt5.ORDER_FILLING_RETURN
+
     def _get_tick(self, symbol_b: str):
         self._ensure_symbol_selected(symbol_b)
         tick = mt5.symbol_info_tick(symbol_b)
@@ -376,7 +440,7 @@ class MT5Adapter(BrokerInterface):
                 int(magic_number) if magic_number is not None else self.magic_number
             ),
             "comment": self._sanitize_comment(comment),
-            "type_filling": self.default_filling_market,
+            "type_filling": self._get_filling_mode(symbol_b, is_market=True),
         }
 
         result = mt5.order_send(request)
@@ -446,7 +510,7 @@ class MT5Adapter(BrokerInterface):
             ),
             "comment": self._sanitize_comment(comment),
             "type_time": mt5.ORDER_TIME_GTC,
-            "type_filling": self.default_filling_pending,
+            "type_filling": self._get_filling_mode(symbol_b, is_market=False),
         }
 
         result = mt5.order_send(request)
@@ -613,7 +677,7 @@ class MT5Adapter(BrokerInterface):
             "magic": int(pos.magic),
             "comment": "Position Close Full",
             "type_time": mt5.ORDER_TIME_GTC,
-            "type_filling": self.default_filling_market,
+            "type_filling": self._get_filling_mode(symbol_b, is_market=True),
             "position": pos.ticket,
         }
         result = mt5.order_send(request)
@@ -648,7 +712,7 @@ class MT5Adapter(BrokerInterface):
             "magic": int(pos.magic),
             "comment": "Position Close Partial",
             "type_time": mt5.ORDER_TIME_GTC,
-            "type_filling": self.default_filling_market,
+            "type_filling": self._get_filling_mode(symbol_b, is_market=True),
             "position": pos.ticket,
         }
         result = mt5.order_send(request)

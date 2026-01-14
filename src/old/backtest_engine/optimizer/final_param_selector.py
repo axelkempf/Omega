@@ -14,8 +14,6 @@ from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 
 import numpy as np
 import pandas as pd
-from joblib import Parallel, delayed
-
 from backtest_engine.data.data_handler import (
     reset_candle_build_caches,
     trim_candle_build_caches,
@@ -60,6 +58,8 @@ from backtest_engine.runner import (
     clear_alignment_cache,
     run_backtest_and_return_portfolio,
 )
+from joblib import Parallel, delayed
+
 from hf_engine.infra.config.paths import PARQUET_DIR
 
 _SEED_MODULUS = 2**32

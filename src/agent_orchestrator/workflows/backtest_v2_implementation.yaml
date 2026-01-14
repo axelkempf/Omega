@@ -1,0 +1,233 @@
+# Omega V2 Backtest Implementation Workflow
+# 
+# This workflow coordinates the implementation of new features in the V2 Backtest-Core.
+# It follows the V2 architecture principles:
+# - Single FFI Boundary (Python -> Rust -> Python)
+# - Rust Core for performance-critical code
+# - Python Orchestrator for config/reporting
+#
+# Reference: docs/OMEGA_V2_ARCHITECTURE_PLAN.md
+
+name: backtest_v2_implementation
+description: |
+  Multi-stage workflow for implementing features in the Omega V2 Backtest-Core.
+  Coordinates Architect, Implementer, Tester, and Reviewer agents to ensure
+  quality implementation following V2 guidelines.
+version: "1.0.0"
+
+# Global configuration for all steps
+config:
+  # Maximum total workflow duration
+  timeout_minutes: 120
+  # Fail entire workflow on first step failure
+  fail_fast: true
+  # Retry failed steps before failing workflow
+  max_retries: 2
+
+# Required inputs from user
+inputs:
+  - name: feature_description
+    description: Description of the feature to implement
+    required: true
+    
+  - name: affected_crates
+    description: List of Rust crates affected (e.g., types, data, execution)
+    required: true
+    default: ""
+    
+  - name: priority
+    description: Implementation priority (low, medium, high, critical)
+    required: false
+    default: "medium"
+    
+  - name: include_tests
+    description: Whether to include test generation step
+    required: false
+    default: "true"
+
+# Workflow steps executed in sequence
+steps:
+  # Step 1: Architecture Review
+  - id: architecture_review
+    name: Architecture Review
+    agent: architect
+    description: |
+      Review the feature request against V2 architecture principles.
+      Ensure alignment with Single FFI Boundary and crate structure.
+    prompt: |
+      Review the following feature request for Omega V2 Backtest-Core:
+      
+      ## Feature Description
+      {{ feature_description }}
+      
+      ## Affected Crates
+      {{ affected_crates }}
+      
+      ## Your Task
+      1. Verify alignment with V2 architecture (OMEGA_V2_ARCHITECTURE_PLAN.md)
+      2. Check crate dependencies are unidirectional (no cycles)
+      3. Identify if FFI boundary changes are needed
+      4. Document any architecture concerns or recommendations
+      
+      Provide a brief architecture assessment and approval/rejection decision.
+    timeout_minutes: 15
+    # Continue even if no changes needed
+    allow_empty_result: true
+    
+  # Step 2: Implementation Planning
+  - id: implementation_plan
+    name: Implementation Planning
+    agent: architect
+    description: |
+      Create a detailed implementation plan based on architecture review.
+    depends_on:
+      - architecture_review
+    prompt: |
+      Based on the architecture review, create an implementation plan.
+      
+      ## Feature
+      {{ feature_description }}
+      
+      ## Architecture Assessment
+      {{ steps.architecture_review.output }}
+      
+      ## Create Implementation Plan
+      1. List specific files to create/modify
+      2. Define data structures and interfaces
+      3. Specify test requirements
+      4. Note any V2-specific considerations (determinism, error handling)
+      
+      Format as a checklist that the Implementer can follow.
+    timeout_minutes: 15
+    
+  # Step 3: Rust Core Implementation
+  - id: rust_implementation
+    name: Rust Core Implementation
+    agent: implementer
+    description: |
+      Implement the feature in Rust following V2 standards.
+    depends_on:
+      - implementation_plan
+    prompt: |
+      Implement the following feature in the Omega V2 Rust Core.
+      
+      ## Feature
+      {{ feature_description }}
+      
+      ## Implementation Plan
+      {{ steps.implementation_plan.output }}
+      
+      ## V2 Rust Standards
+      - Edition 2024, #![deny(clippy::all)]
+      - Never panic! across FFI boundary
+      - Use Result<T, E> for error handling
+      - Serde for serialization
+      - Document all public items
+      
+      ## Affected Crates
+      {{ affected_crates }}
+      
+      Implement the Rust code following the plan.
+    timeout_minutes: 30
+    
+  # Step 4: Python Wrapper (if needed)
+  - id: python_wrapper
+    name: Python Wrapper Updates
+    agent: implementer
+    description: |
+      Update Python wrapper if FFI interface changes.
+    depends_on:
+      - rust_implementation
+    prompt: |
+      Update the Python wrapper (python/bt/) if needed for the new feature.
+      
+      ## Rust Implementation
+      {{ steps.rust_implementation.output }}
+      
+      ## Python Standards
+      - Python ≥3.12 with type hints
+      - Update _native.pyi type stubs if FFI changes
+      - Keep wrapper thin - logic stays in Rust
+      
+      Create or update Python wrapper code as needed.
+    timeout_minutes: 15
+    allow_empty_result: true
+    
+  # Step 5: Test Generation (conditional)
+  - id: test_generation
+    name: Test Generation
+    agent: tester
+    description: |
+      Generate tests for the new feature.
+    depends_on:
+      - rust_implementation
+      - python_wrapper
+    condition: "{{ include_tests == 'true' }}"
+    prompt: |
+      Generate tests for the newly implemented feature.
+      
+      ## Feature
+      {{ feature_description }}
+      
+      ## Rust Implementation
+      {{ steps.rust_implementation.output }}
+      
+      ## Test Requirements (per OMEGA_V2_TESTING_VALIDATION_PLAN.md)
+      1. Unit tests in Rust (cargo test)
+      2. Property tests with proptest
+      3. Golden-file tests if affecting output
+      4. Python integration tests
+      
+      Generate comprehensive tests following the test pyramid.
+    timeout_minutes: 20
+    
+  # Step 6: Code Review
+  - id: code_review
+    name: Code Review
+    agent: reviewer
+    description: |
+      Review all implementation code for quality and V2 compliance.
+    depends_on:
+      - rust_implementation
+      - python_wrapper
+      - test_generation
+    prompt: |
+      Review the implementation for quality and V2 compliance.
+      
+      ## Implementation
+      {{ steps.rust_implementation.output }}
+      
+      ## Python Wrapper
+      {{ steps.python_wrapper.output }}
+      
+      ## Tests
+      {{ steps.test_generation.output }}
+      
+      ## Review Checklist
+      - [ ] Code follows V2 architecture principles
+      - [ ] No panics across FFI boundary
+      - [ ] Error handling is appropriate
+      - [ ] Tests cover critical paths
+      - [ ] Documentation is adequate
+      - [ ] No security concerns
+      
+      Provide review feedback with CRITICAL/IMPORTANT/SUGGESTION categories.
+    timeout_minutes: 15
+
+# Output template when workflow completes
+output_template: |
+  # V2 Backtest Implementation Complete
+  
+  ## Feature
+  {{ feature_description }}
+  
+  ## Steps Completed
+  {% for step in completed_steps %}
+  - [x] {{ step.name }}: {{ step.status }}
+  {% endfor %}
+  
+  ## Summary
+  Architecture: {{ steps.architecture_review.status }}
+  Implementation: {{ steps.rust_implementation.status }}
+  Tests: {{ steps.test_generation.status }}
+  Review: {{ steps.code_review.status }}

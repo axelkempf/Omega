@@ -47,9 +47,8 @@ def validate_config(config: dict[str, Any]) -> list[str]:
     """
 
     try:
-        from pydantic import ValidationError
-
         from backtest_engine.config.models import BacktestConfig
+        from pydantic import ValidationError
 
         BacktestConfig.model_validate(config)
         return []

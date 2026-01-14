@@ -1,0 +1,183 @@
+# Omega Feature Implementation Workflow
+#
+# Standard workflow for implementing features in the Omega trading stack.
+# Automatically detects V1 vs V2 context and applies appropriate guidelines.
+#
+# Reference: AGENT_ROLES.md, .github/copilot-instructions.md
+
+name: feature_implementation
+description: |
+  General-purpose workflow for implementing new features in Omega.
+  Handles both V1 (Live-Engine, UI) and V2 (Backtest-Core) contexts.
+  Coordinates planning, implementation, testing, and review phases.
+version: "1.0.0"
+
+config:
+  timeout_minutes: 90
+  fail_fast: false
+  max_retries: 1
+
+inputs:
+  - name: feature_request
+    description: Description of the feature to implement
+    required: true
+    
+  - name: target_module
+    description: Target module path (e.g., src/hf_engine/core/, rust_core/crates/execution/)
+    required: true
+    
+  - name: issue_reference
+    description: GitHub issue reference (optional)
+    required: false
+    default: ""
+
+steps:
+  # Step 1: Context Detection
+  - id: detect_context
+    name: Detect V1/V2 Context
+    agent: researcher
+    description: |
+      Detect whether feature targets V1 or V2 codebase.
+    prompt: |
+      Analyze the target module to determine V1/V2 context:
+      
+      Target: {{ target_module }}
+      Feature: {{ feature_request }}
+      
+      V2 indicators:
+      - rust_core/crates/*
+      - python/bt/*
+      - Single FFI Boundary pattern
+      
+      V1 indicators:
+      - src/hf_engine/* (Live-Engine)
+      - src/backtest_engine/* (Legacy Backtest)
+      - src/ui_engine/* (FastAPI UI)
+      
+      Determine context and applicable guidelines.
+    timeout_minutes: 5
+    
+  # Step 2: Research Existing Code
+  - id: research
+    name: Research Existing Code
+    agent: researcher
+    description: |
+      Research existing code patterns and dependencies.
+    depends_on:
+      - detect_context
+    prompt: |
+      Research the codebase for implementing this feature.
+      
+      Feature: {{ feature_request }}
+      Target: {{ target_module }}
+      Context: {{ steps.detect_context.output }}
+      
+      Research:
+      1. Existing similar patterns in the codebase
+      2. Dependencies and affected modules
+      3. Relevant configuration files
+      4. Test patterns to follow
+    timeout_minutes: 10
+    
+  # Step 3: Architecture Decision
+  - id: architecture
+    name: Architecture Decision
+    agent: architect
+    description: |
+      Make architecture decisions for the feature.
+    depends_on:
+      - research
+    prompt: |
+      Make architecture decisions for the feature.
+      
+      Feature: {{ feature_request }}
+      Research: {{ steps.research.output }}
+      
+      Decisions needed:
+      1. File/module structure
+      2. Interface design
+      3. Data flow
+      4. Integration points
+      
+      If significant, document as ADR in docs/decisions/.
+    timeout_minutes: 15
+    allow_empty_result: true
+    
+  # Step 4: Implementation
+  - id: implementation
+    name: Implementation
+    agent: implementer
+    description: |
+      Implement the feature following architecture decisions.
+    depends_on:
+      - architecture
+    prompt: |
+      Implement the feature following the architecture decisions.
+      
+      Feature: {{ feature_request }}
+      Target: {{ target_module }}
+      Architecture: {{ steps.architecture.output }}
+      
+      Follow coding standards:
+      - Python: PEP 8, type hints, Google docstrings
+      - Rust: RFC 430, clippy clean, Result<T, E>
+      
+      Create the implementation.
+    timeout_minutes: 30
+    
+  # Step 5: Test Creation
+  - id: tests
+    name: Test Creation
+    agent: tester
+    description: |
+      Create tests for the implementation.
+    depends_on:
+      - implementation
+    prompt: |
+      Create tests for the implemented feature.
+      
+      Implementation: {{ steps.implementation.output }}
+      
+      Test requirements:
+      - Deterministic (fixed seeds)
+      - No network calls
+      - Mock MT5/external services
+      - Cover edge cases
+    timeout_minutes: 15
+    
+  # Step 6: Review
+  - id: review
+    name: Code Review
+    agent: reviewer
+    description: |
+      Review the complete implementation.
+    depends_on:
+      - implementation
+      - tests
+    prompt: |
+      Review the implementation and tests.
+      
+      Implementation: {{ steps.implementation.output }}
+      Tests: {{ steps.tests.output }}
+      
+      Check:
+      - Code quality and style
+      - Test coverage
+      - Security concerns
+      - Documentation
+      - Breaking changes
+    timeout_minutes: 15
+
+output_template: |
+  # Feature Implementation Complete
+  
+  ## Feature
+  {{ feature_request }}
+  
+  ## Context
+  {{ steps.detect_context.output }}
+  
+  ## Steps
+  {% for step in completed_steps %}
+  - {{ step.name }}: {{ step.status }}
+  {% endfor %}

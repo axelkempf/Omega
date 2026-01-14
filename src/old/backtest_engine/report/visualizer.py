@@ -3,8 +3,8 @@ from pathlib import Path
 from typing import List
 
 import matplotlib.pyplot as plt
-
 from backtest_engine.core.portfolio import PortfolioPosition
+
 from hf_engine.infra.config.paths import TRADE_LOGS_DIR
 
 

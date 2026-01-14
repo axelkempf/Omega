@@ -3,8 +3,9 @@ from __future__ import annotations
 from datetime import datetime, time
 from typing import Any, Dict, Optional
 
-from hf_engine.infra.logging.log_service import log_service
 from strategies._base.base_strategy import Strategy
+
+from hf_engine.infra.logging.log_service import log_service
 
 # Konfigurations-Keys zentral (vermeidet Tippfehler)
 SESSION_START_KEY = "session_start"

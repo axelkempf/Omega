@@ -45,7 +45,7 @@ data/parquet/EURUSD/EURUSD_D1_BID.parquet
 
 | Column | Description |
 |--------|-------------|
-| `UTC time` | Timestamp (UTC, timezone-aware) |
+| `UTC time` | Candle Open-Time (UTC, timezone-aware) |
 | `Open` | Opening price |
 | `High` | Highest price |
 | `Low` | Lowest price |

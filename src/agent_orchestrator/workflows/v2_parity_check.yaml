@@ -1,0 +1,191 @@
+# Omega V2 Parity Check Workflow
+#
+# Workflow for validating V1 <-> V2 parity for the Backtest-Core.
+# Ensures V2 implementation produces equivalent results to V1.
+#
+# Reference: docs/OMEGA_V2_TESTING_VALIDATION_PLAN.md
+
+name: v2_parity_check
+description: |
+  Validate that V2 Backtest-Core produces results equivalent to V1.
+  Checks trade events, PnL/fees within tolerances, and determinism.
+version: "1.0.0"
+
+config:
+  timeout_minutes: 60
+  fail_fast: true
+  max_retries: 0
+
+inputs:
+  - name: scenario
+    description: Parity scenario to test (1-6 or 'all')
+    required: true
+    
+  - name: config_path
+    description: Path to backtest config JSON
+    required: false
+    default: ""
+    
+  - name: tolerance
+    description: PnL tolerance threshold
+    required: false
+    default: "0.01"
+
+steps:
+  # Step 1: Setup Test Environment
+  - id: setup
+    name: Setup Test Environment
+    agent: implementer
+    description: |
+      Prepare test fixtures and configuration.
+    prompt: |
+      Set up the V1/V2 parity test environment.
+      
+      Scenario: {{ scenario }}
+      Config: {{ config_path }}
+      
+      ## 6 Canonical Scenarios (OMEGA_V2_TESTING_VALIDATION_PLAN.md)
+      1. Market-Entry Long → Take-Profit
+      2. Market-Entry Long → Stop-Loss
+      3. Pending Entry (Limit/Stop) → Trigger ab next_bar → Exit
+      4. Same-Bar SL/TP Tie → SL-Priorität
+      5. in_entry_candle Spezialfall inkl. Limit-TP Regel
+      6. Mix aus Sessions/Warmup/HTF-Einflüssen
+      
+      Prepare fixtures for scenario {{ scenario }}.
+    timeout_minutes: 10
+    
+  # Step 2: Run V1 Backtest
+  - id: v1_run
+    name: Run V1 Backtest
+    agent: implementer
+    description: |
+      Execute backtest with V1 engine.
+    depends_on:
+      - setup
+    prompt: |
+      Run the V1 backtest for parity comparison.
+      
+      Setup: {{ steps.setup.output }}
+      
+      Execute:
+      ```bash
+      python src/backtest_engine/runner.py <config>
+      ```
+      
+      Capture:
+      - Trade events (entry/exit times, prices, direction)
+      - PnL per trade
+      - Total PnL and fees
+    timeout_minutes: 15
+    
+  # Step 3: Run V2 Backtest
+  - id: v2_run
+    name: Run V2 Backtest
+    agent: implementer
+    description: |
+      Execute backtest with V2 engine in v1_parity mode.
+    depends_on:
+      - setup
+    prompt: |
+      Run the V2 backtest in v1_parity mode.
+      
+      Setup: {{ steps.setup.output }}
+      
+      Configuration:
+      - execution_variant = "v1_parity"
+      - Same config as V1 run
+      
+      Execute via Python wrapper:
+      ```python
+      from bt import run
+      result = run(config)
+      ```
+      
+      Capture same metrics as V1.
+    timeout_minutes: 15
+    
+  # Step 4: Compare Results
+  - id: comparison
+    name: Compare Results
+    agent: tester
+    description: |
+      Compare V1 and V2 results for parity.
+    depends_on:
+      - v1_run
+      - v2_run
+    prompt: |
+      Compare V1 and V2 backtest results.
+      
+      V1 Results: {{ steps.v1_run.output }}
+      V2 Results: {{ steps.v2_run.output }}
+      Tolerance: {{ tolerance }}
+      
+      ## Parity Rules (OMEGA_V2_TESTING_VALIDATION_PLAN.md)
+      
+      ### Must Match Exactly
+      - Trade count
+      - Trade order
+      - entry_time_ns, exit_time_ns
+      - Direction (long/short)
+      - Exit reason
+      
+      ### Within Tolerance
+      - Entry/exit prices (after tick quantization)
+      - profit_net per trade: ±0.05
+      - Total profit_net: ±0.01
+      - Total fees: ±0.01
+      
+      Report parity status: PASS/FAIL with details.
+    timeout_minutes: 10
+    
+  # Step 5: Determinism Check
+  - id: determinism
+    name: Determinism Check
+    agent: tester
+    description: |
+      Verify V2 produces deterministic results.
+    depends_on:
+      - v2_run
+    prompt: |
+      Verify V2 determinism by running twice with same seed.
+      
+      V2 Config: Same as previous run
+      
+      Requirements:
+      - run_mode = "dev"
+      - Same rng_seed
+      
+      Execute V2 twice and compare:
+      - Normalized artifacts must be bit-identical
+      - meta.json: ignore generated_at fields
+      
+      Report determinism status.
+    timeout_minutes: 10
+
+output_template: |
+  # V2 Parity Check Complete
+  
+  ## Scenario
+  {{ scenario }}
+  
+  ## Results
+  
+  ### V1 Execution
+  {{ steps.v1_run.status }}
+  
+  ### V2 Execution
+  {{ steps.v2_run.status }}
+  
+  ### Parity Comparison
+  {{ steps.comparison.output }}
+  
+  ### Determinism
+  {{ steps.determinism.output }}
+  
+  ## Verdict
+  {% if steps.comparison.status == 'completed' and steps.determinism.status == 'completed' %}
+  ✅ PARITY CHECK PASSED
+  {% else %}
+  ❌ PARITY CHECK FAILED
+  {% endif %}

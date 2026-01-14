@@ -5,6 +5,8 @@ from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import TimeoutError as FuturesTimeout
 from time import time
 
+from strategies._base.base_strategy import TradeSetup
+
 from hf_engine.adapter.broker.broker_interface import BrokerInterface, OrderResult
 from hf_engine.adapter.broker.broker_utils import get_pip_size
 from hf_engine.core.execution.execution_result import ExecutionResult
@@ -17,7 +19,6 @@ from hf_engine.infra.monitoring.telegram_bot import (
     send_telegram_message,
     send_watchdog_telegram_message,
 )
-from strategies._base.base_strategy import TradeSetup
 
 
 class IdempotencyCache:

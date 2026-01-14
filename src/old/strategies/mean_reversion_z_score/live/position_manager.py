@@ -6,13 +6,14 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 from typing import TYPE_CHECKING
 
+from strategies._base.base_position_manager import BasePositionManager
+
 from hf_engine.adapter.broker.broker_interface import BrokerInterface
 from hf_engine.adapter.broker.broker_utils import get_pip_size
 from hf_engine.adapter.data.mt5_data_provider import MT5DataProvider
 from hf_engine.core.execution.execution_tracker import ExecutionTracker
 from hf_engine.infra.config.time_utils import now_utc
 from hf_engine.infra.logging.log_service import log_service
-from strategies._base.base_position_manager import BasePositionManager
 
 if TYPE_CHECKING:
     from strategies._base.base_strategy import TradeSetup
