@@ -14,6 +14,7 @@
 | [OMEGA_V2_VISION_PLAN.md](OMEGA_V2_VISION_PLAN.md) | Zielbild, MVP-Scope, Qualitätskriterien |
 | [OMEGA_V2_ARCHITECTURE_PLAN.md](OMEGA_V2_ARCHITECTURE_PLAN.md) | Architektur, Verantwortlichkeiten, Single FFI Boundary |
 | [OMEGA_V2_STRATEGIES_PLAN.md](OMEGA_V2_STRATEGIES_PLAN.md) | Strategie-Spezifikation (MVP: Mean Reversion Z-Score), Szenarien 1–6, Guards/Filter, Indikatoren |
+| [OMEGA_V2_TRADE_MANAGER_PLAN.md](OMEGA_V2_TRADE_MANAGER_PLAN.md) | Trade-/Position-Management: Determinismus- und Contract-Implikationen |
 | [OMEGA_V2_DATA_FLOW_PLAN.md](OMEGA_V2_DATA_FLOW_PLAN.md) | Data Loading Phasen, Timestamp-Contract, Fail-Fast Checkpoints |
 | [OMEGA_V2_CONFIG_SCHEMA_PLAN.md](OMEGA_V2_CONFIG_SCHEMA_PLAN.md) | Input-Config ohne Pfade, Defaults, Env-Path-Resolution |
 | [OMEGA_V2_OUTPUT_CONTRACT_PLAN.md](OMEGA_V2_OUTPUT_CONTRACT_PLAN.md) | Artefakt-Contract inkl. `meta.json` Provenance |

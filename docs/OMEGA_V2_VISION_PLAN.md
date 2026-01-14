@@ -13,6 +13,7 @@
 |----------|-------|
 | [OMEGA_V2_ARCHITECTURE_PLAN.md](OMEGA_V2_ARCHITECTURE_PLAN.md) | Übergeordneter Blueprint, Module, Regeln |
 | [OMEGA_V2_STRATEGIES_PLAN.md](OMEGA_V2_STRATEGIES_PLAN.md) | Strategie-Spezifikation (MVP: Mean Reversion Z-Score), Szenarien 1–6, Guards/Filter, Indikatoren |
+| [OMEGA_V2_TRADE_MANAGER_PLAN.md](OMEGA_V2_TRADE_MANAGER_PLAN.md) | Trade-/Position-Management (MVP: MaxHoldingTime), Erweiterungspunkte |
 | [OMEGA_V2_DATA_FLOW_PLAN.md](OMEGA_V2_DATA_FLOW_PLAN.md) | Detaillierter Datenfluss, Phasen, Validierung |
 | [OMEGA_V2_DATA_GOVERNANCE_PLAN.md](OMEGA_V2_DATA_GOVERNANCE_PLAN.md) | Data-Quality-Policies, Snapshots/Manifests, Fail-Fast Regeln |
 | [OMEGA_V2_EXECUTION_MODEL_PLAN.md](OMEGA_V2_EXECUTION_MODEL_PLAN.md) | Ausführungsmodell: Bid/Ask, Fills, SL/TP, Slippage/Fees |

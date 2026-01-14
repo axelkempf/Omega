@@ -14,6 +14,7 @@
 | [OMEGA_V2_ARCHITECTURE_PLAN.md](OMEGA_V2_ARCHITECTURE_PLAN.md) | Architektur, Single-FFI, Verantwortlichkeiten |
 | [OMEGA_V2_MODULE_STRUCTURE_PLAN.md](OMEGA_V2_MODULE_STRUCTURE_PLAN.md) | Crates/Ordner, BarContext, Indicator-Engine Platzierung |
 | [OMEGA_V2_STRATEGIES_PLAN.md](OMEGA_V2_STRATEGIES_PLAN.md) | MRZ Szenarien 1–6, benötigte Indikatoren, Guard-Logik |
+| [OMEGA_V2_TRADE_MANAGER_PLAN.md](OMEGA_V2_TRADE_MANAGER_PLAN.md) | Trade-/Position-Management: Actions/Meta-Labels für Exits |
 | [OMEGA_V2_DATA_FLOW_PLAN.md](OMEGA_V2_DATA_FLOW_PLAN.md) | Bar-/Zeit-Contract, Multi-TF Alignment, Warmup |
 | [OMEGA_V2_DATA_GOVERNANCE_PLAN.md](OMEGA_V2_DATA_GOVERNANCE_PLAN.md) | Datenqualität, Monotonie, News-Mask |
 | [OMEGA_V2_CONFIG_SCHEMA_PLAN.md](OMEGA_V2_CONFIG_SCHEMA_PLAN.md) | Config-Schema: Parameterflächen (Indikator- und Szenario-Parameter) |

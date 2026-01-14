@@ -18,6 +18,7 @@
 | [OMEGA_V2_DATA_GOVERNANCE_PLAN.md](OMEGA_V2_DATA_GOVERNANCE_PLAN.md) | Datenqualität, News-Quelle/Normalisierung |
 | [OMEGA_V2_CONFIG_SCHEMA_PLAN.md](OMEGA_V2_CONFIG_SCHEMA_PLAN.md) | Normatives Input-Schema (`strategy.parameters`, `sessions`, `news_filter`) |
 | [OMEGA_V2_EXECUTION_MODEL_PLAN.md](OMEGA_V2_EXECUTION_MODEL_PLAN.md) | Fill/Exit-Semantik, SL/TP Prioritäten, Spread/Fees |
+| [OMEGA_V2_TRADE_MANAGER_PLAN.md](OMEGA_V2_TRADE_MANAGER_PLAN.md) | Trade-/Position-Management (Rules/Actions), MVP: MaxHoldingTime + Close-Reasons |
 | [OMEGA_V2_OUTPUT_CONTRACT_PLAN.md](OMEGA_V2_OUTPUT_CONTRACT_PLAN.md) | Output-Artefakte + Metadaten-Kontrakte |
 | [OMEGA_V2_METRICS_DEFINITION_PLAN.md](OMEGA_V2_METRICS_DEFINITION_PLAN.md) | Metriken/Keys (Single-Run vs. Optimizer) |
 | [OMEGA_V2_TESTING_VALIDATION_PLAN.md](OMEGA_V2_TESTING_VALIDATION_PLAN.md) | Paritäts-/Golden-Tests, Determinismus |
@@ -62,7 +63,7 @@ Diese Strategie besteht aus **Szenario-Regeln 1–6**, die jeweils ein Entry-Set
 
 ### 2.2 Out of Scope (vorerst)
 
-- **Position Manager / Trade Management** (separater Plan gewünscht; offener Punkt, siehe Abschnitt 11)
+- **Position Manager / Trade Management** (separat spezifiziert; siehe `OMEGA_V2_TRADE_MANAGER_PLAN.md`)
 - Multi-Symbol Strategien
 - Portfolio-level Risk (über `risk_per_trade` hinaus)
 - Live-Trading Port (MT5) – unverändert in Python
@@ -453,7 +454,7 @@ Dieser Plan beschreibt die Parameter **inhaltlich**; das Top-Level Schema ist no
 
 - `direction_filter: long|short|both`
 - `enabled_scenarios: array<int>` (IDs 1..6)
-- `use_position_manager: bool` (MVP: false; Position Manager separat geplant)
+- `use_position_manager: bool` (Legacy/Compat-Flag; Mapping auf `trade_management.*` siehe `OMEGA_V2_TRADE_MANAGER_PLAN.md`)
 
 ---
 
@@ -476,14 +477,15 @@ So bleibt die globale Struktur stabil, während die Implementierung nicht monoli
 
 ## 11. Offene Punkte / Follow-ups
 
-### 11.1 Position Manager Plan (offen)
+### 11.1 Trade-/Position-Management (Plan vorhanden)
 
-Ein eigener Plan für Trade-/Position-Management wird erstellt.
+Trade-/Position-Management ist in `OMEGA_V2_TRADE_MANAGER_PLAN.md` normativ spezifiziert.
 
-Bis dahin gilt für MRZ im MVP:
+**Strategie-spezifischer Hinweis:**
 
-- `use_position_manager = false`
-- Exits erfolgen ausschließlich über SL/TP/Timeouts gemäß Execution/Backtest-Orchestrierung.
+- Die MRZ-Strategie erzeugt nur Entry-Signale (inkl. initial SL/TP).
+- Laufendes Trade-Management (z.B. MaxHoldingTime) wird **nicht** in der Strategie implementiert, sondern im Trade-Manager-Layer.
+- Ein optionales Legacy-Flag `use_position_manager` kann in der Config weiterhin existieren, wird aber in V2 auf den `trade_management`-Block gemappt (Details im Trade-Manager-Plan).
 
 ### 11.2 Indikator-Plan (noch nicht vorhanden)
 

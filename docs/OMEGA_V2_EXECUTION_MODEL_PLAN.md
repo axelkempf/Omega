@@ -14,6 +14,7 @@
 | [OMEGA_V2_VISION_PLAN.md](OMEGA_V2_VISION_PLAN.md) | Zielbild, MVP-Scope, Qualitätskriterien |
 | [OMEGA_V2_ARCHITECTURE_PLAN.md](OMEGA_V2_ARCHITECTURE_PLAN.md) | Architektur, FFI-Grenze, Verantwortlichkeiten |
 | [OMEGA_V2_STRATEGIES_PLAN.md](OMEGA_V2_STRATEGIES_PLAN.md) | Strategie-Spezifikation (MVP: Mean Reversion Z-Score), Szenarien 1–6, Guards/Filter, Indikatoren |
+| [OMEGA_V2_TRADE_MANAGER_PLAN.md](OMEGA_V2_TRADE_MANAGER_PLAN.md) | Trade-/Position-Management: Rule-Prioritäten, MaxHoldingTime, Stop-Update-Policy |
 | [OMEGA_V2_DATA_FLOW_PLAN.md](OMEGA_V2_DATA_FLOW_PLAN.md) | Datenfluss, Bid/Ask-Alignment, Timestamp-Contract |
 | [OMEGA_V2_DATA_GOVERNANCE_PLAN.md](OMEGA_V2_DATA_GOVERNANCE_PLAN.md) | Data-Quality-Policies (Alignment/Gaps/Duplicates), News=Parquet, Snapshots/Manifests |
 | [OMEGA_V2_MODULE_STRUCTURE_PLAN.md](OMEGA_V2_MODULE_STRUCTURE_PLAN.md) | Module/Crates (Execution, Costs, Portfolio), Schnittstellen |
@@ -42,7 +43,7 @@ Dieses Dokument definiert die **universale Wahrheit** für das Omega V2 Backtest
 
 - Order-Typen: `market`, `limit`, `stop`
 - Daten-Modi: `candle` und `tick`
-- Exits: `stop_loss`, `take_profit` (+ Break-Even/Trailing als Meta-Label)
+- Exits: `stop_loss`, `take_profit`, `timeout` (+ Break-Even/Trailing als Meta-Label)
 - Kosten: Spread ist implizit über Bid/Ask im Data-Contract enthalten; zusätzlich Slippage + Fees/Commission
 
 ---
@@ -103,13 +104,20 @@ Pro Candle-Step (pro `timestamp_ns`) gilt die Reihenfolge:
 
 1. **Pending-Trigger prüfen** (Limit/Stop → open)
 2. **Exit-Check** für alle `open` Positionen (SL/TP)
-3. **Portfolio/Equity** updaten (siehe Output-Contract `equity.csv`)
+3. **Trade-/Position-Management** evaluieren (Rules → Actions; z.B. `timeout` Close)
+4. **Portfolio/Equity** updaten (siehe Output-Contract `equity.csv`)
 
 **Normativ:**
 
 - Market-Orders werden zum Signal-Zeitpunkt ausgeführt.
 - Pending Orders triggern erst ab der nächsten Candle (`bid.timestamp > pos.entry_time`).
 - Entry und Exit können in derselben Candle passieren (Same-Bar), wenn `trigger_time == candle.timestamp`.
+
+**Trade-Management (MVP-Contract):**
+
+- Trade-Management läuft **nach** SL/TP-Checks, damit harte, marktgetriebene Exits (Stops) Priorität behalten.
+- Stop/TP-Updates aus Trade-Management gelten (Determinismus) ab **next bar** (siehe `OMEGA_V2_TRADE_MANAGER_PLAN.md`).
+- `timeout`-Exits werden als deterministische Close-Actions modelliert und in `trades.json.reason = "timeout"` geschrieben.
 
 ---
 

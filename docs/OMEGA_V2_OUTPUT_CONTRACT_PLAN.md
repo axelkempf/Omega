@@ -17,6 +17,7 @@
 | [OMEGA_V2_DATA_FLOW_PLAN.md](OMEGA_V2_DATA_FLOW_PLAN.md) | Datenfluss, Bar/Time-Kontrakte, Result-Building |
 | [OMEGA_V2_DATA_GOVERNANCE_PLAN.md](OMEGA_V2_DATA_GOVERNANCE_PLAN.md) | Data-Quality-Policies, News=Parquet, Snapshots/Manifests, Provenance |
 | [OMEGA_V2_EXECUTION_MODEL_PLAN.md](OMEGA_V2_EXECUTION_MODEL_PLAN.md) | Ausführungsmodell: Fills/Exits erzeugen Trades + Reasons |
+| [OMEGA_V2_TRADE_MANAGER_PLAN.md](OMEGA_V2_TRADE_MANAGER_PLAN.md) | Trade-/Position-Management: zusätzliche Exit-Reasons (z.B. `timeout`) |
 | [OMEGA_V2_MODULE_STRUCTURE_PLAN.md](OMEGA_V2_MODULE_STRUCTURE_PLAN.md) | Module/Crates, Result-Typen, Serialisierung |
 | [OMEGA_V2_INDICATOR_CACHE__PLAN.md](OMEGA_V2_INDICATOR_CACHE__PLAN.md) | Indikator-Cache (intern): Semantik/Parität (kein Output-Artefakt) |
 | [OMEGA_V2_METRICS_DEFINITION_PLAN.md](OMEGA_V2_METRICS_DEFINITION_PLAN.md) | Normative Metrik-Keys, Definitionen/Units, Scores, Rundung |
@@ -206,7 +207,7 @@ Die folgenden Felder sind **MUSS** (minimaler, stabiler Contract):
 | `size` | SOLL | number | Positionsgröße (Lot/Units, siehe Strategy/Config) |
 | `result` | SOLL | number | Realisierte PnL in `account_currency` **vor** expliziten Fees/Commission (Fees werden separat aggregiert) |
 | `r_multiple` | SOLL | number | R-Multiple (dimensionslos) |
-| `reason` | SOLL | string | Exit-Grund (MVP: `take_profit` oder `stop_loss`; weitere Labels über `meta`) |
+| `reason` | SOLL | string | Exit-Grund (MVP: `take_profit`, `stop_loss`, `timeout`; weitere Labels über `meta`) |
 | `meta` | SOLL | object | Freie, serialisierbare Zusatzinfos (szenario/labels/etc.) |
 
 **Sortierung (SOLL):** Trades sind nach `exit_time_ns` aufsteigend sortiert.

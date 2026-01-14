@@ -14,6 +14,7 @@
 | [OMEGA_V2_VISION_PLAN.md](OMEGA_V2_VISION_PLAN.md) | Vision, strategische Ziele, Erfolgskriterien |
 | [OMEGA_V2_ARCHITECTURE_PLAN.md](OMEGA_V2_ARCHITECTURE_PLAN.md) | Übergeordneter Blueprint, Module, Regeln |
 | [OMEGA_V2_STRATEGIES_PLAN.md](OMEGA_V2_STRATEGIES_PLAN.md) | Strategie-Spezifikation (MVP: Mean Reversion Z-Score), Szenarien 1–6, Guards/Filter, Indikatoren |
+| [OMEGA_V2_TRADE_MANAGER_PLAN.md](OMEGA_V2_TRADE_MANAGER_PLAN.md) | Trade-/Position-Management (Rules/Actions), MVP: MaxHoldingTime + Close-Reasons |
 | [OMEGA_V2_INDICATOR_CACHE__PLAN.md](OMEGA_V2_INDICATOR_CACHE__PLAN.md) | Indikator-Cache: Multi-TF, Stepwise-Semantik, V1-Parität |
 | [OMEGA_V2_DATA_FLOW_PLAN.md](OMEGA_V2_DATA_FLOW_PLAN.md) | Detaillierter Datenfluss, Phasen, Validierung |
 | [OMEGA_V2_DATA_GOVERNANCE_PLAN.md](OMEGA_V2_DATA_GOVERNANCE_PLAN.md) | Data-Quality-Policies (Alignment/Gaps/Duplicates), News Governance, Manifest-Snapshots |
@@ -124,6 +125,16 @@ rust_core/                              ← Workspace Root
 │   │       ├── equity.rs               ← Equity Tracking
 │   │       ├── stops.rs                ← Stop-Loss/Take-Profit
 │   │       └── error.rs                ← PortfolioError
+│   │
+│   ├── trade_mgmt/                     ← [CRATE] Trade-/Position-Management
+│   │   ├── Cargo.toml
+│   │   └── src/
+│   │       ├── lib.rs                  ← Re-exports
+│   │       ├── engine.rs               ← TradeManager Engine (Rules → Actions)
+│   │       ├── rules.rs                ← Rule Traits + RuleSet
+│   │       ├── actions.rs              ← Action-Typen (Close/ModifyStops)
+│   │       ├── views.rs                ← Read-only Views (Portfolio/Market)
+│   │       └── error.rs                ← TradeMgmtError
 │   │
 │   ├── strategy/                       ← [CRATE] Strategie-Interface
 │   │   ├── Cargo.toml
@@ -327,7 +338,28 @@ omega_execution = { path = "../execution" }
 
 ---
 
-### 3.6 Crate: `strategy` (Strategie-Interface)
+### 3.6 Crate: `trade_mgmt` (Trade-/Position-Management)
+
+> **Verantwortung**: Policy-Layer für Trade-/Position-Management. Evaluierte deterministische Regeln auf read-only Views und erzeugt Actions (z.B. Close/ModifyStops). Keine direkten Side-Effects.
+
+| Datei | Verantwortlichkeit | Wichtigste Exports |
+|-------|-------------------|-------------------|
+| `lib.rs` | Re-exports | `pub use engine::*, rules::*, actions::*, views::*` |
+| `engine.rs` | Rule-Orchestrierung pro Bar | `TradeManager::evaluate(ctx, views) -> Vec<Action>` |
+| `rules.rs` | Rule Traits + RuleSet | `trait Rule`, `RuleSet` |
+| `actions.rs` | Action-Typen | `enum Action { ClosePosition { reason, ... }, ModifyStops { ... } }` |
+| `views.rs` | Read-only Views | `PortfolioView`, `MarketView` |
+| `error.rs` | Fehler | `enum TradeMgmtError { ... }` |
+
+**Abhängigkeiten (Cargo.toml)**:
+```toml
+[dependencies]
+omega_types = { path = "../types" }
+```
+
+---
+
+### 3.7 Crate: `strategy` (Strategie-Interface)
 
 > **Verantwortung**: Definiert Strategy Trait, BarContext für Datenzugriff, Registry für Strategien und konkrete Strategie-Implementierungen.
 
@@ -351,7 +383,7 @@ omega_portfolio = { path = "../portfolio" }
 
 ---
 
-### 3.7 Crate: `backtest` (Event Loop)
+### 3.8 Crate: `backtest` (Event Loop)
 
 > **Verantwortung**: Orchestriert den gesamten Backtest – lädt Daten, berechnet Indikatoren, führt Event Loop aus, sammelt Ergebnisse.
 
@@ -375,12 +407,13 @@ omega_indicators = { path = "../indicators" }
 omega_execution = { path = "../execution" }
 omega_portfolio = { path = "../portfolio" }
 omega_strategy = { path = "../strategy" }
+omega_trade_mgmt = { path = "../trade_mgmt" }
 omega_metrics = { path = "../metrics" }
 ```
 
 ---
 
-### 3.8 Crate: `metrics` (Performance-Metriken)
+### 3.9 Crate: `metrics` (Performance-Metriken)
 
 > **Verantwortung**: Berechnet alle Performance-Metriken aus Trade-Liste und Equity-Kurve.
 
@@ -403,7 +436,7 @@ omega_types = { path = "../types" }
 
 ---
 
-### 3.9 Crate: `ffi` (Python-Binding)
+### 3.10 Crate: `ffi` (Python-Binding)
 
 > **Verantwortung**: Stellt die PyO3-basierte FFI-Schnittstelle bereit. Einziger Entry Point für Python.
 
@@ -632,6 +665,7 @@ lib.rs
 | **indicators** | (keine) | Pure Rust Berechnungen |
 | **execution** | (keine) | Pure Rust Logik |
 | **portfolio** | (keine) | Pure Rust State |
+| **trade_mgmt** | (keine) | Pure Rust Logik |
 | **strategy** | (keine) | Pure Rust Logik |
 | **backtest** | `tracing` (optional) | Logging |
 | **metrics** | (keine) | Pure Rust Berechnungen |
@@ -647,6 +681,7 @@ members = [
     "crates/indicators",
     "crates/execution",
     "crates/portfolio",
+    "crates/trade_mgmt",
     "crates/strategy",
     "crates/backtest",
     "crates/metrics",
@@ -667,6 +702,7 @@ omega_data = { path = "crates/data" }
 omega_indicators = { path = "crates/indicators" }
 omega_execution = { path = "crates/execution" }
 omega_portfolio = { path = "crates/portfolio" }
+omega_trade_mgmt = { path = "crates/trade_mgmt" }
 omega_strategy = { path = "crates/strategy" }
 omega_backtest = { path = "crates/backtest" }
 omega_metrics = { path = "crates/metrics" }
@@ -695,6 +731,7 @@ thiserror = "1.0"
 | **indicators** | ✓ Jeder Indikator | - | ✓ Numerische Stabilität |
 | **execution** | ✓ Fill, Slippage, Fees | - | ✓ Invarianten (z.B. Exit nach Entry, Tie-Break Regeln) |
 | **portfolio** | ✓ Position Lifecycle | - | - |
+| **trade_mgmt** | ✓ Rule Engine (MaxHoldingTime) | - | ✓ Determinismus/Idempotenz |
 | **strategy** | ✓ Signal Generation | - | - |
 | **backtest** | - | ✓ Full Backtest | - |
 | **metrics** | ✓ Jede Metrik | - | ✓ Edge Cases |

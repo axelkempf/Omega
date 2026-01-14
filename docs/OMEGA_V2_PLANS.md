@@ -65,6 +65,13 @@
 
 ---
 
+### ✅ OMEGA_V2_TRADE_MANAGER_PLAN.md
+**Zweck**: Normative Spezifikation des Trade-/Position-Management-Layers (Rules → Actions). MVP: V1-Parität für MaxHoldingTime + klare Close-Reasons (u.a. `timeout`), deterministische Stop-Update-Policy.
+
+**Status**: Vollständig - MVP-Contract + Erweiterungspfade dokumentiert
+
+---
+
 ### ✅ OMEGA_V2_OUTPUT_CONTRACT_PLAN.md
 **Zweck**: Exakte Artefakt-Spezifikation für `trades.json`, `equity.csv`, `metrics.json`, `meta.json` inkl. Feldnamen, Typen, Einheiten, Zeit-Contract und Output-Pfad.
 
@@ -139,6 +146,7 @@ Alle Pläne befinden sich in `docs/` und folgen der Namenskonvention `OMEGA_V2_<
 | **Vision & Ziele** | VISION_PLAN | - |
 | **Architektur** | ARCHITECTURE_PLAN | MODULE_STRUCTURE_PLAN |
 | **Strategien** | STRATEGIES_PLAN | CONFIG_SCHEMA_PLAN, EXECUTION_MODEL_PLAN, MODULE_STRUCTURE_PLAN |
+| **Trade-/Position-Management** | TRADE_MANAGER_PLAN | EXECUTION_MODEL_PLAN, OUTPUT_CONTRACT_PLAN, CONFIG_SCHEMA_PLAN, MODULE_STRUCTURE_PLAN |
 | **Indikatoren** | INDICATOR_CACHE__PLAN | STRATEGIES_PLAN, DATA_FLOW_PLAN, MODULE_STRUCTURE_PLAN, TESTING_VALIDATION_PLAN |
 | **Daten** | DATA_FLOW_PLAN | DATA_GOVERNANCE_PLAN |
 | **Execution** | EXECUTION_MODEL_PLAN | METRICS_DEFINITION_PLAN |
@@ -198,4 +206,5 @@ Alle Pläne befinden sich in `docs/` und folgen der Namenskonvention `OMEGA_V2_<
 | 2.4 | 13.01.2026 | Formatting-Plan erstellt und vollständig: Tool-driven (Black/isort/flake8/mypy + cargo fmt/clippy), pre-commit + CI Gates |
 | 2.5 | 14.01.2026 | Strategies-Plan erstellt (`OMEGA_V2_STRATEGIES_PLAN.md`) und Querverweise in allen Plänen ergänzt |
 | 2.6 | 13.01.2026 | Indicator-Cache-Plan erstellt (`OMEGA_V2_INDICATOR_CACHE__PLAN.md`) und Querverweise/Plan-Übersicht aktualisiert |
+| 2.7 | 14.01.2026 | Trade-Manager-Plan erstellt (`OMEGA_V2_TRADE_MANAGER_PLAN.md`) und Querverweise in allen Plänen ergänzt |
 
