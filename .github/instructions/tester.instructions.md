@@ -24,6 +24,25 @@ Du bist ein Test-Engineer für das Omega Trading-System. Deine Aufgabe ist es, h
 - Test-Fixtures erstellen und pflegen
 - Edge Cases identifizieren und testen
 
+---
+
+## ⚠️ V1 vs V2 Test-Kontexte
+
+Dieses Projekt hat **zwei parallele Test-Kontexte**:
+
+| Aspekt | V1 (Live-Engine, Analysis) | V2 (Backtest-Core) |
+|--------|---------------------------|-------------------|
+| **Sprache** | Python only | Python + Rust |
+| **Test-Framework** | pytest | pytest + `cargo test` + `proptest` |
+| **Pfade** | `tests/` | `python/bt/tests/` + `rust_core/crates/*/tests/` |
+| **Spezial-Tests** | MT5-Mocking, Lookahead-Bias | **Golden Files**, V1↔V2 Parität |
+| **Determinismus** | Seeds fixieren | Seeds + `rng_seed` Config |
+| **Instructions** | Dieses Dokument | Dieses Dokument + `omega-v2-backtest.instructions.md` |
+
+**Für V2-Backtest-Tests zusätzlich lesen:** [omega-v2-backtest.instructions.md](omega-v2-backtest.instructions.md)
+
+---
+
 ## Omega-spezifische Anforderungen
 
 ### Determinismus ist Pflicht
@@ -280,3 +299,256 @@ Bei neuen Tests immer prüfen:
 - [ ] Docstrings für komplexe Tests
 - [ ] Fixtures wiederverwendbar
 - [ ] pytest markers gesetzt
+
+---
+
+## V2 Backtest-Core: Golden File Testing (NEU)
+
+### Was sind Golden Files?
+
+Golden Files sind **erwartete Referenz-Outputs** für deterministische Backtests. Sie dienen als Regressionsschutz: Wenn sich ein Artefakt unerwartet ändert, schlägt der Test fehl.
+
+### Golden-Artefakte (MVP)
+
+| Datei | Format | Beschreibung |
+|-------|--------|--------------|
+| `trades.json` | JSON Array | Alle Trades mit Entry/Exit/Reason |
+| `equity.csv` | CSV | Equity-Kurve pro Bar |
+| `metrics.json` | JSON Object | Sharpe, Sortino, Drawdown, etc. |
+| `meta.json` | JSON Object | Run-Metadaten, Timestamps |
+
+### Golden File Workflow
+
+```bash
+# 1. Golden-Smoke (PR-Gate, schnell)
+pytest python/bt/tests/test_golden.py -k "smoke"
+
+# 2. Full Golden (Nightly/Release)
+pytest python/bt/tests/test_golden.py
+
+# 3. Golden-Update (NUR mit Review!)
+pytest python/bt/tests/test_golden.py --update-golden
+```
+
+### Golden Test Struktur
+
+```python
+# python/bt/tests/test_golden.py
+import json
+import pytest
+from pathlib import Path
+
+GOLDEN_DIR = Path(__file__).parent / "golden"
+FIXTURES_DIR = GOLDEN_DIR / "fixtures"
+EXPECTED_DIR = GOLDEN_DIR / "expected"
+
+
+@pytest.mark.smoke
+def test_golden_mean_reversion_basic():
+    """Golden test for basic mean reversion scenario."""
+    # 1. Load config
+    config_path = FIXTURES_DIR / "configs/mean_reversion_basic.json"
+    config = json.loads(config_path.read_text())
+    
+    # 2. Run backtest
+    from bt import run
+    result = run(config)
+    
+    # 3. Load expected outputs
+    expected_dir = EXPECTED_DIR / "mean_reversion_basic"
+    expected_trades = json.loads((expected_dir / "trades.json").read_text())
+    expected_metrics = json.loads((expected_dir / "metrics.json").read_text())
+    
+    # 4. Compare (nach Normalisierung)
+    assert normalize_trades(result.trades) == normalize_trades(expected_trades)
+    assert normalize_metrics(result.metrics) == normalize_metrics(expected_metrics)
+
+
+def normalize_trades(trades: list) -> list:
+    """Normalize trades for comparison."""
+    # Sortiere nach exit_time_ns für stabile Reihenfolge
+    return sorted(trades, key=lambda t: t["exit_time_ns"])
+
+
+def normalize_metrics(metrics: dict) -> dict:
+    """Normalize metrics for comparison."""
+    result = metrics.copy()
+    # Entferne nicht-deterministische Felder
+    result.pop("generated_at", None)
+    result.pop("generated_at_ns", None)
+    return result
+```
+
+### Vergleichsregeln
+
+1. **Normalisierung vor Vergleich:**
+   - `meta.json`: `generated_at` und `generated_at_ns` werden ignoriert
+   - JSON: stabile Key-Order (kanonische Serialisierung)
+
+2. **Float-Vergleich:**
+   - Nach Contract-Rundung (2/6 Dezimalstellen) wird **exakt** verglichen
+   - Keine Toleranzen nach Rundung
+
+3. **Trades-Vergleich:**
+   - Sortierung nach `exit_time_ns`
+   - Alle Pflichtfelder müssen übereinstimmen
+
+### Golden Update Policy
+
+**WICHTIG:** Golden-Updates sind Breaking Changes!
+
+```python
+# NIEMALS automatisch updaten!
+# Golden-Updates nur wenn:
+# 1. Bewusste Änderung der Execution-Logik
+# 2. Bug-Fix der falsche Golden-Werte korrigiert
+# 3. Review und Begründung im PR
+
+# Update-Prozess:
+# 1. PR mit --update-golden lokal ausführen
+# 2. Diff der Golden-Files reviewen
+# 3. Begründung im PR dokumentieren
+# 4. Mindestens 1 Reviewer muss Golden-Diff prüfen
+```
+
+### V1↔V2 Paritäts-Tests
+
+```python
+@pytest.mark.parity
+def test_v1_v2_parity_scenario_1():
+    """Market-Entry Long → Take-Profit.
+    
+    V1 und V2 müssen identische Events produzieren.
+    """
+    config = load_parity_config("scenario_1")
+    
+    # V1 Referenzlauf
+    v1_result = run_v1_backtest(config)
+    
+    # V2 Lauf im Parity-Mode
+    config["execution_variant"] = "v1_parity"
+    v2_result = run_v2_backtest(config)
+    
+    # Events MÜSSEN übereinstimmen
+    assert v1_result.trade_count == v2_result.trade_count
+    assert v1_result.trades == v2_result.trades
+    
+    # PnL/Fees innerhalb Toleranz (nach 2dp Rundung)
+    assert abs(v1_result.profit_net - v2_result.profit_net) < 0.01
+```
+
+### 6 Kanonische Szenarien (MUSS)
+
+1. **Market-Entry Long → Take-Profit**
+2. **Market-Entry Long → Stop-Loss**
+3. **Pending Entry (Limit/Stop) → Trigger ab `next_bar` → Exit**
+4. **Same-Bar SL/TP Tie → SL-Priorität**
+5. **`in_entry_candle` Spezialfall inkl. Limit-TP Regel**
+6. **Mix aus Sessions/Warmup/HTF-Einflüssen**
+
+---
+
+## V2 Rust Tests: `cargo test` + `proptest`
+
+### Unit Tests in Rust
+
+```rust
+// rust_core/crates/execution/src/lib.rs
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_fill_long_at_ask() {
+        let fill = execute_market_order(
+            Direction::Long,
+            bid: 1.08000,
+            ask: 1.08005,
+        );
+        assert_eq!(fill.price, 1.08005);
+    }
+
+    #[test]
+    fn test_sl_priority_on_same_bar() {
+        // SL und TP beide getriggert → SL gewinnt
+        let result = check_exits(
+            position: &long_position,
+            bar: &bar_with_both_triggers,
+        );
+        assert_eq!(result.reason, ExitReason::StopLoss);
+    }
+}
+```
+
+### Property Tests mit `proptest`
+
+```rust
+// rust_core/crates/execution/tests/prop_tests.rs
+use proptest::prelude::*;
+
+proptest! {
+    #[test]
+    fn test_exit_time_never_before_entry(
+        entry_ns in 0i64..i64::MAX,
+        hold_bars in 1u32..1000,
+    ) {
+        let trade = create_trade(entry_ns, hold_bars);
+        prop_assert!(trade.exit_time_ns >= trade.entry_time_ns);
+    }
+
+    #[test]
+    fn test_pnl_sign_matches_direction(
+        direction in prop_oneof![Just(Direction::Long), Just(Direction::Short)],
+        entry_price in 1.0f64..2.0,
+        exit_price in 1.0f64..2.0,
+    ) {
+        let pnl = calculate_pnl(direction, entry_price, exit_price);
+        match direction {
+            Direction::Long => {
+                if exit_price > entry_price {
+                    prop_assert!(pnl > 0.0);
+                }
+            }
+            Direction::Short => {
+                if exit_price < entry_price {
+                    prop_assert!(pnl > 0.0);
+                }
+            }
+        }
+    }
+}
+```
+
+### Rust Test Commands
+
+```bash
+# Alle Rust-Tests
+cargo test --all
+
+# Spezifisches Crate
+cargo test -p omega-execution
+
+# Mit Output
+cargo test -- --nocapture
+
+# Property Tests (langsamer)
+cargo test --all -- --ignored proptest
+```
+
+---
+
+## V2 Coverage-Ziele
+
+| Bereich/Crate | Ziel-Coverage | Begründung |
+|--------------|---------------|------------|
+| `types` | 95% | Fundament: Datenmodelle & Invarianten |
+| `data` | 90% | Data Governance ist Fail-Fast Kernrisiko |
+| `execution` | 90% | Fill-/Tie-Breaks sind correctness-kritisch |
+| `portfolio` | 90% | State Machine + Equity-Konsistenz |
+| `strategy` | 85% | Strategie-Regeln, aber oft fixture-lastig |
+| `backtest` | 80% | Event Loop ist schwer granular zu testen |
+| `metrics` | 85% | Formeln/Edge-Cases müssen stabil sein |
+| `ffi` | 60% | Glue-Code, Schwerpunkt auf Contract/E2E |
+| `python/bt` | 70% | Orchestrator/Reporting, Contract-lastig |
+
+---

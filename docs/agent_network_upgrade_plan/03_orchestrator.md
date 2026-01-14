@@ -19,6 +19,135 @@ Implementiere einen **Agent Orchestrator** der:
 
 ---
 
+## ⚠️ V2 Backtest-Architektur Berücksichtigung
+
+> **Wichtig:** Mit der Einführung von Omega V2 (Python Orchestrator + Rust Core) muss der Agent Orchestrator beide Codebasen unterstützen.
+
+### Workspace-Struktur V1 vs V2
+
+| Aspekt | V1 (Live-Engine, Analysis) | V2 (Backtest-Core) |
+|--------|---------------------------|-------------------|
+| **Python** | `src/` (hf_engine, ui_engine, strategies) | `python/bt/` |
+| **Rust** | `src/rust_modules/`, `src/old/omega_rust/` | `rust_core/crates/` |
+| **Tests** | `tests/` | `python/bt/tests/` + `rust_core/crates/*/tests/` |
+| **Configs** | `configs/` | JSON über FFI (kein Dateipfad) |
+
+### V2-spezifische Routing-Regeln
+
+Der Task Router muss V2-Kontext erkennen:
+
+```python
+# Zusätzliche Routing-Patterns für V2
+V2_PATTERNS = {
+    "backtest": [r"rust_core", r"python/bt", r"golden.*file", r"ffi", r"parity"],
+    "rust": [r"crate", r"cargo", r"clippy", r"maturin"],
+}
+
+def detect_v2_context(task: str, files: list[str]) -> bool:
+    """Check if task relates to V2 Backtest-Core."""
+    task_lower = task.lower()
+    
+    # Check task description
+    for pattern in V2_PATTERNS["backtest"]:
+        if re.search(pattern, task_lower):
+            return True
+    
+    # Check affected files
+    for f in files:
+        if f.startswith("rust_core/") or f.startswith("python/bt/"):
+            return True
+    
+    return False
+```
+
+### V2 Workflow: `backtest_v2_implementation`
+
+```yaml
+# workflows/backtest_v2_implementation.yaml
+name: backtest_v2_implementation
+description: "V2 Backtest-Core feature implementation (Rust + Python)"
+
+triggers:
+  - keyword: "rust_core"
+  - keyword: "backtest v2"
+  - keyword: "golden"
+  - file_pattern: "rust_core/**"
+  - file_pattern: "python/bt/**"
+
+steps:
+  - name: architecture
+    agent: architect
+    input: task_description
+    output: implementation_plan
+    instruction_override: omega-v2-backtest.instructions.md
+    condition: "complexity >= medium"
+
+  - name: rust_implementation
+    agent: implementer
+    input:
+      - task_description
+      - implementation_plan
+    output: rust_code
+    instruction_override: rust.instructions.md
+    file_filter: "rust_core/**/*.rs"
+
+  - name: python_wrapper
+    agent: implementer
+    input:
+      - task_description
+      - rust_code
+    output: python_code
+    file_filter: "python/bt/**/*.py"
+
+  - name: rust_tests
+    agent: tester
+    input: rust_code
+    output: rust_tests
+    commands:
+      - "cargo test --all"
+      - "cargo clippy -- -D warnings"
+
+  - name: golden_tests
+    agent: tester
+    input: python_code
+    output: golden_tests
+    commands:
+      - "pytest python/bt/tests/test_golden.py -k smoke"
+
+  - name: review
+    agent: reviewer
+    input:
+      - rust_code
+      - python_code
+    output: review_comments
+    checklist:
+      - "Single FFI Boundary eingehalten"
+      - "Determinismus (DEV-Mode)"
+      - "Error Contract (Setup→Exception, Runtime→JSON)"
+
+on_success:
+  - notify: "V2 implementation complete"
+  - run: "cargo fmt && pre-commit run -a"
+
+on_failure:
+  - notify: "V2 implementation failed at step: {failed_step}"
+  - rollback: true
+```
+
+### Context Manager: V2 Erweiterung
+
+```python
+# Zusätzliche V2-Kontext-Felder
+V2_CONTEXT_SCHEMA = {
+    "v2_mode": bool,           # True wenn V2 Backtest-Core Kontext
+    "affected_crates": list,   # z.B. ["execution", "strategy"]
+    "ffi_changes": bool,       # True wenn FFI-Grenze betroffen
+    "golden_update_needed": bool,  # True wenn Golden-Files aktualisiert werden müssen
+}
+```
+
+---
+
 ## Current State
 
 ### Problem
@@ -145,15 +274,16 @@ on_failure:
 
 ### Schritt 1: Orchestrator Core
 
-Erstelle `src/agent_orchestrator/`:
+Erstelle `src/agent_orchestrator/` (für V1-Kontext) und integriere V2-Awareness:
 
 ```
 src/agent_orchestrator/
 ├── __init__.py
 ├── orchestrator.py      # Main orchestrator class
-├── router.py            # Task routing logic
+├── router.py            # Task routing logic (V1 + V2 aware)
 ├── context.py           # Shared context management
 ├── workflow.py          # Workflow execution
+├── v2_detector.py       # V2 Backtest-Core detection
 └── agents/
     ├── __init__.py
     ├── base.py          # Base agent interface
@@ -161,6 +291,94 @@ src/agent_orchestrator/
     ├── implementer.py
     ├── reviewer.py
     └── tester.py
+```
+
+> **Hinweis:** Der Orchestrator selbst liegt in `src/` (V1-Layout), aber er kennt und routet zu `rust_core/` und `python/bt/` (V2-Layout).
+
+#### `v2_detector.py` (NEU)
+
+```python
+"""Detect V2 Backtest-Core context for proper routing."""
+
+from __future__ import annotations
+
+import re
+from pathlib import Path
+
+
+class V2Detector:
+    """Detects whether a task relates to the V2 Backtest-Core."""
+
+    V2_KEYWORDS = [
+        r"rust.?core", r"python/bt", r"golden.?file", r"ffi",
+        r"parity", r"maturin", r"pyo3", r"backtest.?v2",
+        r"single.?ffi", r"run_backtest"
+    ]
+
+    V2_PATH_PREFIXES = [
+        "rust_core/",
+        "python/bt/",
+    ]
+
+    V2_CRATES = [
+        "types", "data", "indicators", "execution",
+        "portfolio", "trade_mgmt", "strategy",
+        "backtest", "metrics", "ffi"
+    ]
+
+    @classmethod
+    def is_v2_context(cls, task: str, affected_files: list[str] | None = None) -> bool:
+        """Check if task relates to V2 Backtest-Core."""
+        task_lower = task.lower()
+
+        # Check keywords in task description
+        for pattern in cls.V2_KEYWORDS:
+            if re.search(pattern, task_lower):
+                return True
+
+        # Check affected files
+        if affected_files:
+            for f in affected_files:
+                for prefix in cls.V2_PATH_PREFIXES:
+                    if f.startswith(prefix):
+                        return True
+
+        return False
+
+    @classmethod
+    def get_affected_crates(cls, files: list[str]) -> list[str]:
+        """Extract affected V2 crates from file paths."""
+        crates = set()
+        for f in files:
+            if f.startswith("rust_core/crates/"):
+                parts = f.split("/")
+                if len(parts) >= 3:
+                    crate_name = parts[2]
+                    if crate_name in cls.V2_CRATES:
+                        crates.add(crate_name)
+        return sorted(crates)
+
+    @classmethod
+    def involves_ffi(cls, files: list[str]) -> bool:
+        """Check if changes affect the FFI boundary."""
+        for f in files:
+            if "rust_core/crates/ffi/" in f:
+                return True
+            if f == "python/bt/_native.pyi":
+                return True
+        return False
+
+    @classmethod
+    def involves_golden(cls, files: list[str]) -> bool:
+        """Check if changes might affect Golden Files."""
+        sensitive_crates = ["execution", "strategy", "metrics", "backtest"]
+        for f in files:
+            for crate in sensitive_crates:
+                if f"rust_core/crates/{crate}/" in f:
+                    return True
+            if "python/bt/tests/golden/" in f:
+                return True
+        return False
 ```
 
 #### `orchestrator.py`
@@ -597,12 +815,26 @@ if __name__ == "__main__":
 
 ## Acceptance Criteria
 
+### V1 (Live-Engine, UI, Analysis)
+
 - [ ] `src/agent_orchestrator/` Modul existiert
 - [ ] Task-Routing funktioniert für alle Rollen
 - [ ] Context wird zwischen Agents geteilt
 - [ ] Mindestens 3 Workflow-Definitionen existieren
 - [ ] CLI kann Tasks ausführen
 - [ ] Unit Tests für Router und Context
+
+### V2 Backtest-Core (NEU)
+
+- [ ] `V2Detector` erkennt V2-Kontext korrekt
+- [ ] Workflow `backtest_v2_implementation.yaml` existiert
+- [ ] Router wählt korrekte Instructions basierend auf V2-Kontext:
+  - `omega-v2-backtest.instructions.md` für V2 Backtest
+  - `rust.instructions.md` für Rust-Crates
+  - `ffi-boundaries.instructions.md` für FFI-Änderungen
+- [ ] V2-Kontext-Felder werden korrekt propagiert:
+  - `v2_mode`, `affected_crates`, `ffi_changes`, `golden_update_needed`
+- [ ] Golden-File Warnung wird ausgegeben wenn `golden_update_needed == True`
 
 ---
 
@@ -613,6 +845,8 @@ if __name__ == "__main__":
 | Overhead zu hoch | Mittel | Mittel | Lazy Loading, Caching |
 | Falsche Routing-Entscheidungen | Hoch | Niedrig | Confirmation für kritische Tasks |
 | Context zu groß | Niedrig | Mittel | Size Limits, Cleanup |
+| V1/V2 Kontext-Verwechslung | Mittel | Hoch | Explizite V2Detector-Prüfung, klare Pfad-Konventionen |
+| Golden-File-Drift unbemerkt | Mittel | Hoch | Automatische Golden-Warnung bei betroffenen Crates |
 
 ---
 
@@ -620,6 +854,9 @@ if __name__ == "__main__":
 
 - `AGENT_ROLES.md` muss existieren (01_agent_roles.md)
 - Rollen-spezifische Instruktionen müssen vorhanden sein
+- **NEU (V2):** `omega-v2-backtest.instructions.md` muss existieren
+- **NEU (V2):** `rust.instructions.md` muss existieren
+- **NEU (V2):** `ffi-boundaries.instructions.md` mit V2-Sektion
 
 ---
 
@@ -629,3 +866,5 @@ if __name__ == "__main__":
 2. **Retry Logic** - Automatische Wiederholung bei Fehlern
 3. **Cost Tracking** - Token-Verbrauch pro Workflow
 4. **A/B Testing** - Verschiedene Workflows vergleichen
+5. **V2 Parity Tracking** - Automatische V1↔V2 Paritätsprüfung bei Änderungen
+6. **Crate Dependency Graph** - Automatische Erkennung betroffener Crates bei Änderungen
