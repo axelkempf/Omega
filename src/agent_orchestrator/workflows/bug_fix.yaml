@@ -1,0 +1,151 @@
+# Omega Bug Fix Workflow
+#
+# Streamlined workflow for fixing bugs in the Omega trading stack.
+# Emphasizes root cause analysis and regression testing.
+#
+# Reference: AGENT_ROLES.md
+
+name: bug_fix
+description: |
+  Workflow for fixing bugs with proper investigation and regression testing.
+  Shorter than feature workflow, focused on quick turnaround.
+version: "1.0.0"
+
+config:
+  timeout_minutes: 60
+  fail_fast: false
+  max_retries: 1
+
+inputs:
+  - name: bug_description
+    description: Description of the bug and reproduction steps
+    required: true
+    
+  - name: affected_area
+    description: Code area affected (path or module name)
+    required: true
+    
+  - name: severity
+    description: Bug severity (low, medium, high, critical)
+    required: false
+    default: "medium"
+
+steps:
+  # Step 1: Bug Investigation
+  - id: investigation
+    name: Bug Investigation
+    agent: researcher
+    description: |
+      Investigate the bug to understand root cause.
+    prompt: |
+      Investigate the following bug:
+      
+      ## Bug Description
+      {{ bug_description }}
+      
+      ## Affected Area
+      {{ affected_area }}
+      
+      ## Investigation Tasks
+      1. Locate the relevant code
+      2. Identify the root cause
+      3. Determine the fix scope
+      4. Check for related issues
+      
+      Provide a root cause analysis.
+    timeout_minutes: 15
+    
+  # Step 2: Fix Implementation
+  - id: fix
+    name: Fix Implementation
+    agent: implementer
+    description: |
+      Implement the bug fix.
+    depends_on:
+      - investigation
+    prompt: |
+      Implement a fix for the bug.
+      
+      ## Root Cause Analysis
+      {{ steps.investigation.output }}
+      
+      ## Bug
+      {{ bug_description }}
+      
+      ## Guidelines
+      - Minimal change principle
+      - No silent behavior changes
+      - Add comments explaining the fix
+      
+      Implement the fix.
+    timeout_minutes: 20
+    
+  # Step 3: Regression Test
+  - id: regression_test
+    name: Regression Test
+    agent: tester
+    description: |
+      Create regression test for the bug.
+    depends_on:
+      - fix
+    prompt: |
+      Create a regression test for this bug fix.
+      
+      ## Bug
+      {{ bug_description }}
+      
+      ## Fix
+      {{ steps.fix.output }}
+      
+      ## Requirements
+      - Test must fail without the fix
+      - Test must pass with the fix
+      - Include bug reference in test name
+      
+      Create the regression test.
+    timeout_minutes: 15
+    
+  # Step 4: Quick Review
+  - id: review
+    name: Quick Review
+    agent: reviewer
+    description: |
+      Quick review of the fix and test.
+    depends_on:
+      - fix
+      - regression_test
+    prompt: |
+      Quick review the bug fix.
+      
+      ## Fix
+      {{ steps.fix.output }}
+      
+      ## Test
+      {{ steps.regression_test.output }}
+      
+      ## Review Focus
+      - Fix addresses root cause
+      - No side effects
+      - Test is adequate
+      - No security issues
+      
+      Approve or request changes.
+    timeout_minutes: 10
+
+output_template: |
+  # Bug Fix Complete
+  
+  ## Bug
+  {{ bug_description }}
+  
+  ## Severity
+  {{ severity }}
+  
+  ## Root Cause
+  {{ steps.investigation.output }}
+  
+  ## Fix Applied
+  {{ steps.fix.status }}
+  
+  ## Regression Test
+  {{ steps.regression_test.status }}
