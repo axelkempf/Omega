@@ -85,6 +85,20 @@ Wichtig: Es gibt kein „bestes Modell" global. Es gibt **bestes Modell pro Task
 
 Vollständige Details: [.agent/routing/MODEL_ROUTING.md](../.agent/routing/MODEL_ROUTING.md)
 
+### 4.0 Model-Capabilities (GitHub Copilot)
+
+| Modell | Input | Output | Stärke |
+|--------|-------|--------|--------|
+| **Claude Opus 4.5** | 128K | 16K | Deep Reasoning, Contracts, Critic |
+| **Claude Sonnet 4.5** | 128K | 16K | Balance, Review, Doku |
+| **GPT-5.2** | 128K | 64K | Research, längere Outputs |
+| **GPT-5.1-Codex-Max** | 128K | 128K | Bulk-Code, max Output |
+
+**Output-Implikation:**
+- **Codex-Max (128K Output)**: Ideal für ganze Crates, Test-Suites, große Refactorings
+- **GPT-5.2 (64K Output)**: Gut für lange Analysen, ausführliche Reviews
+- **Opus/Sonnet (16K Output)**: Präzise, fokussierte Tasks (Contracts, ADRs)
+
 ### 4.1 Routing-Heuristik (Decision Tree)
 
 ```

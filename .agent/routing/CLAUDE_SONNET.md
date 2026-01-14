@@ -1,5 +1,15 @@
 # Claude Sonnet 4.5 – Profil & Best Practices
 
+## Token-Limits (GitHub Copilot)
+
+| Input | Output |
+|-------|--------|
+| 128K | 16K |
+
+**Implikation:** Gleiche Limits wie Opus – gut für Reviews, Doku, mittlere Patches. Bei längeren Outputs GPT-5.2 oder Codex-Max wählen.
+
+---
+
 ## Stärken
 
 - **Balance**: Gutes Reasoning bei moderaten Kosten/Latenz

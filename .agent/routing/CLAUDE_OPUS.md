@@ -1,5 +1,15 @@
 # Claude Opus 4.5 – Profil & Best Practices
 
+## Token-Limits (GitHub Copilot)
+
+| Input | Output |
+|-------|--------|
+| 128K | 16K |
+
+**Implikation:** Output-Limit von 16K reicht für fokussierte Tasks (Contracts, ADRs, Reviews), aber **nicht für große Code-Generierung** – dafür Codex-Max wählen.
+
+---
+
 ## Stärken
 
 - **Deep Reasoning**: Komplexe Architektur-Entscheidungen, Trade-offs abwägen

@@ -21,6 +21,22 @@
     └─ Ja → GPT-5.2
 ```
 
+## Model-Capabilities (GitHub Copilot)
+
+| Modell | Input | Output | Stärke |
+|--------|-------|--------|--------|
+| **Claude Opus 4.5** | 128K | 16K | Deep Reasoning, Contracts, Critic |
+| **Claude Sonnet 4.5** | 128K | 16K | Balance, Review, Doku |
+| **GPT-5.2** | 128K | 64K | Research, längere Outputs |
+| **GPT-5.1-Codex-Max** | 128K | 128K | Bulk-Code, max Output |
+
+**Output-Implikation:**
+- Für große Code-Generierung (ganze Crates, Test-Suites) → **Codex-Max** (128K Output)
+- Für lange Analysen/Docs → **GPT-5.2** (64K Output)
+- Für präzise, fokussierte Tasks → **Opus/Sonnet** (16K reicht meist)
+
+---
+
 ## Task-Matrix (empfohlen)
 
 | Task-Klasse | Builder | Critic | Gates |

@@ -1,5 +1,15 @@
 # GPT-5.2 – Profil & Best Practices
 
+## Token-Limits (GitHub Copilot)
+
+| Input | Output |
+|-------|--------|
+| 128K | 64K |
+
+**Implikation:** 4× mehr Output als Claude – gut für **längere Analysen, umfangreiche Dokumentation, ausführliche Reviews**. Für maximalen Code-Output trotzdem Codex-Max (128K).
+
+---
+
 ## Stärken
 
 - **Breites Wissen**: Gute Coverage über viele Domains

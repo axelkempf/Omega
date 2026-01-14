@@ -1,5 +1,15 @@
 # GPT-5.1-Codex-Max – Profil & Best Practices
 
+## Token-Limits (GitHub Copilot)
+
+| Input | Output |
+|-------|--------|
+| 128K | 128K |
+
+**Implikation:** **Maximaler Output** – ideal für **ganze Crates, komplette Test-Suites, große Refactorings**. Das ist der Go-To für Bulk-Code-Generierung.
+
+---
+
 ## Stärken
 
 - **Bulk-Code-Generation**: Große Mengen Code in einem Rutsch
