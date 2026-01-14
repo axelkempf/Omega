@@ -2,10 +2,34 @@
 
 > Single Source of Truth für alle KI-Agent-Instruktionen
 
-**Status:** 🔴 Offen
+**Status:** 🟢 Abgeschlossen
 **Priorität:** Hoch
 **Komplexität:** Niedrig
 **Geschätzter Aufwand:** 3-5 Stunden
+**Abgeschlossen:** 2025-01-XX
+
+---
+
+## Implementierte Änderungen
+
+### Erstellte Dateien
+
+| Datei | Zweck |
+|-------|-------|
+| `.github/instructions/_core/python-standards.instructions.md` | Kanonische Python-Standards (PEP 8, Type Hints, Imports) |
+| `.github/instructions/_core/rust-standards.instructions.md` | Kanonische Rust-Standards (RFC 430, Ownership, clippy) |
+| `.github/instructions/_core/security-standards.instructions.md` | OWASP-basierte Security-Standards |
+| `.github/instructions/_core/testing-standards.instructions.md` | pytest-Standards (AAA, Determinismus, Coverage) |
+| `.github/instructions/_core/error-handling.instructions.md` | Exception-Handling Patterns |
+| `.github/instructions/_domain/trading-safety.instructions.md` | Trading-spezifische Sicherheitsregeln |
+| `scripts/check_instruction_redundancy.py` | CI-Tool zur Redundanz-Erkennung |
+
+### Refaktorierte Dateien
+
+| Datei | Änderung |
+|-------|----------|
+| `codexer.instructions.md` | Redundante Python/Security-Abschnitte entfernt, Core-Referenzen hinzugefügt |
+| `copilot-instructions.md` | Core Standards Referenztabelle hinzugefügt |
 
 ---
 
@@ -71,6 +95,7 @@ Konsolidiere redundante Instruktionen zu einer **Single Source of Truth** pro Th
 ├── instructions/
 │   ├── _core/                          # Basis-Standards (werden referenziert)
 │   │   ├── python-standards.instructions.md
+│   │   ├── rust-standards.instructions.md
 │   │   ├── security-standards.instructions.md
 │   │   ├── testing-standards.instructions.md
 │   │   └── error-handling.instructions.md

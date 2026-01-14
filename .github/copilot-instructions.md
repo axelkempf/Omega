@@ -5,6 +5,20 @@ Dieses Repository ist ein Python-basierter Trading-Stack (MT5 Live-Adapter, even
 Zusätzlicher, tool-agnostischer Einstiegspunkt: `AGENTS.md` im Repo-Root (Kurzfassung + Verweise). Für GitHub Copilot bleibt diese Datei hier die primäre Quelle, da sie automatisch geladen wird.
 ---
 
+## Core Standards (Single Source of Truth)
+
+Alle Agenten MÜSSEN diese Standards einhalten:
+
+| Standard | Datei | Beschreibung |
+|----------|-------|--------------|
+| **Python** | [instructions/_core/python-standards.instructions.md](instructions/_core/python-standards.instructions.md) | PEP 8, Type Hints, Imports, Docstrings |
+| **Rust** | [instructions/_core/rust-standards.instructions.md](instructions/_core/rust-standards.instructions.md) | RFC 430, Ownership, Error Handling, clippy |
+| **Security** | [instructions/_core/security-standards.instructions.md](instructions/_core/security-standards.instructions.md) | OWASP, Secrets, Input Validation |
+| **Testing** | [instructions/_core/testing-standards.instructions.md](instructions/_core/testing-standards.instructions.md) | pytest, Determinismus, Coverage |
+| **Errors** | [instructions/_core/error-handling.instructions.md](instructions/_core/error-handling.instructions.md) | Exceptions, Fail-Fast, Logging |
+| **Trading** | [instructions/_domain/trading-safety.instructions.md](instructions/_domain/trading-safety.instructions.md) | Risk Limits, MT5, Execution Safety |
+---
+
 ## Priority Guidelines
 
 Bei der Code-Generierung für dieses Repository:
