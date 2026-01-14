@@ -165,25 +165,25 @@ Das aktuelle Omega-System leidet unter folgenden strukturellen Problemen:
 ### 3.1 Crate-Struktur
 
 ```
-rust_core/                     ← Workspace Root
-├── Cargo.toml                 ← Workspace Definition
-│
-├── crates/
-│   ├── types/                 ← Gemeinsame Datentypen (keine Abhängigkeiten)
-│   ├── data/                  ← Data Loading (Parquet → Structs)
-│   ├── indicators/            ← Indikator-Engine
-│   ├── strategy/              ← Strategy Trait + Implementierungen
-│   ├── execution/             ← Order-Ausführung, Slippage, Fees
-│   ├── portfolio/             ← Portfolio State Management
-│   ├── backtest/              ← Event Loop + Orchestrierung
-│   ├── metrics/               ← Performance-Metriken Berechnung
-│   └── ffi/                   ← Python-Binding (PyO3)
+.
+├── rust_core/                     ← Workspace Root (Rust Core)
+│   ├── Cargo.toml                 ← Workspace Definition
+│   └── crates/
+│       ├── types/                 ← Gemeinsame Datentypen (keine Abhängigkeiten)
+│       ├── data/                  ← Data Loading (Parquet → Structs)
+│       ├── indicators/            ← Indikator-Engine
+│       ├── strategy/              ← Strategy Trait + Implementierungen
+│       ├── execution/             ← Order-Ausführung, Slippage, Fees
+│       ├── portfolio/             ← Portfolio State Management
+│       ├── backtest/              ← Event Loop + Orchestrierung
+│       ├── metrics/               ← Performance-Metriken Berechnung
+│       └── ffi/                   ← Python-Binding (PyO3)
 │
 └── python/
-    └── bt/                    ← Python Package (dünner Wrapper)
+    └── bt/                        ← Python Package (dünner Wrapper)
         ├── __init__.py
-        ├── runner.py          ← Config → FFI → Result
-        └── report.py          ← Visualisierung
+        ├── runner.py              ← Config → FFI → Result
+        └── report.py              ← Visualisierung
 ```
 
 ### 3.2 Modul-Abhängigkeiten

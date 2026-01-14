@@ -42,7 +42,7 @@ Dieses Dokument definiert die **universale Wahrheit** für das Omega V2 Backtest
 **Normativ (MVP):**
 
 - Order-Typen: `market`, `limit`, `stop`
-- Daten-Modi: `candle` und `tick`
+- Daten-Modi: `candle` (MVP); `tick` ist Post-MVP
 - Exits: `stop_loss`, `take_profit`, `timeout` (+ Break-Even/Trailing als Meta-Label)
 - Kosten: Spread ist implizit über Bid/Ask im Data-Contract enthalten; zusätzlich Slippage + Fees/Commission
 
@@ -62,6 +62,7 @@ Dieses Dokument definiert die **universale Wahrheit** für das Omega V2 Backtest
 
 - Margin-/Leverage-Modell, Liquidation, Zins-/Swap-Modell.
 - Netting/Hedging-Accounting über mehrere Positionen (V2-MVP ist Single-Symbol; Positionen sind unabhängig).
+- Tick-Mode Ausführungsmodell (V2-MVP fokussiert Candle-Mode).
 - Partial-Fills / Order-Book Simulation.
 
 ---

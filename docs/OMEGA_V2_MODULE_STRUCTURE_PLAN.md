@@ -181,14 +181,18 @@ rust_core/                              ← Workspace Root
 │           ├── config.rs               ← Config JSON Parsing
 │           ├── result.rs               ← Result JSON Serialization
 │           └── error.rs                ← FFI Error Handling
-│
-└── python/
-    └── bt/                             ← Python Package (dünner Wrapper)
-        ├── __init__.py                 ← Package Init + FFI Import
-        ├── runner.py                   ← Python Backtest Runner
-        ├── config.py                   ← Config Loading + Validation
-        ├── report.py                   ← Visualisierung + Reporting
-        └── py.typed                    ← Type Stub Marker
+```
+
+Python Wrapper (Repo-Root):
+
+```
+python/
+└── bt/                                 ← Python Package (dünner Wrapper)
+    ├── __init__.py                     ← Package Init + FFI Import
+    ├── runner.py                       ← Python Backtest Runner
+    ├── config.py                       ← Config Loading + Validation
+    ├── report.py                       ← Visualisierung + Reporting
+    └── py.typed                        ← Type Stub Marker
 ```
 
 ---
