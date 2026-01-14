@@ -2,7 +2,7 @@
 
 > Retrieval-Augmented Generation für intelligente Codebase-Suche
 
-**Status:** 🔴 Offen
+**Status:** 🟢 Abgeschlossen
 **Priorität:** Niedrig
 **Komplexität:** Hoch
 **Geschätzter Aufwand:** 2-3 Tage

@@ -22,7 +22,7 @@ dependencies = [
     "optuna>=3.4",
     "pandas>=2.1",
     "psutil>=5.9",
-    "pyarrow>=14.0",
+    "pyarrow>=17.0.0",
     "pydantic>=2.5",
     "python-dateutil>=2.8",
     "python-dotenv>=1.0",
@@ -66,9 +66,14 @@ analysis = [
 ml = [
     "torch>=2.1",
 ]
+# Agent memory / RAG layer for intelligent codebase search
+agent = [
+    "chromadb>=0.4.0",
+    "sentence-transformers>=2.2.0",
+]
 # Convenience extra: installs everything for full development + analysis
 all = [
-    "omega[dev,analysis,ml]",
+    "omega[dev,analysis,ml,agent]",
 ]
 
 [tool.setuptools]

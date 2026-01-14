@@ -9,8 +9,8 @@
 | 1 | [Agent Roles](01_agent_roles.md) | 🟢 Abgeschlossen | Hoch | Niedrig |
 | 2 | [Instruction Deduplication](02_instruction_deduplication.md) | 🟢 Abgeschlossen | Hoch | Niedrig |
 | 3 | [Orchestrator](03_orchestrator.md) | 🟢 Abgeschlossen | Mittel | Mittel |
-| 4 | [Pre-Commit Validation](04_precommit_validation.md) | 🔴 Offen | Mittel | Mittel |
-| 5 | [RAG Layer](05_rag_layer.md) | 🔴 Offen | Niedrig | Hoch |
+| 4 | [Pre-Commit Validation](04_precommit_validation.md) | 🟢 Abgeschlossen | Mittel | Mittel |
+| 5 | [RAG Layer](05_rag_layer.md) | 🟢 Abgeschlossen | Niedrig | Hoch |
 | 6 | [Agent Permissions](06_agent_permissions.md) | 🔴 Offen | Niedrig | Hoch |
 
 **Status-Legende:**
