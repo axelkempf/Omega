@@ -100,3 +100,16 @@ mypy configuration uses tiered strictness:
 Single source of truth: `pyproject.toml`
 - New imports must be added to `dependencies` or appropriate `optional-dependencies` extra
 - Optional deps should use defensive imports (`try/except` with fallback)
+
+## Agent Roles
+
+For specialized tasks, refer to `AGENT_ROLES.md` which defines 7 distinct agent roles:
+- **Architect**: System-Design und ADRs
+- **Implementer**: Code schreiben (Default-Rolle für Claude Code)
+- **Reviewer**: Code Review
+- **Tester**: Test-Generierung
+- **Researcher**: Bibliotheks-Recherche
+- **DevOps**: CI/CD, Deployment
+- **Safety Auditor**: Sicherheits-Reviews
+
+Default role for Claude Code: **Implementer**
