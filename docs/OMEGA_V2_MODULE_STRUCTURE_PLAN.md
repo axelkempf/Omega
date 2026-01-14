@@ -806,7 +806,148 @@ maturin build --release      # Für Distribution
 
 ---
 
-## 9. Nächste Schritte
+## 9. Agent-System-Architektur
+
+Das Agent-System ist die zentrale Infrastruktur für AI-gesteuerte Entwicklung von Omega V2.
+
+### 9.1 Verzeichnisstruktur
+
+```
+.agent/                                 ← Agent-Infrastruktur-Hub (ROOT)
+│
+├── README.md                           ← Übersicht + Quick Start
+│
+├── routing/                            ← Model-Routing + Profile
+│   ├── MODEL_ROUTING.md               ← Decision Tree, Task-Matrix
+│   ├── CLAUDE_OPUS.md                 ← Opus 4.5 Profil + Best Practices
+│   ├── CLAUDE_SONNET.md               ← Sonnet 4.5 Profil
+│   ├── GPT_5_2.md                     ← GPT-5.2 Profil
+│   └── CODEX_MAX.md                   ← GPT-5.1-Codex-Max Profil
+│
+├── context/                            ← Shared Context (Guardrails, Gates)
+│   ├── GUARDRAILS.md                  ← Nicht verhandelbare Invarianten
+│   ├── V2_CONTEXT_PACK.md             ← V2-spezifische Dokumente/Links
+│   └── QUALITY_GATES.md               ← Welche Checks wann laufen
+│
+└── prompts/                            ← Prompt-Templates (Copy/Paste)
+    ├── _TEMPLATE.md                   ← Task-Brief Vorlage
+    ├── NEW_CRATE.md                   ← Neues Rust-Crate
+    ├── BUGFIX.md                      ← Bugfix-Pattern
+    ├── CONTRACT_CHANGE.md             ← High-Risk Contract-Änderung
+    └── PERFORMANCE.md                 ← Performance-Optimierung
+
+agent_tasks/                            ← Aktive Task-Briefs (temporär)
+├── _TEMPLATE.md                       ← Task-Brief Standard
+└── <task_id>_<short_name>/            ← Pro Task ein Ordner
+    ├── TASK.md                        ← Ausgefüllter Task-Brief
+    └── context/                       ← Task-spezifischer Kontext
+
+.github/
+├── copilot-instructions.md             ← GitHub Copilot Auto-Load
+└── instructions/                       ← Glob-geladene Instructions
+    ├── code-review-generic.instructions.md
+    ├── ffi-boundaries.instructions.md
+    ├── rust.instructions.md
+    ├── security-and-owasp.instructions.md
+    └── ...
+```
+
+### 9.2 Komponenten-Verantwortlichkeiten
+
+| Komponente | Pfad | Verantwortung |
+|------------|------|---------------|
+| **Routing Hub** | `.agent/routing/` | Model-Auswahl, Builder+Critic Pairings |
+| **Shared Context** | `.agent/context/` | Guardrails, Quality Gates, V2-Kontext |
+| **Prompt Library** | `.agent/prompts/` | Wiederverwendbare Prompt-Templates |
+| **Task Briefs** | `agent_tasks/` | Aktive Task-Dokumentation |
+| **Copilot Native** | `.github/instructions/` | Auto-geladene Copilot-Regeln |
+
+### 9.3 Model-Routing (Übersicht)
+
+| Modell | Stärken | Primary Use |
+|--------|---------|-------------|
+| **Claude Opus 4.5** | Deep Reasoning, Contracts, Critic | Architektur, Execution-Semantik, ADRs |
+| **Claude Sonnet 4.5** | Balance, Code-Review, Doku | Mittlere Tasks, Critic (Medium-Risk) |
+| **GPT-5.2** | Breites Wissen, Multi-Domain | Research, Alternative Perspektive |
+| **GPT-5.1-Codex-Max** | Bulk-Code, Tests, Refactoring | Neue Crates/Module, Test-Suites |
+| **GitHub Copilot** | Repo-Awareness, In-Editor | Patches, Debugging, Integration |
+
+### 9.4 Builder + Critic Workflow
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                     Agent-Driven Development                     │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  1. Task-Brief erstellen  ──→  .agent/prompts/_TEMPLATE.md      │
+│           ↓                                                      │
+│  2. Model wählen          ──→  .agent/routing/MODEL_ROUTING.md  │
+│           ↓                                                      │
+│  3. Kontext packen        ──→  .agent/context/V2_CONTEXT_PACK   │
+│           ↓                                                      │
+│  4. Builder-Pass          ──→  Implementierung                   │
+│           ↓                                                      │
+│  5. Critic-Pass           ──→  Review + Findings                 │
+│           ↓                                                      │
+│  6. Quality Gates         ──→  .agent/context/QUALITY_GATES.md  │
+│           ↓                                                      │
+│  7. Merge / Iterate                                              │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### 9.5 Integration mit V2-Modulen
+
+Das Agent-System ist orthogonal zur Rust-Core-Architektur:
+
+```
+Agent System                          V2 Rust Core
+─────────────                         ────────────
+.agent/routing/       ──defines──→    Welches Modell baut welches Crate
+.agent/context/       ──guards──→     Constraints für alle Crates
+.agent/prompts/       ──templates──→  Prompt für z.B. NEW_CRATE.md
+agent_tasks/          ──tracks──→     Aktive Implementierungen
+
+Beispiel: Neues Crate `trade_mgmt`
+1. Task-Brief nach agent_tasks/_TEMPLATE.md
+2. Model: Codex-Max (Builder) per .agent/routing/CODEX_MAX.md
+3. Kontext: TRADE_MANAGER_PLAN per .agent/context/V2_CONTEXT_PACK.md
+4. Prompt: .agent/prompts/NEW_CRATE.md
+5. Critic: Claude Sonnet per .agent/routing/CLAUDE_SONNET.md
+6. Gates: cargo test + clippy per .agent/context/QUALITY_GATES.md
+```
+
+### 9.6 Abhängigkeitsdiagramm (Agent-Infrastruktur)
+
+```
+                    .github/copilot-instructions.md
+                              │
+                              │ (auto-load)
+                              ▼
+                      GitHub Copilot
+                              │
+    ┌─────────────────────────┼─────────────────────────┐
+    │                         │                         │
+    ▼                         ▼                         ▼
+.agent/routing/        .agent/context/          .agent/prompts/
+    │                         │                         │
+    │                         │                         │
+    ▼                         ▼                         ▼
+ Modell-                  Guardrails               Prompt-
+ Auswahl                  + Gates                  Templates
+    │                         │                         │
+    └─────────────────────────┼─────────────────────────┘
+                              │
+                              ▼
+                        agent_tasks/
+                              │
+                              ▼
+                     Task-Implementierung
+```
+
+---
+
+## 10. Nächste Schritte
 
 ### Phase 1: Grundgerüst
 - [ ] Workspace erstellen (`rust_core/Cargo.toml`)

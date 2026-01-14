@@ -127,13 +127,19 @@
 
 ---
 
-## Geplante Pläne
+## Agent-System & Entwicklung
 ---
 
-### 🔲 OMEGA_V2_AGENT_INSTRUCTION_PLAN.md
-**Zweck**: Contributor-Guidelines für AI-Agenten und Entwickler: Crate-Boundaries, Code-Style, Error-Handling-Patterns, Review-Checklist und PR-DoD.
+### ✅ OMEGA_V2_AGENT_INSTRUCTION_PLAN.md
+**Zweck**: Institutionelle Operating Procedure für AI-Agenten (Claude Opus/Sonnet, GPT-5.2, Codex-Max, Copilot): Model-Routing, Builder+Critic Workflow, Guardrails, Quality Gates, Task-Brief Standard.
 
-**Priorität**: 🟢 Niedrig (kann iterativ wachsen)
+**Status**: Vollständig - Agent-Infrastruktur in `.agent/` etabliert, MODULE_STRUCTURE_PLAN um Abschnitt 9 (Agent-System-Architektur) erweitert
+
+**Komponenten**:
+- `.agent/routing/` – Model-Routing + Profile (Opus, Sonnet, GPT-5.2, Codex-Max)
+- `.agent/context/` – GUARDRAILS, V2_CONTEXT_PACK, QUALITY_GATES
+- `.agent/prompts/` – Prompt-Templates (NEW_CRATE, BUGFIX, CONTRACT_CHANGE, PERFORMANCE)
+- `agent_tasks/` – Task-Brief Workspace
 
 ---
 
@@ -153,7 +159,7 @@ Alle Pläne befinden sich in `docs/` und folgen der Namenskonvention `OMEGA_V2_<
 | **Config/Output** | CONFIG_SCHEMA_PLAN | OUTPUT_CONTRACT_PLAN |
 | **Qualität** | TESTING_VALIDATION_PLAN | CI_WORKFLOW_PLAN |
 | **Standards** | FORMATTING_PLAN | AGENT_INSTRUCTION_PLAN |
-| **Entwicklung** | AGENT_INSTRUCTION_PLAN | TECH_STACK_PLAN |
+| **Agent-System** | AGENT_INSTRUCTION_PLAN | MODULE_STRUCTURE_PLAN (Abschnitt 9), TECH_STACK_PLAN |
 | **Betrieb** | OBSERVABILITY_PROFILING_PLAN | CI_WORKFLOW_PLAN |
 
 ---
