@@ -829,6 +829,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "omega_indicators"
+version = "0.1.0"
+dependencies = [
+ "omega_types",
+ "serde",
+ "serde_json",
+ "thiserror",
+]
+
+[[package]]
 name = "omega_types"
 version = "0.1.0"
 dependencies = [
