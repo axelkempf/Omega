@@ -90,8 +90,8 @@ mod tests {
         let result = sma.compute(&candles);
 
         // After warmup, all values should be 5.0
-        for i in 2..10 {
-            assert!((result[i] - 5.0).abs() < 1e-10);
+        for value in result.iter().take(10).skip(2) {
+            assert!((*value - 5.0).abs() < 1e-10);
         }
     }
 
@@ -100,6 +100,34 @@ mod tests {
         let candles: Vec<Candle> = vec![1.0, 2.0].into_iter().map(make_candle).collect();
 
         let sma = SMA::new(5);
+        let result = sma.compute(&candles);
+
+        assert!(result.iter().all(|v| v.is_nan()));
+    }
+
+    #[test]
+    fn test_sma_period_one_matches_close() {
+        let candles: Vec<Candle> = vec![1.5, 2.5, 3.0]
+            .into_iter()
+            .map(make_candle)
+            .collect();
+
+        let sma = SMA::new(1);
+        let result = sma.compute(&candles);
+
+        for (candle, value) in candles.iter().zip(result.iter()) {
+            assert!((*value - candle.close).abs() < 1e-10);
+        }
+    }
+
+    #[test]
+    fn test_sma_period_zero_returns_nan() {
+        let candles: Vec<Candle> = vec![1.0, 2.0, 3.0]
+            .into_iter()
+            .map(make_candle)
+            .collect();
+
+        let sma = SMA::new(0);
         let result = sma.compute(&candles);
 
         assert!(result.iter().all(|v| v.is_nan()));

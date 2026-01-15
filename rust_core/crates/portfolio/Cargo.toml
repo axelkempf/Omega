@@ -1,0 +1,15 @@
+[package]
+name = "omega_portfolio"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+description = "Portfolio management, position tracking, and equity calculation for Omega V2"
+
+[dependencies]
+omega_types = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+
+[dev-dependencies]
+approx = "0.5"

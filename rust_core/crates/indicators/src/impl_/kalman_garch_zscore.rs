@@ -149,17 +149,17 @@ mod tests {
         let result = kgz.compute(&candles);
 
         // First min_periods values should be NaN
-        for i in 0..10 {
-            assert!(result[i].is_nan(), "Expected NaN at {}", i);
+        for (i, value) in result.iter().enumerate().take(10) {
+            assert!(value.is_nan(), "Expected NaN at {}", i);
         }
 
         // Rest should be finite
-        for i in 10..50 {
+        for (i, value) in result.iter().enumerate().take(50).skip(10) {
             assert!(
-                result[i].is_finite(),
+                value.is_finite(),
                 "Expected finite at {}, got {}",
                 i,
-                result[i]
+                value
             );
         }
     }

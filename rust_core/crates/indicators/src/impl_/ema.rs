@@ -107,12 +107,12 @@ mod tests {
         let result = ema.compute(&candles);
 
         // After warmup, all values should be 5.0
-        for i in 4..20 {
+        for (i, value) in result.iter().enumerate().take(20).skip(4) {
             assert!(
-                (result[i] - 5.0).abs() < 1e-10,
+                (*value - 5.0).abs() < 1e-10,
                 "EMA[{}] = {} != 5.0",
                 i,
-                result[i]
+                value
             );
         }
     }
@@ -132,5 +132,33 @@ mod tests {
         let ema = EMA::new(10);
         let expected = 2.0 / 11.0;
         assert!((ema.multiplier() - expected).abs() < 1e-10);
+    }
+
+    #[test]
+    fn test_ema_period_one_matches_close() {
+        let candles: Vec<Candle> = vec![1.0, 2.0, 3.5, 2.5]
+            .into_iter()
+            .map(make_candle)
+            .collect();
+
+        let ema = EMA::new(1);
+        let result = ema.compute(&candles);
+
+        for (candle, value) in candles.iter().zip(result.iter()) {
+            assert!((*value - candle.close).abs() < 1e-10);
+        }
+    }
+
+    #[test]
+    fn test_ema_period_zero_returns_nan() {
+        let candles: Vec<Candle> = vec![1.0, 2.0, 3.0]
+            .into_iter()
+            .map(make_candle)
+            .collect();
+
+        let ema = EMA::new(0);
+        let result = ema.compute(&candles);
+
+        assert!(result.iter().all(|v| v.is_nan()));
     }
 }

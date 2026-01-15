@@ -13,6 +13,9 @@ rust-version = "1.92"
 # Interne Crates
 omega_types = { path = "crates/types" }
 omega_indicators = { path = "crates/indicators" }
+omega_data = { path = "crates/data" }
+omega_execution = { path = "crates/execution" }
+omega_portfolio = { path = "crates/portfolio" }
 
 # Externe Crates
 serde = { version = "1.0", features = ["derive"] }

@@ -4,6 +4,8 @@
 //! This crate provides types for candles, signals, positions, trades,
 //! configuration, and backtest results.
 
+#![deny(clippy::all)]
+
 pub mod candle;
 pub mod config;
 pub mod error;

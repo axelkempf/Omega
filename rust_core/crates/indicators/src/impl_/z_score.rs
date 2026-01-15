@@ -101,12 +101,12 @@ mod tests {
         let zscore = ZScore::new(5);
         let result = zscore.compute(&candles);
 
-        for i in 4..10 {
+        for (i, value) in result.iter().enumerate().take(10).skip(4) {
             assert!(
-                (result[i] - 0.0).abs() < 1e-10,
+                (*value - 0.0).abs() < 1e-10,
                 "Expected 0.0 at {}, got {}",
                 i,
-                result[i]
+                value
             );
         }
     }
@@ -136,5 +136,18 @@ mod tests {
         let result = zscore.compute(&candles);
 
         assert!(result.iter().all(|v| v.is_nan()));
+    }
+
+    #[test]
+    fn test_zscore_window_one_returns_zero() {
+        let candles: Vec<Candle> = vec![1.0, 2.0, 3.0, 4.0]
+            .into_iter()
+            .map(make_candle)
+            .collect();
+
+        let zscore = ZScore::new(1);
+        let result = zscore.compute(&candles);
+
+        assert!(result.iter().all(|v| (*v - 0.0).abs() < 1e-10));
     }
 }

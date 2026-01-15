@@ -166,17 +166,17 @@ mod tests {
         let result = garch.compute(&candles);
 
         // First min_periods values should be NaN
-        for i in 0..10 {
-            assert!(result[i].is_nan(), "Expected NaN at {}", i);
+        for (i, value) in result.iter().enumerate().take(10) {
+            assert!(value.is_nan(), "Expected NaN at {}", i);
         }
 
         // Rest should be positive finite values
-        for i in 10..50 {
+        for (i, value) in result.iter().enumerate().take(50).skip(10) {
             assert!(
-                result[i].is_finite() && result[i] > 0.0,
+                value.is_finite() && *value > 0.0,
                 "Expected positive finite at {}, got {}",
                 i,
-                result[i]
+                value
             );
         }
     }
@@ -240,13 +240,13 @@ mod tests {
 
         // After convergence, should be at floor * scale
         let expected_min = floor * 100.0;
-        for i in 20..50 {
+        for (i, value) in result.iter().enumerate().take(50).skip(20) {
             assert!(
-                result[i] >= expected_min * 0.99,
+                *value >= expected_min * 0.99,
                 "Expected >= {} at {}, got {}",
                 expected_min,
                 i,
-                result[i]
+                value
             );
         }
     }
@@ -267,5 +267,20 @@ mod tests {
         assert!((garch.alpha - 0.1).abs() < 1e-10);
         assert!((garch.beta - 0.85).abs() < 1e-10);
         assert!((garch.omega - 0.00001).abs() < 1e-10);
+    }
+
+    #[test]
+    fn test_garch_simple_returns_non_log() {
+        let prices: Vec<f64> = (0..30).map(|i| 100.0 + i as f64 * 0.2).collect();
+        let candles: Vec<Candle> = prices.into_iter().map(make_candle).collect();
+
+        let garch = GarchVolatility::new(0.1, 0.85, 0.00001)
+            .with_min_periods(5)
+            .with_log_returns(false)
+            .with_scale(1.0);
+        let result = garch.compute(&candles);
+
+        let value = result[6];
+        assert!(value.is_finite() && value > 0.0);
     }
 }

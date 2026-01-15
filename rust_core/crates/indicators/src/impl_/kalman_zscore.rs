@@ -118,17 +118,17 @@ mod tests {
         let result = kz.compute(&candles);
 
         // First 4 values should be NaN (window = 5)
-        for i in 0..4 {
-            assert!(result[i].is_nan());
+        for value in result.iter().take(4) {
+            assert!(value.is_nan());
         }
 
         // Rest should be finite
-        for i in 4..10 {
+        for (i, value) in result.iter().enumerate().take(10).skip(4) {
             assert!(
-                result[i].is_finite(),
+                value.is_finite(),
                 "Expected finite at {}, got {}",
                 i,
-                result[i]
+                value
             );
         }
     }
@@ -141,12 +141,12 @@ mod tests {
         let kz = KalmanZScore::new(5, 0.5, 0.1);
         let result = kz.compute(&candles);
 
-        for i in 4..20 {
+        for (i, value) in result.iter().enumerate().take(20).skip(4) {
             assert!(
-                (result[i] - 0.0).abs() < 1e-6,
+                (*value - 0.0).abs() < 1e-6,
                 "Expected ~0 at {}, got {}",
                 i,
-                result[i]
+                value
             );
         }
     }

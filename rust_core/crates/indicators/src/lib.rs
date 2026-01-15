@@ -19,6 +19,8 @@
 //! - GARCH(1,1): Volatility estimation
 //! - Vol-Cluster: Volatility regime detection
 
+#![deny(clippy::all)]
+
 pub mod cache;
 pub mod error;
 pub mod impl_;

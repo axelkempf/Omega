@@ -2,6 +2,8 @@
 //!
 //! Parquet loading, bid/ask alignment, validation, and session/news helpers.
 
+#![deny(clippy::all)]
+
 pub mod alignment;
 pub mod error;
 pub mod loader;
