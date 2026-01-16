@@ -42,7 +42,7 @@ impl GarchVolatility {
             use_log_returns: true,
             scale: 100.0,
             min_periods: 20,
-            sigma_floor: 0.0001,
+            sigma_floor: 0.000_1,
         }
     }
 
@@ -255,7 +255,7 @@ mod tests {
         }
         let candles: Vec<Candle> = prices.into_iter().map(make_candle).collect();
 
-        let garch = GarchVolatility::new(0.1, 0.85, 0.00001).with_min_periods(10);
+        let garch = GarchVolatility::new(0.1, 0.85, 0.000_01).with_min_periods(10);
         let result = garch.compute(&candles);
 
         // First finite value should appear after warmup
@@ -266,9 +266,7 @@ mod tests {
         for (i, value) in result.iter().enumerate().skip(first_finite) {
             assert!(
                 value.is_finite() && *value > 0.0,
-                "Expected positive finite at {}, got {}",
-                i,
-                value
+                "Expected positive finite at {i}, got {value}"
             );
         }
     }
@@ -292,7 +290,7 @@ mod tests {
         }
 
         let candles: Vec<Candle> = prices.into_iter().map(make_candle).collect();
-        let garch = GarchVolatility::new(0.1, 0.85, 0.00001).with_min_periods(10);
+        let garch = GarchVolatility::new(0.1, 0.85, 0.000_01).with_min_periods(10);
         let result = garch.compute(&candles);
 
         // Find the shock point (index 30)
@@ -304,18 +302,14 @@ mod tests {
 
         assert!(
             post_shock_vol > pre_shock_vol,
-            "Volatility should increase after shock: {} vs {}",
-            post_shock_vol,
-            pre_shock_vol
+            "Volatility should increase after shock: {post_shock_vol} vs {pre_shock_vol}"
         );
 
         // Should eventually decay (much later)
         let late_vol = result[result.len() - 1];
         assert!(
             late_vol < post_shock_vol,
-            "Volatility should decay: {} vs {}",
-            late_vol,
-            post_shock_vol
+            "Volatility should decay: {late_vol} vs {post_shock_vol}"
         );
     }
 
@@ -325,7 +319,7 @@ mod tests {
         let candles: Vec<Candle> = vec![100.0; 50].into_iter().map(make_candle).collect();
 
         let floor = 0.001;
-        let garch = GarchVolatility::new(0.1, 0.85, 0.00001)
+        let garch = GarchVolatility::new(0.1, 0.85, 0.000_01)
             .with_min_periods(10)
             .with_sigma_floor(floor);
         let result = garch.compute(&candles);
@@ -335,10 +329,7 @@ mod tests {
         for (i, value) in result.iter().enumerate().take(50).skip(20) {
             assert!(
                 *value >= expected_min * 0.99,
-                "Expected >= {} at {}, got {}",
-                expected_min,
-                i,
-                value
+                "Expected >= {expected_min} at {i}, got {value}"
             );
         }
     }
@@ -347,7 +338,7 @@ mod tests {
     fn test_garch_insufficient_data() {
         let candles: Vec<Candle> = vec![100.0; 5].into_iter().map(make_candle).collect();
 
-        let garch = GarchVolatility::new(0.1, 0.85, 0.00001).with_min_periods(20);
+        let garch = GarchVolatility::new(0.1, 0.85, 0.000_01).with_min_periods(20);
         let result = garch.compute(&candles);
 
         assert!(result.iter().all(|v| v.is_nan()));
@@ -358,15 +349,17 @@ mod tests {
         let garch = GarchVolatility::from_encoded(100, 850, 10);
         assert!((garch.alpha - 0.1).abs() < 1e-10);
         assert!((garch.beta - 0.85).abs() < 1e-10);
-        assert!((garch.omega - 0.00001).abs() < 1e-10);
+        assert!((garch.omega - 0.000_01).abs() < 1e-10);
     }
 
     #[test]
     fn test_garch_simple_returns_non_log() {
-        let prices: Vec<f64> = (0..30).map(|i| 100.0 + i as f64 * 0.2).collect();
+        let prices: Vec<f64> = (0..30_u32)
+            .map(|i| 100.0 + f64::from(i) * 0.2)
+            .collect();
         let candles: Vec<Candle> = prices.into_iter().map(make_candle).collect();
 
-        let garch = GarchVolatility::new(0.1, 0.85, 0.00001)
+        let garch = GarchVolatility::new(0.1, 0.85, 0.000_01)
             .with_min_periods(5)
             .with_log_returns(false)
             .with_scale(1.0);

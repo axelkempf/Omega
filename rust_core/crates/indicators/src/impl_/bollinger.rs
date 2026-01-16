@@ -210,8 +210,7 @@ mod tests {
             let lower_dist = mid - result.lower[i];
             assert!(
                 (upper_dist - lower_dist).abs() < 1e-10,
-                "Bands not symmetric at index {}",
-                i
+                "Bands not symmetric at index {i}"
             );
         }
     }

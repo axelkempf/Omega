@@ -105,31 +105,24 @@ impl VolCluster {
 
             // Get lookback window of ATR values
             let start = i - self.lookback;
-            let mut window = Vec::with_capacity(self.lookback);
-            let mut has_invalid = false;
-            for &v in atr_values.iter().take(i).skip(start) {
-                if !v.is_finite() {
-                    has_invalid = true;
-                    break;
-                }
-                window.push(v);
-            }
-
-            if has_invalid {
+            let window_slice = &atr_values[start..i];
+            if window_slice.iter().any(|v| !v.is_finite()) {
                 continue;
             }
 
-            if window.is_empty() {
+            if window_slice.is_empty() {
                 continue;
             }
 
             // Sort for percentile calculation
+            let mut window: Vec<f64> = window_slice.to_vec();
             window.sort_by(f64::total_cmp);
 
             // Compute percentile rank of current ATR
             let count_below = window.iter().filter(|&&v| v < current_atr).count();
-            #[allow(clippy::cast_precision_loss)]
-            let percentile = count_below as f64 / window.len() as f64;
+            let count_below_f = f64::from(u32::try_from(count_below).unwrap_or(u32::MAX));
+            let window_len_f = f64::from(u32::try_from(window.len()).unwrap_or(u32::MAX));
+            let percentile = count_below_f / window_len_f;
 
             // Classify
             let state = if percentile >= self.high_vol_threshold {
@@ -152,7 +145,13 @@ impl Indicator for VolCluster {
         // Returns numeric state: 0=Low, 1=Normal, 2=High, NaN=undefined
         self.compute_states(candles)
             .into_iter()
-            .map(|opt| opt.map_or(f64::NAN, |s| f64::from(s as i32)))
+            .map(|opt| {
+                opt.map_or(f64::NAN, |s| match s {
+                    VolClusterState::Low => 0.0,
+                    VolClusterState::Normal => 1.0,
+                    VolClusterState::High => 2.0,
+                })
+            })
             .collect()
     }
 
@@ -194,14 +193,14 @@ mod tests {
         let mut candles = Vec::new();
 
         // Low vol period (small ranges)
-        for i in 0..30 {
-            let base = 100.0 + i as f64 * 0.1;
+        for i in 0..30_u32 {
+            let base = 100.0 + f64::from(i) * 0.1;
             candles.push(make_candle_ohlc(base, base + 0.1, base - 0.1, base));
         }
 
         // High vol period (large ranges)
-        for i in 0..20 {
-            let base = 103.0 + i as f64 * 0.1;
+        for i in 0..20_u32 {
+            let base = 103.0 + f64::from(i) * 0.1;
             candles.push(make_candle_ohlc(base, base + 2.0, base - 2.0, base));
         }
 
@@ -214,8 +213,7 @@ mod tests {
         let high_vol_idx = 45;
         assert!(
             states[high_vol_idx].is_some(),
-            "Should have state at {}",
-            high_vol_idx
+            "Should have state at {high_vol_idx}"
         );
 
         // The last few bars should be High (high volatility)
@@ -230,14 +228,14 @@ mod tests {
 
     #[test]
     fn test_vol_cluster_insufficient_data() {
-        let candles: Vec<Candle> = (0..10)
-            .map(|i| make_candle_ohlc(100.0 + i as f64, 101.0, 99.0, 100.0))
+        let candles: Vec<Candle> = (0..10_u32)
+            .map(|i| make_candle_ohlc(100.0 + f64::from(i), 101.0, 99.0, 100.0))
             .collect();
 
         let vc = VolCluster::new(5, 0.8, 0.2, 20);
         let states = vc.compute_states(&candles);
 
-        assert!(states.iter().all(|s| s.is_none()));
+        assert!(states.iter().all(Option::is_none));
     }
 
     #[test]
@@ -248,8 +246,8 @@ mod tests {
             candles.push(make_candle_ohlc(f64::NAN, f64::NAN, f64::NAN, f64::NAN));
         }
 
-        for i in 0..6 {
-            let base = 100.0 + i as f64;
+        for i in 0..6_u32 {
+            let base = 100.0 + f64::from(i);
             candles.push(make_candle_ohlc(base, base + 1.0, base - 1.0, base));
         }
 

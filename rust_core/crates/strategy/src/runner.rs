@@ -1,4 +1,4 @@
-//! Strategy runner utilities for building BarContext with multi-TF support.
+//! Strategy runner utilities for building `BarContext` with multi-TF support.
 
 use std::cell::RefCell;
 use std::collections::HashSet;
@@ -10,7 +10,7 @@ use omega_types::Signal;
 use crate::context::{BarContext, HtfContext};
 use crate::traits::Strategy;
 
-/// Builder for BarContext that injects MultiTfIndicatorCache and HTF context.
+/// Builder for `BarContext` that injects `MultiTfIndicatorCache` and HTF context.
 pub struct BarContextBuilder<'a> {
     store: &'a MultiTfStore,
     indicators: &'a IndicatorCache,
@@ -20,7 +20,8 @@ pub struct BarContextBuilder<'a> {
 }
 
 impl<'a> BarContextBuilder<'a> {
-    /// Creates a new BarContextBuilder with a multi-TF cache.
+    /// Creates a new `BarContextBuilder` with a multi-TF cache.
+    #[must_use]
     pub fn new(
         store: &'a MultiTfStore,
         indicators: &'a IndicatorCache,
@@ -42,7 +43,7 @@ impl<'a> BarContextBuilder<'a> {
         self.store.primary.len()
     }
 
-    /// Builds a BarContext (plus optional HTF context) for the given index.
+    /// Builds a `BarContext` (plus optional HTF context) for the given index.
     pub fn context_at(
         &'a self,
         idx: usize,
@@ -77,7 +78,7 @@ impl<'a> BarContextBuilder<'a> {
     }
 }
 
-/// Minimal strategy runner that builds BarContext with multi-TF cache.
+/// Minimal strategy runner that builds `BarContext` with multi-TF cache.
 pub struct StrategyRunner<'a, S: Strategy> {
     strategy: &'a mut S,
     builder: BarContextBuilder<'a>,
@@ -108,8 +109,7 @@ impl<'a, S: Strategy> StrategyRunner<'a, S> {
             let signal = self
                 .builder
                 .context_at(idx, open, blocked)
-                .map(|ctx| self.strategy.on_bar(&ctx))
-                .unwrap_or(None);
+                .and_then(|ctx| self.strategy.on_bar(&ctx));
             signals.push(signal);
         }
         signals
@@ -159,7 +159,8 @@ mod tests {
         let mut ask = Vec::new();
         let mut timestamps = Vec::new();
         for (i, close) in closes.iter().enumerate() {
-            let ts = (i as i64) * step;
+            let idx = i64::try_from(i).unwrap_or(i64::MAX / step.max(1));
+            let ts = idx * step;
             bid.push(make_candle(ts, *close));
             ask.push(make_candle(ts, *close + 0.0002));
             timestamps.push(ts);

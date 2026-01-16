@@ -1,12 +1,12 @@
 //! Omega Strategy
 //!
 //! Strategy layer for the Omega V2 trading system.
-//! Provides the Strategy trait, BarContext, and strategy implementations.
+//! Provides the Strategy trait, `BarContext`, and strategy implementations.
 //!
 //! # Features
 //! - Strategy trait for implementing trading strategies
-//! - BarContext for accessing market data and indicators
-//! - StrategyRegistry for dynamic strategy creation
+//! - `BarContext` for accessing market data and indicators
+//! - `StrategyRegistry` for dynamic strategy creation
 //! - Mean Reversion Z-Score strategy with 6 scenarios
 //!
 //! # Example

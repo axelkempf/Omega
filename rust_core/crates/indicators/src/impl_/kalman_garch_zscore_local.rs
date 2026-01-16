@@ -167,7 +167,9 @@ mod tests {
 
     #[test]
     fn test_local_kalman_garch_basic() {
-        let prices = (0..30).map(|i| 1.0 + i as f64 * 0.01).collect::<Vec<_>>();
+        let prices = (0..30_u32)
+            .map(|i| 1.0 + f64::from(i) * 0.01)
+            .collect::<Vec<_>>();
         let mut params = KalmanGarchLocalParams::new(0.01, 1.0, 0.1, 0.8, None);
         params.min_periods = 5;
         let result = kalman_garch_zscore_local(&prices, 20, 20, params);

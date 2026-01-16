@@ -618,7 +618,7 @@ mod tests {
         let in_entry_candle = trade
             .meta
             .get("in_entry_candle")
-            .and_then(|value| value.as_bool());
+            .and_then(serde_json::Value::as_bool);
         assert_eq!(in_entry_candle, Some(false));
     }
 

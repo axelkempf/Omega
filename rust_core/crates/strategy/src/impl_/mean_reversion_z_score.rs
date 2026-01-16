@@ -59,6 +59,7 @@ pub enum Scenario6Mode {
 
 impl Scenario6Mode {
     /// Returns string representation.
+    #[must_use]
     pub fn as_str(&self) -> &'static str {
         match self {
             Scenario6Mode::All => "all",
@@ -159,7 +160,7 @@ pub struct MrzParams {
     /// Number of volatility clusters
     #[serde(default = "default_vol_cluster_k")]
     pub intraday_vol_cluster_k: usize,
-    /// Intraday volatility feature (e.g., "garch_forecast")
+    /// Intraday volatility feature (e.g., "`garch_forecast`")
     #[serde(default = "default_intraday_vol_feature")]
     pub intraday_vol_feature: String,
     /// Minimum points required for volatility clustering
@@ -383,6 +384,7 @@ pub struct MeanReversionZScore {
 
 impl MeanReversionZScore {
     /// Creates a new strategy with the given parameters.
+    #[must_use]
     pub fn new(params: MrzParams) -> Self {
         Self {
             params,
@@ -391,6 +393,10 @@ impl MeanReversionZScore {
     }
 
     /// Creates a strategy from JSON parameters.
+    ///
+    /// # Errors
+    /// Returns `StrategyError::Json` if the parameters are invalid JSON or
+    /// `StrategyError::InvalidParams` if required constraints are violated.
     pub fn from_params(params: &serde_json::Value) -> Result<Self, StrategyError> {
         let mut params: MrzParams =
             serde_json::from_value(params.clone()).map_err(StrategyError::Json)?;
@@ -801,6 +807,7 @@ impl MeanReversionZScore {
     ///
     /// Same as Scenario 2 (Kalman-Z + Bollinger, TP=BB-Mid) but with
     /// an additional volatility cluster guard using GARCH-forecast.
+    #[allow(clippy::too_many_lines)]
     fn scenario_5(&mut self, ctx: &BarContext) -> Option<Signal> {
         if !self.check_htf_bias(ctx) {
             return None;
@@ -924,10 +931,11 @@ impl MeanReversionZScore {
     /// Scenario 6: Multi-TF Overlay with Kalman-Z + Bollinger per TF
     ///
     /// Same as Scenario 2 basis, but requires multi-TF agreement.
-    /// Each TF checks: kalman_z threshold AND price vs Bollinger band.
+    /// Each TF checks: `kalman_z` threshold AND price vs Bollinger band.
     ///
     /// All: All TFs must give signal
     /// Any: At least one TF gives signal
+    #[allow(clippy::too_many_lines)]
     fn scenario_6(&self, ctx: &BarContext) -> Option<Signal> {
         if !self.check_htf_bias(ctx) {
             return None;
@@ -1075,6 +1083,7 @@ impl MeanReversionZScore {
     // ==================== Helper Methods ====================
 
     /// Checks Multi-TF signals using Kalman-Z + Bollinger per TF.
+    #[allow(clippy::too_many_lines)]
     fn check_multi_tf_signals_v2(&self, ctx: &BarContext, is_long: bool) -> Vec<TfChainResult> {
         self.params
             .scenario6_timeframes
@@ -1085,33 +1094,33 @@ impl MeanReversionZScore {
 
                 let window = tf_params
                     .get("window_length")
-                    .and_then(|v| v.as_u64())
-                    .unwrap_or(self.params.window_length as u64)
-                    as usize;
+                    .and_then(serde_json::Value::as_u64)
+                    .and_then(|v| usize::try_from(v).ok())
+                    .unwrap_or(self.params.window_length);
                 let kalman_r = tf_params
                     .get("kalman_r")
-                    .and_then(|v| v.as_f64())
+                    .and_then(serde_json::Value::as_f64)
                     .unwrap_or(self.params.kalman_r);
                 let kalman_q = tf_params
                     .get("kalman_q")
-                    .and_then(|v| v.as_f64())
+                    .and_then(serde_json::Value::as_f64)
                     .unwrap_or(self.params.kalman_q);
                 let bb_period = tf_params
                     .get("b_b_length")
-                    .and_then(|v| v.as_u64())
-                    .unwrap_or(self.params.b_b_length as u64)
-                    as usize;
+                    .and_then(serde_json::Value::as_u64)
+                    .and_then(|v| usize::try_from(v).ok())
+                    .unwrap_or(self.params.b_b_length);
                 let std_factor = tf_params
                     .get("std_factor")
-                    .and_then(|v| v.as_f64())
+                    .and_then(serde_json::Value::as_f64)
                     .unwrap_or(self.params.std_factor);
                 let z_long = tf_params
                     .get("z_score_long")
-                    .and_then(|v| v.as_f64())
+                    .and_then(serde_json::Value::as_f64)
                     .unwrap_or(self.params.z_score_long);
                 let z_short = tf_params
                     .get("z_score_short")
-                    .and_then(|v| v.as_f64())
+                    .and_then(serde_json::Value::as_f64)
                     .unwrap_or(self.params.z_score_short);
 
                 let params_json = serde_json::json!({
@@ -1230,13 +1239,13 @@ impl MeanReversionZScore {
 
     /// Checks HTF trend bias (Bias A + optional Bias B).
     fn check_htf_bias(&self, ctx: &BarContext) -> bool {
-        let ok_a = self.check_htf_filter(
+        let ok_a = Self::check_htf_filter(
             ctx,
             &self.params.htf_tf,
             self.params.htf_ema,
             self.params.htf_filter,
         );
-        let ok_b = self.check_htf_filter(
+        let ok_b = Self::check_htf_filter(
             ctx,
             &self.params.extra_htf_tf,
             self.params.extra_htf_ema,
@@ -1246,7 +1255,6 @@ impl MeanReversionZScore {
     }
 
     fn check_htf_filter(
-        &self,
         ctx: &BarContext,
         timeframe: &str,
         ema_len: usize,
@@ -1264,13 +1272,13 @@ impl MeanReversionZScore {
             (Some(ema), Some(price)) => match filter {
                 HtfFilter::Above => price > ema,
                 HtfFilter::Below => price < ema,
-                HtfFilter::Both => true,
-                HtfFilter::None => true,
+                HtfFilter::Both | HtfFilter::None => true,
             },
             _ => true,
         }
     }
 
+    #[allow(clippy::too_many_lines)]
     fn vol_cluster_guard(&self, ctx: &BarContext) -> Option<serde_json::Value> {
         let feature = self.params.intraday_vol_feature.trim().to_lowercase();
         let window = self.params.intraday_vol_cluster_window.max(1);
@@ -1304,8 +1312,7 @@ impl MeanReversionZScore {
 
         let series = self.vol_cluster_feature_series(ctx, &feature)?;
         let mut values = match series {
-            VolFeatureSeries::Full(values) => values,
-            VolFeatureSeries::Local { values, .. } => values,
+            VolFeatureSeries::Full(values) | VolFeatureSeries::Local { values, .. } => values,
         };
         if values.is_empty() {
             meta.insert(
@@ -1350,12 +1357,9 @@ impl MeanReversionZScore {
             }
         }
 
-        let (centers, labels) = match kmeans_1d(&cluster_values, k) {
-            Some(result) => result,
-            None => {
-                meta.insert("status".to_string(), serde_json::json!("clustering_failed"));
-                return None;
-            }
+        let Some((centers, labels)) = kmeans_1d(&cluster_values, k) else {
+            meta.insert("status".to_string(), serde_json::json!("clustering_failed"));
+            return None;
         };
 
         let mut order: Vec<usize> = (0..centers.len()).collect();
@@ -1371,7 +1375,7 @@ impl MeanReversionZScore {
             let label = if rank < label_names.len() {
                 label_names[rank].to_string()
             } else {
-                format!("cluster_{}", rank)
+                format!("cluster_{rank}")
             };
             mapping[*idx_c] = label;
         }
@@ -1497,10 +1501,12 @@ impl Strategy for MeanReversionZScore {
         None
     }
 
+    #[allow(clippy::unnecessary_literal_bound)]
     fn name(&self) -> &str {
         "mean_reversion_z_score"
     }
 
+    #[allow(clippy::too_many_lines)]
     fn required_indicators(&self) -> Vec<IndicatorRequirement> {
         let mut reqs = vec![
             IndicatorRequirement::new("EMA", serde_json::json!({"period": self.params.ema_length})),
@@ -1632,30 +1638,30 @@ impl Strategy for MeanReversionZScore {
 
                 let window = tf_params
                     .get("window_length")
-                    .and_then(|v| v.as_u64())
-                    .unwrap_or(self.params.window_length as u64)
-                    as usize;
+                    .and_then(serde_json::Value::as_u64)
+                    .and_then(|v| usize::try_from(v).ok())
+                    .unwrap_or(self.params.window_length);
                 let kalman_r = tf_params
                     .get("kalman_r")
-                    .and_then(|v| v.as_f64())
+                    .and_then(serde_json::Value::as_f64)
                     .unwrap_or(self.params.kalman_r);
                 let kalman_q = tf_params
                     .get("kalman_q")
-                    .and_then(|v| v.as_f64())
+                    .and_then(serde_json::Value::as_f64)
                     .unwrap_or(self.params.kalman_q);
                 let bb_period = tf_params
                     .get("b_b_length")
-                    .and_then(|v| v.as_u64())
-                    .unwrap_or(self.params.b_b_length as u64)
-                    as usize;
+                    .and_then(serde_json::Value::as_u64)
+                    .and_then(|v| usize::try_from(v).ok())
+                    .unwrap_or(self.params.b_b_length);
                 let std_factor = tf_params
                     .get("std_factor")
-                    .and_then(|v| v.as_f64())
+                    .and_then(serde_json::Value::as_f64)
                     .unwrap_or(self.params.std_factor);
 
                 // TF-specific Kalman-Z
                 reqs.push(IndicatorRequirement::with_timeframe(
-                    format!("KALMAN_Z_{}", tf),
+                    format!("KALMAN_Z_{tf}"),
                     tf,
                     serde_json::json!({
                         "window": window,
@@ -1666,7 +1672,7 @@ impl Strategy for MeanReversionZScore {
 
                 // TF-specific Bollinger
                 reqs.push(IndicatorRequirement::with_timeframe(
-                    format!("BOLLINGER_{}", tf),
+                    format!("BOLLINGER_{tf}"),
                     tf,
                     serde_json::json!({
                         "period": bb_period,
@@ -1676,7 +1682,7 @@ impl Strategy for MeanReversionZScore {
 
                 // TF-specific Close price
                 reqs.push(IndicatorRequirement::with_timeframe(
-                    format!("CLOSE_{}", tf),
+                    format!("CLOSE_{tf}"),
                     tf,
                     serde_json::json!({}),
                 ));
@@ -1790,6 +1796,10 @@ fn find_scenario6_params<'a>(
     })
 }
 
+fn usize_to_f64(value: usize) -> f64 {
+    f64::from(u32::try_from(value).unwrap_or(u32::MAX))
+}
+
 fn kmeans_1d(values: &[f64], k: usize) -> Option<(Vec<f64>, Vec<usize>)> {
     if values.is_empty() {
         return None;
@@ -1800,13 +1810,13 @@ fn kmeans_1d(values: &[f64], k: usize) -> Option<(Vec<f64>, Vec<usize>)> {
     unique.dedup();
     let k = k.min(unique.len().max(1));
     if k == 1 {
-        let mean = values.iter().sum::<f64>() / values.len() as f64;
+        let mean = values.iter().sum::<f64>() / usize_to_f64(values.len());
         return Some((vec![mean], vec![0; values.len()]));
     }
 
     let mut centers: Vec<f64> = (1..=k)
         .map(|i| {
-            let q = i as f64 / (k as f64 + 1.0);
+            let q = usize_to_f64(i) / (usize_to_f64(k) + 1.0);
             quantile_sorted(&sorted, q)
         })
         .collect();
@@ -1836,7 +1846,7 @@ fn kmeans_1d(values: &[f64], k: usize) -> Option<(Vec<f64>, Vec<usize>)> {
         let mut new_centers = centers.clone();
         for j in 0..k {
             if counts[j] > 0 {
-                new_centers[j] = sums[j] / counts[j] as f64;
+                new_centers[j] = sums[j] / usize_to_f64(counts[j]);
             }
         }
 
@@ -1856,6 +1866,7 @@ fn kmeans_1d(values: &[f64], k: usize) -> Option<(Vec<f64>, Vec<usize>)> {
     Some((centers, labels))
 }
 
+#[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
 fn quantile_sorted(sorted: &[f64], q: f64) -> f64 {
     if sorted.is_empty() {
         return f64::NAN;
@@ -1863,9 +1874,10 @@ fn quantile_sorted(sorted: &[f64], q: f64) -> f64 {
     if sorted.len() == 1 {
         return sorted[0];
     }
-    let pos = q.clamp(0.0, 1.0) * (sorted.len() - 1) as f64;
-    let idx = pos.floor() as usize;
-    let frac = pos - idx as f64;
+    let len_minus_one = sorted.len().saturating_sub(1);
+    let pos = q.clamp(0.0, 1.0) * usize_to_f64(len_minus_one);
+    let idx = pos.floor().clamp(0.0, usize_to_f64(len_minus_one)) as usize;
+    let frac = pos - usize_to_f64(idx);
     let next = (idx + 1).min(sorted.len() - 1);
     sorted[idx] + frac * (sorted[next] - sorted[idx])
 }
@@ -1946,12 +1958,24 @@ mod tests {
         );
     }
 
+    #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+    fn scale_to_u32(value: f64, scale: f64) -> u32 {
+        if !value.is_finite() {
+            return 0;
+        }
+        let scaled = (value * scale).round();
+        let clamped = scaled.clamp(0.0, f64::from(u32::MAX));
+        clamped as u32
+    }
+
+    #[derive(Copy, Clone)]
     struct BollingerValues {
         lower: f64,
         middle: f64,
         upper: f64,
     }
 
+    #[derive(Copy, Clone)]
     struct KalmanGarchInsert {
         r: f64,
         q: f64,
@@ -1977,7 +2001,7 @@ mod tests {
             name,
             IndicatorParams::Bollinger {
                 period,
-                std_factor_x100: (std_factor * 100.0) as u32,
+                std_factor_x100: scale_to_u32(std_factor, 100.0),
             },
         );
         insert_series(cache, spec.with_output_suffix("lower"), idx, values.lower);
@@ -2000,8 +2024,8 @@ mod tests {
                 name,
                 IndicatorParams::Kalman {
                     window,
-                    r_x1000: (r * 1000.0) as u32,
-                    q_x1000: (q * 1000.0) as u32,
+                    r_x1000: scale_to_u32(r, 1000.0),
+                    q_x1000: scale_to_u32(q, 1000.0),
                 },
             ),
             idx,
@@ -2022,15 +2046,15 @@ mod tests {
                 name,
                 IndicatorParams::KalmanGarch {
                     window,
-                    r_x1000: (params.r * 1000.0).round() as u32,
-                    q_x1000: (params.q * 1000.0).round() as u32,
-                    alpha_x1000: (params.alpha * 1000.0).round() as u32,
-                    beta_x1000: (params.beta * 1000.0).round() as u32,
-                    omega_x1000000: (params.omega * 1_000_000.0).round() as u32,
+                    r_x1000: scale_to_u32(params.r, 1000.0),
+                    q_x1000: scale_to_u32(params.q, 1000.0),
+                    alpha_x1000: scale_to_u32(params.alpha, 1000.0),
+                    beta_x1000: scale_to_u32(params.beta, 1000.0),
+                    omega_x1000000: scale_to_u32(params.omega, 1_000_000.0),
                     use_log_returns: params.use_log_returns,
-                    scale_x100: (params.scale * 100.0).round() as u32,
+                    scale_x100: scale_to_u32(params.scale, 100.0),
                     min_periods: params.min_periods,
-                    sigma_floor_x1e8: (params.sigma_floor * 1e8).round() as u32,
+                    sigma_floor_x1e8: scale_to_u32(params.sigma_floor, 1e8),
                 },
             ),
             idx,
@@ -2104,7 +2128,9 @@ mod tests {
         let mut strategy = MeanReversionZScore::new(params);
 
         // Create a downtrend (should trigger long)
-        let closes: Vec<f64> = (0..50).map(|i| 1.1000 - (i as f64) * 0.001).collect();
+        let closes: Vec<f64> = (0..50)
+            .map(|i| 1.1000 - f64::from(i) * 0.001)
+            .collect();
         let candles = make_candles(&closes);
         let cache = setup_cache(&candles);
 
@@ -2112,7 +2138,7 @@ mod tests {
         let ask = make_candle(bid.close + 0.0002);
 
         // Session closed - should not generate signal
-        let ctx = BarContext::new(49, 1234567890, bid, &ask, &cache).with_session(false);
+        let ctx = BarContext::new(49, 1_234_567_890, bid, &ask, &cache).with_session(false);
 
         let signal = strategy.on_bar(&ctx);
         assert!(signal.is_none());
@@ -2123,7 +2149,9 @@ mod tests {
         let params = MrzParams::default();
         let mut strategy = MeanReversionZScore::new(params);
 
-        let closes: Vec<f64> = (0..50).map(|i| 1.1000 - (i as f64) * 0.001).collect();
+        let closes: Vec<f64> = (0..50)
+            .map(|i| 1.1000 - f64::from(i) * 0.001)
+            .collect();
         let candles = make_candles(&closes);
         let cache = setup_cache(&candles);
 
@@ -2131,7 +2159,7 @@ mod tests {
         let ask = make_candle(bid.close + 0.0002);
 
         // News blocked - should not generate signal
-        let ctx = BarContext::new(49, 1234567890, bid, &ask, &cache).with_news_blocked(true);
+        let ctx = BarContext::new(49, 1_234_567_890, bid, &ask, &cache).with_news_blocked(true);
 
         let signal = strategy.on_bar(&ctx);
         assert!(signal.is_none());
@@ -2147,14 +2175,16 @@ mod tests {
         let strategy = MeanReversionZScore::new(params);
 
         // Uptrend (should trigger short normally, but filter blocks)
-        let closes: Vec<f64> = (0..50).map(|i| 1.0000 + (i as f64) * 0.001).collect();
+        let closes: Vec<f64> = (0..50)
+            .map(|i| 1.0000 + f64::from(i) * 0.001)
+            .collect();
         let candles = make_candles(&closes);
         let cache = setup_cache(&candles);
 
         let bid = &candles[49];
         let ask = make_candle(bid.close + 0.0002);
 
-        let ctx = BarContext::new(49, 1234567890, bid, &ask, &cache);
+        let ctx = BarContext::new(49, 1_234_567_890, bid, &ask, &cache);
 
         // Scenario 1 short should be blocked by direction filter
         let signal = strategy.scenario_1(&ctx);
@@ -2199,8 +2229,8 @@ mod tests {
         let params = MrzParams::default();
         assert_eq!(params.ema_length, 20);
         assert_eq!(params.atr_length, 14);
-        assert_eq!(params.z_score_long, -2.0);
-        assert_eq!(params.z_score_short, 2.0);
+        assert!((params.z_score_long + 2.0).abs() < 1e-10);
+        assert!((params.z_score_short - 2.0).abs() < 1e-10);
         assert_eq!(params.cluster_hysteresis_bars, 1);
         assert_eq!(
             params.intraday_vol_allowed,
@@ -2226,8 +2256,12 @@ mod tests {
         let cache = IndicatorCache::new();
         let ctx = BarContext::new(0, 1_000_000_000, &bid, &ask, &cache).with_htf(htf_ctx);
 
-        let strategy = MeanReversionZScore::new(MrzParams::default());
-        assert!(strategy.check_htf_filter(&ctx, "H1", ema_len, HtfFilter::Above));
+        assert!(MeanReversionZScore::check_htf_filter(
+            &ctx,
+            "H1",
+            ema_len,
+            HtfFilter::Above,
+        ));
     }
 
     #[test]
@@ -2245,8 +2279,12 @@ mod tests {
         let cache = IndicatorCache::new();
         let ctx = BarContext::new(0, 1_000_000_000, &bid, &ask, &cache).with_htf(htf_ctx);
 
-        let strategy = MeanReversionZScore::new(MrzParams::default());
-        assert!(strategy.check_htf_filter(&ctx, "H1", ema_len, HtfFilter::Below));
+        assert!(MeanReversionZScore::check_htf_filter(
+            &ctx,
+            "H1",
+            ema_len,
+            HtfFilter::Below,
+        ));
     }
 
     #[test]
@@ -2256,9 +2294,18 @@ mod tests {
         let cache = IndicatorCache::new();
         let ctx = BarContext::new(0, 1_000_000_000, &bid, &ask, &cache);
 
-        let strategy = MeanReversionZScore::new(MrzParams::default());
-        assert!(strategy.check_htf_filter(&ctx, "H1", 200, HtfFilter::Both));
-        assert!(strategy.check_htf_filter(&ctx, "H1", 200, HtfFilter::None));
+        assert!(MeanReversionZScore::check_htf_filter(
+            &ctx,
+            "H1",
+            200,
+            HtfFilter::Both,
+        ));
+        assert!(MeanReversionZScore::check_htf_filter(
+            &ctx,
+            "H1",
+            200,
+            HtfFilter::None,
+        ));
     }
 
     #[test]

@@ -191,7 +191,7 @@ mod tests {
 
         // First min_periods values should be NaN
         for (i, value) in result.iter().enumerate().take(10) {
-            assert!(value.is_nan(), "Expected NaN at {}", i);
+            assert!(value.is_nan(), "Expected NaN at {i}");
         }
 
         let first_finite = result
@@ -202,7 +202,7 @@ mod tests {
 
         // Values after first finite should remain finite
         for (i, value) in result.iter().enumerate().take(50).skip(first_finite) {
-            assert!(value.is_finite(), "Expected finite at {}, got {}", i, value);
+            assert!(value.is_finite(), "Expected finite at {i}, got {value}");
         }
     }
 

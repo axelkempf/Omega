@@ -147,10 +147,10 @@ mod tests {
         assert!(result[1].is_nan());
 
         // Initial ATR = (4 + 5 + 5) / 3 = 4.6666...
-        assert!((result[2] - 4.6666666667).abs() < 1e-8);
+        assert!((result[2] - 4.666_666_666_7).abs() < 1e-8);
 
         // ATR[3] = (4.6666... * 2 + 5) / 3
-        assert!((result[3] - 4.7777777778).abs() < 1e-8);
+        assert!((result[3] - 4.777_777_777_8).abs() < 1e-8);
     }
 
     #[test]

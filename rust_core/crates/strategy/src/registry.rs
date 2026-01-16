@@ -32,6 +32,7 @@ pub struct StrategyRegistry {
 
 impl StrategyRegistry {
     /// Creates a new empty registry.
+    #[must_use]
     pub fn new() -> Self {
         Self {
             factories: HashMap::new(),
@@ -39,6 +40,7 @@ impl StrategyRegistry {
     }
 
     /// Creates a registry with default strategies pre-registered.
+    #[must_use]
     pub fn with_defaults() -> Self {
         let mut registry = Self::new();
         registry.register_defaults();
@@ -83,6 +85,7 @@ impl StrategyRegistry {
     }
 
     /// Checks if a strategy is registered.
+    #[must_use]
     pub fn contains(&self, name: &str) -> bool {
         self.factories.contains_key(&name.to_lowercase())
     }
@@ -93,11 +96,13 @@ impl StrategyRegistry {
     }
 
     /// Returns the number of registered strategies.
+    #[must_use]
     pub fn len(&self) -> usize {
         self.factories.len()
     }
 
     /// Checks if the registry is empty.
+    #[must_use]
     pub fn is_empty(&self) -> bool {
         self.factories.is_empty()
     }

@@ -69,6 +69,7 @@ pub enum StopModifyReason {
 
 impl Action {
     /// Creates a close position action.
+    #[must_use]
     pub fn close(position_id: u64, reason: ExitReason) -> Self {
         Action::ClosePosition {
             position_id,
@@ -79,6 +80,7 @@ impl Action {
     }
 
     /// Creates a close position action with exit price hint.
+    #[must_use]
     pub fn close_with_price(position_id: u64, reason: ExitReason, exit_price_hint: f64) -> Self {
         Action::ClosePosition {
             position_id,
@@ -89,6 +91,7 @@ impl Action {
     }
 
     /// Creates a close position action with full details.
+    #[must_use]
     pub fn close_full(
         position_id: u64,
         reason: ExitReason,
@@ -104,6 +107,7 @@ impl Action {
     }
 
     /// Creates a modify stop loss action with effective index.
+    #[must_use]
     pub fn modify_sl(
         position_id: u64,
         new_stop_loss: f64,
@@ -119,6 +123,7 @@ impl Action {
     }
 
     /// Creates a modify take profit action with effective index.
+    #[must_use]
     pub fn modify_tp(position_id: u64, new_take_profit: f64, effective_from_idx: usize) -> Self {
         Action::ModifyTakeProfit {
             position_id,
@@ -128,11 +133,13 @@ impl Action {
     }
 
     /// Checks if this is a close action.
+    #[must_use]
     pub fn is_close(&self) -> bool {
         matches!(self, Action::ClosePosition { .. })
     }
 
     /// Checks if this is a modify action.
+    #[must_use]
     pub fn is_modify(&self) -> bool {
         matches!(
             self,
@@ -141,11 +148,12 @@ impl Action {
     }
 
     /// Gets the position ID this action targets.
+    #[must_use]
     pub fn position_id(&self) -> Option<u64> {
         match self {
-            Action::ClosePosition { position_id, .. } => Some(*position_id),
-            Action::ModifyStopLoss { position_id, .. } => Some(*position_id),
-            Action::ModifyTakeProfit { position_id, .. } => Some(*position_id),
+            Action::ClosePosition { position_id, .. }
+            | Action::ModifyStopLoss { position_id, .. }
+            | Action::ModifyTakeProfit { position_id, .. } => Some(*position_id),
             Action::None => None,
         }
     }

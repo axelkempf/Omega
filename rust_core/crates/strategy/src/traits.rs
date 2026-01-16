@@ -1,6 +1,6 @@
 //! Strategy trait and related types
 //!
-//! Defines the core Strategy trait and IndicatorRequirement for
+//! Defines the core Strategy trait and `IndicatorRequirement` for
 //! declaring indicator dependencies.
 
 use crate::context::BarContext;
@@ -73,7 +73,7 @@ pub trait Strategy: Send + Sync {
 /// engine to pre-compute them before the main loop.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct IndicatorRequirement {
-    /// Indicator name (e.g., "EMA", "ATR", "Z_SCORE")
+    /// Indicator name (e.g., "EMA", "ATR", "`Z_SCORE`")
     pub name: String,
     /// Timeframe for this indicator (None = primary timeframe)
     #[serde(default)]

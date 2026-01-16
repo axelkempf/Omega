@@ -8,17 +8,12 @@ use crate::rules::{MaxHoldingTimeRule, RuleId, RulePriority, RuleSet};
 use serde::{Deserialize, Serialize};
 
 /// Stop update policy for trade management actions.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "snake_case")]
 pub enum StopUpdatePolicy {
     /// Apply stop/TP changes from the next bar (MVP policy).
+    #[default]
     ApplyNextBar,
-}
-
-impl Default for StopUpdatePolicy {
-    fn default() -> Self {
-        StopUpdatePolicy::ApplyNextBar
-    }
 }
 
 /// Trade manager configuration.
@@ -27,7 +22,7 @@ pub struct TradeManagerConfig {
     /// Whether trade management is enabled.
     #[serde(default = "default_trade_manager_enabled")]
     pub enabled: bool,
-    /// Policy for stop updates (MVP: apply_next_bar).
+    /// Policy for stop updates (MVP: `apply_next_bar`).
     #[serde(default)]
     pub stop_update_policy: StopUpdatePolicy,
     /// Rule-specific configuration.
@@ -123,6 +118,7 @@ pub struct TradeManager {
 
 impl TradeManager {
     /// Creates a new trade manager with the given rules.
+    #[must_use]
     pub fn new(rules: RuleSet) -> Self {
         Self { rules }
     }
@@ -131,6 +127,7 @@ impl TradeManager {
     ///
     /// When `max_holding_minutes` is 0 in the config, `fallback_max_holding_minutes`
     /// is used (e.g., mapped from strategy parameters).
+    #[must_use]
     pub fn from_config(
         config: &TradeManagerConfig,
         bar_duration_ns: i64,
@@ -162,6 +159,7 @@ impl TradeManager {
     }
 
     /// Creates an empty trade manager (no rules).
+    #[must_use]
     pub fn empty() -> Self {
         Self {
             rules: RuleSet::new(),
@@ -176,6 +174,7 @@ impl TradeManager {
     /// # Arguments
     /// * `ctx` - Trade context with market data and session state
     /// * `positions` - Slice of open positions to evaluate
+    #[must_use]
     pub fn evaluate(&self, ctx: &TradeContext, positions: &[PositionView]) -> Vec<Action> {
         let mut actions = Vec::new();
 
@@ -228,11 +227,13 @@ impl TradeManager {
     }
 
     /// Returns the number of rules.
+    #[must_use]
     pub fn rule_count(&self) -> usize {
         self.rules.len()
     }
 
     /// Checks if the manager has any rules.
+    #[must_use]
     pub fn has_rules(&self) -> bool {
         !self.rules.is_empty()
     }
@@ -244,7 +245,7 @@ impl Default for TradeManager {
     }
 }
 
-/// Builder for creating a TradeManager with a fluent API.
+/// Builder for creating a `TradeManager` with a fluent API.
 #[derive(Default)]
 pub struct TradeManagerBuilder {
     rules: RuleSet,
@@ -252,6 +253,7 @@ pub struct TradeManagerBuilder {
 
 impl TradeManagerBuilder {
     /// Creates a new builder.
+    #[must_use]
     pub fn new() -> Self {
         Self {
             rules: RuleSet::new(),
@@ -259,12 +261,14 @@ impl TradeManagerBuilder {
     }
 
     /// Adds a rule to the builder.
+    #[must_use]
     pub fn with_rule<R: crate::rules::Rule + 'static>(mut self, rule: R) -> Self {
         self.rules.add(rule);
         self
     }
 
     /// Builds the trade manager.
+    #[must_use]
     pub fn build(self) -> TradeManager {
         TradeManager::new(self.rules)
     }
@@ -280,7 +284,7 @@ mod tests {
     struct DummyRule {
         id: RuleId,
         priority: RulePriority,
-        name: String,
+        name: &'static str,
         action: Action,
         scenarios: Vec<u8>,
     }
@@ -298,8 +302,8 @@ mod tests {
             Some(self.action.clone())
         }
 
-        fn name(&self) -> &str {
-            &self.name
+        fn name(&self) -> &'static str {
+            self.name
         }
 
         fn applies_to_scenario(&self, scenario_id: u8) -> bool {
@@ -331,8 +335,8 @@ mod tests {
         assert_eq!(manager.rule_count(), 0);
         assert!(!manager.has_rules());
 
-        let positions = vec![make_position_view(1, Direction::Long, 1000000000, 1)];
-        let ctx = make_context(2000000000000);
+        let positions = vec![make_position_view(1, Direction::Long, 1_000_000_000, 1)];
+        let ctx = make_context(2_000_000_000_000);
         let actions = manager.evaluate(&ctx, &positions);
 
         assert!(actions.is_empty());
@@ -345,10 +349,10 @@ mod tests {
 
         let manager = TradeManager::new(rules);
 
-        let positions = vec![make_position_view(1, Direction::Long, 1000000000, 1)];
+        let positions = vec![make_position_view(1, Direction::Long, 1_000_000_000, 1)];
 
         // 11 minutes later
-        let timestamp_ns = 1000000000 + (11 * 60_000_000_000);
+        let timestamp_ns = 1_000_000_000 + (11 * 60_000_000_000);
         let ctx = make_context(timestamp_ns);
         let actions = manager.evaluate(&ctx, &positions);
 
@@ -369,24 +373,24 @@ mod tests {
         rules.add(DummyRule {
             id: RuleId::from("rule_b"),
             priority: RulePriority::new(20),
-            name: "rule_b".to_string(),
+            name: "rule_b",
             action: Action::close_full(1, ExitReason::Timeout, Some(1.1000), serde_json::json!({})),
             scenarios: Vec::new(),
         });
         rules.add(DummyRule {
             id: RuleId::from("rule_a"),
             priority: RulePriority::new(10),
-            name: "rule_a".to_string(),
+            name: "rule_a",
             action: Action::close_full(1, ExitReason::Timeout, Some(1.2000), serde_json::json!({})),
             scenarios: Vec::new(),
         });
 
         let manager = TradeManager::new(rules);
 
-        let positions = vec![make_position_view(1, Direction::Long, 1000000000, 1)];
+        let positions = vec![make_position_view(1, Direction::Long, 1_000_000_000, 1)];
 
         // 15 minutes later (both rules would trigger)
-        let timestamp_ns = 1000000000 + (15 * 60_000_000_000);
+        let timestamp_ns = 1_000_000_000 + (15 * 60_000_000_000);
         let ctx = make_context(timestamp_ns);
         let actions = manager.evaluate(&ctx, &positions);
 
@@ -407,22 +411,22 @@ mod tests {
         rules.add(DummyRule {
             id: RuleId::from("modify_first"),
             priority: RulePriority::new(0),
-            name: "modify_first".to_string(),
+            name: "modify_first",
             action: Action::modify_sl(1, 1.0900, crate::actions::StopModifyReason::Manual, 1),
             scenarios: Vec::new(),
         });
         rules.add(DummyRule {
             id: RuleId::from("close_later"),
             priority: RulePriority::new(50),
-            name: "close_later".to_string(),
+            name: "close_later",
             action: Action::close_full(1, ExitReason::Timeout, Some(1.1005), serde_json::json!({})),
             scenarios: Vec::new(),
         });
 
         let manager = TradeManager::new(rules);
-        let positions = vec![make_position_view(1, Direction::Long, 1000000000, 1)];
+        let positions = vec![make_position_view(1, Direction::Long, 1_000_000_000, 1)];
 
-        let timestamp_ns = 1000000000 + (15 * 60_000_000_000);
+        let timestamp_ns = 1_000_000_000 + (15 * 60_000_000_000);
         let ctx = make_context(timestamp_ns);
         let actions = manager.evaluate(&ctx, &positions);
 
@@ -457,9 +461,9 @@ mod tests {
         let manager = TradeManager::new(rules);
 
         // Position with scenario 1 (rule doesn't apply)
-        let positions = vec![make_position_view(1, Direction::Long, 1000000000, 1)];
+        let positions = vec![make_position_view(1, Direction::Long, 1_000_000_000, 1)];
 
-        let timestamp_ns = 1000000000 + (15 * 60_000_000_000);
+        let timestamp_ns = 1_000_000_000 + (15 * 60_000_000_000);
         let ctx = make_context(timestamp_ns);
         let actions = manager.evaluate(&ctx, &positions);
 
@@ -475,19 +479,19 @@ mod tests {
         let manager = TradeManager::new(rules);
 
         let positions = vec![
-            make_position_view(1, Direction::Long, 1000000000, 1), // Will timeout
+            make_position_view(1, Direction::Long, 1_000_000_000, 1), // Will timeout
             make_position_view(2, Direction::Short, 500_000_000_000, 1), // Won't timeout
             make_position_view(3, Direction::Long, 100_000_000_000, 1), // Will timeout
         ];
 
-        let timestamp_ns = 1000000000 + (15 * 60_000_000_000);
+        let timestamp_ns = 1_000_000_000 + (15 * 60_000_000_000);
         let ctx = make_context(timestamp_ns);
         let actions = manager.evaluate(&ctx, &positions);
 
         // Position 1 and 3 should timeout
         assert_eq!(actions.len(), 2);
 
-        let position_ids: Vec<u64> = actions.iter().filter_map(|a| a.position_id()).collect();
+        let position_ids: Vec<u64> = actions.iter().filter_map(Action::position_id).collect();
         assert!(position_ids.contains(&1));
         assert!(position_ids.contains(&3));
         assert!(!position_ids.contains(&2));

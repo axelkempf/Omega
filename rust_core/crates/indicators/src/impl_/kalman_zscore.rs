@@ -135,7 +135,7 @@ mod tests {
 
         // Rest should be finite
         for (i, value) in result.iter().enumerate().take(10).skip(4) {
-            assert!(value.is_finite(), "Expected finite at {}, got {}", i, value);
+            assert!(value.is_finite(), "Expected finite at {i}, got {value}");
         }
     }
 

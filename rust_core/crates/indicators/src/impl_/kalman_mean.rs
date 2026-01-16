@@ -109,7 +109,7 @@ mod tests {
         assert!((result[0] - 100.0).abs() < 1e-10);
 
         // Should stay near 100
-        for level in result.iter() {
+        for level in &result {
             assert!((level - 100.0).abs() < 1e-6);
         }
     }
@@ -129,23 +129,23 @@ mod tests {
 
         assert!(
             kalman_var < price_var,
-            "Kalman should smooth: {} vs {}",
-            kalman_var,
-            price_var
+            "Kalman should smooth: {kalman_var} vs {price_var}"
         );
     }
 
     #[test]
     fn test_kalman_tracks_trend() {
         // Linear trend
-        let prices: Vec<f64> = (0..20).map(|i| 100.0 + i as f64).collect();
+        let prices: Vec<f64> = (0..20_u32)
+            .map(|i| 100.0 + f64::from(i))
+            .collect();
         let kalman = KalmanFilter::new(0.5, 0.1);
         let result = kalman.compute_level(&prices);
 
         // Should track the trend (with some lag)
         // Last value should be close to last price
         let last_diff = (result[19] - prices[19]).abs();
-        assert!(last_diff < 2.0, "Should track trend: diff = {}", last_diff);
+        assert!(last_diff < 2.0, "Should track trend: diff = {last_diff}");
     }
 
     #[test]

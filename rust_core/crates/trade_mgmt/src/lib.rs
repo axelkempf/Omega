@@ -5,9 +5,9 @@
 //!
 //! # Features
 //! - Rule trait for implementing trade management rules
-//! - TradeManager for evaluating rules against positions
-//! - Built-in rules: MaxHoldingTime (MVP), BreakEven/Trailing (Post-MVP)
-//! - Read-only context types (PositionView, MarketView, TradeContext)
+//! - `TradeManager` for evaluating rules against positions
+//! - Built-in rules: `MaxHoldingTime` (MVP), `BreakEven`/`Trailing` (Post-MVP)
+//! - Read-only context types (`PositionView`, `MarketView`, `TradeContext`)
 //!
 //! # Example
 //! ```ignore

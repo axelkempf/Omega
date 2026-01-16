@@ -203,7 +203,9 @@ mod tests {
 
     #[test]
     fn test_local_garch_window_length() {
-        let prices = (0..10).map(|i| 1.0 + i as f64 * 0.01).collect::<Vec<_>>();
+        let prices = (0..10_u32)
+            .map(|i| 1.0 + f64::from(i) * 0.01)
+            .collect::<Vec<_>>();
         let params = GarchLocalParams::new(0.1, 0.8, None);
         let out = garch_volatility_local(&prices, 5, 4, params);
         assert_eq!(out.len(), 4);

@@ -14,11 +14,13 @@ pub struct RuleId(String);
 
 impl RuleId {
     /// Creates a new rule identifier.
+    #[must_use]
     pub fn new(value: impl Into<String>) -> Self {
         Self(value.into())
     }
 
     /// Returns the identifier as a string slice.
+    #[must_use]
     pub fn as_str(&self) -> &str {
         &self.0
     }
@@ -36,7 +38,7 @@ impl From<&str> for RuleId {
 pub struct RulePriority(u16);
 
 impl RulePriority {
-    /// Hard close priority (e.g. MaxHoldingTime).
+    /// Hard close priority (e.g. `MaxHoldingTime`).
     pub const HARD_CLOSE: Self = Self(10);
     /// Protective stop priority (e.g. Break-even).
     pub const PROTECTIVE_STOP: Self = Self(20);
@@ -44,11 +46,13 @@ impl RulePriority {
     pub const TRAILING: Self = Self(30);
 
     /// Creates a new priority value.
+    #[must_use]
     pub const fn new(value: u16) -> Self {
         Self(value)
     }
 
     /// Returns the numeric priority value.
+    #[must_use]
     pub const fn value(self) -> u16 {
         self.0
     }
@@ -79,7 +83,7 @@ pub trait Rule: Send + Sync {
     fn evaluate(&self, ctx: &TradeContext, position: &PositionView) -> Option<Action>;
 
     /// Name of the rule for logging/debugging.
-    fn name(&self) -> &str;
+    fn name(&self) -> &'static str;
 
     /// Checks if this rule applies to the given scenario.
     fn applies_to_scenario(&self, scenario_id: u8) -> bool {
@@ -97,6 +101,7 @@ pub struct RuleSet {
 
 impl RuleSet {
     /// Creates a new empty rule set.
+    #[must_use]
     pub fn new() -> Self {
         Self { rules: Vec::new() }
     }
@@ -108,15 +113,17 @@ impl RuleSet {
 
     /// Returns an iterator over the rules.
     pub fn iter(&self) -> impl Iterator<Item = &dyn Rule> {
-        self.rules.iter().map(|r| r.as_ref())
+        self.rules.iter().map(AsRef::as_ref)
     }
 
     /// Returns the number of rules.
+    #[must_use]
     pub fn len(&self) -> usize {
         self.rules.len()
     }
 
     /// Checks if the rule set is empty.
+    #[must_use]
     pub fn is_empty(&self) -> bool {
         self.rules.is_empty()
     }
@@ -141,6 +148,7 @@ pub struct MaxHoldingTimeRule {
 
 impl MaxHoldingTimeRule {
     /// Creates a new max holding time rule.
+    #[must_use]
     pub fn new(max_bars: usize, bar_duration_ns: i64) -> Self {
         Self {
             max_bars,
@@ -150,16 +158,23 @@ impl MaxHoldingTimeRule {
     }
 
     /// Creates a rule that only applies to specific scenarios.
+    #[must_use]
     pub fn with_scenarios(mut self, scenarios: Vec<u8>) -> Self {
         self.only_scenarios = scenarios;
         self
     }
 
     /// Creates a rule from minutes using the bar duration.
+    #[must_use]
     pub fn from_minutes(max_minutes: u64, bar_duration_ns: i64) -> Self {
-        let max_time_ns = (max_minutes as i64) * 60 * 1_000_000_000;
-        let max_bars = (max_time_ns / bar_duration_ns) as usize;
-        Self::new(max_bars.max(1), bar_duration_ns)
+        let safe_bar_ns = bar_duration_ns.max(1);
+        let bar_duration_ns_u64 = u64::try_from(safe_bar_ns).unwrap_or(1);
+        let max_time_ns = max_minutes
+            .saturating_mul(60)
+            .saturating_mul(1_000_000_000);
+        let max_bars_u64 = max_time_ns / bar_duration_ns_u64;
+        let max_bars = usize::try_from(max_bars_u64).unwrap_or(usize::MAX);
+        Self::new(max_bars.max(1), safe_bar_ns)
     }
 }
 
@@ -173,10 +188,16 @@ impl Rule for MaxHoldingTimeRule {
     }
 
     fn evaluate(&self, ctx: &TradeContext, position: &PositionView) -> Option<Action> {
-        let holding_ns = ctx.market.timestamp_ns - position.entry_time_ns;
-        let holding_bars = holding_ns / self.bar_duration_ns;
+        if self.bar_duration_ns <= 0 {
+            return None;
+        }
 
-        if holding_bars as usize >= self.max_bars {
+        let holding_ns = (ctx.market.timestamp_ns - position.entry_time_ns).max(0);
+        let holding_bars = holding_ns / self.bar_duration_ns;
+        let holding_bars_u64 = u64::try_from(holding_bars).unwrap_or(0);
+        let max_bars_u64 = u64::try_from(self.max_bars).unwrap_or(u64::MAX);
+
+        if holding_bars_u64 >= max_bars_u64 {
             // Exit price: bid_close for long, ask_close for short
             let exit_price = ctx.market.exit_price(position.direction);
 
@@ -190,7 +211,7 @@ impl Rule for MaxHoldingTimeRule {
         None
     }
 
-    fn name(&self) -> &str {
+    fn name(&self) -> &'static str {
         "max_holding_time"
     }
 
@@ -221,6 +242,7 @@ pub struct BreakEvenRule {
 
 impl BreakEvenRule {
     /// Creates a new break-even rule (disabled by default).
+    #[must_use]
     pub fn new(trigger_distance: f64, buffer: f64) -> Self {
         Self {
             trigger_distance,
@@ -231,6 +253,7 @@ impl BreakEvenRule {
     }
 
     /// Creates an enabled break-even rule.
+    #[must_use]
     pub fn enabled(trigger_distance: f64, buffer: f64) -> Self {
         Self {
             trigger_distance,
@@ -241,6 +264,7 @@ impl BreakEvenRule {
     }
 
     /// Creates a rule that only applies to specific scenarios.
+    #[must_use]
     pub fn with_scenarios(mut self, scenarios: Vec<u8>) -> Self {
         self.only_scenarios = scenarios;
         self
@@ -306,7 +330,7 @@ impl Rule for BreakEvenRule {
         None
     }
 
-    fn name(&self) -> &str {
+    fn name(&self) -> &'static str {
         "break_even"
     }
 
@@ -336,6 +360,7 @@ pub struct TrailingStopRule {
 
 impl TrailingStopRule {
     /// Creates a new trailing stop rule (disabled by default).
+    #[must_use]
     pub fn new(trail_distance: f64, activation_distance: f64) -> Self {
         Self {
             trail_distance,
@@ -346,6 +371,7 @@ impl TrailingStopRule {
     }
 
     /// Creates an enabled trailing stop rule.
+    #[must_use]
     pub fn enabled(trail_distance: f64, activation_distance: f64) -> Self {
         Self {
             trail_distance,
@@ -356,6 +382,7 @@ impl TrailingStopRule {
     }
 
     /// Creates a rule that only applies to specific scenarios.
+    #[must_use]
     pub fn with_scenarios(mut self, scenarios: Vec<u8>) -> Self {
         self.only_scenarios = scenarios;
         self
@@ -421,7 +448,7 @@ impl Rule for TrailingStopRule {
         None
     }
 
-    fn name(&self) -> &str {
+    fn name(&self) -> &'static str {
         "trailing_stop"
     }
 
@@ -442,7 +469,7 @@ mod tests {
         entry_price: f64,
         stop_loss: f64,
     ) -> PositionView {
-        PositionView::new(id, "EURUSD", direction, 1000000000, entry_price, 0.1)
+        PositionView::new(id, "EURUSD", direction, 1_000_000_000, entry_price, 0.1)
             .with_stop_loss(stop_loss)
             .with_take_profit(entry_price + 0.01)
     }
@@ -459,7 +486,7 @@ mod tests {
         let position = make_position_view(1, Direction::Long, 1.1000, 1.0950);
 
         // 11 minutes later (11 bars)
-        let timestamp_ns = 1000000000 + (11 * 60_000_000_000);
+        let timestamp_ns = 1_000_000_000 + (11 * 60_000_000_000);
         let ctx = make_context(timestamp_ns, 1.1010, 1.1012);
         let action = rule.evaluate(&ctx, &position);
 
@@ -479,7 +506,7 @@ mod tests {
 
         let position = make_position_view(2, Direction::Short, 1.1000, 1.1050);
 
-        let timestamp_ns = 1000000000 + (11 * 60_000_000_000);
+        let timestamp_ns = 1_000_000_000 + (11 * 60_000_000_000);
         let ctx = make_context(timestamp_ns, 1.0995, 1.0998);
         let action = rule.evaluate(&ctx, &position);
 
@@ -500,7 +527,7 @@ mod tests {
         let position = make_position_view(1, Direction::Long, 1.1000, 1.0950);
 
         // 5 minutes later (5 bars)
-        let timestamp_ns = 1000000000 + (5 * 60_000_000_000);
+        let timestamp_ns = 1_000_000_000 + (5 * 60_000_000_000);
         let ctx = make_context(timestamp_ns, 1.1010, 1.1012);
         let action = rule.evaluate(&ctx, &position);
 
@@ -639,7 +666,7 @@ mod tests {
         assert_eq!(rules.len(), 2);
         assert!(!rules.is_empty());
 
-        let names: Vec<_> = rules.iter().map(|r| r.name()).collect();
+        let names: Vec<_> = rules.iter().map(Rule::name).collect();
         assert!(names.contains(&"max_holding_time"));
         assert!(names.contains(&"break_even"));
     }

@@ -565,7 +565,7 @@ defaults:
                 let s1 = model.calculate(1.2000, Direction::Long, &mut rng);
                 let s2 = model.calculate(1.2000, Direction::Long, &mut rng);
 
-                assert!(s1.abs() > 0.0);
-                assert_ne!(s1, s2);
+                assert!(s1.abs() > f64::EPSILON);
+                assert!((s1 - s2).abs() > 1e-12);
         }
 }
