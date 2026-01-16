@@ -6,19 +6,21 @@ use crate::impl_::atr::ATR;
 use crate::impl_::bollinger::BollingerBands;
 use crate::impl_::ema::EMA;
 use crate::impl_::garch_volatility_local::{
-    garch_volatility_local as garch_volatility_local_fn, GarchLocalParams,
+    GarchLocalParams, garch_volatility_local as garch_volatility_local_fn,
 };
 use crate::impl_::kalman_garch_zscore_local::{
-    kalman_garch_zscore_local as kalman_garch_zscore_local_fn, KalmanGarchLocalParams,
+    KalmanGarchLocalParams, kalman_garch_zscore_local as kalman_garch_zscore_local_fn,
 };
 use crate::impl_::kalman_zscore::KalmanZScore;
-use crate::impl_::vol_cluster_series::{vol_cluster_series, VolFeatureSeries};
+use crate::impl_::vol_cluster_series::{VolFeatureSeries, vol_cluster_series};
+use crate::impl_::z_score::ZScore;
+use crate::traits::ZScoreMeanSource;
 use crate::traits::{
     Indicator, IndicatorSpec, MultiOutputIndicator, PriceSeries, TimeframeMapping,
 };
-use crate::{build_mapping, IndicatorCache, IndicatorParams};
+use crate::{IndicatorCache, IndicatorParams, build_mapping};
 
-/// Multi-timeframe indicator cache with price_type support.
+/// Multi-timeframe indicator cache with `price_type` support.
 #[derive(Debug)]
 pub struct MultiTfIndicatorCache {
     primary_timeframe: Timeframe,
@@ -52,6 +54,7 @@ pub struct VolClusterRequest<'a> {
 
 impl MultiTfIndicatorCache {
     /// Creates a new cache from primary candle store and additional timeframe stores.
+    #[must_use]
     pub fn new(
         primary_timeframe: Timeframe,
         primary_bid: Vec<Candle>,
@@ -79,8 +82,14 @@ impl MultiTfIndicatorCache {
             let tf_timestamps: Vec<i64> = bid.iter().map(|c| c.timestamp_ns).collect();
             let mapping = build_mapping(&primary_timestamps, &tf_timestamps, tf);
             mappings.insert(tf, mapping);
-            stores.insert((tf, PriceType::Bid), build_price_series(tf, PriceType::Bid, &bid));
-            stores.insert((tf, PriceType::Ask), build_price_series(tf, PriceType::Ask, &ask));
+            stores.insert(
+                (tf, PriceType::Bid),
+                build_price_series(tf, PriceType::Bid, &bid),
+            );
+            stores.insert(
+                (tf, PriceType::Ask),
+                build_price_series(tf, PriceType::Ask, &ask),
+            );
             candles.insert((tf, PriceType::Bid), bid);
             candles.insert((tf, PriceType::Ask), ask);
         }
@@ -98,43 +107,46 @@ impl MultiTfIndicatorCache {
     }
 
     /// Returns primary timeframe.
+    #[must_use]
     pub fn primary_timeframe(&self) -> Timeframe {
         self.primary_timeframe
     }
 
     /// Returns primary timestamps.
+    #[must_use]
     pub fn primary_timestamps(&self) -> &[i64] {
         &self.primary_timestamps
     }
 
     /// Returns price series for a timeframe and price type.
+    #[must_use]
     pub fn get_prices(&self, timeframe: Timeframe, price_type: PriceType) -> Option<&PriceSeries> {
         self.stores.get(&(timeframe, price_type))
     }
 
     /// Returns candle series for a timeframe and price type.
+    #[must_use]
     pub fn get_candles(&self, timeframe: Timeframe, price_type: PriceType) -> Option<&[Candle]> {
         self.candles
             .get(&(timeframe, price_type))
-            .map(|c| c.as_slice())
+            .map(Vec::as_slice)
     }
 
     /// Returns mapping for a target timeframe.
+    #[must_use]
     pub fn mapping(&self, timeframe: Timeframe) -> Option<&TimeframeMapping> {
         self.mappings.get(&timeframe)
     }
 
     /// Returns aligned close series (vector) for timeframe + price type.
+    #[must_use]
     pub fn get_closes(&self, timeframe: Timeframe, price_type: PriceType) -> Option<&[f64]> {
-        self.get_prices(timeframe, price_type).map(|p| p.close.as_slice())
+        self.get_prices(timeframe, price_type)
+            .map(|p| p.close.as_slice())
     }
 
     /// Returns close series aligned to the primary timeframe.
-    pub fn closes_aligned(
-        &mut self,
-        timeframe: Timeframe,
-        price_type: PriceType,
-    ) -> Vec<f64> {
+    pub fn closes_aligned(&mut self, timeframe: Timeframe, price_type: PriceType) -> Vec<f64> {
         let spec = IndicatorSpec::new(
             "CLOSE_ALIGNED",
             cache_params(timeframe, price_type, [("period", 1)]),
@@ -143,9 +155,8 @@ impl MultiTfIndicatorCache {
             return values.clone();
         }
 
-        let series = match self.get_series(timeframe, price_type) {
-            Some(series) => series,
-            None => return vec![f64::NAN; self.primary_timestamps.len()],
+        let Some(series) = self.get_series(timeframe, price_type) else {
+            return vec![f64::NAN; self.primary_timestamps.len()];
         };
 
         let aligned = map_series(
@@ -158,6 +169,7 @@ impl MultiTfIndicatorCache {
     }
 
     /// Returns aligned OHLC close series for timeframe + price type.
+    #[must_use]
     pub fn get_series(&self, timeframe: Timeframe, price_type: PriceType) -> Option<&PriceSeries> {
         self.get_prices(timeframe, price_type)
     }
@@ -166,15 +178,14 @@ impl MultiTfIndicatorCache {
     pub fn atr(&mut self, timeframe: Timeframe, price_type: PriceType, period: usize) -> Vec<f64> {
         let spec = IndicatorSpec::new(
             "ATR",
-            cache_params(timeframe, price_type, [("period", period as i64)]),
+            cache_params(timeframe, price_type, [("period", usize_to_i64(period))]),
         );
         if let Some(values) = self.cache.get(&spec) {
             return values.clone();
         }
 
-        let candles = match self.get_candles(timeframe, price_type) {
-            Some(candles) => candles,
-            None => return vec![f64::NAN; self.primary_timestamps.len()],
+        let Some(candles) = self.get_candles(timeframe, price_type) else {
+            return vec![f64::NAN; self.primary_timestamps.len()];
         };
 
         let atr = ATR::new(period).compute(candles);
@@ -187,15 +198,14 @@ impl MultiTfIndicatorCache {
     pub fn ema(&mut self, timeframe: Timeframe, price_type: PriceType, period: usize) -> Vec<f64> {
         let spec = IndicatorSpec::new(
             "EMA",
-            cache_params(timeframe, price_type, [("period", period as i64)]),
+            cache_params(timeframe, price_type, [("period", usize_to_i64(period))]),
         );
         if let Some(values) = self.cache.get(&spec) {
             return values.clone();
         }
 
-        let candles = match self.get_candles(timeframe, price_type) {
-            Some(candles) => candles,
-            None => return vec![f64::NAN; self.primary_timestamps.len()],
+        let Some(candles) = self.get_candles(timeframe, price_type) else {
+            return vec![f64::NAN; self.primary_timestamps.len()];
         };
 
         let ema = EMA::new(period).compute(candles);
@@ -218,8 +228,8 @@ impl MultiTfIndicatorCache {
                 timeframe,
                 price_type,
                 [
-                    ("window", window as i64),
-                    ("ema_period", ema_period as i64),
+                    ("window", usize_to_i64(window)),
+                    ("ema_period", usize_to_i64(ema_period)),
                 ],
             ),
         );
@@ -227,28 +237,12 @@ impl MultiTfIndicatorCache {
             return values.clone();
         }
 
-        let candles = match self.get_candles(timeframe, price_type) {
-            Some(candles) => candles,
-            None => return vec![f64::NAN; self.primary_timestamps.len()],
+        let Some(candles) = self.get_candles(timeframe, price_type) else {
+            return vec![f64::NAN; self.primary_timestamps.len()];
         };
 
-        let ema = EMA::new(ema_period).compute(candles);
-        let mut residuals = Vec::with_capacity(candles.len());
-        for (candle, ema_value) in candles.iter().zip(ema.iter()) {
-            residuals.push(candle.close - ema_value);
-        }
-
-        let mut z = vec![f64::NAN; residuals.len()];
-        if window > 0 && residuals.len() >= window {
-            for i in (window - 1)..residuals.len() {
-                let start = i + 1 - window;
-                let window_vals = &residuals[start..=i];
-                let std = sample_std(window_vals);
-                if std.is_finite() && std > 0.0 {
-                    z[i] = residuals[i] / std;
-                }
-            }
-        }
+        let z = ZScore::with_mean_source(window, ZScoreMeanSource::Ema, Some(ema_period))
+            .compute(candles);
 
         let aligned = map_series(self.mapping(timeframe), &z, self.primary_timestamps.len());
         self.cache.insert(spec, aligned.clone());
@@ -264,24 +258,22 @@ impl MultiTfIndicatorCache {
     ) -> Vec<f64> {
         let spec = IndicatorSpec::new(
             "EMA_STEPWISE",
-            cache_params(timeframe, price_type, [
-                ("period", period as i64),
-            ]),
+            cache_params(timeframe, price_type, [("period", usize_to_i64(period))]),
         );
         if let Some(values) = self.cache.get(&spec) {
             return values.clone();
         }
 
-        let series = match self.get_series(timeframe, price_type) {
-            Some(series) => series,
-            None => return vec![f64::NAN; self.primary_timestamps.len()],
+        let Some(series) = self.get_series(timeframe, price_type) else {
+            return vec![f64::NAN; self.primary_timestamps.len()];
         };
 
         let tf_values = series.close.clone();
         let reduced = reduce_by_mapping(self.mapping(timeframe), &tf_values);
 
         let ema = EMA::new(period).compute(&candles_from_close(&reduced));
-        let expanded = expand_by_mapping(self.mapping(timeframe), &ema, self.primary_timestamps.len());
+        let expanded =
+            expand_by_mapping(self.mapping(timeframe), &ema, self.primary_timestamps.len());
 
         self.cache.insert(spec, expanded.clone());
         expanded
@@ -297,10 +289,14 @@ impl MultiTfIndicatorCache {
     ) -> (Vec<f64>, Vec<f64>, Vec<f64>) {
         let spec = IndicatorSpec::new(
             "BOLLINGER_STEPWISE",
-            cache_params(timeframe, price_type, [
-                ("period", period as i64),
-                ("std_factor_x100", (std_factor * 100.0).round() as i64),
-            ]),
+            cache_params(
+                timeframe,
+                price_type,
+                [
+                    ("period", usize_to_i64(period)),
+                    ("std_factor_x100", round_to_i64(std_factor * 100.0)),
+                ],
+            ),
         );
 
         let upper_spec = spec.with_output_suffix("upper");
@@ -315,12 +311,9 @@ impl MultiTfIndicatorCache {
             return (u.clone(), m.clone(), l.clone());
         }
 
-        let series = match self.get_series(timeframe, price_type) {
-            Some(series) => series,
-            None => {
-                let nan = vec![f64::NAN; self.primary_timestamps.len()];
-                return (nan.clone(), nan.clone(), nan);
-            }
+        let Some(series) = self.get_series(timeframe, price_type) else {
+            let nan = vec![f64::NAN; self.primary_timestamps.len()];
+            return (nan.clone(), nan.clone(), nan);
         };
 
         let tf_values = series.close.clone();
@@ -329,9 +322,21 @@ impl MultiTfIndicatorCache {
         let bb = BollingerBands::new(period, std_factor);
         let result = bb.compute_all(&candles_from_close(&reduced));
 
-        let upper = expand_by_mapping(self.mapping(timeframe), &result.upper, self.primary_timestamps.len());
-        let middle = expand_by_mapping(self.mapping(timeframe), &result.middle, self.primary_timestamps.len());
-        let lower = expand_by_mapping(self.mapping(timeframe), &result.lower, self.primary_timestamps.len());
+        let upper = expand_by_mapping(
+            self.mapping(timeframe),
+            &result.upper,
+            self.primary_timestamps.len(),
+        );
+        let middle = expand_by_mapping(
+            self.mapping(timeframe),
+            &result.middle,
+            self.primary_timestamps.len(),
+        );
+        let lower = expand_by_mapping(
+            self.mapping(timeframe),
+            &result.lower,
+            self.primary_timestamps.len(),
+        );
 
         self.cache.insert(upper_spec, upper.clone());
         self.cache.insert(mid_spec, middle.clone());
@@ -351,19 +356,22 @@ impl MultiTfIndicatorCache {
     ) -> Vec<f64> {
         let spec = IndicatorSpec::new(
             "KALMAN_ZSCORE_STEPWISE",
-            cache_params(timeframe, price_type, [
-                ("window", window as i64),
-                ("r_x1000", (r * 1000.0).round() as i64),
-                ("q_x1000", (q * 1000.0).round() as i64),
-            ]),
+            cache_params(
+                timeframe,
+                price_type,
+                [
+                    ("window", usize_to_i64(window)),
+                    ("r_x1000", round_to_i64(r * 1000.0)),
+                    ("q_x1000", round_to_i64(q * 1000.0)),
+                ],
+            ),
         );
         if let Some(values) = self.cache.get(&spec) {
             return values.clone();
         }
 
-        let series = match self.get_series(timeframe, price_type) {
-            Some(series) => series,
-            None => return vec![f64::NAN; self.primary_timestamps.len()],
+        let Some(series) = self.get_series(timeframe, price_type) else {
+            return vec![f64::NAN; self.primary_timestamps.len()];
         };
 
         let tf_values = series.close.clone();
@@ -371,7 +379,8 @@ impl MultiTfIndicatorCache {
 
         let kz = KalmanZScore::new(window, r, q);
         let z = kz.compute(&candles_from_close(&reduced));
-        let expanded = expand_by_mapping(self.mapping(timeframe), &z, self.primary_timestamps.len());
+        let expanded =
+            expand_by_mapping(self.mapping(timeframe), &z, self.primary_timestamps.len());
 
         self.cache.insert(spec, expanded.clone());
         expanded
@@ -392,24 +401,18 @@ impl MultiTfIndicatorCache {
                 timeframe,
                 price_type,
                 [
-                    ("idx", idx as i64),
-                    ("lookback", lookback as i64),
-                    ("alpha_x1000", (params.alpha * 1000.0).round() as i64),
-                    ("beta_x1000", (params.beta * 1000.0).round() as i64),
+                    ("idx", usize_to_i64(idx)),
+                    ("lookback", usize_to_i64(lookback)),
+                    ("alpha_x1000", round_to_i64(params.alpha * 1000.0)),
+                    ("beta_x1000", round_to_i64(params.beta * 1000.0)),
                     (
                         "omega_x1000000",
-                        params
-                            .omega
-                            .map(|v| (v * 1_000_000.0).round() as i64)
-                            .unwrap_or(-1),
+                        params.omega.map_or(-1, |v| round_to_i64(v * 1_000_000.0)),
                     ),
                     ("use_log_returns", bool_code(params.use_log_returns)),
-                    ("scale_x100", (params.scale * 100.0).round() as i64),
-                    ("min_periods", params.min_periods as i64),
-                    (
-                        "sigma_floor_x1e8",
-                        (params.sigma_floor * 1e8).round() as i64,
-                    ),
+                    ("scale_x100", round_to_i64(params.scale * 100.0)),
+                    ("min_periods", usize_to_i64(params.min_periods)),
+                    ("sigma_floor_x1e8", round_to_i64(params.sigma_floor * 1e8)),
                 ],
             ),
         );
@@ -417,9 +420,8 @@ impl MultiTfIndicatorCache {
             return values.clone();
         }
 
-        let series = match self.get_series(timeframe, price_type) {
-            Some(series) => series,
-            None => return Vec::new(),
+        let Some(series) = self.get_series(timeframe, price_type) else {
+            return Vec::new();
         };
         let aligned = map_series(
             self.mapping(timeframe),
@@ -450,25 +452,22 @@ impl MultiTfIndicatorCache {
                 timeframe,
                 price_type,
                 [
-                    ("idx", idx as i64),
-                    ("lookback", lookback as i64),
-                    ("r_x1000", (params.r * 1000.0).round() as i64),
-                    ("q_x1000", (params.q * 1000.0).round() as i64),
-                    ("alpha_x1000", (params.alpha * 1000.0).round() as i64),
-                    ("beta_x1000", (params.beta * 1000.0).round() as i64),
+                    ("idx", usize_to_i64(idx)),
+                    ("lookback", usize_to_i64(lookback)),
+                    ("r_x1000", round_to_i64(params.r * 1000.0)),
+                    ("q_x1000", round_to_i64(params.q * 1000.0)),
+                    ("alpha_x1000", round_to_i64(params.alpha * 1000.0)),
+                    ("beta_x1000", round_to_i64(params.beta * 1000.0)),
                     (
                         "omega_x1000000",
-                        params
-                            .omega
-                            .map(|v| (v * 1_000_000.0).round() as i64)
-                            .unwrap_or(-1),
+                        params.omega.map_or(-1, |v| round_to_i64(v * 1_000_000.0)),
                     ),
                     ("use_log_returns", bool_code(params.use_log_returns)),
-                    ("scale_x100", (params.scale * 100.0).round() as i64),
-                    ("min_periods", params.min_periods as i64),
+                    ("scale_x100", round_to_i64(params.scale * 100.0)),
+                    ("min_periods", usize_to_i64(params.min_periods)),
                     (
                         "sigma_floor_x1e8",
-                        (params.sigma_floor * 1e8).round() as i64,
+                        round_to_i64(params.sigma_floor * 1e8),
                     ),
                 ],
             ),
@@ -477,12 +476,9 @@ impl MultiTfIndicatorCache {
             return *value;
         }
 
-        let series = match self.get_series(timeframe, price_type) {
-            Some(series) => series,
-            None => {
-                self.local_scalar_cache.insert(spec, None);
-                return None;
-            }
+        let Some(series) = self.get_series(timeframe, price_type) else {
+            self.local_scalar_cache.insert(spec, None);
+            return None;
         };
         let aligned = map_series(
             self.mapping(timeframe),
@@ -506,24 +502,23 @@ impl MultiTfIndicatorCache {
                 request.timeframe,
                 request.price_type,
                 [
-                    ("idx", request.idx as i64),
-                    ("atr_length", request.atr_length as i64),
-                    ("garch_lookback", request.garch_lookback as i64),
-                    ("alpha_x1000", (garch_params.alpha * 1000.0).round() as i64),
-                    ("beta_x1000", (garch_params.beta * 1000.0).round() as i64),
+                    ("idx", usize_to_i64(request.idx)),
+                    ("atr_length", usize_to_i64(request.atr_length)),
+                    ("garch_lookback", usize_to_i64(request.garch_lookback)),
+                    ("alpha_x1000", round_to_i64(garch_params.alpha * 1000.0)),
+                    ("beta_x1000", round_to_i64(garch_params.beta * 1000.0)),
                     (
                         "omega_x1000000",
                         garch_params
                             .omega
-                            .map(|v| (v * 1_000_000.0).round() as i64)
-                            .unwrap_or(-1),
+                            .map_or(-1, |v| round_to_i64(v * 1_000_000.0)),
                     ),
                     ("use_log_returns", bool_code(garch_params.use_log_returns)),
-                    ("scale_x100", (garch_params.scale * 100.0).round() as i64),
-                    ("min_periods", garch_params.min_periods as i64),
+                    ("scale_x100", round_to_i64(garch_params.scale * 100.0)),
+                    ("min_periods", usize_to_i64(garch_params.min_periods)),
                     (
                         "sigma_floor_x1e8",
-                        (garch_params.sigma_floor * 1e8).round() as i64,
+                        round_to_i64(garch_params.sigma_floor * 1e8),
                     ),
                 ],
             ),
@@ -557,7 +552,7 @@ fn cache_params(
     params: impl IntoIterator<Item = (&'static str, i64)>,
 ) -> IndicatorParams {
     let mut custom = Vec::new();
-    custom.push(("tf_sec".to_string(), timeframe.to_seconds() as i64));
+    custom.push(("tf_sec".to_string(), u64_to_i64(timeframe.to_seconds())));
     custom.push(("price_type".to_string(), price_type_code(price_type)));
     for (key, value) in params {
         custom.push((key.to_string(), value));
@@ -573,14 +568,31 @@ fn price_type_code(price_type: PriceType) -> i64 {
 }
 
 fn bool_code(value: bool) -> i64 {
-    if value {
-        1
+    i64::from(value)
+}
+
+fn usize_to_i64(value: usize) -> i64 {
+    i64::try_from(value).unwrap_or(i64::MAX)
+}
+
+fn u64_to_i64(value: u64) -> i64 {
+    i64::try_from(value).unwrap_or(i64::MAX)
+}
+
+#[allow(clippy::cast_possible_truncation)]
+fn round_to_i64(value: f64) -> i64 {
+    if value.is_finite() {
+        value.round() as i64
     } else {
         0
     }
 }
 
-fn build_price_series(timeframe: Timeframe, price_type: PriceType, candles: &[Candle]) -> PriceSeries {
+fn build_price_series(
+    timeframe: Timeframe,
+    price_type: PriceType,
+    candles: &[Candle],
+) -> PriceSeries {
     let mut open = Vec::with_capacity(candles.len());
     let mut high = Vec::with_capacity(candles.len());
     let mut low = Vec::with_capacity(candles.len());
@@ -611,26 +623,27 @@ fn reduce_by_mapping(mapping: Option<&TimeframeMapping>, series: &[f64]) -> Vec<
             let mut last_idx = None;
             for maybe_idx in &map.primary_to_target {
                 if let Some(idx) = *maybe_idx
-                    && last_idx != Some(idx) {
-                        reduced.push(series[idx]);
-                        last_idx = Some(idx);
-                    }
+                    && last_idx != Some(idx)
+                {
+                    reduced.push(series[idx]);
+                    last_idx = Some(idx);
+                }
             }
             reduced
         }
     }
 }
 
-fn map_series(
-    mapping: Option<&TimeframeMapping>,
-    series: &[f64],
-    target_len: usize,
-) -> Vec<f64> {
+fn map_series(mapping: Option<&TimeframeMapping>, series: &[f64], target_len: usize) -> Vec<f64> {
     let reduced = reduce_by_mapping(mapping, series);
     expand_by_mapping(mapping, &reduced, target_len)
 }
 
-fn expand_by_mapping(mapping: Option<&TimeframeMapping>, reduced: &[f64], target_len: usize) -> Vec<f64> {
+fn expand_by_mapping(
+    mapping: Option<&TimeframeMapping>,
+    reduced: &[f64],
+    target_len: usize,
+) -> Vec<f64> {
     match mapping {
         None => reduced.to_vec(),
         Some(map) => {
@@ -672,7 +685,7 @@ fn candles_from_close(close: &[f64]) -> Vec<Candle> {
         .iter()
         .enumerate()
         .map(|(idx, &value)| Candle {
-            timestamp_ns: idx as i64,
+            timestamp_ns: usize_to_i64(idx),
             open: value,
             high: value,
             low: value,
@@ -680,21 +693,4 @@ fn candles_from_close(close: &[f64]) -> Vec<Candle> {
             volume: 0.0,
         })
         .collect()
-}
-
-fn sample_std(values: &[f64]) -> f64 {
-    if values.len() < 2 || values.iter().any(|v| !v.is_finite()) {
-        return f64::NAN;
-    }
-    let mean = values.iter().sum::<f64>() / values.len() as f64;
-    let denom = values.len() as f64 - 1.0;
-    if denom <= 0.0 {
-        return f64::NAN;
-    }
-    let variance = values
-        .iter()
-        .map(|v| (*v - mean).powi(2))
-        .sum::<f64>()
-        / denom;
-    variance.sqrt()
 }

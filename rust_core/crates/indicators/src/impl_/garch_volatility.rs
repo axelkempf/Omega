@@ -1,4 +1,4 @@
-//! GARCH(1,1) Volatility indicator
+//! GARCH(1,1) Volatility indicator.
 
 use crate::traits::Indicator;
 use omega_types::Candle;
@@ -6,7 +6,7 @@ use omega_types::Candle;
 /// GARCH(1,1) Volatility Estimator
 ///
 /// Estimates conditional volatility using the GARCH(1,1) model:
-/// σ²_t = ω + α * r²_{t-1} + β * σ²_{t-1}
+/// `σ²_t` = ω + α * r²_{t-1} + β * σ²_{t-1}
 ///
 /// Where:
 /// - ω (omega): Long-run variance weight
@@ -33,6 +33,7 @@ pub struct GarchVolatility {
 
 impl GarchVolatility {
     /// Creates a new GARCH volatility indicator with default settings.
+    #[must_use]
     pub fn new(alpha: f64, beta: f64, omega: f64) -> Self {
         Self {
             alpha,
@@ -46,33 +47,38 @@ impl GarchVolatility {
     }
 
     /// Creates from x1000/x1000000 encoded parameters.
+    #[must_use]
     pub fn from_encoded(alpha_x1000: u32, beta_x1000: u32, omega_x1000000: u32) -> Self {
         Self::new(
-            alpha_x1000 as f64 / 1000.0,
-            beta_x1000 as f64 / 1000.0,
-            omega_x1000000 as f64 / 1_000_000.0,
+            f64::from(alpha_x1000) / 1000.0,
+            f64::from(beta_x1000) / 1000.0,
+            f64::from(omega_x1000000) / 1_000_000.0,
         )
     }
 
     /// Sets whether to use log returns.
+    #[must_use]
     pub fn with_log_returns(mut self, use_log: bool) -> Self {
         self.use_log_returns = use_log;
         self
     }
 
     /// Sets the output scale factor.
+    #[must_use]
     pub fn with_scale(mut self, scale: f64) -> Self {
         self.scale = scale;
         self
     }
 
     /// Sets the minimum periods for initialization.
+    #[must_use]
     pub fn with_min_periods(mut self, periods: usize) -> Self {
         self.min_periods = periods;
         self
     }
 
     /// Sets the volatility floor.
+    #[must_use]
     pub fn with_sigma_floor(mut self, floor: f64) -> Self {
         self.sigma_floor = floor;
         self
@@ -158,7 +164,13 @@ impl Indicator for GarchVolatility {
 
         let mut sigma: Vec<f64> = out_var
             .iter()
-            .map(|v| if v.is_finite() { v.sqrt() / self.scale } else { f64::NAN })
+            .map(|v| {
+                if v.is_finite() {
+                    v.sqrt() / self.scale
+                } else {
+                    f64::NAN
+                }
+            })
             .collect();
 
         let valid_after = first_idx + self.min_periods;
@@ -171,7 +183,7 @@ impl Indicator for GarchVolatility {
         sigma
     }
 
-    fn name(&self) -> &str {
+    fn name(&self) -> &'static str {
         "GARCH_VOL"
     }
 
@@ -192,7 +204,9 @@ fn nan_mean(values: &[f64]) -> Option<f64> {
     if count == 0 {
         None
     } else {
-        Some(sum / count as f64)
+        #[allow(clippy::cast_precision_loss)]
+        let count_f = count as f64;
+        Some(sum / count_f)
     }
 }
 
@@ -210,7 +224,9 @@ fn nan_var(values: &[f64]) -> Option<f64> {
     if count == 0 {
         None
     } else {
-        Some(sum / count as f64)
+        #[allow(clippy::cast_precision_loss)]
+        let count_f = count as f64;
+        Some(sum / count_f)
     }
 }
 

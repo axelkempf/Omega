@@ -35,7 +35,7 @@ Omega V2 benötigt für die MVP-Strategie **Mean Reversion Z-Score (MRZ)** einen
 - Ergebnisse **lazy** (on first access) berechnet und **cached**.
 - **Parität** zu V1 sicherstellt.
 
-**Paritäts-Referenz (normativ):** Wenn V1 Python und V1 Rust voneinander abweichen, gilt **V1 Rust** als Referenz („golden behavior“).
+**Paritäts-Referenz (normativ):** Wenn V1 Python und V1 Rust voneinander abweichen, gilt **V1 Python** als Referenz („golden behavior“). V1-Rust-Implementierungen sind für Paritätsentscheidungen nicht relevant.
 
 ---
 
@@ -71,7 +71,7 @@ Omega V2 benötigt für die MVP-Strategie **Mean Reversion Z-Score (MRZ)** einen
 
 ### 3.2 Parität & Vergleiche
 
-- Paritätsbaseline: **V1 Rust**.
+- Paritätsbaseline: **V1 Python**.
 - Vergleiche sind **toleranzbasiert**, nicht bitweise:
   - `NaN` gilt als gleich, wenn beide Seiten `NaN` an derselben Position sind.
   - Für endliche Werte gilt: $|a-b| \le \text{atol}$ (Default: `atol=1e-10`).
@@ -228,7 +228,7 @@ Normativ:
 
 ### 9.1 Paritätsstrategie
 
-- Für jeden Indikator existieren Paritätstests gegen V1 Rust (und optional V1 Python als zusätzlicher Check).
+- Für jeden Indikator existieren Paritätstests gegen **V1 Python**. V1-Rust-Implementierungen werden nicht als Referenz verwendet.
 - Parität gilt für:
   - numerische Werte (toleranzbasiert)
   - `NaN`-Positionen

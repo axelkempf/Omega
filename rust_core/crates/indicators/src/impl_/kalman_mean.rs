@@ -17,15 +17,17 @@ pub struct KalmanFilter {
 
 impl KalmanFilter {
     /// Creates a new Kalman Filter with the given noise parameters.
+    #[must_use]
     pub fn new(r: f64, q: f64) -> Self {
         Self { r, q }
     }
 
     /// Creates a Kalman Filter from x1000 encoded parameters.
+    #[must_use]
     pub fn from_x1000(r_x1000: u32, q_x1000: u32) -> Self {
         Self {
-            r: r_x1000 as f64 / 1000.0,
-            q: q_x1000 as f64 / 1000.0,
+            r: f64::from(r_x1000) / 1000.0,
+            q: f64::from(q_x1000) / 1000.0,
         }
     }
 
@@ -33,6 +35,7 @@ impl KalmanFilter {
     ///
     /// Returns Vec<f64> with the same length as prices.
     /// First value is initialized to the first price.
+    #[must_use]
     pub fn compute_level(&self, prices: &[f64]) -> Vec<f64> {
         let len = prices.len();
         let mut result = vec![f64::NAN; len];
@@ -53,7 +56,11 @@ impl KalmanFilter {
         for i in (first_idx + 1)..len {
             let meas = prices[i];
             let xhat_minus = result[i - 1];
-            let p_minus = if p[i - 1].is_finite() { p[i - 1] } else { self.r } + self.q;
+            let p_minus = if p[i - 1].is_finite() {
+                p[i - 1]
+            } else {
+                self.r
+            } + self.q;
 
             if meas.is_finite() && xhat_minus.is_finite() {
                 let k = p_minus / (p_minus + self.r);
@@ -69,6 +76,7 @@ impl KalmanFilter {
     }
 
     /// Computes Kalman-smoothed level from candles (using close prices).
+    #[must_use]
     pub fn compute_level_from_candles(&self, candles: &[Candle]) -> Vec<f64> {
         let prices: Vec<f64> = candles.iter().map(|c| c.close).collect();
         self.compute_level(&prices)

@@ -2,7 +2,7 @@
 
 > **Status**: Planungsphase  
 > **Erstellt**: 14. Januar 2026  
-> **Zweck**: Normative Spezifikation eines robusten, modularen Trade-/Position-Managers (institutionelles Trade Management) für Omega V2 mit **V1-Parität (MVP)** und klaren Erweiterungspunkten.
+> **Zweck**: Normative Spezifikation eines robusten, modularen Trade-/Position-Managers (institutionelles Trade Management) für Omega V2 mit **V1-Python-Parität (MVP)** und klaren Erweiterungspunkten.
 
 ---
 
@@ -25,11 +25,11 @@
 
 Omega V2 bekommt eine dedizierte Trade-Management-Schicht, die **über** dem reinen SL/TP-Stop-Handling (Portfolio/Stops) liegt.
 
-### 1.1 MVP-Ziel (V1-Parität)
+### 1.1 MVP-Ziel (V1-Python-Parität)
 
 - **MaxHoldingTime / Time-Stop** für offene Positionen.
 - **Saubere, deterministische Close-Reasons** (mindestens: `timeout`).
-- Keine stillen Semantik-Änderungen: **Determinismus** und **V1-Parität** sind vorrangig.
+- Keine stillen Semantik-Änderungen: **Determinismus** und **V1-Python-Parität** sind vorrangig.
 
 ### 1.2 Post-MVP (institutionelle Upgrades – vorgemerkt)
 
@@ -178,7 +178,7 @@ Für `trades.json.reason` wird ein superset-kompatibles Enum definiert.
 - `manual`
 - `pending_expired`
 
-Wenn ein Reason nicht im MVP-Contract des Output-Plans als `reason` vorgesehen ist, MUSS er zumindest in `meta.labels` auftauchen. Für V1-Parität wird `timeout` als echtes `reason` benötigt.
+Wenn ein Reason nicht im MVP-Contract des Output-Plans als `reason` vorgesehen ist, MUSS er zumindest in `meta.labels` auftauchen. Für V1-Python-Parität wird `timeout` als echtes `reason` benötigt.
 
 ---
 
@@ -221,7 +221,7 @@ Konflikte sind erwartbar (mehrere Regeln wollen schließen/ändern). Es gilt:
 
 ---
 
-## 6. MVP-Regel: MaxHoldingTimeRule (V1-Parität)
+## 6. MVP-Regel: MaxHoldingTimeRule (V1-Python-Parität)
 
 ### 6.1 Semantik
 
@@ -233,7 +233,7 @@ $$\Delta t = (ctx.market.timestamp\_ns - position.entry\_time\_ns) \ge max\_hold
 
 ### 6.2 Exit-Preis
 
-Damit V1-Backtest-Parität möglich bleibt:
+Damit V1-Python-Backtest-Parität möglich bleibt:
 
 - Exit erfolgt zum **Bar-Close** der relevanten Seite:
   - `long`: `bid_close`
@@ -276,7 +276,7 @@ Ergänzend (und zukünftssicher) wird ein Block vorgeschlagen:
 
 ## 8. Output Contract (Implikationen)
 
-Für V1-Parität MUSS `trades.json.reason` mindestens die Werte `stop_loss`, `take_profit`, `timeout` zulassen.
+Für V1-Python-Parität MUSS `trades.json.reason` mindestens die Werte `stop_loss`, `take_profit`, `timeout` zulassen.
 
 Zusätzliche Labels (BE/Trailing/etc.) werden über `trades.json.meta` transportiert.
 
@@ -286,7 +286,7 @@ Zusätzliche Labels (BE/Trailing/etc.) werden über `trades.json.meta` transport
 
 Referenz: Testing/Validation Plan.
 
-- Golden-Parity Test: V1 vs V2 (identische Inputs) ⇒ identische Trades (normalisiert) inkl. `reason="timeout"`.
+- Golden-Parity Test: V1 Python vs V2 (identische Inputs) ⇒ identische Trades (normalisiert) inkl. `reason="timeout"`.
 - Unit Test: `MaxHoldingTimeRule` mit synthetischen Candles/Positions.
 - Determinismus Test: mehrfacher Run ⇒ bit-identisches `trades.json`.
 

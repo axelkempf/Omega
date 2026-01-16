@@ -1,10 +1,10 @@
-//! Volatility Cluster State indicator
+//! Volatility Cluster State indicator.
 
 use crate::impl_::atr::ATR;
 use crate::traits::Indicator;
 use omega_types::Candle;
 
-/// Volatility regime states
+/// Volatility regime states.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum VolClusterState {
     /// Low volatility regime
@@ -17,6 +17,7 @@ pub enum VolClusterState {
 
 impl VolClusterState {
     /// Converts from numeric representation.
+    #[must_use]
     pub fn from_i32(value: i32) -> Option<Self> {
         match value {
             0 => Some(VolClusterState::Low),
@@ -27,7 +28,7 @@ impl VolClusterState {
     }
 }
 
-/// Volatility Cluster indicator
+/// Volatility Cluster indicator.
 ///
 /// Classifies the current volatility regime based on ATR percentile
 /// within a lookback window:
@@ -47,7 +48,8 @@ pub struct VolCluster {
 }
 
 impl VolCluster {
-    /// Creates a new VolCluster indicator.
+    /// Creates a new `VolCluster` indicator.
+    #[must_use]
     pub fn new(
         vol_period: usize,
         high_vol_threshold: f64,
@@ -63,6 +65,7 @@ impl VolCluster {
     }
 
     /// Creates from x100 encoded thresholds.
+    #[must_use]
     pub fn from_x100(
         vol_period: usize,
         high_vol_threshold_x100: u32,
@@ -71,13 +74,15 @@ impl VolCluster {
     ) -> Self {
         Self {
             vol_period,
-            high_vol_threshold: high_vol_threshold_x100 as f64 / 100.0,
-            low_vol_threshold: low_vol_threshold_x100 as f64 / 100.0,
+            high_vol_threshold: f64::from(high_vol_threshold_x100) / 100.0,
+            low_vol_threshold: f64::from(low_vol_threshold_x100) / 100.0,
             lookback,
         }
     }
 
     /// Computes the state at each bar.
+    ///
+    #[must_use]
     pub fn compute_states(&self, candles: &[Candle]) -> Vec<Option<VolClusterState>> {
         let len = candles.len();
         let mut result = vec![None; len];
@@ -94,32 +99,36 @@ impl VolCluster {
         let warmup = self.vol_period + self.lookback;
         for i in warmup..len {
             let current_atr = atr_values[i];
-            if current_atr.is_nan() {
+            if !current_atr.is_finite() {
                 continue;
             }
 
             // Get lookback window of ATR values
             let start = i - self.lookback;
-            let mut window: Vec<f64> = (start..i)
-                .filter_map(|j| {
-                    let v = atr_values[j];
-                    if v.is_finite() {
-                        Some(v)
-                    } else {
-                        None
-                    }
-                })
-                .collect();
+            let mut window = Vec::with_capacity(self.lookback);
+            let mut has_invalid = false;
+            for &v in atr_values.iter().take(i).skip(start) {
+                if !v.is_finite() {
+                    has_invalid = true;
+                    break;
+                }
+                window.push(v);
+            }
+
+            if has_invalid {
+                continue;
+            }
 
             if window.is_empty() {
                 continue;
             }
 
             // Sort for percentile calculation
-            window.sort_by(|a, b| a.partial_cmp(b).unwrap());
+            window.sort_by(f64::total_cmp);
 
             // Compute percentile rank of current ATR
             let count_below = window.iter().filter(|&&v| v < current_atr).count();
+            #[allow(clippy::cast_precision_loss)]
             let percentile = count_below as f64 / window.len() as f64;
 
             // Classify
@@ -143,11 +152,11 @@ impl Indicator for VolCluster {
         // Returns numeric state: 0=Low, 1=Normal, 2=High, NaN=undefined
         self.compute_states(candles)
             .into_iter()
-            .map(|opt| opt.map_or(f64::NAN, |s| s as i32 as f64))
+            .map(|opt| opt.map_or(f64::NAN, |s| f64::from(s as i32)))
             .collect()
     }
 
-    fn name(&self) -> &str {
+    fn name(&self) -> &'static str {
         "VOL_CLUSTER"
     }
 
@@ -229,6 +238,26 @@ mod tests {
         let states = vc.compute_states(&candles);
 
         assert!(states.iter().all(|s| s.is_none()));
+    }
+
+    #[test]
+    fn test_vol_cluster_nan_in_window_yields_none() {
+        let mut candles = Vec::new();
+
+        for _ in 0..3 {
+            candles.push(make_candle_ohlc(f64::NAN, f64::NAN, f64::NAN, f64::NAN));
+        }
+
+        for i in 0..6 {
+            let base = 100.0 + i as f64;
+            candles.push(make_candle_ohlc(base, base + 1.0, base - 1.0, base));
+        }
+
+        let vc = VolCluster::new(2, 0.8, 0.2, 2);
+        let states = vc.compute_states(&candles);
+
+        let idx = vc.vol_period + vc.lookback;
+        assert!(states[idx].is_none());
     }
 
     #[test]

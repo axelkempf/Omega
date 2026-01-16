@@ -1,11 +1,11 @@
-//! Average True Range (ATR) indicator with Wilder smoothing
+//! Average True Range (ATR) indicator with Wilder smoothing.
 
 use crate::traits::Indicator;
 use omega_types::Candle;
 
 /// Average True Range (Wilder)
 ///
-/// Uses Wilder's smoothing method: ATR = (prev_ATR * (n-1) + TR) / n
+/// Uses Wilder's smoothing method: ATR = (`prev_ATR` * (n-1) + TR) / n
 /// This is different from a simple moving average and provides a more
 /// responsive measure of volatility.
 #[derive(Debug, Clone)]
@@ -16,13 +16,14 @@ pub struct ATR {
 
 impl ATR {
     /// Creates a new ATR indicator with the given period.
+    #[must_use]
     pub fn new(period: usize) -> Self {
         Self { period }
     }
 
     /// Calculates True Range for a candle given the previous close.
     ///
-    /// TR = max(High - Low, |High - Prev_Close|, |Low - Prev_Close|)
+    /// TR = max(High - Low, |High - `Prev_Close`|, |Low - `Prev_Close`|)
     #[inline]
     fn true_range(candle: &Candle, prev_close: f64) -> f64 {
         let hl = candle.high - candle.low;
@@ -62,7 +63,12 @@ impl Indicator for ATR {
             let initial: f64 = tr[first_valid..first_valid + self.period]
                 .iter()
                 .sum::<f64>()
-                / self.period as f64;
+                / {
+                    #[allow(clippy::cast_precision_loss)]
+                    {
+                        self.period as f64
+                    }
+                };
             let start_idx = first_valid + self.period - 1;
             result[start_idx] = initial;
 
@@ -71,15 +77,18 @@ impl Indicator for ATR {
                     result[i] = result[i - 1];
                     continue;
                 }
-                result[i] = (result[i - 1] * (self.period - 1) as f64 + tr[i])
-                    / self.period as f64;
+                #[allow(clippy::cast_precision_loss)]
+                let period_f = self.period as f64;
+                #[allow(clippy::cast_precision_loss)]
+                let period_minus_one = (self.period - 1) as f64;
+                result[i] = (result[i - 1] * period_minus_one + tr[i]) / period_f;
             }
         }
 
         result
     }
 
-    fn name(&self) -> &str {
+    fn name(&self) -> &'static str {
         "ATR"
     }
 
@@ -124,8 +133,8 @@ mod tests {
     #[test]
     fn test_atr_basic() {
         let candles = vec![
-            make_candle_ohlc(100.0, 102.0, 98.0, 101.0),  // TR = 4 (H-L)
-            make_candle_ohlc(101.0, 104.0, 99.0, 103.0),  // TR = 5 (H-L)
+            make_candle_ohlc(100.0, 102.0, 98.0, 101.0), // TR = 4 (H-L)
+            make_candle_ohlc(101.0, 104.0, 99.0, 103.0), // TR = 5 (H-L)
             make_candle_ohlc(103.0, 106.0, 101.0, 105.0), // TR = 5 (H-L)
             make_candle_ohlc(105.0, 108.0, 103.0, 107.0), // TR = 5 (H-L)
             make_candle_ohlc(107.0, 110.0, 105.0, 109.0), // TR = 5 (H-L)

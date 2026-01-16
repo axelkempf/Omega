@@ -9,7 +9,7 @@ use omega_types::Candle;
 /// Calculates Z-Score based on residuals from Kalman-filtered price level.
 /// Steps:
 /// 1. Compute Kalman-smoothed price level
-/// 2. Calculate residuals (price - kalman_level)
+/// 2. Calculate residuals (price - `kalman_level`)
 /// 3. Compute Z-Score of current residual over rolling window (sample std, ddof=1)
 #[derive(Debug, Clone)]
 pub struct KalmanZScore {
@@ -23,16 +23,18 @@ pub struct KalmanZScore {
 
 impl KalmanZScore {
     /// Creates a new Kalman Z-Score indicator.
+    #[must_use]
     pub fn new(window: usize, r: f64, q: f64) -> Self {
         Self { window, r, q }
     }
 
     /// Creates from x1000 encoded Kalman parameters.
+    #[must_use]
     pub fn from_x1000(window: usize, r_x1000: u32, q_x1000: u32) -> Self {
         Self {
             window,
-            r: r_x1000 as f64 / 1000.0,
-            q: q_x1000 as f64 / 1000.0,
+            r: f64::from(r_x1000) / 1000.0,
+            q: f64::from(q_x1000) / 1000.0,
         }
     }
 }
@@ -75,7 +77,7 @@ impl Indicator for KalmanZScore {
         result
     }
 
-    fn name(&self) -> &str {
+    fn name(&self) -> &'static str {
         "KALMAN_Z"
     }
 
@@ -91,13 +93,11 @@ fn sample_std(values: &[f64]) -> f64 {
     if values.len() < 2 {
         return f64::NAN;
     }
-    let mean = values.iter().sum::<f64>() / values.len() as f64;
-    let denom = (values.len() as f64) - 1.0;
-    let variance = values
-        .iter()
-        .map(|v| (*v - mean).powi(2))
-        .sum::<f64>()
-        / denom;
+    #[allow(clippy::cast_precision_loss)]
+    let len_f = values.len() as f64;
+        let mean = values.iter().sum::<f64>() / len_f;
+        let denom = len_f - 1.0;
+    let variance = values.iter().map(|v| (*v - mean).powi(2)).sum::<f64>() / denom;
     variance.sqrt()
 }
 
@@ -135,12 +135,7 @@ mod tests {
 
         // Rest should be finite
         for (i, value) in result.iter().enumerate().take(10).skip(4) {
-            assert!(
-                value.is_finite(),
-                "Expected finite at {}, got {}",
-                i,
-                value
-            );
+            assert!(value.is_finite(), "Expected finite at {}, got {}", i, value);
         }
     }
 

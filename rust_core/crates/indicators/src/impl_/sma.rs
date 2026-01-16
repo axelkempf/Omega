@@ -14,6 +14,7 @@ pub struct SMA {
 
 impl SMA {
     /// Creates a new SMA indicator with the given period.
+    #[must_use]
     pub fn new(period: usize) -> Self {
         Self { period }
     }
@@ -30,18 +31,20 @@ impl Indicator for SMA {
 
         // Calculate initial sum
         let mut sum: f64 = candles[..self.period].iter().map(|c| c.close).sum();
-        result[self.period - 1] = sum / self.period as f64;
+        #[allow(clippy::cast_precision_loss)]
+        let period_f = self.period as f64;
+        result[self.period - 1] = sum / period_f;
 
         // Rolling calculation
         for i in self.period..len {
             sum += candles[i].close - candles[i - self.period].close;
-            result[i] = sum / self.period as f64;
+            result[i] = sum / period_f;
         }
 
         result
     }
 
-    fn name(&self) -> &str {
+    fn name(&self) -> &'static str {
         "SMA"
     }
 
@@ -107,10 +110,7 @@ mod tests {
 
     #[test]
     fn test_sma_period_one_matches_close() {
-        let candles: Vec<Candle> = vec![1.5, 2.5, 3.0]
-            .into_iter()
-            .map(make_candle)
-            .collect();
+        let candles: Vec<Candle> = vec![1.5, 2.5, 3.0].into_iter().map(make_candle).collect();
 
         let sma = SMA::new(1);
         let result = sma.compute(&candles);
@@ -122,10 +122,7 @@ mod tests {
 
     #[test]
     fn test_sma_period_zero_returns_nan() {
-        let candles: Vec<Candle> = vec![1.0, 2.0, 3.0]
-            .into_iter()
-            .map(make_candle)
-            .collect();
+        let candles: Vec<Candle> = vec![1.0, 2.0, 3.0].into_iter().map(make_candle).collect();
 
         let sma = SMA::new(0);
         let result = sma.compute(&candles);

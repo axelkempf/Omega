@@ -1,4 +1,4 @@
-//! Kalman+GARCH Z-Score indicator
+//! Kalman+GARCH Z-Score indicator.
 
 use crate::impl_::garch_volatility::GarchVolatility;
 use crate::impl_::kalman_mean::KalmanFilter;
@@ -9,9 +9,9 @@ use omega_types::Candle;
 ///
 /// Combines Kalman filtering with GARCH volatility estimation:
 /// 1. Compute Kalman-smoothed price level
-/// 2. Calculate residuals (price - kalman_level)
+/// 2. Calculate residuals (price - `kalman_level`)
 /// 3. Estimate volatility using GARCH on returns
-/// 4. Normalize residuals by GARCH volatility
+/// 4. Normalize residuals by price-scaled GARCH volatility
 ///
 /// This provides a more adaptive Z-Score that accounts for
 /// time-varying volatility.
@@ -39,6 +39,7 @@ pub struct KalmanGarchZScore {
 
 impl KalmanGarchZScore {
     /// Creates a new Kalman+GARCH Z-Score indicator.
+    #[must_use]
     pub fn new(
         kalman_r: f64,
         kalman_q: f64,
@@ -60,6 +61,7 @@ impl KalmanGarchZScore {
     }
 
     /// Creates from encoded parameters.
+    #[must_use]
     pub fn from_encoded(
         r_x1000: u32,
         q_x1000: u32,
@@ -68,33 +70,37 @@ impl KalmanGarchZScore {
         omega_x1000000: u32,
     ) -> Self {
         Self::new(
-            r_x1000 as f64 / 1000.0,
-            q_x1000 as f64 / 1000.0,
-            alpha_x1000 as f64 / 1000.0,
-            beta_x1000 as f64 / 1000.0,
-            omega_x1000000 as f64 / 1_000_000.0,
+            f64::from(r_x1000) / 1000.0,
+            f64::from(q_x1000) / 1000.0,
+            f64::from(alpha_x1000) / 1000.0,
+            f64::from(beta_x1000) / 1000.0,
+            f64::from(omega_x1000000) / 1_000_000.0,
         )
     }
 
     /// Sets minimum periods for initialization.
+    #[must_use]
     pub fn with_min_periods(mut self, periods: usize) -> Self {
         self.min_periods = periods;
         self
     }
 
     /// Sets whether to use log returns.
+    #[must_use]
     pub fn with_log_returns(mut self, use_log: bool) -> Self {
         self.use_log_returns = use_log;
         self
     }
 
     /// Sets the returns scale factor.
+    #[must_use]
     pub fn with_scale(mut self, scale: f64) -> Self {
         self.scale = scale;
         self
     }
 
     /// Sets the volatility floor.
+    #[must_use]
     pub fn with_sigma_floor(mut self, floor: f64) -> Self {
         self.sigma_floor = floor;
         self
@@ -125,22 +131,29 @@ impl Indicator for KalmanGarchZScore {
             .with_sigma_floor(self.sigma_floor);
         let garch_vol = garch.compute(candles);
 
-        // Compute Z-Score: (price - kalman) / garch_vol
+        // Compute Z-Score: (price - kalman) / (|price| * garch_vol)
         for i in self.min_periods..len {
-            let residual = prices[i] - kalman_level[i];
+            let price = prices[i];
+            let kalman = kalman_level[i];
             let vol = garch_vol[i];
 
-            if vol.is_finite() && vol > 1e-10 {
-                result[i] = residual / vol;
+            if !price.is_finite() || !kalman.is_finite() || !vol.is_finite() {
+                result[i] = f64::NAN;
+                continue;
+            }
+
+            let sigma_price = price.abs() * vol;
+            if sigma_price.is_finite() && sigma_price > 1e-10 {
+                result[i] = (price - kalman) / sigma_price;
             } else {
-                result[i] = 0.0;
+                result[i] = f64::NAN;
             }
         }
 
         result
     }
 
-    fn name(&self) -> &str {
+    fn name(&self) -> &'static str {
         "KALMAN_GARCH_Z"
     }
 
@@ -181,14 +194,15 @@ mod tests {
             assert!(value.is_nan(), "Expected NaN at {}", i);
         }
 
-        // Rest should be finite
-        for (i, value) in result.iter().enumerate().take(50).skip(10) {
-            assert!(
-                value.is_finite(),
-                "Expected finite at {}, got {}",
-                i,
-                value
-            );
+        let first_finite = result
+            .iter()
+            .position(|v| v.is_finite())
+            .expect("Expected finite value after warmup");
+        assert!(first_finite >= 10);
+
+        // Values after first finite should remain finite
+        for (i, value) in result.iter().enumerate().take(50).skip(first_finite) {
+            assert!(value.is_finite(), "Expected finite at {}, got {}", i, value);
         }
     }
 

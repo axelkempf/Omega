@@ -18,13 +18,13 @@
 | [OMEGA_V2_DATA_GOVERNANCE_PLAN.md](OMEGA_V2_DATA_GOVERNANCE_PLAN.md) | Data-Quality-Policies, Snapshots/Manifests, Fail-Fast Regeln |
 | [OMEGA_V2_EXECUTION_MODEL_PLAN.md](OMEGA_V2_EXECUTION_MODEL_PLAN.md) | Ausführungsmodell: Bid/Ask, Fills, SL/TP, Slippage/Fees |
 | [OMEGA_V2_MODULE_STRUCTURE_PLAN.md](OMEGA_V2_MODULE_STRUCTURE_PLAN.md) | Datei- und Verzeichnisstruktur, Interfaces |
-| [OMEGA_V2_INDICATOR_CACHE__PLAN.md](OMEGA_V2_INDICATOR_CACHE__PLAN.md) | Indikator-Cache: Multi-TF, Stepwise-Semantik, V1-Parität |
+| [OMEGA_V2_INDICATOR_CACHE__PLAN.md](OMEGA_V2_INDICATOR_CACHE__PLAN.md) | Indikator-Cache: Multi-TF, Stepwise-Semantik, V1-Python-Parität |
 | [OMEGA_V2_METRICS_DEFINITION_PLAN.md](OMEGA_V2_METRICS_DEFINITION_PLAN.md) | Normative Metrik-Keys, Definitionen/Units, Scores, Rundung |
 | [OMEGA_V2_CONFIG_SCHEMA_PLAN.md](OMEGA_V2_CONFIG_SCHEMA_PLAN.md) | Normatives JSON-Config-Schema (Felder, Defaults, Validierung, Migration) |
 | [OMEGA_V2_OUTPUT_CONTRACT_PLAN.md](OMEGA_V2_OUTPUT_CONTRACT_PLAN.md) | Normativer Output-Contract (Artefakte, Schema, Zeit/Units, Pfade) |
 | [OMEGA_V2_TECH_STACK_PLAN.md](OMEGA_V2_TECH_STACK_PLAN.md) | Toolchains, Version-Pinning, Packaging/Build-Matrix |
 | [OMEGA_V2_OBSERVABILITY_PROFILING_PLAN.md](OMEGA_V2_OBSERVABILITY_PROFILING_PLAN.md) | Logging/Tracing (tracing), Profiling (flamegraph/pprof), Performance-Counter, Determinismus |
-| [OMEGA_V2_TESTING_VALIDATION_PLAN.md](OMEGA_V2_TESTING_VALIDATION_PLAN.md) | Qualitätsstrategie, V1↔V2 Parität (DEV), Determinismus |
+| [OMEGA_V2_TESTING_VALIDATION_PLAN.md](OMEGA_V2_TESTING_VALIDATION_PLAN.md) | Qualitätsstrategie, V1-Python↔V2 Parität (DEV), Determinismus |
 | [OMEGA_V2_FORMATTING_PLAN.md](OMEGA_V2_FORMATTING_PLAN.md) | Format-/Lint-/Docstring-Regeln (Code/Doku/Kommentare), Durchsetzung via pre-commit + CI |
 | [OMEGA_V2_CI_WORKFLOW_PLAN.md](OMEGA_V2_CI_WORKFLOW_PLAN.md) | CI/CD Workflow, Quality Gates, Build-Matrix, Security, Release-Assets |
 
@@ -351,7 +351,7 @@ Omega V2 gilt als erfolgreich abgeschlossen, wenn:
 Omega V2 unterstützt zwei Ausführungs-Varianten:
 
 - `execution_variant = "v2"` (**Default**): kanonische V2-Execution (siehe Execution Model Plan).
-- `execution_variant = "v1_parity"`: Paritäts-Variante für V1↔V2 Vergleich (Regression/CI), um die V1-Event-Parität zuverlässig messbar zu machen.
+- `execution_variant = "v1_parity"`: Paritäts-Variante für V1-Python↔V2 Vergleich (Regression/CI), um die V1-Event-Parität zuverlässig messbar zu machen.
 
 **Vergleichsregeln (Paritäts-Variante, normativ):**
 

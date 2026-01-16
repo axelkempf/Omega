@@ -52,7 +52,7 @@
 ---
 
 ### ✅ OMEGA_V2_INDICATOR_CACHE__PLAN.md
-**Zweck**: Normative Spezifikation des Indikator-Cache (Multi-TF, Stepwise-Semantik, Cache-Keys, Missing-Values/NaN, V1-Parität) inkl. vollständigem Indikator-Inventar für MRZ Szenarien 1–6.
+**Zweck**: Normative Spezifikation des Indikator-Cache (Multi-TF, Stepwise-Semantik, Cache-Keys, Missing-Values/NaN, V1-Python-Parität) inkl. vollständigem Indikator-Inventar für MRZ Szenarien 1–6.
 
 **Vollständigkeit**: 100% - Scope und Semantik normiert, MRZ-Indikator-Inventar vollständig
 
@@ -66,7 +66,7 @@
 ---
 
 ### ✅ OMEGA_V2_TRADE_MANAGER_PLAN.md
-**Zweck**: Normative Spezifikation des Trade-/Position-Management-Layers (Rules → Actions). MVP: V1-Parität für MaxHoldingTime + klare Close-Reasons (u.a. `timeout`), deterministische Stop-Update-Policy.
+**Zweck**: Normative Spezifikation des Trade-/Position-Management-Layers (Rules → Actions). MVP: V1-Python-Parität für MaxHoldingTime + klare Close-Reasons (u.a. `timeout`), deterministische Stop-Update-Policy.
 
 **Status**: Vollständig - MVP-Contract + Erweiterungspfade dokumentiert
 

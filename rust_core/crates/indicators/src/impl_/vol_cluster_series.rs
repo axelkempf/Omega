@@ -6,11 +6,17 @@ pub enum VolFeatureSeries {
     /// Full-length series aligned to primary timeframe.
     Full(Vec<f64>),
     /// Local window series with a start index into the full series.
-    Local { start_idx: usize, values: Vec<f64> },
+    Local {
+        /// Start index of the local window in the primary series.
+        start_idx: usize,
+        /// Local window values.
+        values: Vec<f64>,
+    },
 }
 
 impl VolFeatureSeries {
     /// Returns the feature value at a primary index if available.
+    #[must_use]
     pub fn value_at(&self, idx: usize) -> Option<f64> {
         match self {
             VolFeatureSeries::Full(values) => values.get(idx).copied(),
@@ -22,20 +28,22 @@ impl VolFeatureSeries {
     }
 
     /// Returns the length of the underlying series.
+    #[must_use]
     pub fn len(&self) -> usize {
         match self {
-            VolFeatureSeries::Full(values) => values.len(),
-            VolFeatureSeries::Local { values, .. } => values.len(),
+            VolFeatureSeries::Full(values) | VolFeatureSeries::Local { values, .. } => values.len(),
         }
     }
 
     /// Returns true if empty.
+    #[must_use]
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
 }
 
 /// Builds a volatility feature series based on feature selection.
+#[must_use]
 pub fn vol_cluster_series(
     feature: &str,
     atr_series: Vec<f64>,

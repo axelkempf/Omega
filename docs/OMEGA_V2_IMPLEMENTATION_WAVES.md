@@ -1837,10 +1837,10 @@ let bb_upper = cache.get(&make_multi_key(&bb_spec, "upper"), idx);
 6. Kalman Filter Glättungseigenschaften
 7. GARCH Varianz-Persistenz
 
-## V1-Parität
+## V1-Python-Parität
 KRITISCH: Implementierung muss numerisch identisch zu V1-Python sein:
 - ATR: Wilder-Smoothing, nicht SMA
-- Bollinger: Sample Std (n), nicht (n-1)
+- Bollinger: Sample Std (n-1) (pandas default)
 - Kalman: Identische Initialisierung
 - GARCH: Identische Return-Definition
 
@@ -1854,7 +1854,7 @@ KRITISCH: Implementierung muss numerisch identisch zu V1-Python sein:
 | # | Kriterium | Validierung |
 |---|-----------|-------------|
 | A1 | Alle MRZ-Indikatoren | EMA, ATR, BB, Z, Kalman, GARCH |
-| A2 | Numerische V1-Parität | Vergleich gegen Python-Referenz |
+| A2 | Numerische V1-Python-Parität | Vergleich gegen Python-Referenz |
 | A3 | Cache funktioniert | Kein doppeltes Berechnen |
 | A4 | NaN für Warmup | Erste N Werte sind NaN |
 | A5 | Vektorisiert | Keine Per-Bar Calls |
@@ -3420,8 +3420,8 @@ impl Rule for MaxHoldingTimeRule {
 5. MaxHoldingTime Rule
 6. Parameter-Overrides
 
-## V1-Parität
-KRITISCH: Signal-Generierung muss identisch zu V1:
+## V1-Python-Parität
+KRITISCH: Signal-Generierung muss identisch zu V1 Python:
 - Gleiche Bedingungsreihenfolge
 - Gleiche Preisberechnungen
 - Gleiche Meta-Daten
@@ -3439,7 +3439,7 @@ KRITISCH: Signal-Generierung muss identisch zu V1:
 | A2 | HTF-Filter | Above/Below/Both/None |
 | A3 | Session/News Gates | Blocking funktioniert |
 | A4 | MaxHoldingTime | Timeout-Exits |
-| A5 | V1-Signal-Parität | Golden-File Vergleich |
+| A5 | V1-Python-Signal-Parität | Golden-File Vergleich |
 | A6 | BarContext korrekt | Read-only, keine Mutation |
 
 ### Referenzen
@@ -4363,7 +4363,7 @@ python-source = "python"
 ## W7: Integration
 
 ### Beschreibung
-Erstellt den Python-Wrapper, Output-Artefakte und V1-Parity-Tests.
+Erstellt den Python-Wrapper, Output-Artefakte und V1-Python-Parity-Tests.
 
 ### Codex-Max Prompt
 
@@ -4374,7 +4374,7 @@ Erstellt den Python-Wrapper, Output-Artefakte und V1-Parity-Tests.
 Du implementierst die Python-Integration für ein Rust-natives Backtesting-System. Waves 0-6 sind bereits implementiert.
 
 ## Ziel
-Erstelle das Python-Package `bt`, Output-Artefakt-Writer und V1-Parity-Tests.
+Erstelle das Python-Package `bt`, Output-Artefakt-Writer und V1-Python-Parity-Tests.
 
 ## Verzeichnisstruktur
 
@@ -4608,7 +4608,7 @@ GOLDEN_DIR = FIXTURES_DIR / "golden"
 
 
 class TestV1V2Parity:
-    """Tests for V1 ↔ V2 parity"""
+    """Tests for V1 Python ↔ V2 parity"""
 
     @pytest.fixture
     def parity_config(self):
@@ -4621,7 +4621,7 @@ class TestV1V2Parity:
             "end_date": "2025-01-31",
             "run_mode": "dev",
             "data_mode": "parquet",
-            "execution_variant": "v1_parity",  # V1-Paritätsmodus
+            "execution_variant": "v1_parity",  # V1-Python-Paritätsmodus
             "rng_seed": 42,
             "timeframes": {
                 "primary": "M1",
@@ -4826,7 +4826,7 @@ def assert_results_equal(actual: dict, expected: dict) -> None:
 1. Config Loading und Validation
 2. Output-Artefakt-Writing (alle 4 Files)
 3. Golden-File Regression (6 Szenarien)
-4. V1-V2 Parity (Trade-Events, Preise, PnL)
+4. V1-Python–V2 Parity (Trade-Events, Preise, PnL)
 5. Determinismus (identische DEV-Runs)
 6. Error-Handling (ungültige Config)
 
@@ -4842,7 +4842,7 @@ def assert_results_equal(actual: dict, expected: dict) -> None:
 | A1 | Python-Package funktioniert | `from bt import run_backtest` |
 | A2 | Alle 4 Artefakte | meta.json, trades.json, equity.csv, metrics.json |
 | A3 | Golden-Tests bestehen | 6 Szenarien |
-| A4 | V1-Parity | Events exakt, PnL ±0.05 |
+| A4 | V1-Python-Parity | Events exakt, PnL ±0.05 |
 | A5 | Determinismus | Identische DEV-Runs |
 | A6 | pip install funktioniert | maturin develop/build |
 

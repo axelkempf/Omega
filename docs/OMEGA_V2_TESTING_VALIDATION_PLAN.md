@@ -41,7 +41,7 @@ Dieses Dokument definiert die **universale Wahrheit** für Tests und Validierung
 **Primäre Qualitätsziele (MVP, Priorität):**
 
 1. **Output-Contract & Determinismus**: DEV-Runs sind reproduzierbar und Artefakte erfüllen den Output-Contract.
-2. **V1↔V2 Parität (Hybrid)**: Entry/Exit-Events müssen übereinstimmen; PnL/Fees dürfen nur innerhalb enger Toleranzen abweichen.
+2. **V1-Python↔V2 Parität (Hybrid)**: Entry/Exit-Events müssen übereinstimmen; PnL/Fees dürfen nur innerhalb enger Toleranzen abweichen.
 3. **Fail-Fast Datenqualität**: Data-Governance-Regeln werden testbar und regressionssicher durchgesetzt.
 
 **Bewusster Stil dieses Dokuments:**
@@ -218,7 +218,7 @@ Beispiele (normativ, O-1 entschieden):
 
 ---
 
-## 7. V1 ↔ V2 Parität (Hybrid, Normativ)
+## 7. V1-Python ↔ V2 Parität (Hybrid, Normativ)
 
 ### 7.1 Paritäts-Definition
 
@@ -227,10 +227,12 @@ Beispiele (normativ, O-1 entschieden):
 - **Events/Trades müssen übereinstimmen** (Entry/Exit Zeitpunkte, Reihenfolge, Richtung, Exit-Reason).
 - **PnL/Fees müssen innerhalb enger Toleranzen übereinstimmen**.
 
+**Paritätsbaseline (normativ):** V1 Python ist die Referenz für Paritätsläufe. V1-Rust-Implementierungen sind für Paritätsentscheidungen nicht relevant.
+
 **Normativ (Execution-Varianten):** Für DEV-Paritäts- und CI-Regressionstests wird die V2-Engine in zwei Varianten betrieben:
 
 - `execution_variant = "v2"` (Default): kanonische V2-Semantik
-- `execution_variant = "v1_parity"`: V1-Paritätsmodus für Regressionen (setzt V1-nahe Fill-/Slippage-Regeln, um Event-Parität gegen V1 zu ermöglichen)
+- `execution_variant = "v1_parity"`: V1-Python-Paritätsmodus für Regressionen (setzt V1-nahe Fill-/Slippage-Regeln, um Event-Parität gegen V1 Python zu ermöglichen)
 
 Diese Trennung ist erforderlich, weil die kanonische V2-Ausführung bewusst Abweichungen zu V1 enthält (siehe Execution Model Plan).
 

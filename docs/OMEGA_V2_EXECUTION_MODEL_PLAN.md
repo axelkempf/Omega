@@ -2,8 +2,8 @@
 
 > **Status**: Planungsphase  
 > **Erstellt**: 12. Januar 2026  
-> **Zweck**: Normative Spezifikation des Ausführungsmodells (Bid/Ask-Regeln, Fill-Algorithmen, Intrabar-Tie-Breaks, SL/TP-Prioritäten, Slippage/Fees, Sizing/Quantisierung)  
-> **Referenz**: Teil der OMEGA_V2 Planungs-Suite; fachliche Referenz für V1-Parität: `src/old/backtest_engine/core/execution_simulator.py`
+> **Zweck**: Normative Spezifikation des Ausführungsmodells (Bid/Ask-Regeln, Fill-Algorithmen, Intrabar-Tie-Breaks, SL/TP-Prioritäten, Slippage/Fees, Sizing/Quantisierung)
+> **Referenz**: Teil der OMEGA_V2 Planungs-Suite; fachliche Referenz für V1-Python-Parität: `src/old/backtest_engine/core/execution_simulator.py`
 
 ---
 
@@ -18,7 +18,7 @@
 | [OMEGA_V2_DATA_FLOW_PLAN.md](OMEGA_V2_DATA_FLOW_PLAN.md) | Datenfluss, Bid/Ask-Alignment, Timestamp-Contract |
 | [OMEGA_V2_DATA_GOVERNANCE_PLAN.md](OMEGA_V2_DATA_GOVERNANCE_PLAN.md) | Data-Quality-Policies (Alignment/Gaps/Duplicates), News=Parquet, Snapshots/Manifests |
 | [OMEGA_V2_MODULE_STRUCTURE_PLAN.md](OMEGA_V2_MODULE_STRUCTURE_PLAN.md) | Module/Crates (Execution, Costs, Portfolio), Schnittstellen |
-| [OMEGA_V2_INDICATOR_CACHE__PLAN.md](OMEGA_V2_INDICATOR_CACHE__PLAN.md) | Indikator-Cache: Multi-TF, Stepwise-Semantik, V1-Parität |
+| [OMEGA_V2_INDICATOR_CACHE__PLAN.md](OMEGA_V2_INDICATOR_CACHE__PLAN.md) | Indikator-Cache: Multi-TF, Stepwise-Semantik, V1-Python-Parität |
 | [OMEGA_V2_CONFIG_SCHEMA_PLAN.md](OMEGA_V2_CONFIG_SCHEMA_PLAN.md) | Normatives Config-Schema (run_mode, data_mode, rng_seed, costs) |
 | [OMEGA_V2_METRICS_DEFINITION_PLAN.md](OMEGA_V2_METRICS_DEFINITION_PLAN.md) | Normative Semantik für Profit/Fees/Drawdown-Metriken |
 | [OMEGA_V2_OUTPUT_CONTRACT_PLAN.md](OMEGA_V2_OUTPUT_CONTRACT_PLAN.md) | Normativer Output-Contract (`trades.json`, Exit-`reason`, Zeit/Units) |
@@ -37,7 +37,7 @@ Dieses Dokument definiert die **universale Wahrheit** für das Omega V2 Backtest
 **Primäres Ziel:**
 
 - **Kanonische V2-Semantik** (Default) mit explizit dokumentierten Abweichungen zu V1.
-- Zusätzlich existiert ein **V1-Paritätsmodus** (`execution_variant = "v1_parity"`) für Regression/CI, der die V1-Semantik so nah wie möglich repliziert.
+- Zusätzlich existiert ein **V1-Python-Paritätsmodus** (`execution_variant = "v1_parity"`) für Regression/CI, der die V1-Semantik so nah wie möglich repliziert.
 
 **Normativ (MVP):**
 
@@ -140,7 +140,7 @@ Pro Candle-Step (pro `timestamp_ns`) gilt die Reihenfolge:
 
 ### 6.2 Pending Entry Trigger (Limit/Stop) – Candle-Mode
 
-**Trigger-Checks (V1-parität):**
+**Trigger-Checks (V1-Python-Parität):**
 
 - Limit:
   - long: Trigger über **ASK.low <= entry_price**
@@ -181,7 +181,7 @@ Wenn eine Pending Order in Candle $t$ triggert, gilt:
 - long Exits prüfen auf **BID**
 - short Exits prüfen auf **ASK** (Fallback auf BID ist im V2-Contract nicht zulässig; fehlende ASK ist hard fail)
 
-**Hit-Definition (V1-parität):**
+**Hit-Definition (V1-Python-Parität):**
 
 - long:
   - SL hit wenn `bid.low <= stop_loss + pip_buffer`
@@ -301,7 +301,7 @@ V2 weicht an folgenden Punkten **bewusst** von V1 ab:
 
 Diese Abweichungen sind Teil der universalen Wahrheit von V2 und müssen bei Paritäts-Tests separat bewertet werden (z.B. über Feature-Flags oder golden-file Varianten).
 
-**Normativ (Hybrid-Parität):** Für V1↔V2 Paritätsläufe in DEV/CI wird die V2-Engine im `execution_variant = "v1_parity"` betrieben. Kanonische V2-Golden/Determinismus-Läufe verwenden `execution_variant = "v2"`.
+**Normativ (Hybrid-Parität):** Für V1-Python↔V2 Paritätsläufe in DEV/CI wird die V2-Engine im `execution_variant = "v1_parity"` betrieben. Kanonische V2-Golden/Determinismus-Läufe verwenden `execution_variant = "v2"`.
 
 ---
 

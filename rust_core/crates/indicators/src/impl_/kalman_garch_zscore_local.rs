@@ -1,6 +1,6 @@
 //! Local Kalman+GARCH Z-Score for a capped window.
 
-use crate::impl_::garch_volatility_local::{garch_volatility_local, GarchLocalParams};
+use crate::impl_::garch_volatility_local::{GarchLocalParams, garch_volatility_local};
 
 /// Parameters for local Kalman+GARCH Z-Score computation.
 #[derive(Debug, Clone, Copy)]
@@ -27,6 +27,7 @@ pub struct KalmanGarchLocalParams {
 
 impl KalmanGarchLocalParams {
     /// Creates params with defaults aligned to V1.
+    #[must_use]
     pub fn new(r: f64, q: f64, alpha: f64, beta: f64, omega: Option<f64>) -> Self {
         Self {
             r,
@@ -43,6 +44,7 @@ impl KalmanGarchLocalParams {
 }
 
 /// Computes the local Kalman+GARCH Z-Score at idx using a capped lookback window.
+#[must_use]
 pub fn kalman_garch_zscore_local(
     prices: &[f64],
     idx: usize,
@@ -104,11 +106,7 @@ pub fn kalman_garch_zscore_local(
     }
 
     let z = resid_last / sigma_price_last;
-    if z.is_finite() {
-        Some(z)
-    } else {
-        None
-    }
+    if z.is_finite() { Some(z) } else { None }
 }
 
 fn kalman_mean_segment(prices: &[f64], r: f64, q: f64) -> Vec<f64> {

@@ -13,7 +13,7 @@
 | [OMEGA_V2_VISION_PLAN.md](OMEGA_V2_VISION_PLAN.md) | Zielbild, MVP-Scope (MVP-Strategie: Mean Reversion Z-Score) |
 | [OMEGA_V2_ARCHITECTURE_PLAN.md](OMEGA_V2_ARCHITECTURE_PLAN.md) | Architektur, Single-FFI, Verantwortlichkeiten |
 | [OMEGA_V2_MODULE_STRUCTURE_PLAN.md](OMEGA_V2_MODULE_STRUCTURE_PLAN.md) | Crates/Ordner, Strategy-Registry, BarContext |
-| [OMEGA_V2_INDICATOR_CACHE__PLAN.md](OMEGA_V2_INDICATOR_CACHE__PLAN.md) | Indikator-Cache: MRZ-Indikator-Inventar, Multi-TF/Stepwise, V1-Parität |
+| [OMEGA_V2_INDICATOR_CACHE__PLAN.md](OMEGA_V2_INDICATOR_CACHE__PLAN.md) | Indikator-Cache: MRZ-Indikator-Inventar, Multi-TF/Stepwise, V1-Python-Parität |
 | [OMEGA_V2_DATA_FLOW_PLAN.md](OMEGA_V2_DATA_FLOW_PLAN.md) | Bar-/Zeit-Contract, Event-Loop, Warmup |
 | [OMEGA_V2_DATA_GOVERNANCE_PLAN.md](OMEGA_V2_DATA_GOVERNANCE_PLAN.md) | Datenqualität, News-Quelle/Normalisierung |
 | [OMEGA_V2_CONFIG_SCHEMA_PLAN.md](OMEGA_V2_CONFIG_SCHEMA_PLAN.md) | Normatives Input-Schema (`strategy.parameters`, `sessions`, `news_filter`) |
@@ -41,6 +41,7 @@ Diese Strategie besteht aus **Szenario-Regeln 1–6**, die jeweils ein Entry-Set
 
 - **Single FFI Boundary**: Strategieausführung läuft vollständig in Rust; Python orchestriert nur (`run_backtest(config_json)`).
 - **Determinismus**: Keine Randomness in der Strategie. Gleiche Inputs → identische Trades.
+- **Paritätsbaseline**: V1 **Python** ist die Referenz für Parität und Vergleich (V1 Rust ist nicht relevant).
 - **Zeit-Kontrakt**: Entry-Entscheidungen gelten für die **abgeschlossene Bar** (bar-close). (Siehe `OMEGA_V2_DATA_FLOW_PLAN.md`)
 - **Separation of Concerns**:
   - Daten-/News-/Sessions-Guards liegen **nicht** als Monolith in der Strategie-Logik.
@@ -80,7 +81,7 @@ Diese Strategie besteht aus **Szenario-Regeln 1–6**, die jeweils ein Entry-Set
   - `long_1`, `short_1`, … `long_6`, `short_6`
   - Zusätzlich kann ein menschenlesbarer Name geführt werden (z.B. `szenario_2_long`), aber die numerische ID ist maßgeblich.
 
-### 3.2 Parameter-Overrides (Backtest-Parität)
+### 3.2 Parameter-Overrides (Backtest-Parität, V1 Python)
 
 **Entscheidung (Empfehlung):** Override-Hierarchie bleibt 1:1 wie in V1 (Backtest), um Backtest-Ergebnisse nicht zu verändern.
 
@@ -192,7 +193,7 @@ Damit bleibt die Strategie frei von IO, Parsing und Index-Building.
 
 ---
 
-## 6. Indikatoren – benötigte Menge (V1-Parität)
+## 6. Indikatoren – benötigte Menge (V1-Python-Parität)
 
 Die MRZ-Strategie benötigt (MVP):
 
@@ -387,7 +388,7 @@ Ziel: Entry-Signale in Richtung eines höherzeitlichen Bias erlauben.
 - D1 Bias (primary HTF) mit EMA-Länge `htf_ema`
 - Optional: zusätzlicher Bias (H4/H1) mit `extra_htf_ema` und Relation-Regeln
 
-### 8.2 Semantik (kompatibel zum V1 Backtest)
+### 8.2 Semantik (kompatibel zum V1 Python Backtest)
 
 - Bias A: `price` vs `EMA(htf_tf)` je nach Filter `above|below|both|none`.
 - Bias B: optionaler Filter `extra_htf_filter`.
@@ -501,7 +502,7 @@ Referenz: `OMEGA_V2_TESTING_VALIDATION_PLAN.md`.
 
 Pflicht-Tests für MRZ:
 
-1. **Golden Parity** gegen V1 Backtest-Implementierung:
+1. **Golden Parity** gegen V1 **Python** Backtest-Implementierung:
    - identische Inputs (Parquet, Config) ⇒ identische `trades.json` (normalisiert) und `metrics.json` Kernwerte.
 2. **Scenario Unit Tests** (synthetische Candle-Sequenzen):
    - Jede Szenario-Regel 1–6 erzeugt ein Signal, wenn Bedingungen erfüllt sind.

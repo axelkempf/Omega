@@ -1,3 +1,5 @@
+//! Timeframe alignment helpers.
+
 use omega_types::Timeframe;
 
 use crate::traits::TimeframeMapping;
@@ -6,7 +8,12 @@ use crate::traits::TimeframeMapping;
 ///
 /// For each primary timestamp, the mapped index is the latest target
 /// timestamp that is <= primary timestamp (no lookahead).
-pub fn build_mapping(primary_timestamps: &[i64], target_timestamps: &[i64], tf: Timeframe) -> TimeframeMapping {
+#[must_use]
+pub fn build_mapping(
+    primary_timestamps: &[i64],
+    target_timestamps: &[i64],
+    tf: Timeframe,
+) -> TimeframeMapping {
     let mut mapping = Vec::with_capacity(primary_timestamps.len());
     if target_timestamps.is_empty() {
         mapping.resize(primary_timestamps.len(), None);

@@ -1,4 +1,4 @@
-//! Indicator traits and specifications
+//! Indicator traits and specifications.
 //!
 //! Defines the core traits and types for indicators.
 
@@ -9,7 +9,7 @@ use std::collections::HashMap;
 /// Used as cache keys to identify computed indicator series.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct IndicatorSpec {
-    /// Indicator name (e.g., "EMA", "ATR", "BOLLINGER_upper")
+    /// Indicator name (e.g., "EMA", "ATR", `BOLLINGER_upper`).
     pub name: String,
     /// Parameters for the indicator
     pub params: IndicatorParams,
@@ -17,6 +17,7 @@ pub struct IndicatorSpec {
 
 impl IndicatorSpec {
     /// Creates a new indicator specification.
+    #[must_use]
     pub fn new(name: impl Into<String>, params: IndicatorParams) -> Self {
         Self {
             name: name.into(),
@@ -25,6 +26,7 @@ impl IndicatorSpec {
     }
 
     /// Creates a composite key for multi-output indicators.
+    #[must_use]
     pub fn with_output_suffix(&self, output_name: &str) -> Self {
         Self {
             name: format!("{}_{}", self.name, output_name),
@@ -33,15 +35,40 @@ impl IndicatorSpec {
     }
 }
 
+/// Mean source for Z-Score calculations.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum ZScoreMeanSource {
+    /// Rolling mean over the Z-Score window.
+    Rolling,
+    /// EMA-based mean with a separate EMA period.
+    Ema,
+}
+
 /// Parameters for indicator configuration.
 /// Uses integer representations (x100, x1000, etc.) for hashability.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum IndicatorParams {
-    /// Simple period-based parameter (EMA, SMA, ATR, Z-Score)
-    Period(usize),
+    /// Simple period-based parameter (EMA, SMA, ATR).
+    ///
+    /// Note: kept for backwards compatibility with Z-Score rolling usage.
+    Period(
+        /// Window length for the indicator.
+        usize,
+    ),
+
+    /// Z-Score parameters with configurable mean source.
+    ZScore {
+        /// Rolling window length for standard deviation.
+        window: usize,
+        /// Mean source for the Z-Score.
+        mean_source: ZScoreMeanSource,
+        /// EMA period when `mean_source == ZScoreMeanSource::Ema`.
+        ema_period: Option<usize>,
+    },
 
     /// Bollinger Bands parameters
     Bollinger {
+        /// Window length for SMA/std calculation.
         period: usize,
         /// Standard deviation factor * 100 (e.g., 200 = 2.0)
         std_factor_x100: u32,
@@ -49,6 +76,7 @@ pub enum IndicatorParams {
 
     /// Kalman filter parameters
     Kalman {
+        /// Window length for residual std.
         window: usize,
         /// R (measurement noise) * 1000
         r_x1000: u32,
@@ -76,11 +104,17 @@ pub enum IndicatorParams {
 
     /// Kalman+GARCH combination
     KalmanGarch {
+        /// Window length for residual std.
         window: usize,
+        /// Kalman R * 1000
         r_x1000: u32,
+        /// Kalman Q * 1000
         q_x1000: u32,
+        /// GARCH alpha * 1000
         alpha_x1000: u32,
+        /// GARCH beta * 1000
         beta_x1000: u32,
+        /// GARCH omega * 1,000,000
         omega_x1000000: u32,
         /// Use log returns when true
         use_log_returns: bool,
@@ -94,6 +128,7 @@ pub enum IndicatorParams {
 
     /// Vol-Cluster parameters
     VolCluster {
+        /// ATR period for volatility estimation.
         vol_period: usize,
         /// High volatility threshold * 100
         high_vol_threshold_x100: u32,
@@ -119,7 +154,7 @@ pub trait Indicator: Send + Sync {
     /// Computes the indicator for all candles.
     ///
     /// Returns Vec<f64> with the same length as candles.
-    /// Values at indices < warmup_periods() are f64::NAN.
+    /// Values at indices < `warmup_periods()` are `f64::NAN`.
     fn compute(&self, candles: &[Candle]) -> Vec<f64>;
 
     /// Name of the indicator (e.g., "EMA", "ATR").
@@ -182,31 +217,37 @@ pub struct PriceSeries {
 
 impl PriceSeries {
     /// Returns length of the aligned series.
+    #[must_use]
     pub fn len(&self) -> usize {
         self.close.len()
     }
 
     /// Returns true when series is empty.
+    #[must_use]
     pub fn is_empty(&self) -> bool {
         self.close.is_empty()
     }
 
     /// Returns close price at index if finite.
+    #[must_use]
     pub fn close_at(&self, idx: usize) -> Option<f64> {
         self.close.get(idx).copied().filter(|v| v.is_finite())
     }
 
     /// Returns open price at index if finite.
+    #[must_use]
     pub fn open_at(&self, idx: usize) -> Option<f64> {
         self.open.get(idx).copied().filter(|v| v.is_finite())
     }
 
     /// Returns high price at index if finite.
+    #[must_use]
     pub fn high_at(&self, idx: usize) -> Option<f64> {
         self.high.get(idx).copied().filter(|v| v.is_finite())
     }
 
     /// Returns low price at index if finite.
+    #[must_use]
     pub fn low_at(&self, idx: usize) -> Option<f64> {
         self.low.get(idx).copied().filter(|v| v.is_finite())
     }
@@ -223,6 +264,7 @@ pub struct TimeframeMapping {
 
 impl TimeframeMapping {
     /// Creates a new mapping.
+    #[must_use]
     pub fn new(timeframe: Timeframe, primary_to_target: Vec<Option<usize>>) -> Self {
         Self {
             timeframe,
@@ -231,16 +273,19 @@ impl TimeframeMapping {
     }
 
     /// Returns mapped index for a primary index.
+    #[must_use]
     pub fn map_index(&self, primary_idx: usize) -> Option<usize> {
         self.primary_to_target.get(primary_idx).copied().flatten()
     }
 
     /// Returns mapping length.
+    #[must_use]
     pub fn len(&self) -> usize {
         self.primary_to_target.len()
     }
 
     /// Returns true when mapping is empty.
+    #[must_use]
     pub fn is_empty(&self) -> bool {
         self.primary_to_target.is_empty()
     }
@@ -248,6 +293,7 @@ impl TimeframeMapping {
 
 impl MultiOutputResult {
     /// Creates a new empty result.
+    #[must_use]
     pub fn new() -> Self {
         Self {
             outputs: HashMap::new(),
@@ -255,11 +301,13 @@ impl MultiOutputResult {
     }
 
     /// Gets a specific output by name.
+    #[must_use]
     pub fn get(&self, name: &str) -> Option<&Vec<f64>> {
         self.outputs.get(name)
     }
 
     /// Gets a value at a specific index from an output.
+    #[must_use]
     pub fn get_at(&self, name: &str, idx: usize) -> Option<f64> {
         self.outputs.get(name).and_then(|v| v.get(idx).copied())
     }
@@ -277,10 +325,13 @@ mod tests {
 
     #[test]
     fn test_indicator_spec_with_output_suffix() {
-        let spec = IndicatorSpec::new("BOLLINGER", IndicatorParams::Bollinger {
-            period: 20,
-            std_factor_x100: 200,
-        });
+        let spec = IndicatorSpec::new(
+            "BOLLINGER",
+            IndicatorParams::Bollinger {
+                period: 20,
+                std_factor_x100: 200,
+            },
+        );
 
         let upper_spec = spec.with_output_suffix("upper");
         assert_eq!(upper_spec.name, "BOLLINGER_upper");

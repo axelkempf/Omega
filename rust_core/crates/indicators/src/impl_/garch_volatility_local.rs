@@ -21,6 +21,7 @@ pub struct GarchLocalParams {
 
 impl GarchLocalParams {
     /// Creates a new parameter set with common defaults.
+    #[must_use]
     pub fn new(alpha: f64, beta: f64, omega: Option<f64>) -> Self {
         Self {
             alpha,
@@ -37,6 +38,7 @@ impl GarchLocalParams {
 /// Computes local GARCH volatility for a window ending at idx (inclusive).
 ///
 /// Returns a vector of sigma values for the window, with NaNs for warmup/invalid values.
+#[must_use]
 pub fn garch_volatility_local(
     prices: &[f64],
     idx: usize,
@@ -76,9 +78,7 @@ pub fn garch_volatility_local(
         }
     }
 
-    let first_idx = returns
-        .iter()
-        .position(|v| v.is_finite());
+    let first_idx = returns.iter().position(|v| v.is_finite());
     let Some(first_idx) = first_idx else {
         return vec![f64::NAN; n];
     };
@@ -92,9 +92,9 @@ pub fn garch_volatility_local(
         lr_var = 1e-6;
     }
 
-    let omega = params.omega.unwrap_or_else(|| {
-        lr_var * (1.0 - params.alpha - params.beta).max(1e-6)
-    });
+    let omega = params
+        .omega
+        .unwrap_or_else(|| lr_var * (1.0 - params.alpha - params.beta).max(1e-6));
     let omega = omega.max(0.0);
 
     let mu_slice_start = first_idx.saturating_sub(2000);
@@ -124,7 +124,13 @@ pub fn garch_volatility_local(
 
     let mut sigma: Vec<f64> = out_var
         .iter()
-        .map(|v| if v.is_finite() { v.sqrt() / params.scale } else { f64::NAN })
+        .map(|v| {
+            if v.is_finite() {
+                v.sqrt() / params.scale
+            } else {
+                f64::NAN
+            }
+        })
         .collect();
 
     let valid_after = first_idx + params.min_periods;
@@ -149,7 +155,9 @@ fn nan_mean(values: &[f64]) -> Option<f64> {
     if count == 0 {
         None
     } else {
-        Some(sum / count as f64)
+        #[allow(clippy::cast_precision_loss)]
+        let count_f = count as f64;
+        Some(sum / count_f)
     }
 }
 
@@ -167,7 +175,9 @@ fn nan_var(values: &[f64]) -> Option<f64> {
     if count == 0 {
         None
     } else {
-        Some(sum / count as f64)
+        #[allow(clippy::cast_precision_loss)]
+        let count_f = count as f64;
+        Some(sum / count_f)
     }
 }
 
@@ -178,7 +188,15 @@ mod tests {
     #[test]
     fn test_local_garch_invalid_params() {
         let prices = vec![1.0, 1.1, 1.2];
-        let params = GarchLocalParams { alpha: 0.6, beta: 0.5, omega: None, use_log_returns: true, scale: 100.0, min_periods: 1, sigma_floor: 1e-6 };
+        let params = GarchLocalParams {
+            alpha: 0.6,
+            beta: 0.5,
+            omega: None,
+            use_log_returns: true,
+            scale: 100.0,
+            min_periods: 1,
+            sigma_floor: 1e-6,
+        };
         let out = garch_volatility_local(&prices, 2, 10, params);
         assert!(out.is_empty());
     }

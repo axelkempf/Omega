@@ -1,13 +1,13 @@
-//! Indicator cache for avoiding redundant computations
+//! Indicator cache for avoiding redundant computations.
 
 use crate::traits::{Indicator, IndicatorSpec, IntoMultiVecs, MultiOutputIndicator};
 use omega_types::Candle;
-use std::collections::HashMap;
+use std::collections::{hash_map::Entry, HashMap};
 
 /// Cache for computed indicator values.
 ///
 /// Stores computed indicator series to avoid redundant calculations.
-/// Uses IndicatorSpec as cache keys.
+/// Uses `IndicatorSpec` as cache keys.
 #[derive(Debug, Default)]
 pub struct IndicatorCache {
     cache: HashMap<IndicatorSpec, Vec<f64>>,
@@ -15,6 +15,7 @@ pub struct IndicatorCache {
 
 impl IndicatorCache {
     /// Creates a new empty cache.
+    #[must_use]
     pub fn new() -> Self {
         Self {
             cache: HashMap::new(),
@@ -22,6 +23,7 @@ impl IndicatorCache {
     }
 
     /// Creates a cache with pre-allocated capacity.
+    #[must_use]
     pub fn with_capacity(capacity: usize) -> Self {
         Self {
             cache: HashMap::with_capacity(capacity),
@@ -29,16 +31,19 @@ impl IndicatorCache {
     }
 
     /// Checks if an indicator is already cached.
+    #[must_use]
     pub fn contains(&self, spec: &IndicatorSpec) -> bool {
         self.cache.contains_key(spec)
     }
 
     /// Gets cached values for an indicator, if present.
+    #[must_use]
     pub fn get(&self, spec: &IndicatorSpec) -> Option<&Vec<f64>> {
         self.cache.get(spec)
     }
 
     /// Gets a single value at index from a cached indicator.
+    #[must_use]
     pub fn get_at(&self, spec: &IndicatorSpec, idx: usize) -> Option<f64> {
         self.cache.get(spec).and_then(|v| v.get(idx).copied())
     }
@@ -52,23 +57,24 @@ impl IndicatorCache {
     ///
     /// If the indicator is already cached, returns the cached values.
     /// Otherwise, computes the indicator, caches it, and returns the values.
+    ///
     pub fn get_or_compute(
         &mut self,
         spec: &IndicatorSpec,
         candles: &[Candle],
         indicator: &dyn Indicator,
     ) -> &[f64] {
-        if !self.cache.contains_key(spec) {
-            let values = indicator.compute(candles);
-            self.cache.insert(spec.clone(), values);
-        }
-        self.cache.get(spec).unwrap()
+        let values = match self.cache.entry(spec.clone()) {
+            Entry::Occupied(entry) => entry.into_mut(),
+            Entry::Vacant(entry) => entry.insert(indicator.compute(candles)),
+        };
+        values.as_slice()
     }
 
     /// Gets or computes a multi-output indicator.
     ///
     /// Computes all outputs together (for efficiency) and caches each
-    /// output with a composite key (base_name + "_" + output_name).
+    /// output with a composite key (`base_name` + "_" + `output_name`).
     pub fn get_or_compute_multi<T>(
         &mut self,
         base_spec: &IndicatorSpec,
@@ -111,11 +117,13 @@ impl IndicatorCache {
     }
 
     /// Returns the number of cached indicators.
+    #[must_use]
     pub fn len(&self) -> usize {
         self.cache.len()
     }
 
     /// Checks if the cache is empty.
+    #[must_use]
     pub fn is_empty(&self) -> bool {
         self.cache.is_empty()
     }
@@ -135,11 +143,13 @@ pub struct MultiOutputCacheResult {
 
 impl MultiOutputCacheResult {
     /// Gets a specific output by name.
+    #[must_use]
     pub fn get(&self, name: &str) -> Option<&Vec<f64>> {
         self.outputs.get(name)
     }
 
     /// Gets a value at a specific index from an output.
+    #[must_use]
     pub fn get_at(&self, name: &str, idx: usize) -> Option<f64> {
         self.outputs.get(name).and_then(|v| v.get(idx).copied())
     }

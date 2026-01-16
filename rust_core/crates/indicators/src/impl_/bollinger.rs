@@ -1,4 +1,4 @@
-//! Bollinger Bands indicator
+//! Bollinger Bands indicator.
 
 use crate::traits::{IntoMultiVecs, MultiOutputIndicator};
 use omega_types::Candle;
@@ -6,11 +6,11 @@ use omega_types::Candle;
 /// Bollinger Bands result containing upper, middle, and lower bands.
 #[derive(Debug, Clone)]
 pub struct BollingerResult {
-    /// Upper band = SMA + std_factor * std
+    /// Upper band = SMA + `std_factor` * std.
     pub upper: Vec<f64>,
     /// Middle band = SMA
     pub middle: Vec<f64>,
-    /// Lower band = SMA - std_factor * std
+    /// Lower band = SMA - `std_factor` * std.
     pub lower: Vec<f64>,
 }
 
@@ -23,9 +23,9 @@ impl IntoMultiVecs for BollingerResult {
 /// Bollinger Bands
 ///
 /// Calculates three bands based on standard deviation around a simple moving average:
-/// - Upper Band = SMA + (std_factor * StdDev)
+/// - Upper Band = SMA + (`std_factor` * `StdDev`)
 /// - Middle Band = SMA
-/// - Lower Band = SMA - (std_factor * StdDev)
+/// - Lower Band = SMA - (`std_factor` * `StdDev`)
 ///
 /// Uses sample standard deviation (n-1) to match pandas rolling std defaults.
 #[derive(Debug, Clone)]
@@ -38,15 +38,17 @@ pub struct BollingerBands {
 
 impl BollingerBands {
     /// Creates new Bollinger Bands with the given parameters.
+    #[must_use]
     pub fn new(period: usize, std_factor: f64) -> Self {
         Self { period, std_factor }
     }
 
-    /// Creates Bollinger Bands from x100 encoded std_factor.
+    /// Creates Bollinger Bands from x100 encoded `std_factor`.
+    #[must_use]
     pub fn from_x100(period: usize, std_factor_x100: u32) -> Self {
         Self {
             period,
-            std_factor: std_factor_x100 as f64 / 100.0,
+            std_factor: f64::from(std_factor_x100) / 100.0,
         }
     }
 }
@@ -68,24 +70,51 @@ impl MultiOutputIndicator for BollingerBands {
             };
         }
 
+        let mut sum = vec![0.0; len + 1];
+        let mut sum_sq = vec![0.0; len + 1];
+        let mut nonfinite = vec![0usize; len + 1];
+
+        for (i, candle) in candles.iter().enumerate() {
+            sum[i + 1] = sum[i];
+            sum_sq[i + 1] = sum_sq[i];
+            nonfinite[i + 1] = nonfinite[i];
+
+            let value = candle.close;
+            if value.is_finite() {
+                sum[i + 1] += value;
+                sum_sq[i + 1] += value * value;
+            } else {
+                nonfinite[i + 1] += 1;
+            }
+        }
+
+        #[allow(clippy::cast_precision_loss)]
+        let period_f = self.period as f64;
+        let denom = period_f - 1.0;
+
         for i in (self.period - 1)..len {
             let start = i + 1 - self.period;
-            let window: Vec<f64> = candles[start..=i].iter().map(|c| c.close).collect();
+            let end = i + 1;
+            if nonfinite[end] - nonfinite[start] > 0 {
+                continue;
+            }
 
-            // SMA
-            let sma = window.iter().sum::<f64>() / self.period as f64;
+            let window_sum = sum[end] - sum[start];
+            let window_sum_sq = sum_sq[end] - sum_sq[start];
+            let mean = window_sum / period_f;
+            middle[i] = mean;
 
-            let denom = (self.period as f64) - 1.0;
-            let std = if denom > 0.0 {
-                let variance = window.iter().map(|x| (x - sma).powi(2)).sum::<f64>() / denom;
-                variance.sqrt()
-            } else {
-                f64::NAN
-            };
+            if denom <= 0.0 {
+                continue;
+            }
 
-            middle[i] = sma;
-            upper[i] = sma + self.std_factor * std;
-            lower[i] = sma - self.std_factor * std;
+            let variance = (window_sum_sq - (window_sum * window_sum) / period_f) / denom;
+            if variance.is_finite() {
+                let variance = if variance < 0.0 { 0.0 } else { variance };
+                let std = variance.sqrt();
+                upper[i] = mean + self.std_factor * std;
+                lower[i] = mean - self.std_factor * std;
+            }
         }
 
         BollingerResult {
@@ -95,7 +124,7 @@ impl MultiOutputIndicator for BollingerBands {
         }
     }
 
-    fn name(&self) -> &str {
+    fn name(&self) -> &'static str {
         "BOLLINGER"
     }
 
