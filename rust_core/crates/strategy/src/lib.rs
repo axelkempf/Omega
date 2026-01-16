@@ -30,6 +30,8 @@
 //! ```
 
 #![deny(clippy::all)]
+#![deny(missing_docs)]
+#![warn(clippy::pedantic)]
 
 pub mod context;
 pub mod error;

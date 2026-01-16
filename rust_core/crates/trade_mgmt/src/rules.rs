@@ -7,6 +7,53 @@ use crate::context::{PositionView, TradeContext};
 use omega_types::ExitReason;
 use serde::{Deserialize, Serialize};
 
+/// Stable identifier for a trade-management rule.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(transparent)]
+pub struct RuleId(String);
+
+impl RuleId {
+    /// Creates a new rule identifier.
+    pub fn new(value: impl Into<String>) -> Self {
+        Self(value.into())
+    }
+
+    /// Returns the identifier as a string slice.
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+impl From<&str> for RuleId {
+    fn from(value: &str) -> Self {
+        Self::new(value)
+    }
+}
+
+/// Rule priority (lower value = higher priority).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(transparent)]
+pub struct RulePriority(u16);
+
+impl RulePriority {
+    /// Hard close priority (e.g. MaxHoldingTime).
+    pub const HARD_CLOSE: Self = Self(10);
+    /// Protective stop priority (e.g. Break-even).
+    pub const PROTECTIVE_STOP: Self = Self(20);
+    /// Trailing stop priority.
+    pub const TRAILING: Self = Self(30);
+
+    /// Creates a new priority value.
+    pub const fn new(value: u16) -> Self {
+        Self(value)
+    }
+
+    /// Returns the numeric priority value.
+    pub const fn value(self) -> u16 {
+        self.0
+    }
+}
+
 /// Trait for trade management rules.
 ///
 /// Rules evaluate positions and produce actions like closing
@@ -15,6 +62,12 @@ use serde::{Deserialize, Serialize};
 /// # Thread Safety
 /// Rules must be `Send + Sync` for parallel evaluation.
 pub trait Rule: Send + Sync {
+    /// Stable rule identifier used for deterministic conflict resolution.
+    fn id(&self) -> RuleId;
+
+    /// Rule priority (lower wins) used for conflict resolution.
+    fn priority(&self) -> RulePriority;
+
     /// Evaluates the rule for a position.
     ///
     /// # Arguments
@@ -111,6 +164,14 @@ impl MaxHoldingTimeRule {
 }
 
 impl Rule for MaxHoldingTimeRule {
+    fn id(&self) -> RuleId {
+        RuleId::from("max_holding_time")
+    }
+
+    fn priority(&self) -> RulePriority {
+        RulePriority::HARD_CLOSE
+    }
+
     fn evaluate(&self, ctx: &TradeContext, position: &PositionView) -> Option<Action> {
         let holding_ns = ctx.market.timestamp_ns - position.entry_time_ns;
         let holding_bars = holding_ns / self.bar_duration_ns;
@@ -187,6 +248,14 @@ impl BreakEvenRule {
 }
 
 impl Rule for BreakEvenRule {
+    fn id(&self) -> RuleId {
+        RuleId::from("break_even")
+    }
+
+    fn priority(&self) -> RulePriority {
+        RulePriority::PROTECTIVE_STOP
+    }
+
     fn evaluate(&self, ctx: &TradeContext, position: &PositionView) -> Option<Action> {
         use omega_types::Direction;
 
@@ -294,6 +363,14 @@ impl TrailingStopRule {
 }
 
 impl Rule for TrailingStopRule {
+    fn id(&self) -> RuleId {
+        RuleId::from("trailing_stop")
+    }
+
+    fn priority(&self) -> RulePriority {
+        RulePriority::TRAILING
+    }
+
     fn evaluate(&self, ctx: &TradeContext, position: &PositionView) -> Option<Action> {
         use omega_types::Direction;
 

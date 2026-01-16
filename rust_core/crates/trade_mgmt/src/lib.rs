@@ -39,6 +39,8 @@
 //! ```
 
 #![deny(clippy::all)]
+#![deny(missing_docs)]
+#![warn(clippy::pedantic)]
 
 pub mod actions;
 pub mod context;
@@ -48,7 +50,12 @@ pub mod rules;
 
 // Re-export main types
 pub use actions::{Action, StopModifyReason};
-pub use context::{MarketView, PositionView, TradeContext, TradeMgmtMode};
-pub use engine::{TradeManager, TradeManagerBuilder};
+pub use context::{MarketView, PositionStatus, PositionView, TradeContext, TradeMgmtMode};
+pub use engine::{
+	MaxHoldingTimeConfig, StopUpdatePolicy, TradeManager, TradeManagerBuilder,
+	TradeManagerConfig, TradeManagerRulesConfig,
+};
 pub use error::TradeManagementError;
-pub use rules::{BreakEvenRule, MaxHoldingTimeRule, Rule, RuleSet, TrailingStopRule};
+pub use rules::{
+	BreakEvenRule, MaxHoldingTimeRule, Rule, RuleId, RulePriority, RuleSet, TrailingStopRule,
+};

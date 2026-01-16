@@ -6,6 +6,19 @@
 use omega_types::Direction;
 use serde::{Deserialize, Serialize};
 
+/// Position lifecycle status for trade management.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum PositionStatus {
+    /// Position is open and managed.
+    #[default]
+    Open,
+    /// Position is pending (not yet filled).
+    Pending,
+    /// Position is closed (historical only).
+    Closed,
+}
+
 /// Read-only snapshot of a position for trade management.
 ///
 /// Contains only the information needed for rule evaluation,
@@ -18,6 +31,9 @@ pub struct PositionView {
     pub symbol: String,
     /// Trade direction
     pub direction: Direction,
+    /// Position status
+    #[serde(default)]
+    pub status: PositionStatus,
     /// Entry timestamp in nanoseconds
     pub entry_time_ns: i64,
     /// Entry price
@@ -30,6 +46,9 @@ pub struct PositionView {
     pub take_profit: Option<f64>,
     /// Scenario ID (1-6 for MRZ)
     pub scenario_id: u8,
+    /// Arbitrary metadata (serializable)
+    #[serde(default, skip_serializing_if = "serde_json::Value::is_null")]
+    pub meta: serde_json::Value,
 }
 
 impl PositionView {
@@ -46,12 +65,14 @@ impl PositionView {
             position_id,
             symbol: symbol.into(),
             direction,
+            status: PositionStatus::default(),
             entry_time_ns,
             entry_price,
             size,
             stop_loss: None,
             take_profit: None,
             scenario_id: 1,
+            meta: serde_json::Value::Null,
         }
     }
 
@@ -70,6 +91,18 @@ impl PositionView {
     /// Sets the scenario ID.
     pub fn with_scenario(mut self, scenario_id: u8) -> Self {
         self.scenario_id = scenario_id;
+        self
+    }
+
+    /// Sets the position status.
+    pub fn with_status(mut self, status: PositionStatus) -> Self {
+        self.status = status;
+        self
+    }
+
+    /// Sets metadata for the position.
+    pub fn with_meta(mut self, meta: serde_json::Value) -> Self {
+        self.meta = meta;
         self
     }
 }
@@ -207,13 +240,17 @@ mod tests {
         let view = PositionView::new(42, "EURUSD", Direction::Long, 1000000000, 1.1000, 0.1)
             .with_stop_loss(1.0950)
             .with_take_profit(1.1100)
-            .with_scenario(3);
+            .with_scenario(3)
+            .with_status(PositionStatus::Open)
+            .with_meta(serde_json::json!({"source": "test"}));
 
         assert_eq!(view.position_id, 42);
         assert_eq!(view.symbol, "EURUSD");
         assert_eq!(view.stop_loss, Some(1.0950));
         assert_eq!(view.take_profit, Some(1.1100));
         assert_eq!(view.scenario_id, 3);
+        assert_eq!(view.status, PositionStatus::Open);
+        assert_eq!(view.meta["source"], "test");
     }
 
     #[test]

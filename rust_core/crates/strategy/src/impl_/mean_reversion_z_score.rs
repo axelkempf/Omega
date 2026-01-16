@@ -16,6 +16,7 @@ use crate::traits::{IndicatorRequirement, Strategy};
 use omega_indicators::{GarchLocalParams, VolClusterRequest, VolFeatureSeries};
 use omega_types::{Direction, OrderType, PriceType, Signal};
 use serde::{Deserialize, Serialize};
+use std::collections::HashSet;
 
 /// HTF filter mode
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
@@ -189,6 +190,12 @@ pub struct MrzParams {
     pub scenario6_params: serde_json::Value,
 
     // Gating
+    /// Legacy flag for enabling trade management (compat mapping).
+    #[serde(default = "default_use_position_manager")]
+    pub use_position_manager: bool,
+    /// Maximum holding time in minutes (legacy compat; 0 disables).
+    #[serde(default = "default_max_holding_minutes")]
+    pub max_holding_minutes: u64,
     /// Direction filter
     #[serde(default)]
     pub direction_filter: DirectionFilter,
@@ -288,6 +295,12 @@ fn default_intraday_vol_allowed() -> Vec<String> {
 fn default_cluster_hysteresis_bars() -> usize {
     1
 }
+fn default_use_position_manager() -> bool {
+    false
+}
+fn default_max_holding_minutes() -> u64 {
+    0
+}
 fn default_enabled_scenarios() -> Vec<u8> {
     vec![1]
 }
@@ -330,6 +343,8 @@ impl Default for MrzParams {
             scenario6_mode: Scenario6Mode::default(),
             scenario6_timeframes: Vec::new(),
             scenario6_params: serde_json::Value::Null,
+            use_position_manager: default_use_position_manager(),
+            max_holding_minutes: default_max_holding_minutes(),
             direction_filter: DirectionFilter::default(),
             enabled_scenarios: default_enabled_scenarios(),
         }
@@ -377,7 +392,7 @@ impl MeanReversionZScore {
 
     /// Creates a strategy from JSON parameters.
     pub fn from_params(params: &serde_json::Value) -> Result<Self, StrategyError> {
-        let params: MrzParams =
+        let mut params: MrzParams =
             serde_json::from_value(params.clone()).map_err(StrategyError::Json)?;
 
         // Validate parameters
@@ -391,6 +406,9 @@ impl MeanReversionZScore {
                 "z_score_short must be positive".to_string(),
             ));
         }
+
+        params.scenario6_timeframes = normalize_timeframe_list(&params.scenario6_timeframes);
+        params.scenario6_params = normalize_scenario6_params(&params.scenario6_params);
 
         Ok(Self::new(params))
     }
@@ -1063,34 +1081,37 @@ impl MeanReversionZScore {
             .iter()
             .map(|tf| {
                 // Get TF-specific params from scenario6_params or use defaults
-                let tf_params = self
-                    .params
-                    .scenario6_params
-                    .get(tf)
-                    .or_else(|| self.params.scenario6_params.get("*"));
+                let tf_params = self.scenario6_params_for_tf(tf);
 
                 let window = tf_params
-                    .and_then(|p| p.get("window_length").and_then(|v| v.as_u64()))
+                    .get("window_length")
+                    .and_then(|v| v.as_u64())
                     .unwrap_or(self.params.window_length as u64)
                     as usize;
                 let kalman_r = tf_params
-                    .and_then(|p| p.get("kalman_r").and_then(|v| v.as_f64()))
+                    .get("kalman_r")
+                    .and_then(|v| v.as_f64())
                     .unwrap_or(self.params.kalman_r);
                 let kalman_q = tf_params
-                    .and_then(|p| p.get("kalman_q").and_then(|v| v.as_f64()))
+                    .get("kalman_q")
+                    .and_then(|v| v.as_f64())
                     .unwrap_or(self.params.kalman_q);
                 let bb_period = tf_params
-                    .and_then(|p| p.get("b_b_length").and_then(|v| v.as_u64()))
+                    .get("b_b_length")
+                    .and_then(|v| v.as_u64())
                     .unwrap_or(self.params.b_b_length as u64)
                     as usize;
                 let std_factor = tf_params
-                    .and_then(|p| p.get("std_factor").and_then(|v| v.as_f64()))
+                    .get("std_factor")
+                    .and_then(|v| v.as_f64())
                     .unwrap_or(self.params.std_factor);
                 let z_long = tf_params
-                    .and_then(|p| p.get("z_score_long").and_then(|v| v.as_f64()))
+                    .get("z_score_long")
+                    .and_then(|v| v.as_f64())
                     .unwrap_or(self.params.z_score_long);
                 let z_short = tf_params
-                    .and_then(|p| p.get("z_score_short").and_then(|v| v.as_f64()))
+                    .get("z_score_short")
+                    .and_then(|v| v.as_f64())
                     .unwrap_or(self.params.z_score_short);
 
                 let params_json = serde_json::json!({
@@ -1184,6 +1205,27 @@ impl MeanReversionZScore {
                 }
             })
             .collect()
+    }
+
+    fn scenario6_params_for_tf(&self, tf: &str) -> serde_json::Map<String, serde_json::Value> {
+        let mut resolved = serde_json::Map::new();
+        let Some(map) = self.params.scenario6_params.as_object() else {
+            return resolved;
+        };
+
+        if let Some(wildcard) = map.get("*").and_then(|v| v.as_object()) {
+            for (key, value) in wildcard {
+                resolved.insert(key.clone(), value.clone());
+            }
+        }
+
+        if let Some(tf_specific) = find_scenario6_params(map, tf).and_then(|v| v.as_object()) {
+            for (key, value) in tf_specific {
+                resolved.insert(key.clone(), value.clone());
+            }
+        }
+
+        resolved
     }
 
     /// Checks HTF trend bias (Bias A + optional Bias B).
@@ -1586,28 +1628,29 @@ impl Strategy for MeanReversionZScore {
         if self.params.enabled_scenarios.contains(&6) {
             for tf in &self.params.scenario6_timeframes {
                 // Get TF-specific params or defaults
-                let tf_params = self
-                    .params
-                    .scenario6_params
-                    .get(tf)
-                    .or_else(|| self.params.scenario6_params.get("*"));
+                let tf_params = self.scenario6_params_for_tf(tf);
 
                 let window = tf_params
-                    .and_then(|p| p.get("window_length").and_then(|v| v.as_u64()))
+                    .get("window_length")
+                    .and_then(|v| v.as_u64())
                     .unwrap_or(self.params.window_length as u64)
                     as usize;
                 let kalman_r = tf_params
-                    .and_then(|p| p.get("kalman_r").and_then(|v| v.as_f64()))
+                    .get("kalman_r")
+                    .and_then(|v| v.as_f64())
                     .unwrap_or(self.params.kalman_r);
                 let kalman_q = tf_params
-                    .and_then(|p| p.get("kalman_q").and_then(|v| v.as_f64()))
+                    .get("kalman_q")
+                    .and_then(|v| v.as_f64())
                     .unwrap_or(self.params.kalman_q);
                 let bb_period = tf_params
-                    .and_then(|p| p.get("b_b_length").and_then(|v| v.as_u64()))
+                    .get("b_b_length")
+                    .and_then(|v| v.as_u64())
                     .unwrap_or(self.params.b_b_length as u64)
                     as usize;
                 let std_factor = tf_params
-                    .and_then(|p| p.get("std_factor").and_then(|v| v.as_f64()))
+                    .get("std_factor")
+                    .and_then(|v| v.as_f64())
                     .unwrap_or(self.params.std_factor);
 
                 // TF-specific Kalman-Z
@@ -1678,6 +1721,73 @@ impl Strategy for MeanReversionZScore {
 fn is_htf_disabled(timeframe: &str) -> bool {
     let tf = timeframe.trim();
     tf.is_empty() || tf.eq_ignore_ascii_case("NONE")
+}
+
+fn normalize_timeframe_name(value: &str) -> String {
+    value.trim().to_uppercase()
+}
+
+fn normalize_timeframe_list(values: &[String]) -> Vec<String> {
+    let mut seen = HashSet::new();
+    let mut normalized = Vec::new();
+
+    for value in values {
+        let tf = normalize_timeframe_name(value);
+        if tf.is_empty() {
+            continue;
+        }
+        if seen.insert(tf.clone()) {
+            normalized.push(tf);
+        }
+    }
+
+    normalized
+}
+
+fn normalize_scenario6_params(value: &serde_json::Value) -> serde_json::Value {
+    let Some(map) = value.as_object() else {
+        return value.clone();
+    };
+
+    let mut normalized = serde_json::Map::new();
+    for (key, val) in map {
+        let trimmed = key.trim();
+        if trimmed.is_empty() {
+            continue;
+        }
+        let normalized_key = if trimmed == "*" {
+            "*".to_string()
+        } else {
+            normalize_timeframe_name(trimmed)
+        };
+        normalized.insert(normalized_key, val.clone());
+    }
+
+    serde_json::Value::Object(normalized)
+}
+
+fn find_scenario6_params<'a>(
+    map: &'a serde_json::Map<String, serde_json::Value>,
+    tf: &str,
+) -> Option<&'a serde_json::Value> {
+    let normalized = normalize_timeframe_name(tf);
+
+    if let Some(value) = map.get(&normalized) {
+        return Some(value);
+    }
+    if let Some(value) = map.get(tf) {
+        return Some(value);
+    }
+
+    map.iter().find_map(|(key, value)| {
+        if key == "*" {
+            None
+        } else if normalize_timeframe_name(key) == normalized {
+            Some(value)
+        } else {
+            None
+        }
+    })
 }
 
 fn kmeans_1d(values: &[f64], k: usize) -> Option<(Vec<f64>, Vec<usize>)> {
@@ -1763,6 +1873,7 @@ fn quantile_sorted(sorted: &[f64], q: f64) -> f64 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::context::HtfContext;
     use omega_indicators::{
         ATR, EMA, IndicatorCache, IndicatorParams, IndicatorSpec, MultiTfIndicatorCache, ZScore,
     };
@@ -2095,7 +2206,178 @@ mod tests {
             params.intraday_vol_allowed,
             vec!["low".to_string(), "mid".to_string()]
         );
+        assert!(!params.use_position_manager);
+        assert_eq!(params.max_holding_minutes, 0);
         assert_eq!(params.enabled_scenarios, vec![1]);
+    }
+
+    #[test]
+    fn test_htf_filter_above_allows_when_price_above_ema() {
+        let ema_len = 2;
+        let mut htf_cache = IndicatorCache::new();
+        insert_period(&mut htf_cache, "EMA", ema_len, 0, 1.1000);
+
+        let htf_bid = make_candle(1.1050);
+        let htf_ask = make_candle(1.1052);
+        let htf_ctx = HtfContext::new(&htf_bid, &htf_ask, &htf_cache, 0, "H1");
+
+        let bid = make_candle(1.1000);
+        let ask = make_candle(1.1002);
+        let cache = IndicatorCache::new();
+        let ctx = BarContext::new(0, 1_000_000_000, &bid, &ask, &cache).with_htf(htf_ctx);
+
+        let strategy = MeanReversionZScore::new(MrzParams::default());
+        assert!(strategy.check_htf_filter(&ctx, "H1", ema_len, HtfFilter::Above));
+    }
+
+    #[test]
+    fn test_htf_filter_below_allows_when_price_below_ema() {
+        let ema_len = 2;
+        let mut htf_cache = IndicatorCache::new();
+        insert_period(&mut htf_cache, "EMA", ema_len, 0, 1.2000);
+
+        let htf_bid = make_candle(1.1950);
+        let htf_ask = make_candle(1.1952);
+        let htf_ctx = HtfContext::new(&htf_bid, &htf_ask, &htf_cache, 0, "H1");
+
+        let bid = make_candle(1.1000);
+        let ask = make_candle(1.1002);
+        let cache = IndicatorCache::new();
+        let ctx = BarContext::new(0, 1_000_000_000, &bid, &ask, &cache).with_htf(htf_ctx);
+
+        let strategy = MeanReversionZScore::new(MrzParams::default());
+        assert!(strategy.check_htf_filter(&ctx, "H1", ema_len, HtfFilter::Below));
+    }
+
+    #[test]
+    fn test_htf_filter_both_and_none_are_pass_through() {
+        let bid = make_candle(1.1000);
+        let ask = make_candle(1.1002);
+        let cache = IndicatorCache::new();
+        let ctx = BarContext::new(0, 1_000_000_000, &bid, &ask, &cache);
+
+        let strategy = MeanReversionZScore::new(MrzParams::default());
+        assert!(strategy.check_htf_filter(&ctx, "H1", 200, HtfFilter::Both));
+        assert!(strategy.check_htf_filter(&ctx, "H1", 200, HtfFilter::None));
+    }
+
+    #[test]
+    fn test_htf_bias_requires_both_filters() {
+        let ema_len = 2;
+        let mut htf_cache = IndicatorCache::new();
+        insert_period(&mut htf_cache, "EMA", ema_len, 0, 1.1000);
+
+        let htf_bid = make_candle(1.1050);
+        let htf_ask = make_candle(1.1052);
+        let htf_ctx = HtfContext::new(&htf_bid, &htf_ask, &htf_cache, 0, "H1");
+
+        let bid = make_candle(1.1000);
+        let ask = make_candle(1.1002);
+        let cache = IndicatorCache::new();
+        let ctx = BarContext::new(0, 1_000_000_000, &bid, &ask, &cache).with_htf(htf_ctx);
+
+        let params = MrzParams {
+            htf_tf: "H1".to_string(),
+            htf_ema: ema_len,
+            htf_filter: HtfFilter::Above,
+            extra_htf_tf: "H1".to_string(),
+            extra_htf_ema: ema_len,
+            extra_htf_filter: HtfFilter::Below,
+            ..Default::default()
+        };
+        let strategy = MeanReversionZScore::new(params);
+
+        assert!(!strategy.check_htf_bias(&ctx));
+    }
+
+    #[test]
+    fn test_scenario6_timeframe_normalization_and_param_keys() {
+        let params = serde_json::json!({
+            "scenario6_timeframes": [" h1 ", "H1"],
+            "scenario6_params": {
+                "h1": {"z_score_long": -1.5}
+            }
+        });
+
+        let strategy = MeanReversionZScore::from_params(&params).expect("valid params");
+
+        assert_eq!(strategy.params.scenario6_timeframes, vec!["H1".to_string()]);
+        assert!(strategy.params.scenario6_params.get("H1").is_some());
+    }
+
+    #[test]
+    fn test_scenario6_params_wildcard_fallback() {
+        let params = MrzParams {
+            scenario6_timeframes: vec!["H1".to_string()],
+            scenario6_params: serde_json::json!({
+                "*": {"z_score_long": -1.25}
+            }),
+            ..Default::default()
+        };
+        let strategy = MeanReversionZScore::new(params);
+
+        let idx = 0;
+        let mut cache = IndicatorCache::new();
+        insert_kalman(&mut cache, "KALMAN_Z_H1", 20, 1.0, 0.1, idx, -2.0);
+        insert_bollinger(
+            &mut cache,
+            "BOLLINGER_H1",
+            20,
+            2.0,
+            idx,
+            BollingerValues {
+                lower: 1.1000,
+                middle: 1.1010,
+                upper: 1.1020,
+            },
+        );
+        insert_period(&mut cache, "CLOSE_H1", 1, idx, 1.0990);
+
+        let bid = make_candle(1.1000);
+        let ask = make_candle(1.1002);
+        let ctx = BarContext::new(idx, 1_000_000_000, &bid, &ask, &cache);
+
+        let chain = strategy.check_multi_tf_signals_v2(&ctx, true);
+        assert_eq!(chain.len(), 1);
+        assert!((chain[0].threshold + 1.25).abs() < 1e-10);
+    }
+
+    #[test]
+    fn test_scenario6_params_specific_overrides_wildcard() {
+        let params = MrzParams {
+            scenario6_timeframes: vec!["H1".to_string()],
+            scenario6_params: serde_json::json!({
+                "*": {"z_score_long": -1.0},
+                "H1": {"z_score_long": -3.0}
+            }),
+            ..Default::default()
+        };
+        let strategy = MeanReversionZScore::new(params);
+
+        let idx = 0;
+        let mut cache = IndicatorCache::new();
+        insert_kalman(&mut cache, "KALMAN_Z_H1", 20, 1.0, 0.1, idx, -4.0);
+        insert_bollinger(
+            &mut cache,
+            "BOLLINGER_H1",
+            20,
+            2.0,
+            idx,
+            BollingerValues {
+                lower: 1.1000,
+                middle: 1.1010,
+                upper: 1.1020,
+            },
+        );
+        insert_period(&mut cache, "CLOSE_H1", 1, idx, 1.0990);
+
+        let bid = make_candle(1.1000);
+        let ask = make_candle(1.1002);
+        let ctx = BarContext::new(idx, 1_000_000_000, &bid, &ask, &cache);
+
+        let chain = strategy.check_multi_tf_signals_v2(&ctx, true);
+        assert_eq!(chain.len(), 1);
+        assert!((chain[0].threshold + 3.0).abs() < 1e-10);
     }
 
     #[test]

@@ -10,6 +10,9 @@ use serde::{Deserialize, Serialize};
 /// Actions are evaluated at the end of each bar and applied
 /// by the execution engine. Stop modifications use `ApplyNextBar` policy
 /// (effective from idx + 1).
+///
+/// MVP: only `ClosePosition` is guaranteed to be applied by the orchestrator.
+/// Post-MVP actions may be emitted but can be ignored unless explicitly enabled.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum Action {
     /// Close a position immediately

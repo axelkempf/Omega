@@ -388,6 +388,10 @@ impl<'a> BarContext<'a> {
         None
     }
 
+    /// Gets an indicator value for the specified price type.
+    ///
+    /// Uses the multi-timeframe cache when available and falls back
+    /// to the primary indicator cache.
     pub fn get_indicator_with_price_type(
         &self,
         name: &str,
@@ -417,6 +421,7 @@ impl<'a> BarContext<'a> {
         None
     }
 
+    /// Gets the stepwise EMA for a given timeframe.
     pub fn get_stepwise_ema(
         &self,
         timeframe: &str,
@@ -438,6 +443,7 @@ impl<'a> BarContext<'a> {
         None
     }
 
+    /// Gets the stepwise Kalman-Z score for a given timeframe.
     pub fn get_stepwise_kalman_zscore(
         &self,
         timeframe: &str,
@@ -465,6 +471,7 @@ impl<'a> BarContext<'a> {
         Some(value)
     }
 
+    /// Gets a stepwise Bollinger output (upper/middle/lower) for a timeframe.
     pub fn get_stepwise_bollinger_output(
         &self,
         timeframe: &str,
@@ -493,6 +500,7 @@ impl<'a> BarContext<'a> {
         )
     }
 
+    /// Gets the aligned close price for a given timeframe.
     pub fn get_tf_close(&self, timeframe: &str, price_type: PriceType) -> Option<f64> {
         if let Some(cache) = self.multi_tf {
             let tf = self.parse_timeframe(timeframe)?;

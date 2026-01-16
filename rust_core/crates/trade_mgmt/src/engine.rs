@@ -4,7 +4,97 @@
 
 use crate::actions::Action;
 use crate::context::{PositionView, TradeContext};
-use crate::rules::RuleSet;
+use crate::rules::{MaxHoldingTimeRule, RuleId, RulePriority, RuleSet};
+use serde::{Deserialize, Serialize};
+
+/// Stop update policy for trade management actions.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum StopUpdatePolicy {
+    /// Apply stop/TP changes from the next bar (MVP policy).
+    ApplyNextBar,
+}
+
+impl Default for StopUpdatePolicy {
+    fn default() -> Self {
+        StopUpdatePolicy::ApplyNextBar
+    }
+}
+
+/// Trade manager configuration.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TradeManagerConfig {
+    /// Whether trade management is enabled.
+    #[serde(default = "default_trade_manager_enabled")]
+    pub enabled: bool,
+    /// Policy for stop updates (MVP: apply_next_bar).
+    #[serde(default)]
+    pub stop_update_policy: StopUpdatePolicy,
+    /// Rule-specific configuration.
+    #[serde(default)]
+    pub rules: TradeManagerRulesConfig,
+}
+
+impl Default for TradeManagerConfig {
+    fn default() -> Self {
+        Self {
+            enabled: default_trade_manager_enabled(),
+            stop_update_policy: StopUpdatePolicy::default(),
+            rules: TradeManagerRulesConfig::default(),
+        }
+    }
+}
+
+/// Rule configuration block for trade management.
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct TradeManagerRulesConfig {
+    /// Max holding time rule configuration.
+    #[serde(default)]
+    pub max_holding_time: MaxHoldingTimeConfig,
+}
+
+/// Configuration for the max holding time rule.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MaxHoldingTimeConfig {
+    /// Whether the rule is enabled.
+    #[serde(default = "default_max_holding_enabled")]
+    pub enabled: bool,
+    /// Max holding minutes (0 uses fallback from strategy params).
+    #[serde(default = "default_max_holding_minutes")]
+    pub max_holding_minutes: u64,
+    /// Only apply to these scenarios (empty = all).
+    #[serde(default)]
+    pub only_scenarios: Vec<u8>,
+}
+
+impl Default for MaxHoldingTimeConfig {
+    fn default() -> Self {
+        Self {
+            enabled: default_max_holding_enabled(),
+            max_holding_minutes: default_max_holding_minutes(),
+            only_scenarios: Vec::new(),
+        }
+    }
+}
+
+fn default_trade_manager_enabled() -> bool {
+    false
+}
+
+fn default_max_holding_enabled() -> bool {
+    true
+}
+
+fn default_max_holding_minutes() -> u64 {
+    0
+}
+
+#[derive(Debug, Clone)]
+struct ActionCandidate {
+    action: Action,
+    rule_id: RuleId,
+    priority: RulePriority,
+}
 
 /// Trade manager for evaluating rules against positions.
 ///
@@ -37,6 +127,40 @@ impl TradeManager {
         Self { rules }
     }
 
+    /// Creates a trade manager from config (optionally using strategy defaults).
+    ///
+    /// When `max_holding_minutes` is 0 in the config, `fallback_max_holding_minutes`
+    /// is used (e.g., mapped from strategy parameters).
+    pub fn from_config(
+        config: &TradeManagerConfig,
+        bar_duration_ns: i64,
+        fallback_max_holding_minutes: Option<u64>,
+    ) -> Self {
+        if !config.enabled {
+            return TradeManager::empty();
+        }
+
+        let mut rules = RuleSet::new();
+        let max_cfg = &config.rules.max_holding_time;
+        if max_cfg.enabled {
+            let max_minutes = if max_cfg.max_holding_minutes > 0 {
+                max_cfg.max_holding_minutes
+            } else {
+                fallback_max_holding_minutes.unwrap_or(0)
+            };
+
+            if max_minutes > 0 {
+                let mut rule = MaxHoldingTimeRule::from_minutes(max_minutes, bar_duration_ns);
+                if !max_cfg.only_scenarios.is_empty() {
+                    rule = rule.with_scenarios(max_cfg.only_scenarios.clone());
+                }
+                rules.add(rule);
+            }
+        }
+
+        TradeManager::new(rules)
+    }
+
     /// Creates an empty trade manager (no rules).
     pub fn empty() -> Self {
         Self {
@@ -47,7 +171,7 @@ impl TradeManager {
     /// Evaluates rules for all positions.
     ///
     /// Returns a list of actions to apply. Only one action per position
-    /// is returned (first rule that matches wins).
+    /// is returned after deterministic conflict resolution.
     ///
     /// # Arguments
     /// * `ctx` - Trade context with market data and session state
@@ -56,6 +180,7 @@ impl TradeManager {
         let mut actions = Vec::new();
 
         for position in positions {
+            let mut candidates = Vec::new();
             for rule in self.rules.iter() {
                 // Check if rule applies to this scenario
                 if !rule.applies_to_scenario(position.scenario_id) {
@@ -63,13 +188,43 @@ impl TradeManager {
                 }
 
                 if let Some(action) = rule.evaluate(ctx, position) {
-                    actions.push(action);
-                    break; // One action per position per bar
+                    if matches!(action, Action::None) {
+                        continue;
+                    }
+
+                    candidates.push(ActionCandidate {
+                        action,
+                        rule_id: rule.id(),
+                        priority: rule.priority(),
+                    });
                 }
+            }
+
+            if let Some(action) = Self::resolve_candidates(candidates) {
+                actions.push(action);
             }
         }
 
         actions
+    }
+
+    fn resolve_candidates(candidates: Vec<ActionCandidate>) -> Option<Action> {
+        if candidates.is_empty() {
+            return None;
+        }
+
+        let mut close_candidates: Vec<_> = candidates
+            .iter()
+            .filter(|c| c.action.is_close())
+            .collect();
+        if !close_candidates.is_empty() {
+            close_candidates.sort_by(|a, b| (a.priority, &a.rule_id).cmp(&(b.priority, &b.rule_id)));
+            return close_candidates.first().map(|c| c.action.clone());
+        }
+
+        let mut remaining = candidates;
+        remaining.sort_by(|a, b| (a.priority, &a.rule_id).cmp(&(b.priority, &b.rule_id)));
+        remaining.first().map(|c| c.action.clone())
     }
 
     /// Returns the number of rules.
@@ -119,8 +274,38 @@ impl TradeManagerBuilder {
 mod tests {
     use super::*;
     use crate::context::MarketView;
-    use crate::rules::{BreakEvenRule, MaxHoldingTimeRule};
+    use crate::rules::{BreakEvenRule, MaxHoldingTimeRule, Rule};
     use omega_types::{Direction, ExitReason};
+
+    struct DummyRule {
+        id: RuleId,
+        priority: RulePriority,
+        name: String,
+        action: Action,
+        scenarios: Vec<u8>,
+    }
+
+    impl Rule for DummyRule {
+        fn id(&self) -> RuleId {
+            self.id.clone()
+        }
+
+        fn priority(&self) -> RulePriority {
+            self.priority
+        }
+
+        fn evaluate(&self, _ctx: &TradeContext, _position: &PositionView) -> Option<Action> {
+            Some(self.action.clone())
+        }
+
+        fn name(&self) -> &str {
+            &self.name
+        }
+
+        fn applies_to_scenario(&self, scenario_id: u8) -> bool {
+            self.scenarios.is_empty() || self.scenarios.contains(&scenario_id)
+        }
+    }
 
     fn make_position_view(
         id: u64,
@@ -181,8 +366,20 @@ mod tests {
     #[test]
     fn test_trade_manager_one_action_per_position() {
         let mut rules = RuleSet::new();
-        rules.add(MaxHoldingTimeRule::new(10, 60_000_000_000));
-        rules.add(MaxHoldingTimeRule::new(5, 60_000_000_000)); // Also would trigger
+        rules.add(DummyRule {
+            id: RuleId::from("rule_b"),
+            priority: RulePriority::new(20),
+            name: "rule_b".to_string(),
+            action: Action::close_full(1, ExitReason::Timeout, Some(1.1000), serde_json::json!({})),
+            scenarios: Vec::new(),
+        });
+        rules.add(DummyRule {
+            id: RuleId::from("rule_a"),
+            priority: RulePriority::new(10),
+            name: "rule_a".to_string(),
+            action: Action::close_full(1, ExitReason::Timeout, Some(1.2000), serde_json::json!({})),
+            scenarios: Vec::new(),
+        });
 
         let manager = TradeManager::new(rules);
 
@@ -193,8 +390,63 @@ mod tests {
         let ctx = make_context(timestamp_ns);
         let actions = manager.evaluate(&ctx, &positions);
 
-        // Only first rule's action should be returned
+        // Highest priority (lowest value) wins, not insertion order
         assert_eq!(actions.len(), 1);
+        assert!(matches!(
+            &actions[0],
+            Action::ClosePosition {
+                exit_price_hint: Some(price),
+                ..
+            } if (*price - 1.2000).abs() < 1e-10
+        ));
+    }
+
+    #[test]
+    fn test_trade_manager_close_wins_over_modify() {
+        let mut rules = RuleSet::new();
+        rules.add(DummyRule {
+            id: RuleId::from("modify_first"),
+            priority: RulePriority::new(0),
+            name: "modify_first".to_string(),
+            action: Action::modify_sl(1, 1.0900, crate::actions::StopModifyReason::Manual, 1),
+            scenarios: Vec::new(),
+        });
+        rules.add(DummyRule {
+            id: RuleId::from("close_later"),
+            priority: RulePriority::new(50),
+            name: "close_later".to_string(),
+            action: Action::close_full(1, ExitReason::Timeout, Some(1.1005), serde_json::json!({})),
+            scenarios: Vec::new(),
+        });
+
+        let manager = TradeManager::new(rules);
+        let positions = vec![make_position_view(1, Direction::Long, 1000000000, 1)];
+
+        let timestamp_ns = 1000000000 + (15 * 60_000_000_000);
+        let ctx = make_context(timestamp_ns);
+        let actions = manager.evaluate(&ctx, &positions);
+
+        assert_eq!(actions.len(), 1);
+        assert!(matches!(actions[0], Action::ClosePosition { .. }));
+    }
+
+    #[test]
+    fn test_trade_manager_from_config_uses_fallback() {
+        let config = TradeManagerConfig {
+            enabled: true,
+            rules: TradeManagerRulesConfig {
+                max_holding_time: MaxHoldingTimeConfig {
+                    enabled: true,
+                    max_holding_minutes: 0,
+                    only_scenarios: vec![1],
+                },
+            },
+            ..Default::default()
+        };
+
+        let manager = TradeManager::from_config(&config, 60_000_000_000, Some(30));
+
+        assert!(manager.has_rules());
     }
 
     #[test]
