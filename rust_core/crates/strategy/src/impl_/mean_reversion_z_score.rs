@@ -1266,10 +1266,10 @@ impl MeanReversionZScore {
         });
 
         let wildcard_value = find_scenario6_param_value(map, "*");
-        if let Some(wildcard) = wildcard_value.and_then(|v| v.as_object()) {
-            if !is_direction_map(wildcard) {
-                merge_params(&mut resolved, wildcard);
-            }
+        if let Some(wildcard) = wildcard_value.and_then(|v| v.as_object())
+            && !is_direction_map(wildcard)
+        {
+            merge_params(&mut resolved, wildcard);
         }
 
         if let Some(dir_key) = direction_key {
@@ -1287,17 +1287,17 @@ impl MeanReversionZScore {
         }
 
         let tf_value = find_scenario6_param_value(map, &normalized_tf);
-        if let Some(tf_map) = tf_value.and_then(|v| v.as_object()) {
-            if !is_direction_map(tf_map) {
-                merge_params(&mut resolved, tf_map);
-            }
+        if let Some(tf_map) = tf_value.and_then(|v| v.as_object())
+            && !is_direction_map(tf_map)
+        {
+            merge_params(&mut resolved, tf_map);
         }
 
         if let Some(dir_key) = direction_key {
-            if let Some(tf_map) = tf_value.and_then(|v| v.as_object()) {
-                if let Some(obj) = direction_object(tf_map, dir_key) {
-                    merge_params(&mut resolved, obj);
-                }
+            if let Some(tf_map) = tf_value.and_then(|v| v.as_object())
+                && let Some(obj) = direction_object(tf_map, dir_key)
+            {
+                merge_params(&mut resolved, obj);
             }
 
             let tf_dir_key = format!("{normalized_tf}.{dir_key}");

@@ -834,6 +834,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "omega_backtest"
+version = "0.1.0"
+dependencies = [
+ "omega_data",
+ "omega_execution",
+ "omega_indicators",
+ "omega_portfolio",
+ "omega_strategy",
+ "omega_trade_mgmt",
+ "omega_types",
+ "rand_chacha 0.3.1",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "tracing",
+]
+
+[[package]]
 name = "omega_data"
 version = "0.1.0"
 dependencies = [

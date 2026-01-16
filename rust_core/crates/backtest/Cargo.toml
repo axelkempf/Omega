@@ -1,0 +1,19 @@
+[package]
+name = "omega_backtest"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+omega_types = { workspace = true }
+omega_data = { workspace = true }
+omega_indicators = { workspace = true }
+omega_execution = { workspace = true }
+omega_portfolio = { workspace = true }
+omega_strategy = { workspace = true }
+omega_trade_mgmt = { workspace = true }
+
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+tracing = "0.1"
+rand_chacha = "0.3"
