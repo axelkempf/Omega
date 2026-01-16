@@ -3978,11 +3978,14 @@ serde_json = { workspace = true }
 ```rust
 use omega_types::{Trade, EquityPoint, Metrics};
 use crate::definitions::MetricDefinitions;
+use std::collections::HashSet;
 
 /// Hauptfunktion zur Metriken-Berechnung
 pub fn compute_metrics(
     trades: &[Trade],
     equity_curve: &[EquityPoint],
+    fees_total: f64,
+    risk_per_trade: f64,
 ) -> MetricsOutput {
     let mut metrics = Metrics::default();
 
@@ -3998,9 +4001,9 @@ pub fn compute_metrics(
         0.0
     };
 
-    // Profit/Fees
+    // Profit/Fees (explizite Fees kommen aus Execution)
     metrics.profit_gross = trades.iter().map(|t| t.result).sum();
-    metrics.fees_total = 0.0;  // Accumulated from execution
+    metrics.fees_total = fees_total;
     metrics.profit_net = metrics.profit_gross - metrics.fees_total;
 
     // Drawdown (equity-basiert)
@@ -4009,9 +4012,33 @@ pub fn compute_metrics(
     metrics.max_drawdown_abs = max_dd_abs;
     metrics.max_drawdown_duration_bars = max_dd_duration;
 
-    // R-Multiple
-    metrics.avg_r_multiple = if metrics.total_trades > 0 {
-        trades.iter().map(|t| t.r_multiple).sum::<f64>() / metrics.total_trades as f64
+    // R-Multiple (normativ: trade_pnl / risk_per_trade)
+    metrics.avg_r_multiple = if metrics.total_trades > 0 && risk_per_trade > 0.0 {
+        trades
+            .iter()
+            .map(|t| t.result / risk_per_trade)
+            .sum::<f64>()
+            / metrics.total_trades as f64
+    } else {
+        0.0
+    };
+
+    // MVP+: avg_trade_pnl + expectancy (MVP: == avg_r_multiple)
+    metrics.avg_trade_pnl = if metrics.total_trades > 0 {
+        metrics.profit_net / metrics.total_trades as f64
+    } else {
+        0.0
+    };
+    metrics.expectancy = metrics.avg_r_multiple;
+
+    // MVP+: active_days + trades_per_day (UTC-Tage aus entry_time_ns)
+    let unique_days: HashSet<i64> = trades
+        .iter()
+        .map(|t| t.entry_time_ns / 86_400_000_000_000) // ns pro Tag
+        .collect();
+    metrics.active_days = unique_days.len() as u64;
+    metrics.trades_per_day = if metrics.active_days > 0 {
+        metrics.total_trades as f64 / metrics.active_days as f64
     } else {
         0.0
     };
@@ -4098,12 +4125,15 @@ pub fn round_metrics(mut metrics: Metrics) -> Metrics {
     metrics.profit_net = round_to_decimals(metrics.profit_net, 2);
     metrics.fees_total = round_to_decimals(metrics.fees_total, 2);
     metrics.max_drawdown_abs = round_to_decimals(metrics.max_drawdown_abs, 2);
+    metrics.avg_trade_pnl = round_to_decimals(metrics.avg_trade_pnl, 2);
 
     // ratios: 6 Dezimalstellen
     metrics.win_rate = round_to_decimals(metrics.win_rate, 6);
     metrics.max_drawdown = round_to_decimals(metrics.max_drawdown, 6);
     metrics.avg_r_multiple = round_to_decimals(metrics.avg_r_multiple, 6);
     metrics.profit_factor = round_to_decimals(metrics.profit_factor, 6);
+    metrics.expectancy = round_to_decimals(metrics.expectancy, 6);
+    metrics.trades_per_day = round_to_decimals(metrics.trades_per_day, 6);
 
     metrics
 }
@@ -4159,7 +4189,7 @@ impl MetricDefinitions {
 
         defs.insert("wins".to_string(), MetricDefinition {
             unit: "count".to_string(),
-            description: "Anzahl Gewinntrades (profit_net > 0)".to_string(),
+            description: "Anzahl Gewinntrades (trade.result > 0)".to_string(),
             domain: ">=0".to_string(),
             source: "trades".to_string(),
             value_type: "number".to_string(),
@@ -4167,7 +4197,7 @@ impl MetricDefinitions {
 
         defs.insert("losses".to_string(), MetricDefinition {
             unit: "count".to_string(),
-            description: "Anzahl Verlusttrades (profit_net <= 0)".to_string(),
+            description: "Anzahl Verlusttrades (trade.result < 0)".to_string(),
             domain: ">=0".to_string(),
             source: "trades".to_string(),
             value_type: "number".to_string(),
@@ -4183,7 +4213,7 @@ impl MetricDefinitions {
 
         defs.insert("fees_total".to_string(), MetricDefinition {
             unit: "account_currency".to_string(),
-            description: "Summe aller Fees (Commission + Slippage + Spread)".to_string(),
+            description: "Summe expliziter Fees/Commission (ohne Spread/Slippage)".to_string(),
             domain: ">=0".to_string(),
             source: "trades".to_string(),
             value_type: "number".to_string(),
@@ -4247,8 +4277,8 @@ impl MetricDefinitions {
         });
 
         defs.insert("expectancy".to_string(), MetricDefinition {
-            unit: "account_currency".to_string(),
-            description: "Erwartungswert: win_rate * avg_win - loss_rate * avg_loss".to_string(),
+            unit: "r_multiple".to_string(),
+            description: "Erwartungswert pro Trade in R (MVP: avg_r_multiple)".to_string(),
             domain: "any".to_string(),
             source: "trades".to_string(),
             value_type: "number".to_string(),
@@ -4275,16 +4305,48 @@ impl MetricDefinitions {
 }
 ```
 
+## Result-Assembly Integration (BacktestResult)
+
+**Wichtig:** `BacktestResult` erhält ein zusätzliches Feld `metric_definitions`, damit der Output-Contract `metrics.json` (metrics + definitions) erfüllt werden kann.
+
+```rust
+use omega_metrics::compute::compute_metrics;
+
+fn build_result(self) -> BacktestResult {
+    let trades = self.portfolio.closed_trades;
+    let equity_curve = self.portfolio.equity_tracker.to_equity_points();
+    let fees_total = self.execution.fees_total();
+
+    let metrics_output = compute_metrics(
+        &trades,
+        &equity_curve,
+        fees_total,
+        self.config.account.risk_per_trade,
+    );
+
+    BacktestResult {
+        ok: true,
+        error: None,
+        trades: Some(trades),
+        metrics: Some(metrics_output.metrics),
+        metric_definitions: Some(metrics_output.definitions),
+        equity_curve: Some(equity_curve),
+        meta: Some(self.build_meta()),
+    }
+}
+```
+
 ## FFI Crate (ffi/lib.rs)
 
 ```rust
 use pyo3::prelude::*;
+use pyo3::exceptions::PyValueError;
 use omega_backtest::runner::run_backtest_from_json;
-use omega_metrics::compute::compute_metrics;
+use omega_types::{BacktestResult, ErrorResult};
 
 /// Python-Modul für Omega V2 Backtest
 #[pymodule]
-fn omega_v2_core(_py: Python, m: &PyModule) -> PyResult<()> {
+fn omega_bt(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(run_backtest, m)?)?;
     Ok(())
 }
@@ -4293,18 +4355,30 @@ fn omega_v2_core(_py: Python, m: &PyModule) -> PyResult<()> {
 #[pyfunction]
 fn run_backtest(config_json: &str) -> PyResult<String> {
     match run_backtest_from_json(config_json) {
-        Ok(result) => Ok(result),
+        Ok(result_json) => Ok(result_json),
+        Err(e) if e.is_config_error() => Err(PyValueError::new_err(e.to_string())),
         Err(e) => {
-            // Serialize error as JSON
-            let error_result = serde_json::json!({
-                "ok": false,
-                "error": {
-                    "category": e.category(),
-                    "message": e.to_string(),
-                }
-            });
-            Ok(error_result.to_string())
+            let error_result = BacktestResult {
+                ok: false,
+                error: Some(ErrorResult::from(e)),
+                trades: None,
+                metrics: None,
+                metric_definitions: None,
+                equity_curve: None,
+                meta: None,
+            };
+            let error_json = serde_json::to_string(&error_result)
+                .unwrap_or_else(|_| "{\"ok\":false,\"error\":{\"category\":\"runtime\",\"message\":\"serialization_failed\"}}".to_string());
+            Ok(error_json)
         }
+    }
+}
+```
+
+```rust
+impl BacktestError {
+    pub fn is_config_error(&self) -> bool {
+        matches!(self, BacktestError::ConfigParse(_)|BacktestError::ConfigValidation(_))
     }
 }
 ```
@@ -4313,7 +4387,7 @@ fn run_backtest(config_json: &str) -> PyResult<String> {
 
 ```toml
 [package]
-name = "omega_v2_core"
+name = "omega_bt"
 version.workspace = true
 edition.workspace = true
 
@@ -4332,7 +4406,7 @@ serde_json = { workspace = true }
 
 ```toml
 [tool.maturin]
-module-name = "omega_v2_core"
+module-name = "omega_bt"
 python-source = "python"
 ```
 
@@ -4342,7 +4416,8 @@ python-source = "python"
 2. Drawdown Edge-Cases (konstante Equity, nur Verluste)
 3. Rundung (2dp für Currency, 6dp für Ratios)
 4. FFI Roundtrip (JSON → Rust → JSON)
-5. Error-Serialisierung
+5. Error-Contract: Config-Fehler → Python Exception, Runtime → JSON Error
+6. Fees-Semantik: fees_total enthält nur explizite Fees/Commission
 
 ## Referenz-Dokumente
 - OMEGA_V2_METRICS_DEFINITION_PLAN.md (Vollständig)
