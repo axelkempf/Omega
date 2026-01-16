@@ -1,23 +1,49 @@
+//! News calendar loading and normalization.
+
 use std::collections::HashSet;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use arrow::array::{Array, Int64Array, StringArray, TimestampNanosecondArray};
+use arrow::datatypes::{DataType, TimeUnit};
 use parquet::arrow::arrow_reader::ParquetRecordBatchReaderBuilder;
 
 use crate::error::DataError;
 
+/// Normalized news calendar event.
 #[derive(Debug, Clone, PartialEq)]
 pub struct NewsEvent {
+    /// Unique event identifier.
     pub id: i64,
+    /// Event timestamp in epoch-nanoseconds UTC.
     pub timestamp_ns: i64,
+    /// Event name.
     pub name: String,
+    /// Normalized impact (LOW|MEDIUM|HIGH).
     pub impact: String,
+    /// Currency code (uppercase, 3-letter).
     pub currency: String,
 }
 
+/// Resolve the news calendar file path from env or default.
+#[must_use]
+pub fn resolve_news_calendar_path() -> PathBuf {
+    let path = std::env::var("OMEGA_NEWS_CALENDAR_FILE")
+        .unwrap_or_else(|_| "data/news/news_calender_history.parquet".to_string());
+    PathBuf::from(path)
+}
+
 /// Load news calendar events from a Parquet file.
-/// Expected schema: `UTC time` (timestamp ns), `Id` (int), `Name` (string),
+///
+/// Expected schema: `UTC time` (timestamp ns, UTC), `Id` (int), `Name` (string),
 /// `Impact` (string), `Currency` (string).
+///
+/// # Errors
+/// - [`DataError::FileNotFound`] when the file cannot be opened.
+/// - [`DataError::ParseError`] when Parquet decoding fails.
+/// - [`DataError::MissingColumn`] or [`DataError::InvalidColumnType`] when schema is invalid.
+/// - [`DataError::InvalidTimezone`] when `UTC time` is missing timezone or not UTC.
+/// - [`DataError::CorruptData`] for out-of-order timestamps or invalid fields.
+/// - [`DataError::EmptyData`] when no rows are loaded.
 pub fn load_news_calendar(path: &Path) -> Result<Vec<NewsEvent>, DataError> {
     let file = std::fs::File::open(path)
         .map_err(|e| DataError::FileNotFound(path.display().to_string(), e.to_string()))?;
@@ -35,9 +61,11 @@ pub fn load_news_calendar(path: &Path) -> Result<Vec<NewsEvent>, DataError> {
     for batch_result in reader {
         let batch = batch_result.map_err(|e| DataError::ParseError(e.to_string()))?;
 
-        let ts_arr = batch
+        let ts_col = batch
             .column_by_name("UTC time")
-            .ok_or_else(|| DataError::MissingColumn("UTC time".to_string()))?
+            .ok_or_else(|| DataError::MissingColumn("UTC time".to_string()))?;
+        ensure_utc_timezone("UTC time", ts_col.data_type())?;
+        let ts_arr = ts_col
             .as_any()
             .downcast_ref::<TimestampNanosecondArray>()
             .ok_or_else(|| DataError::InvalidColumnType("UTC time".to_string()))?;
@@ -69,8 +97,7 @@ pub fn load_news_calendar(path: &Path) -> Result<Vec<NewsEvent>, DataError> {
         for row_idx in 0..batch.num_rows() {
             if ts_arr.is_null(row_idx) || id_arr.is_null(row_idx) {
                 return Err(DataError::CorruptData(format!(
-                    "Null timestamp/id at row {}",
-                    row_idx
+                    "Null timestamp/id at row {row_idx}"
                 )));
             }
 
@@ -79,8 +106,7 @@ pub fn load_news_calendar(path: &Path) -> Result<Vec<NewsEvent>, DataError> {
                 && ts < prev
             {
                 return Err(DataError::CorruptData(format!(
-                    "Out-of-order news timestamp at row {}: {} < {}",
-                    row_idx, ts, prev
+                    "Out-of-order news timestamp at row {row_idx}: {ts} < {prev}"
                 )));
             }
 
@@ -95,8 +121,7 @@ pub fn load_news_calendar(path: &Path) -> Result<Vec<NewsEvent>, DataError> {
                 || currency_arr.is_null(row_idx)
             {
                 return Err(DataError::CorruptData(format!(
-                    "Null news fields at row {}",
-                    row_idx
+                    "Null news fields at row {row_idx}"
                 )));
             }
 
@@ -122,13 +147,27 @@ pub fn load_news_calendar(path: &Path) -> Result<Vec<NewsEvent>, DataError> {
     Ok(events)
 }
 
+fn ensure_utc_timezone(column: &str, data_type: &DataType) -> Result<(), DataError> {
+    match data_type {
+        DataType::Timestamp(TimeUnit::Nanosecond, Some(tz)) if tz.as_ref() == "UTC" => Ok(()),
+        DataType::Timestamp(TimeUnit::Nanosecond, Some(tz)) => Err(DataError::InvalidTimezone {
+            column: column.to_string(),
+            timezone: tz.to_string(),
+        }),
+        DataType::Timestamp(TimeUnit::Nanosecond, None) => Err(DataError::InvalidTimezone {
+            column: column.to_string(),
+            timezone: "<none>".to_string(),
+        }),
+        _ => Err(DataError::InvalidColumnType(column.to_string())),
+    }
+}
+
 fn normalize_impact(impact: &str) -> Result<String, DataError> {
     let up = impact.to_ascii_uppercase();
     match up.as_str() {
         "LOW" | "MEDIUM" | "HIGH" => Ok(up),
         _ => Err(DataError::CorruptData(format!(
-            "Invalid impact value: {}",
-            impact
+            "Invalid impact value: {impact}"
         ))),
     }
 }
@@ -139,8 +178,7 @@ fn normalize_currency(currency: &str) -> Result<String, DataError> {
         Ok(up)
     } else {
         Err(DataError::CorruptData(format!(
-            "Invalid currency value: {}",
-            currency
+            "Invalid currency value: {currency}"
         )))
     }
 }

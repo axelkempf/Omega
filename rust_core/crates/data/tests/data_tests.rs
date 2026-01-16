@@ -1,19 +1,23 @@
-use std::env;
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use arrow::array::{ArrayRef, Float64Array, TimestampNanosecondArray};
+use arrow::array::{ArrayRef, Float64Array, Int64Array, StringArray, TimestampNanosecondArray};
 use arrow::datatypes::{DataType, Field, TimeUnit};
 use tempfile::tempdir;
+use temp_env::with_var;
 
 use omega_data::{
-    DataError, align_bid_ask, load_and_validate, load_and_validate_bid_ask, load_candles,
-    resolve_data_path, validate_spread,
+    DataError, align_bid_ask, analyze_gaps, filter_by_date_range, load_and_validate,
+    load_and_validate_bid_ask, load_candles, load_news_calendar, resolve_data_path,
+    resolve_news_calendar_path, validate_spread,
 };
 use omega_types::Candle;
 
 mod common;
-use common::{sample_candles, string_column, write_candle_parquet, write_custom_parquet};
+use common::{
+    sample_candles, string_column, write_candle_parquet, write_candle_parquet_with_timezone,
+    write_custom_parquet, write_news_parquet,
+};
 mod generators;
 use proptest::prelude::*;
 
@@ -34,6 +38,61 @@ fn test_load_and_validate_rejects_nan() {
     let path = dir.path().join("nan.parquet");
     let mut candles = sample_candles();
     candles[0].open = f64::NAN;
+    write_candle_parquet(&path, &candles).unwrap();
+
+    let err = load_and_validate(&path).unwrap_err();
+    assert!(matches!(err, DataError::CorruptData(_)));
+}
+
+#[test]
+fn test_load_and_validate_rejects_non_monotonic() {
+    let dir = tempdir().unwrap();
+    let path = dir.path().join("non_monotonic.parquet");
+
+    let candles = vec![
+        Candle {
+            timestamp_ns: 2,
+            open: 1.0,
+            high: 1.1,
+            low: 0.9,
+            close: 1.05,
+            volume: 1.0,
+        },
+        Candle {
+            timestamp_ns: 1,
+            open: 1.0,
+            high: 1.1,
+            low: 0.9,
+            close: 1.05,
+            volume: 1.0,
+        },
+    ];
+
+    write_candle_parquet(&path, &candles).unwrap();
+    let err = load_and_validate(&path).unwrap_err();
+    assert!(matches!(err, DataError::CorruptData(_)));
+}
+
+#[test]
+fn test_load_and_validate_rejects_invalid_ohlc() {
+    let dir = tempdir().unwrap();
+    let path = dir.path().join("invalid_ohlc.parquet");
+
+    let mut candles = sample_candles();
+    candles[0].low = candles[0].high + 0.1;
+    write_candle_parquet(&path, &candles).unwrap();
+
+    let err = load_and_validate(&path).unwrap_err();
+    assert!(matches!(err, DataError::CorruptData(_)));
+}
+
+#[test]
+fn test_load_and_validate_rejects_negative_volume() {
+    let dir = tempdir().unwrap();
+    let path = dir.path().join("negative_volume.parquet");
+
+    let mut candles = sample_candles();
+    candles[1].volume = -1.0;
     write_candle_parquet(&path, &candles).unwrap();
 
     let err = load_and_validate(&path).unwrap_err();
@@ -98,17 +157,11 @@ fn test_validate_spread_rejects_bid_gt_ask() {
 #[test]
 fn test_resolve_data_path_env_override() {
     let dir = tempdir().unwrap();
-    unsafe {
-        env::set_var("OMEGA_DATA_PARQUET_ROOT", dir.path());
-    }
-
-    let path = resolve_data_path("EURUSD", "M1", "BID");
-    assert!(path.starts_with(dir.path()));
-    assert!(path.ends_with(PathBuf::from("EURUSD/EURUSD_M1_BID.parquet")));
-
-    unsafe {
-        env::remove_var("OMEGA_DATA_PARQUET_ROOT");
-    }
+    with_var("OMEGA_DATA_PARQUET_ROOT", Some(dir.path()), || {
+        let path = resolve_data_path("EURUSD", "M1", "BID");
+        assert!(path.starts_with(dir.path()));
+        assert!(path.ends_with(PathBuf::from("EURUSD/EURUSD_M1_BID.parquet")));
+    });
 }
 
 #[test]
@@ -261,6 +314,277 @@ fn test_load_and_validate_rejects_wrong_column_type() {
 
     let err = load_candles(&path).unwrap_err();
     assert!(matches!(err, DataError::InvalidColumnType(_)));
+}
+
+#[test]
+fn test_timezone_contract_rejects_missing_timezone() {
+    let dir = tempdir().unwrap();
+    let path = dir.path().join("no_tz.parquet");
+    let candles = sample_candles();
+
+    write_candle_parquet_with_timezone(&path, &candles, None).unwrap();
+    let err = load_candles(&path).unwrap_err();
+    assert!(matches!(err, DataError::InvalidTimezone { .. }));
+}
+
+#[test]
+fn test_timezone_contract_rejects_non_utc_timezone() {
+    let dir = tempdir().unwrap();
+    let path = dir.path().join("bad_tz.parquet");
+    let candles = sample_candles();
+
+    write_candle_parquet_with_timezone(&path, &candles, Some("Europe/Berlin")).unwrap();
+    let err = load_candles(&path).unwrap_err();
+    assert!(matches!(err, DataError::InvalidTimezone { .. }));
+}
+
+#[test]
+fn test_gap_analysis_session_aware() {
+    let step_ns = 60_000_000_000i64;
+    let base = 1_704_067_200_000_000_000i64; // 2024-01-01 00:00:00 UTC
+
+    let candles = vec![
+        Candle {
+            timestamp_ns: base,
+            open: 1.0,
+            high: 1.1,
+            low: 0.9,
+            close: 1.0,
+            volume: 1.0,
+        },
+        Candle {
+            timestamp_ns: base + step_ns,
+            open: 1.0,
+            high: 1.1,
+            low: 0.9,
+            close: 1.0,
+            volume: 1.0,
+        },
+        Candle {
+            timestamp_ns: base + step_ns * 3,
+            open: 1.0,
+            high: 1.1,
+            low: 0.9,
+            close: 1.0,
+            volume: 1.0,
+        },
+    ];
+
+    let stats = analyze_gaps(&candles, step_ns, None).unwrap();
+    assert_eq!(stats.expected_bars, 4);
+    assert_eq!(stats.missing_bars, 1);
+    assert!((stats.gap_loss - 0.25).abs() < 1e-10);
+}
+
+#[test]
+fn test_gap_analysis_respects_sessions() {
+    let step_ns = 60_000_000_000i64;
+    let base = 1_704_067_200_000_000_000i64; // 2024-01-01 00:00:00 UTC
+
+    let candles = vec![
+        Candle {
+            timestamp_ns: base + step_ns * 479, // 07:59
+            open: 1.0,
+            high: 1.1,
+            low: 0.9,
+            close: 1.0,
+            volume: 1.0,
+        },
+        Candle {
+            timestamp_ns: base + step_ns * 480, // 08:00
+            open: 1.0,
+            high: 1.1,
+            low: 0.9,
+            close: 1.0,
+            volume: 1.0,
+        },
+        Candle {
+            timestamp_ns: base + step_ns * 482, // 08:02
+            open: 1.0,
+            high: 1.1,
+            low: 0.9,
+            close: 1.0,
+            volume: 1.0,
+        },
+    ];
+
+    let sessions = vec![omega_types::SessionConfig {
+        start: "08:00".to_string(),
+        end: "10:00".to_string(),
+    }];
+
+    let stats = analyze_gaps(&candles, step_ns, Some(&sessions)).unwrap();
+    assert_eq!(stats.expected_bars, 3);
+    assert_eq!(stats.missing_bars, 1);
+}
+
+#[test]
+fn test_filter_by_date_range_inclusive() {
+    let candles = sample_candles();
+    let start = candles[0].timestamp_ns;
+    let end = candles[0].timestamp_ns;
+
+    let filtered = filter_by_date_range(&candles, start, end).unwrap();
+    assert_eq!(filtered.len(), 1);
+    assert_eq!(filtered[0].timestamp_ns, start);
+}
+
+#[test]
+fn test_filter_by_date_range_empty_result() {
+    let candles = sample_candles();
+    let start = candles[1].timestamp_ns + 1;
+    let end = candles[1].timestamp_ns + 2;
+
+    let err = filter_by_date_range(&candles, start, end).unwrap_err();
+    assert!(matches!(err, DataError::DateRangeEmpty { .. }));
+}
+
+#[test]
+fn test_load_news_calendar_rejects_missing_column() {
+    let dir = tempdir().unwrap();
+    let path = dir.path().join("news_missing.parquet");
+
+    let timestamps: ArrayRef = Arc::new(
+        TimestampNanosecondArray::from(vec![1_i64]).with_timezone("UTC"),
+    );
+    let ids: ArrayRef = Arc::new(Int64Array::from(vec![1_i64]));
+    let names: ArrayRef = Arc::new(StringArray::from(vec!["Event"]));
+    let impacts: ArrayRef = Arc::new(StringArray::from(vec!["HIGH"]));
+    // Currency column intentionally omitted
+
+    let fields = vec![
+        Field::new(
+            "UTC time",
+            DataType::Timestamp(TimeUnit::Nanosecond, Some("UTC".into())),
+            false,
+        ),
+        Field::new("Id", DataType::Int64, false),
+        Field::new("Name", DataType::Utf8, false),
+        Field::new("Impact", DataType::Utf8, false),
+    ];
+
+    write_custom_parquet(&path, fields, vec![timestamps, ids, names, impacts]).unwrap();
+
+    let err = load_news_calendar(&path).unwrap_err();
+    assert!(matches!(err, DataError::MissingColumn(_)));
+}
+
+#[test]
+fn test_load_news_calendar_rejects_invalid_impact() {
+    let dir = tempdir().unwrap();
+    let path = dir.path().join("news_invalid_impact.parquet");
+
+    write_news_parquet(
+        &path,
+        &[1_i64],
+        &[1_i64],
+        &["Event"],
+        &["SEVERE"],
+        &["USD"],
+        Some("UTC"),
+    )
+    .unwrap();
+
+    let err = load_news_calendar(&path).unwrap_err();
+    assert!(matches!(err, DataError::CorruptData(_)));
+}
+
+#[test]
+fn test_load_news_calendar_rejects_invalid_currency() {
+    let dir = tempdir().unwrap();
+    let path = dir.path().join("news_invalid_currency.parquet");
+
+    write_news_parquet(
+        &path,
+        &[1_i64],
+        &[1_i64],
+        &["Event"],
+        &["HIGH"],
+        &["EURO"],
+        Some("UTC"),
+    )
+    .unwrap();
+
+    let err = load_news_calendar(&path).unwrap_err();
+    assert!(matches!(err, DataError::CorruptData(_)));
+}
+
+#[test]
+fn test_load_news_calendar_rejects_non_monotonic() {
+    let dir = tempdir().unwrap();
+    let path = dir.path().join("news_non_monotonic.parquet");
+
+    write_news_parquet(
+        &path,
+        &[2_i64, 1_i64],
+        &[1_i64, 2_i64],
+        &["Event A", "Event B"],
+        &["HIGH", "LOW"],
+        &["USD", "EUR"],
+        Some("UTC"),
+    )
+    .unwrap();
+
+    let err = load_news_calendar(&path).unwrap_err();
+    assert!(matches!(err, DataError::CorruptData(_)));
+}
+
+#[test]
+fn test_load_news_calendar_rejects_empty() {
+    let dir = tempdir().unwrap();
+    let path = dir.path().join("news_empty.parquet");
+
+    write_news_parquet(&path, &[], &[], &[], &[], &[], Some("UTC")).unwrap();
+
+    let err = load_news_calendar(&path).unwrap_err();
+    assert!(matches!(err, DataError::EmptyData));
+}
+
+#[test]
+fn test_news_timezone_contract_rejects_missing_timezone() {
+    let dir = tempdir().unwrap();
+    let path = dir.path().join("news_no_tz.parquet");
+
+    write_news_parquet(&path, &[1_i64], &[1_i64], &["Event"], &["HIGH"], &["USD"], None)
+        .unwrap();
+
+    let err = load_news_calendar(&path).unwrap_err();
+    assert!(matches!(err, DataError::InvalidTimezone { .. }));
+}
+
+#[test]
+fn test_news_timezone_contract_rejects_non_utc_timezone() {
+    let dir = tempdir().unwrap();
+    let path = dir.path().join("news_bad_tz.parquet");
+
+    write_news_parquet(
+        &path,
+        &[1_i64],
+        &[1_i64],
+        &["Event"],
+        &["HIGH"],
+        &["USD"],
+        Some("Europe/Berlin"),
+    )
+    .unwrap();
+
+    let err = load_news_calendar(&path).unwrap_err();
+    assert!(matches!(err, DataError::InvalidTimezone { .. }));
+}
+
+#[test]
+fn test_resolve_news_calendar_path_env_override() {
+    let dir = tempdir().unwrap();
+    let custom_path = dir.path().join("calendar.parquet");
+
+    with_var(
+        "OMEGA_NEWS_CALENDAR_FILE",
+        Some(custom_path.as_os_str()),
+        || {
+            let resolved = resolve_news_calendar_path();
+            assert_eq!(resolved, custom_path);
+        },
+    );
 }
 
 proptest! {
