@@ -1113,12 +1113,17 @@ impl MeanReversionZScore {
     /// Checks Multi-TF signals using Kalman-Z + Bollinger per TF.
     #[allow(clippy::too_many_lines)]
     fn check_multi_tf_signals_v2(&self, ctx: &BarContext, is_long: bool) -> Vec<TfChainResult> {
+        let direction = if is_long {
+            Direction::Long
+        } else {
+            Direction::Short
+        };
         self.params
             .scenario6_timeframes
             .iter()
             .map(|tf| {
                 // Get TF-specific params from scenario6_params or use defaults
-                let tf_params = self.scenario6_params_for_tf(tf);
+                let tf_params = self.scenario6_params_for_tf(tf, Some(direction));
 
                 let window = tf_params
                     .get("window_length")
@@ -1244,21 +1249,62 @@ impl MeanReversionZScore {
             .collect()
     }
 
-    fn scenario6_params_for_tf(&self, tf: &str) -> serde_json::Map<String, serde_json::Value> {
+    fn scenario6_params_for_tf(
+        &self,
+        tf: &str,
+        direction: Option<Direction>,
+    ) -> serde_json::Map<String, serde_json::Value> {
         let mut resolved = serde_json::Map::new();
         let Some(map) = self.params.scenario6_params.as_object() else {
             return resolved;
         };
 
-        if let Some(wildcard) = map.get("*").and_then(|v| v.as_object()) {
-            for (key, value) in wildcard {
-                resolved.insert(key.clone(), value.clone());
+        let normalized_tf = normalize_timeframe_name(tf);
+        let direction_key = direction.map(|dir| match dir {
+            Direction::Long => "long",
+            Direction::Short => "short",
+        });
+
+        let wildcard_value = find_scenario6_param_value(map, "*");
+        if let Some(wildcard) = wildcard_value.and_then(|v| v.as_object()) {
+            if !is_direction_map(wildcard) {
+                merge_params(&mut resolved, wildcard);
             }
         }
 
-        if let Some(tf_specific) = find_scenario6_params(map, tf).and_then(|v| v.as_object()) {
-            for (key, value) in tf_specific {
-                resolved.insert(key.clone(), value.clone());
+        if let Some(dir_key) = direction_key {
+            let wildcard_dir_key = format!("*.{dir_key}");
+            if let Some(obj) = find_scenario6_param_value(map, &wildcard_dir_key)
+                .and_then(|v| v.as_object())
+            {
+                merge_params(&mut resolved, obj);
+            } else if let Some(obj) = wildcard_value
+                .and_then(|v| v.as_object())
+                .and_then(|v| direction_object(v, dir_key))
+            {
+                merge_params(&mut resolved, obj);
+            }
+        }
+
+        let tf_value = find_scenario6_param_value(map, &normalized_tf);
+        if let Some(tf_map) = tf_value.and_then(|v| v.as_object()) {
+            if !is_direction_map(tf_map) {
+                merge_params(&mut resolved, tf_map);
+            }
+        }
+
+        if let Some(dir_key) = direction_key {
+            if let Some(tf_map) = tf_value.and_then(|v| v.as_object()) {
+                if let Some(obj) = direction_object(tf_map, dir_key) {
+                    merge_params(&mut resolved, obj);
+                }
+            }
+
+            let tf_dir_key = format!("{normalized_tf}.{dir_key}");
+            if let Some(obj) = find_scenario6_param_value(map, &tf_dir_key)
+                .and_then(|v| v.as_object())
+            {
+                merge_params(&mut resolved, obj);
             }
         }
 
@@ -1662,7 +1708,7 @@ impl Strategy for MeanReversionZScore {
         if self.params.enabled_scenarios.contains(&6) {
             for tf in &self.params.scenario6_timeframes {
                 // Get TF-specific params or defaults
-                let tf_params = self.scenario6_params_for_tf(tf);
+                let tf_params = self.scenario6_params_for_tf(tf, None);
 
                 let window = tf_params
                     .get("window_length")
@@ -1785,43 +1831,84 @@ fn normalize_scenario6_params(value: &serde_json::Value) -> serde_json::Value {
 
     let mut normalized = serde_json::Map::new();
     for (key, val) in map {
-        let trimmed = key.trim();
-        if trimmed.is_empty() {
-            continue;
+        if let Some(normalized_key) = normalize_scenario6_key(key) {
+            normalized.insert(normalized_key, val.clone());
         }
-        let normalized_key = if trimmed == "*" {
-            "*".to_string()
-        } else {
-            normalize_timeframe_name(trimmed)
-        };
-        normalized.insert(normalized_key, val.clone());
     }
 
     serde_json::Value::Object(normalized)
 }
 
-fn find_scenario6_params<'a>(
+fn normalize_scenario6_key(key: &str) -> Option<String> {
+    let trimmed = key.trim();
+    if trimmed.is_empty() {
+        return None;
+    }
+    if trimmed == "*" {
+        return Some("*".to_string());
+    }
+
+    if let Some((tf_part, dir_part)) = trimmed.split_once('.') {
+        let tf_part = tf_part.trim();
+        let dir_part = dir_part.trim();
+        if tf_part.is_empty() || dir_part.is_empty() {
+            return None;
+        }
+        let tf_normalized = if tf_part == "*" {
+            "*".to_string()
+        } else {
+            normalize_timeframe_name(tf_part)
+        };
+        let dir_normalized = dir_part.to_ascii_lowercase();
+        return Some(format!("{tf_normalized}.{dir_normalized}"));
+    }
+
+    Some(normalize_timeframe_name(trimmed))
+}
+
+fn find_scenario6_param_value<'a>(
     map: &'a serde_json::Map<String, serde_json::Value>,
-    tf: &str,
+    key: &str,
 ) -> Option<&'a serde_json::Value> {
-    let normalized = normalize_timeframe_name(tf);
-
-    if let Some(value) = map.get(&normalized) {
-        return Some(value);
-    }
-    if let Some(value) = map.get(tf) {
+    if let Some(value) = map.get(key) {
         return Some(value);
     }
 
+    map.iter().find_map(|(raw_key, value)| {
+        normalize_scenario6_key(raw_key)
+            .as_ref()
+            .filter(|normalized| normalized.as_str() == key)
+            .map(|_| value)
+    })
+}
+
+fn is_direction_map(map: &serde_json::Map<String, serde_json::Value>) -> bool {
+    map.keys().any(|key| {
+        let trimmed = key.trim();
+        trimmed.eq_ignore_ascii_case("long") || trimmed.eq_ignore_ascii_case("short")
+    })
+}
+
+fn direction_object<'a>(
+    map: &'a serde_json::Map<String, serde_json::Value>,
+    direction: &str,
+) -> Option<&'a serde_json::Map<String, serde_json::Value>> {
     map.iter().find_map(|(key, value)| {
-        if key == "*" {
-            None
-        } else if normalize_timeframe_name(key) == normalized {
-            Some(value)
+        if key.trim().eq_ignore_ascii_case(direction) {
+            value.as_object()
         } else {
             None
         }
     })
+}
+
+fn merge_params(
+    target: &mut serde_json::Map<String, serde_json::Value>,
+    source: &serde_json::Map<String, serde_json::Value>,
+) {
+    for (key, value) in source {
+        target.insert(key.clone(), value.clone());
+    }
 }
 
 fn usize_to_f64(value: usize) -> f64 {
@@ -2454,6 +2541,122 @@ mod tests {
         let chain = strategy.check_multi_tf_signals_v2(&ctx, true);
         assert_eq!(chain.len(), 1);
         assert!((chain[0].threshold + 3.0).abs() < 1e-10);
+    }
+
+    #[test]
+    fn test_scenario6_params_direction_override_priority() {
+        let params = MrzParams {
+            scenario6_timeframes: vec!["H1".to_string()],
+            scenario6_params: serde_json::json!({
+                "*": {"z_score_long": -1.0},
+                "*.Long": {"z_score_long": -1.5},
+                "h1": {"z_score_long": -2.0},
+                "H1.Long": {"z_score_long": -3.0}
+            }),
+            ..Default::default()
+        };
+        let strategy = MeanReversionZScore::new(params);
+
+        let idx = 0;
+        let mut cache = IndicatorCache::new();
+        insert_kalman(&mut cache, "KALMAN_Z_H1", 20, 1.0, 0.1, idx, -4.0);
+        insert_bollinger(
+            &mut cache,
+            "BOLLINGER_H1",
+            20,
+            2.0,
+            idx,
+            BollingerValues {
+                lower: 1.1000,
+                middle: 1.1010,
+                upper: 1.1020,
+            },
+        );
+        insert_period(&mut cache, "CLOSE_H1", 1, idx, 1.0990);
+
+        let bid = make_candle(1.1000);
+        let ask = make_candle(1.1002);
+        let ctx = BarContext::new(idx, 1_000_000_000, &bid, &ask, &cache);
+
+        let chain = strategy.check_multi_tf_signals_v2(&ctx, true);
+        assert_eq!(chain.len(), 1);
+        assert!((chain[0].threshold + 3.0).abs() < 1e-10);
+    }
+
+    #[test]
+    fn test_scenario6_params_direction_tf_overrides_wildcard_dir() {
+        let params = MrzParams {
+            scenario6_timeframes: vec!["H1".to_string()],
+            scenario6_params: serde_json::json!({
+                "*.long": {"z_score_long": -1.5},
+                "H1": {"z_score_long": -2.5}
+            }),
+            ..Default::default()
+        };
+        let strategy = MeanReversionZScore::new(params);
+
+        let idx = 0;
+        let mut cache = IndicatorCache::new();
+        insert_kalman(&mut cache, "KALMAN_Z_H1", 20, 1.0, 0.1, idx, -3.0);
+        insert_bollinger(
+            &mut cache,
+            "BOLLINGER_H1",
+            20,
+            2.0,
+            idx,
+            BollingerValues {
+                lower: 1.1000,
+                middle: 1.1010,
+                upper: 1.1020,
+            },
+        );
+        insert_period(&mut cache, "CLOSE_H1", 1, idx, 1.0990);
+
+        let bid = make_candle(1.1000);
+        let ask = make_candle(1.1002);
+        let ctx = BarContext::new(idx, 1_000_000_000, &bid, &ask, &cache);
+
+        let chain = strategy.check_multi_tf_signals_v2(&ctx, true);
+        assert_eq!(chain.len(), 1);
+        assert!((chain[0].threshold + 2.5).abs() < 1e-10);
+    }
+
+    #[test]
+    fn test_scenario6_params_wildcard_direction_without_tf_key() {
+        let params = MrzParams {
+            scenario6_timeframes: vec!["H1".to_string()],
+            scenario6_params: serde_json::json!({
+                "*": {"z_score_long": -0.75},
+                "*.long": {"z_score_long": -1.75}
+            }),
+            ..Default::default()
+        };
+        let strategy = MeanReversionZScore::new(params);
+
+        let idx = 0;
+        let mut cache = IndicatorCache::new();
+        insert_kalman(&mut cache, "KALMAN_Z_H1", 20, 1.0, 0.1, idx, -2.0);
+        insert_bollinger(
+            &mut cache,
+            "BOLLINGER_H1",
+            20,
+            2.0,
+            idx,
+            BollingerValues {
+                lower: 1.1000,
+                middle: 1.1010,
+                upper: 1.1020,
+            },
+        );
+        insert_period(&mut cache, "CLOSE_H1", 1, idx, 1.0990);
+
+        let bid = make_candle(1.1000);
+        let ask = make_candle(1.1002);
+        let ctx = BarContext::new(idx, 1_000_000_000, &bid, &ask, &cache);
+
+        let chain = strategy.check_multi_tf_signals_v2(&ctx, true);
+        assert_eq!(chain.len(), 1);
+        assert!((chain[0].threshold + 1.75).abs() < 1e-10);
     }
 
     #[test]
@@ -3185,6 +3388,92 @@ mod tests {
         let signal = strategy.scenario_6(&ctx).expect("expected signal");
         assert_eq!(signal.direction, Direction::Long);
         assert_eq!(signal.scenario_id, 6);
+    }
+
+    #[test]
+    fn test_scenario_6_chain_meta_contains_required_fields() {
+        let params = MrzParams {
+            enabled_scenarios: vec![6],
+            scenario6_mode: Scenario6Mode::All,
+            scenario6_timeframes: vec!["H1".to_string()],
+            scenario6_params: serde_json::json!({
+                "H1.long": {"z_score_long": -3.0}
+            }),
+            ..Default::default()
+        };
+        let strategy = MeanReversionZScore::new(params);
+
+        let idx = 0;
+        let mut cache = IndicatorCache::new();
+        insert_kalman(&mut cache, "KALMAN_Z", 20, 1.0, 0.1, idx, -3.0);
+        insert_bollinger(
+            &mut cache,
+            "BOLLINGER",
+            20,
+            2.0,
+            idx,
+            BollingerValues {
+                lower: 1.1010,
+                middle: 1.1020,
+                upper: 1.1030,
+            },
+        );
+        insert_period(&mut cache, "ATR", 14, idx, 0.0010);
+
+        insert_kalman(&mut cache, "KALMAN_Z_H1", 20, 1.0, 0.1, idx, -4.0);
+        insert_bollinger(
+            &mut cache,
+            "BOLLINGER_H1",
+            20,
+            2.0,
+            idx,
+            BollingerValues {
+                lower: 1.1010,
+                middle: 1.1020,
+                upper: 1.1030,
+            },
+        );
+        insert_period(&mut cache, "CLOSE_H1", 1, idx, 1.1000);
+
+        let bid = make_candle(1.1000);
+        let ask = make_candle(1.1002);
+        let ctx = BarContext::new(idx, 1_000_000_000, &bid, &ask, &cache);
+
+        let signal = strategy.scenario_6(&ctx).expect("expected signal");
+        let meta = signal.meta;
+        let scenario6 = meta
+            .get("scenario6")
+            .and_then(|v| v.as_object())
+            .expect("scenario6 meta");
+        let chain = scenario6
+            .get("chain")
+            .and_then(|v| v.as_array())
+            .expect("chain array");
+        let first = chain.first().and_then(|v| v.as_object()).expect("chain item");
+
+        for key in [
+            "tf",
+            "ok",
+            "status",
+            "kalman_z",
+            "threshold",
+            "price",
+            "upper",
+            "lower",
+            "params",
+        ] {
+            assert!(first.contains_key(key), "missing chain key {key}");
+        }
+
+        let params_obj = first
+            .get("params")
+            .and_then(|v| v.as_object())
+            .expect("params object");
+        let z_long = params_obj
+            .get("z_score_long")
+            .and_then(|v| v.as_f64())
+            .expect("z_score_long");
+        assert!((z_long + 3.0).abs() < 1e-10);
     }
 
     #[test]
