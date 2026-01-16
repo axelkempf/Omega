@@ -5,15 +5,26 @@
 //! configuration, and backtest results.
 
 #![deny(clippy::all)]
+#![deny(missing_docs)]
+#![warn(clippy::pedantic)]
 
+/// Candle data structures.
 pub mod candle;
+/// Configuration schema types.
 pub mod config;
+/// Error types shared across the core.
 pub mod error;
+/// Position state types.
 pub mod position;
+/// Price type selection helpers.
 pub mod price_type;
+/// Backtest result types.
 pub mod result;
+/// Signal and order types.
 pub mod signal;
+/// Timeframe parsing and conversions.
 pub mod timeframe;
+/// Trade record types.
 pub mod trade;
 
 // Re-export main types for convenience

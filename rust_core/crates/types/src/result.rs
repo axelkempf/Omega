@@ -58,7 +58,7 @@ pub struct Metrics {
     pub wins: u64,
     /// Number of losing trades
     pub losses: u64,
-    /// Win rate (wins / total_trades)
+    /// Win rate (wins / `total_trades`)
     pub win_rate: f64,
     /// Gross profit (before costs)
     pub profit_gross: f64,

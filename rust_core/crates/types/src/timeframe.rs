@@ -51,6 +51,7 @@ impl std::str::FromStr for Timeframe {
 
 impl Timeframe {
     /// Returns duration in seconds
+    #[must_use]
     pub fn to_seconds(&self) -> u64 {
         match self {
             Timeframe::M1 => 60,
@@ -60,11 +61,12 @@ impl Timeframe {
             Timeframe::H1 => 3600,
             Timeframe::H4 => 14400,
             Timeframe::D1 => 86400,
-            Timeframe::W1 => 604800,
+            Timeframe::W1 => 604_800,
         }
     }
 
     /// Convert to string representation
+    #[must_use]
     pub fn as_str(&self) -> &'static str {
         match self {
             Timeframe::M1 => "M1",

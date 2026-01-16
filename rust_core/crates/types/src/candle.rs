@@ -1,5 +1,5 @@
 /// Repräsentiert eine OHLCV-Kerze
-/// timestamp_ns ist die **Open-Time** (nicht Close-Time)
+/// `timestamp_ns` ist die **Open-Time** (nicht Close-Time)
 #[derive(Debug, Clone, Copy, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Candle {
     /// Unix epoch nanoseconds UTC (Open-Time)

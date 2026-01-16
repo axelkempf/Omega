@@ -39,9 +39,9 @@ pub struct Trade {
     pub take_profit: f64,
     /// Position size
     pub size: f64,
-    /// PnL in account currency
+    /// `PnL` in account currency
     pub result: f64,
-    /// R-multiple (PnL / risk)
+    /// R-multiple (`PnL` / risk)
     pub r_multiple: f64,
     /// Reason for exit
     pub reason: ExitReason,

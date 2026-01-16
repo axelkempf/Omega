@@ -1,5 +1,5 @@
 /// Main backtest configuration
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Serialize)]
 pub struct BacktestConfig {
     /// Schema version
     pub schema_version: String,
@@ -40,12 +40,91 @@ pub struct BacktestConfig {
     /// Logging configuration
     #[serde(default)]
     pub logging: LoggingConfig,
+    /// Metrics configuration
+    #[serde(default)]
+    pub metrics: Option<serde_json::Value>,
     /// Trade management configuration
     #[serde(default)]
     pub trade_management: Option<TradeManagementConfig>,
     /// Strategy-specific parameters
     #[serde(default)]
     pub strategy_parameters: serde_json::Value,
+}
+
+const DEFAULT_RNG_SEED: u64 = 42;
+
+#[derive(Debug, Clone, serde::Deserialize)]
+struct BacktestConfigRaw {
+    pub schema_version: String,
+    pub strategy_name: String,
+    pub symbol: String,
+    pub start_date: String,
+    pub end_date: String,
+    pub run_mode: RunMode,
+    pub data_mode: DataMode,
+    pub execution_variant: ExecutionVariant,
+    pub timeframes: TimeframeConfig,
+    #[serde(default = "default_warmup")]
+    pub warmup_bars: usize,
+    #[serde(default)]
+    pub rng_seed: Option<u64>,
+    #[serde(default)]
+    pub sessions: Option<Vec<SessionConfig>>,
+    #[serde(default)]
+    pub account: AccountConfig,
+    #[serde(default)]
+    pub costs: CostsConfig,
+    #[serde(default)]
+    pub news_filter: Option<NewsFilterConfig>,
+    #[serde(default)]
+    pub logging: LoggingConfig,
+    #[serde(default)]
+    pub metrics: Option<serde_json::Value>,
+    #[serde(default)]
+    pub trade_management: Option<TradeManagementConfig>,
+    #[serde(default)]
+    pub strategy_parameters: serde_json::Value,
+}
+
+impl From<BacktestConfigRaw> for BacktestConfig {
+    fn from(raw: BacktestConfigRaw) -> Self {
+        let rng_seed = match raw.run_mode {
+            RunMode::Dev => Some(raw.rng_seed.unwrap_or(DEFAULT_RNG_SEED)),
+            RunMode::Prod => raw.rng_seed,
+        };
+
+        Self {
+            schema_version: raw.schema_version,
+            strategy_name: raw.strategy_name,
+            symbol: raw.symbol,
+            start_date: raw.start_date,
+            end_date: raw.end_date,
+            run_mode: raw.run_mode,
+            data_mode: raw.data_mode,
+            execution_variant: raw.execution_variant,
+            timeframes: raw.timeframes,
+            warmup_bars: raw.warmup_bars,
+            rng_seed,
+            sessions: raw.sessions,
+            account: raw.account,
+            costs: raw.costs,
+            news_filter: raw.news_filter,
+            logging: raw.logging,
+            metrics: raw.metrics,
+            trade_management: raw.trade_management,
+            strategy_parameters: raw.strategy_parameters,
+        }
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for BacktestConfig {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let raw = BacktestConfigRaw::deserialize(deserializer)?;
+        Ok(raw.into())
+    }
 }
 
 fn default_warmup() -> usize {
@@ -117,6 +196,7 @@ pub struct SessionConfig {
 
 impl SessionConfig {
     /// Prüft ob ein Zeitpunkt (Sekunden seit Mitternacht UTC) in dieser Session liegt
+    #[must_use]
     pub fn contains(&self, seconds_of_day: u32) -> bool {
         let start_secs = parse_hhmm_to_seconds(&self.start);
         let end_secs = parse_hhmm_to_seconds(&self.end);
@@ -194,10 +274,10 @@ pub struct CostsConfig {
     /// Spread multiplier
     #[serde(default = "default_multiplier")]
     pub spread_multiplier: f64,
-    /// Symbol-spezifische pip_size (falls nicht aus symbol_specs.yaml)
+    /// Symbol-spezifische `pip_size` (falls nicht aus `symbol_specs.yaml`)
     #[serde(default)]
     pub pip_size: Option<f64>,
-    /// pip_buffer_factor für SL/TP Checks
+    /// `pip_buffer_factor` für SL/TP Checks
     #[serde(default = "default_pip_buffer_factor")]
     pub pip_buffer_factor: f64,
 }
@@ -310,7 +390,7 @@ pub enum StopUpdatePolicy {
     ApplyNextBar,
 }
 
-/// Trade-Management-Konfiguration (MVP: MaxHoldingTime)
+/// Trade-Management-Konfiguration (MVP: `MaxHoldingTime`)
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct TradeManagementConfig {
     /// Enable trade management
@@ -442,6 +522,7 @@ mod tests {
             costs: CostsConfig::default(),
             news_filter: None,
             logging: LoggingConfig::default(),
+            metrics: None,
             trade_management: None,
             strategy_parameters: serde_json::json!({"param1": 10}),
         };
@@ -452,5 +533,24 @@ mod tests {
         assert_eq!(config.schema_version, deserialized.schema_version);
         assert_eq!(config.strategy_name, deserialized.strategy_name);
         assert_eq!(config.warmup_bars, deserialized.warmup_bars);
+    }
+
+    #[test]
+    fn test_rng_seed_default_dev_when_missing() {
+        let json = serde_json::json!({
+            "schema_version": "2",
+            "strategy_name": "TestStrategy",
+            "symbol": "EURUSD",
+            "start_date": "2024-01-01",
+            "end_date": "2024-12-31",
+            "run_mode": "dev",
+            "data_mode": "candle",
+            "execution_variant": "v2",
+            "timeframes": {"primary": "H1"}
+        });
+
+        let deserialized: BacktestConfig = serde_json::from_str(&json.to_string()).unwrap();
+
+        assert_eq!(deserialized.rng_seed, Some(DEFAULT_RNG_SEED));
     }
 }
