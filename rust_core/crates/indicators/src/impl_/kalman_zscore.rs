@@ -10,7 +10,7 @@ use omega_types::Candle;
 /// Steps:
 /// 1. Compute Kalman-smoothed price level
 /// 2. Calculate residuals (price - kalman_level)
-/// 3. Compute Z-Score of current residual over rolling window
+/// 3. Compute Z-Score of current residual over rolling window (sample std, ddof=1)
 #[derive(Debug, Clone)]
 pub struct KalmanZScore {
     /// Window size for Z-Score calculation on residuals
@@ -53,28 +53,22 @@ impl Indicator for KalmanZScore {
         let kalman = KalmanFilter::new(self.r, self.q);
         let kalman_level = kalman.compute_level(&prices);
 
-        // Compute Z-Score of residuals over rolling window
+        let residuals: Vec<f64> = prices
+            .iter()
+            .zip(kalman_level.iter())
+            .map(|(p, k)| p - k)
+            .collect();
+
         for i in (self.window - 1)..len {
             let start = i + 1 - self.window;
+            let window_residuals = &residuals[start..=i];
+            let std = sample_std(window_residuals);
+            let current_residual = residuals[i];
 
-            // Collect residuals in window
-            let residuals: Vec<f64> = (start..=i)
-                .map(|j| prices[j] - kalman_level[j])
-                .collect();
-
-            // Mean and std of residuals
-            let mean = residuals.iter().sum::<f64>() / self.window as f64;
-            let variance =
-                residuals.iter().map(|r| (r - mean).powi(2)).sum::<f64>() / self.window as f64;
-            let std = variance.sqrt();
-
-            // Current residual
-            let current_residual = prices[i] - kalman_level[i];
-
-            if std > 1e-10 {
-                result[i] = (current_residual - mean) / std;
+            if std.is_finite() && std > 0.0 {
+                result[i] = current_residual / std;
             } else {
-                result[i] = 0.0;
+                result[i] = f64::NAN;
             }
         }
 
@@ -135,19 +129,14 @@ mod tests {
 
     #[test]
     fn test_kalman_zscore_constant_input() {
-        // With constant input, residuals are ~0, so Z-Score should be 0
+        // With constant input, std is 0, so Z-Score is NaN
         let candles: Vec<Candle> = vec![100.0; 20].into_iter().map(make_candle).collect();
 
         let kz = KalmanZScore::new(5, 0.5, 0.1);
         let result = kz.compute(&candles);
 
-        for (i, value) in result.iter().enumerate().take(20).skip(4) {
-            assert!(
-                (*value - 0.0).abs() < 1e-6,
-                "Expected ~0 at {}, got {}",
-                i,
-                value
-            );
+        for value in result.iter().enumerate().take(20).skip(4).map(|(_, v)| v) {
+            assert!(value.is_nan());
         }
     }
 
@@ -171,4 +160,21 @@ mod tests {
         assert!((kz.r - 0.5).abs() < 1e-10);
         assert!((kz.q - 0.1).abs() < 1e-10);
     }
+}
+
+fn sample_std(values: &[f64]) -> f64 {
+    if values.iter().any(|v| !v.is_finite()) {
+        return f64::NAN;
+    }
+    if values.len() < 2 {
+        return f64::NAN;
+    }
+    let mean = values.iter().sum::<f64>() / values.len() as f64;
+    let denom = (values.len() as f64) - 1.0;
+    let variance = values
+        .iter()
+        .map(|v| (*v - mean).powi(2))
+        .sum::<f64>()
+        / denom;
+    variance.sqrt()
 }

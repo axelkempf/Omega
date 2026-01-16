@@ -92,40 +92,83 @@ impl GarchVolatility {
 impl Indicator for GarchVolatility {
     fn compute(&self, candles: &[Candle]) -> Vec<f64> {
         let len = candles.len();
-        let mut result = vec![f64::NAN; len];
+        let result = vec![f64::NAN; len];
 
-        if len < self.min_periods + 1 || self.min_periods == 0 {
+        if self.alpha + self.beta >= 1.0 {
             return result;
         }
 
-        // Calculate returns series
-        let mut returns = vec![0.0; len];
+        if len == 0 {
+            return result;
+        }
+
+        let mut returns = vec![f64::NAN; len];
         for i in 1..len {
-            returns[i] = self.calc_return(candles[i - 1].close, candles[i].close);
+            let prev = candles[i - 1].close;
+            let curr = candles[i].close;
+            if prev.is_finite() && curr.is_finite() && prev != 0.0 {
+                returns[i] = self.calc_return(prev, curr) * self.scale;
+            }
         }
 
-        // Initial variance from first min_periods returns
-        let init_returns = &returns[1..=self.min_periods];
-        let mean = init_returns.iter().sum::<f64>() / self.min_periods as f64;
-        let init_var = init_returns
+        let first_idx = returns.iter().position(|v| v.is_finite());
+        let Some(first_idx) = first_idx else {
+            return result;
+        };
+
+        let mut out_var = vec![f64::NAN; len];
+
+        let lr_slice_start = first_idx.saturating_sub(1000);
+        let lr_slice = &returns[lr_slice_start..=first_idx];
+        let mut lr_var = nan_var(lr_slice).unwrap_or(1e-6);
+        if !lr_var.is_finite() || lr_var <= 0.0 {
+            lr_var = 1e-6;
+        }
+
+        let omega = if self.omega.is_finite() && self.omega > 0.0 {
+            self.omega
+        } else {
+            lr_var * (1.0 - self.alpha - self.beta).max(1e-6)
+        }
+        .max(0.0);
+
+        let mu_slice_start = first_idx.saturating_sub(2000);
+        let mu_slice = &returns[mu_slice_start..=first_idx];
+        let mu = nan_mean(mu_slice).unwrap_or(0.0);
+
+        let mut eps_prev2 = (returns[first_idx] - mu).powi(2);
+        let sigma_floor_sq = self.sigma_floor.powi(2);
+        let mut var_prev = lr_var.max(eps_prev2).max(sigma_floor_sq);
+        out_var[first_idx] = var_prev;
+
+        for i in (first_idx + 1)..len {
+            let r_i = returns[i];
+            if !r_i.is_finite() {
+                out_var[i] = out_var[i - 1];
+                continue;
+            }
+            let mut var_t = omega + self.alpha * eps_prev2 + self.beta * var_prev;
+            if var_t < sigma_floor_sq {
+                var_t = sigma_floor_sq;
+            }
+            out_var[i] = var_t;
+            eps_prev2 = (r_i - mu).powi(2);
+            var_prev = var_t;
+        }
+
+        let mut sigma: Vec<f64> = out_var
             .iter()
-            .map(|r| (r - mean).powi(2))
-            .sum::<f64>()
-            / self.min_periods as f64;
+            .map(|v| if v.is_finite() { v.sqrt() / self.scale } else { f64::NAN })
+            .collect();
 
-        // Ensure minimum variance
-        let mut sigma2 = init_var.max(self.sigma_floor.powi(2));
-        result[self.min_periods] = sigma2.sqrt() * self.scale;
-
-        // GARCH recursion: σ²_t = ω + α * r²_{t-1} + β * σ²_{t-1}
-        for i in self.min_periods..returns.len() - 1 {
-            let r_prev = returns[i];
-            sigma2 = self.omega + self.alpha * r_prev.powi(2) + self.beta * sigma2;
-            sigma2 = sigma2.max(self.sigma_floor.powi(2));
-            result[i + 1] = sigma2.sqrt() * self.scale;
+        let valid_after = first_idx + self.min_periods;
+        for (i, v) in sigma.iter_mut().enumerate() {
+            if i < valid_after {
+                *v = f64::NAN;
+            }
         }
 
-        result
+        sigma
     }
 
     fn name(&self) -> &str {
@@ -133,7 +176,41 @@ impl Indicator for GarchVolatility {
     }
 
     fn warmup_periods(&self) -> usize {
-        self.min_periods + 1
+        self.min_periods
+    }
+}
+
+fn nan_mean(values: &[f64]) -> Option<f64> {
+    let mut sum = 0.0;
+    let mut count = 0usize;
+    for v in values {
+        if v.is_finite() {
+            sum += *v;
+            count += 1;
+        }
+    }
+    if count == 0 {
+        None
+    } else {
+        Some(sum / count as f64)
+    }
+}
+
+fn nan_var(values: &[f64]) -> Option<f64> {
+    let mean = nan_mean(values)?;
+    let mut sum = 0.0;
+    let mut count = 0usize;
+    for v in values {
+        if v.is_finite() {
+            let diff = *v - mean;
+            sum += diff * diff;
+            count += 1;
+        }
+    }
+    if count == 0 {
+        None
+    } else {
+        Some(sum / count as f64)
     }
 }
 
@@ -165,13 +242,12 @@ mod tests {
         let garch = GarchVolatility::new(0.1, 0.85, 0.00001).with_min_periods(10);
         let result = garch.compute(&candles);
 
-        // First min_periods values should be NaN
-        for (i, value) in result.iter().enumerate().take(10) {
-            assert!(value.is_nan(), "Expected NaN at {}", i);
-        }
+        // First finite value should appear after warmup
+        let first_finite = result.iter().position(|v| v.is_finite()).unwrap();
+        assert!(first_finite >= 10);
 
-        // Rest should be positive finite values
-        for (i, value) in result.iter().enumerate().take(50).skip(10) {
+        // Subsequent values should be positive finite
+        for (i, value) in result.iter().enumerate().skip(first_finite) {
             assert!(
                 value.is_finite() && *value > 0.0,
                 "Expected positive finite at {}, got {}",
@@ -238,8 +314,8 @@ mod tests {
             .with_sigma_floor(floor);
         let result = garch.compute(&candles);
 
-        // After convergence, should be at floor * scale
-        let expected_min = floor * 100.0;
+        // After convergence, should be at floor
+        let expected_min = floor / garch.scale;
         for (i, value) in result.iter().enumerate().take(50).skip(20) {
             assert!(
                 *value >= expected_min * 0.99,

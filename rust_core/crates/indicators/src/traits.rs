@@ -2,7 +2,7 @@
 //!
 //! Defines the core traits and types for indicators.
 
-use omega_types::Candle;
+use omega_types::{Candle, PriceType, Timeframe};
 use std::collections::HashMap;
 
 /// Specification for an indicator including name and parameters.
@@ -64,6 +64,14 @@ pub enum IndicatorParams {
         beta_x1000: u32,
         /// Omega * 1,000,000
         omega_x1000000: u32,
+        /// Use log returns when true
+        use_log_returns: bool,
+        /// Scale factor * 100
+        scale_x100: u32,
+        /// Minimum periods for initialization
+        min_periods: usize,
+        /// Sigma floor * 1e8
+        sigma_floor_x1e8: u32,
     },
 
     /// Kalman+GARCH combination
@@ -74,6 +82,14 @@ pub enum IndicatorParams {
         alpha_x1000: u32,
         beta_x1000: u32,
         omega_x1000000: u32,
+        /// Use log returns when true
+        use_log_returns: bool,
+        /// Scale factor * 100
+        scale_x100: u32,
+        /// Minimum periods for initialization
+        min_periods: usize,
+        /// Sigma floor * 1e8
+        sigma_floor_x1e8: u32,
     },
 
     /// Vol-Cluster parameters
@@ -145,6 +161,84 @@ pub trait IntoMultiVecs {
 pub struct MultiOutputResult {
     /// Map from output name to computed values
     pub outputs: HashMap<String, Vec<f64>>,
+}
+
+/// Price series for a timeframe (bid/ask).
+#[derive(Debug, Clone)]
+pub struct PriceSeries {
+    /// Timeframe for the series.
+    pub timeframe: Timeframe,
+    /// Price type (bid/ask).
+    pub price_type: PriceType,
+    /// Close prices aligned to primary timeframe length.
+    pub close: Vec<f64>,
+    /// Open prices aligned to primary timeframe length.
+    pub open: Vec<f64>,
+    /// High prices aligned to primary timeframe length.
+    pub high: Vec<f64>,
+    /// Low prices aligned to primary timeframe length.
+    pub low: Vec<f64>,
+}
+
+impl PriceSeries {
+    /// Returns length of the aligned series.
+    pub fn len(&self) -> usize {
+        self.close.len()
+    }
+
+    /// Returns true when series is empty.
+    pub fn is_empty(&self) -> bool {
+        self.close.is_empty()
+    }
+
+    /// Returns close price at index if finite.
+    pub fn close_at(&self, idx: usize) -> Option<f64> {
+        self.close.get(idx).copied().filter(|v| v.is_finite())
+    }
+
+    /// Returns open price at index if finite.
+    pub fn open_at(&self, idx: usize) -> Option<f64> {
+        self.open.get(idx).copied().filter(|v| v.is_finite())
+    }
+
+    /// Returns high price at index if finite.
+    pub fn high_at(&self, idx: usize) -> Option<f64> {
+        self.high.get(idx).copied().filter(|v| v.is_finite())
+    }
+
+    /// Returns low price at index if finite.
+    pub fn low_at(&self, idx: usize) -> Option<f64> {
+        self.low.get(idx).copied().filter(|v| v.is_finite())
+    }
+}
+
+/// Mapping from primary indices to higher-timeframe indices.
+#[derive(Debug, Clone)]
+pub struct TimeframeMapping {
+    /// Target timeframe.
+    pub timeframe: Timeframe,
+    /// Mapping of primary index -> target index (last completed bar).
+    pub primary_to_target: Vec<Option<usize>>,
+}
+
+impl TimeframeMapping {
+    /// Creates a new mapping.
+    pub fn new(timeframe: Timeframe, primary_to_target: Vec<Option<usize>>) -> Self {
+        Self {
+            timeframe,
+            primary_to_target,
+        }
+    }
+
+    /// Returns mapped index for a primary index.
+    pub fn map_index(&self, primary_idx: usize) -> Option<usize> {
+        self.primary_to_target.get(primary_idx).copied().flatten()
+    }
+
+    /// Returns mapping length.
+    pub fn len(&self) -> usize {
+        self.primary_to_target.len()
+    }
 }
 
 impl MultiOutputResult {

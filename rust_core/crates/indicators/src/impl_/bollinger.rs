@@ -27,7 +27,7 @@ impl IntoMultiVecs for BollingerResult {
 /// - Middle Band = SMA
 /// - Lower Band = SMA - (std_factor * StdDev)
 ///
-/// Uses population standard deviation (n), not sample (n-1), for V1 parity.
+/// Uses sample standard deviation (n-1) to match pandas rolling std defaults.
 #[derive(Debug, Clone)]
 pub struct BollingerBands {
     /// Period for the SMA and standard deviation
@@ -75,10 +75,13 @@ impl MultiOutputIndicator for BollingerBands {
             // SMA
             let sma = window.iter().sum::<f64>() / self.period as f64;
 
-            // Population variance (n, not n-1) for V1 parity
-            let variance =
-                window.iter().map(|x| (x - sma).powi(2)).sum::<f64>() / self.period as f64;
-            let std = variance.sqrt();
+            let denom = (self.period as f64) - 1.0;
+            let std = if denom > 0.0 {
+                let variance = window.iter().map(|x| (x - sma).powi(2)).sum::<f64>() / denom;
+                variance.sqrt()
+            } else {
+                f64::NAN
+            };
 
             middle[i] = sma;
             upper[i] = sma + self.std_factor * std;
@@ -136,10 +139,10 @@ mod tests {
 
         // At index 2: window = [1, 2, 3]
         // SMA = 2.0
-        // Variance = ((1-2)^2 + (2-2)^2 + (3-2)^2) / 3 = (1 + 0 + 1) / 3 = 2/3
-        // Std = sqrt(2/3) = 0.8165...
+        // Variance = ((1-2)^2 + (2-2)^2 + (3-2)^2) / 2 = (1 + 0 + 1) / 2 = 1
+        // Std = sqrt(1) = 1
         let expected_sma = 2.0;
-        let expected_std = (2.0_f64 / 3.0).sqrt();
+        let expected_std = 1.0_f64;
 
         assert!((result.middle[2] - expected_sma).abs() < 1e-10);
         assert!((result.upper[2] - (expected_sma + 2.0 * expected_std)).abs() < 1e-10);

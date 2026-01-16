@@ -5,7 +5,7 @@ use omega_types::Candle;
 
 /// Exponential Moving Average
 ///
-/// Uses SMA for initialization and then applies exponential smoothing.
+/// Matches pandas `ewm(span=period, adjust=False).mean()` semantics.
 /// Multiplier = 2 / (period + 1)
 #[derive(Debug, Clone)]
 pub struct EMA {
@@ -30,22 +30,28 @@ impl Indicator for EMA {
         let len = candles.len();
         let mut result = vec![f64::NAN; len];
 
-        if len < self.period || self.period == 0 {
+        if self.period == 0 || len == 0 {
             return result;
         }
 
-        let multiplier = self.multiplier();
+        let alpha = self.multiplier();
+        let mut prev = f64::NAN;
 
-        // Initial SMA for seed value
-        let initial_sma: f64 =
-            candles[..self.period].iter().map(|c| c.close).sum::<f64>() / self.period as f64;
+        for (i, candle) in candles.iter().enumerate() {
+            let value = candle.close;
+            if !value.is_finite() {
+                if prev.is_finite() {
+                    result[i] = prev;
+                }
+                continue;
+            }
 
-        result[self.period - 1] = initial_sma;
-
-        // EMA calculation: EMA_t = (close - EMA_{t-1}) * multiplier + EMA_{t-1}
-        for i in self.period..len {
-            let prev_ema = result[i - 1];
-            result[i] = (candles[i].close - prev_ema) * multiplier + prev_ema;
+            if !prev.is_finite() {
+                prev = value;
+            } else {
+                prev = alpha * value + (1.0 - alpha) * prev;
+            }
+            result[i] = prev;
         }
 
         result
@@ -56,7 +62,7 @@ impl Indicator for EMA {
     }
 
     fn warmup_periods(&self) -> usize {
-        self.period
+        1
     }
 }
 
@@ -85,17 +91,11 @@ mod tests {
         let ema = EMA::new(3);
         let result = ema.compute(&candles);
 
-        assert!(result[0].is_nan());
-        assert!(result[1].is_nan());
-
-        // Initial SMA = (1+2+3)/3 = 2.0
-        assert!((result[2] - 2.0).abs() < 1e-10);
-
-        // EMA[3] = (4 - 2) * 0.5 + 2 = 3.0 (multiplier = 2/(3+1) = 0.5)
-        assert!((result[3] - 3.0).abs() < 1e-10);
-
-        // EMA[4] = (5 - 3) * 0.5 + 3 = 4.0
-        assert!((result[4] - 4.0).abs() < 1e-10);
+        assert!((result[0] - 1.0).abs() < 1e-10);
+        assert!((result[1] - 1.5).abs() < 1e-10);
+        assert!((result[2] - 2.25).abs() < 1e-10);
+        assert!((result[3] - 3.125).abs() < 1e-10);
+        assert!((result[4] - 4.0625).abs() < 1e-10);
     }
 
     #[test]
@@ -106,8 +106,8 @@ mod tests {
         let ema = EMA::new(5);
         let result = ema.compute(&candles);
 
-        // After warmup, all values should be 5.0
-        for (i, value) in result.iter().enumerate().take(20).skip(4) {
+        // EMA should stay at 5.0 for constant input
+        for (i, value) in result.iter().enumerate().take(20) {
             assert!(
                 (*value - 5.0).abs() < 1e-10,
                 "EMA[{}] = {} != 5.0",
@@ -124,7 +124,8 @@ mod tests {
         let ema = EMA::new(5);
         let result = ema.compute(&candles);
 
-        assert!(result.iter().all(|v| v.is_nan()));
+        assert_eq!(result.len(), candles.len());
+        assert!(result.iter().all(|v| v.is_finite()));
     }
 
     #[test]

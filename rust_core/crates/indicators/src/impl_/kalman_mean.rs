@@ -36,28 +36,33 @@ impl KalmanFilter {
     pub fn compute_level(&self, prices: &[f64]) -> Vec<f64> {
         let len = prices.len();
         let mut result = vec![f64::NAN; len];
+        let mut p = vec![f64::NAN; len];
 
         if prices.is_empty() {
             return result;
         }
 
-        // Initialize state
-        let mut x = prices[0]; // State estimate
-        let mut p = 1.0; // Error covariance (start with unit variance)
+        let first_idx = prices.iter().position(|v| v.is_finite());
+        let Some(first_idx) = first_idx else {
+            return result;
+        };
 
-        result[0] = x;
+        result[first_idx] = prices[first_idx];
+        p[first_idx] = self.r;
 
-        for i in 1..len {
-            // Predict step
-            let x_pred = x;
-            let p_pred = p + self.q;
+        for i in (first_idx + 1)..len {
+            let meas = prices[i];
+            let xhat_minus = result[i - 1];
+            let p_minus = if p[i - 1].is_finite() { p[i - 1] } else { self.r } + self.q;
 
-            // Update step
-            let k = p_pred / (p_pred + self.r);
-            x = x_pred + k * (prices[i] - x_pred);
-            p = (1.0 - k) * p_pred;
-
-            result[i] = x;
+            if meas.is_finite() && xhat_minus.is_finite() {
+                let k = p_minus / (p_minus + self.r);
+                result[i] = xhat_minus + k * (meas - xhat_minus);
+                p[i] = (1.0 - k) * p_minus;
+            } else {
+                result[i] = f64::NAN;
+                p[i] = f64::NAN;
+            }
         }
 
         result

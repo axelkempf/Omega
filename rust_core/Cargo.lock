@@ -873,6 +873,28 @@ dependencies = [
 ]
 
 [[package]]
+name = "omega_strategy"
+version = "0.1.0"
+dependencies = [
+ "omega_data",
+ "omega_indicators",
+ "omega_types",
+ "serde",
+ "serde_json",
+ "thiserror",
+]
+
+[[package]]
+name = "omega_trade_mgmt"
+version = "0.1.0"
+dependencies = [
+ "omega_types",
+ "serde",
+ "serde_json",
+ "thiserror",
+]
+
+[[package]]
 name = "omega_types"
 version = "0.1.0"
 dependencies = [

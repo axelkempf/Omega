@@ -6,8 +6,7 @@ use omega_types::Candle;
 /// Z-Score indicator
 ///
 /// Calculates the standardized score: (close - mean) / std
-/// Uses a rolling window of the specified size.
-/// When std is near zero (< 1e-10), returns 0.0 instead of NaN/Inf.
+/// Uses a rolling window of the specified size with sample std (ddof=1).
 #[derive(Debug, Clone)]
 pub struct ZScore {
     /// Window size for mean and standard deviation
@@ -36,15 +35,19 @@ impl Indicator for ZScore {
 
             let mean = window.iter().sum::<f64>() / self.window as f64;
 
-            // Population variance (n, not n-1)
-            let variance =
-                window.iter().map(|x| (x - mean).powi(2)).sum::<f64>() / self.window as f64;
-            let std = variance.sqrt();
+            let denom = (self.window as f64) - 1.0;
+            let std = if denom > 0.0 {
+                let variance =
+                    window.iter().map(|x| (x - mean).powi(2)).sum::<f64>() / denom;
+                variance.sqrt()
+            } else {
+                f64::NAN
+            };
 
-            if std > 1e-10 {
+            if std.is_finite() && std > 0.0 {
                 result[i] = (candles[i].close - mean) / std;
             } else {
-                result[i] = 0.0;
+                result[i] = f64::NAN;
             }
         }
 
@@ -78,8 +81,8 @@ mod tests {
     #[test]
     fn test_zscore_basic() {
         // window = [1, 2, 3], current = 3
-        // mean = 2, variance = 2/3, std = 0.8165
-        // z = (3 - 2) / 0.8165 = 1.2247
+        // mean = 2, variance = 2/2 = 1, std = 1
+        // z = (3 - 2) / 1 = 1
         let candles: Vec<Candle> = vec![1.0, 2.0, 3.0].into_iter().map(make_candle).collect();
 
         let zscore = ZScore::new(3);
@@ -88,33 +91,26 @@ mod tests {
         assert!(result[0].is_nan());
         assert!(result[1].is_nan());
 
-        let expected_std = (2.0_f64 / 3.0).sqrt();
-        let expected_z = (3.0 - 2.0) / expected_std;
+        let expected_z = 1.0;
         assert!((result[2] - expected_z).abs() < 1e-10);
     }
 
     #[test]
     fn test_zscore_zero_std() {
-        // All same values -> std = 0 -> should return 0
+        // All same values -> std = 0 -> should return NaN
         let candles: Vec<Candle> = vec![5.0; 10].into_iter().map(make_candle).collect();
 
         let zscore = ZScore::new(5);
         let result = zscore.compute(&candles);
 
-        for (i, value) in result.iter().enumerate().take(10).skip(4) {
-            assert!(
-                (*value - 0.0).abs() < 1e-10,
-                "Expected 0.0 at {}, got {}",
-                i,
-                value
-            );
+        for value in result.iter().enumerate().take(10).skip(4).map(|(_, v)| v) {
+            assert!(value.is_nan());
         }
     }
 
     #[test]
     fn test_zscore_symmetric_distribution() {
-        // At the mean, z-score should be 0
-        // Below mean should be negative, above should be positive
+        // At the mean, z-score should be 0 or NaN depending on std
         let candles: Vec<Candle> = vec![1.0, 2.0, 3.0, 2.0, 1.0, 2.0, 3.0]
             .into_iter()
             .map(make_candle)
@@ -125,7 +121,7 @@ mod tests {
 
         // Index 3: window = [2, 3, 2], mean = 7/3, close = 2
         // close is at (2 - 7/3) which is negative
-        assert!(result[3] < 0.0);
+        assert!(result[3].is_nan() || result[3] < 0.0);
     }
 
     #[test]
@@ -139,7 +135,7 @@ mod tests {
     }
 
     #[test]
-    fn test_zscore_window_one_returns_zero() {
+    fn test_zscore_window_one_returns_nan() {
         let candles: Vec<Candle> = vec![1.0, 2.0, 3.0, 4.0]
             .into_iter()
             .map(make_candle)
@@ -148,6 +144,6 @@ mod tests {
         let zscore = ZScore::new(1);
         let result = zscore.compute(&candles);
 
-        assert!(result.iter().all(|v| (*v - 0.0).abs() < 1e-10));
+        assert!(result.iter().all(|v| v.is_nan()));
     }
 }

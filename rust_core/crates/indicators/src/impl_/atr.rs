@@ -37,7 +37,7 @@ impl Indicator for ATR {
         let len = candles.len();
         let mut result = vec![f64::NAN; len];
 
-        if len < self.period + 1 || self.period == 0 {
+        if self.period == 0 || len == 0 {
             return result;
         }
 
@@ -49,13 +49,31 @@ impl Indicator for ATR {
             tr[i] = Self::true_range(&candles[i], candles[i - 1].close);
         }
 
-        // Initial ATR: simple average of first `period` TR values (starting from index 1)
-        let initial: f64 = tr[1..=self.period].iter().sum::<f64>() / self.period as f64;
-        result[self.period] = initial;
+        let first_valid = tr.iter().position(|v| v.is_finite());
+        let Some(first_valid) = first_valid else {
+            return result;
+        };
 
-        // Wilder smoothing: ATR_t = (ATR_{t-1} * (n-1) + TR_t) / n
-        for i in (self.period + 1)..len {
-            result[i] = (result[i - 1] * (self.period - 1) as f64 + tr[i]) / self.period as f64;
+        if first_valid + self.period <= len
+            && tr[first_valid..first_valid + self.period]
+                .iter()
+                .all(|v| v.is_finite())
+        {
+            let initial: f64 = tr[first_valid..first_valid + self.period]
+                .iter()
+                .sum::<f64>()
+                / self.period as f64;
+            let start_idx = first_valid + self.period - 1;
+            result[start_idx] = initial;
+
+            for i in (start_idx + 1)..len {
+                if !tr[i].is_finite() {
+                    result[i] = result[i - 1];
+                    continue;
+                }
+                result[i] = (result[i - 1] * (self.period - 1) as f64 + tr[i])
+                    / self.period as f64;
+            }
         }
 
         result
@@ -66,7 +84,7 @@ impl Indicator for ATR {
     }
 
     fn warmup_periods(&self) -> usize {
-        self.period + 1
+        self.period
     }
 }
 
@@ -118,13 +136,12 @@ mod tests {
 
         assert!(result[0].is_nan());
         assert!(result[1].is_nan());
-        assert!(result[2].is_nan());
 
-        // Initial ATR = (5 + 5 + 5) / 3 = 5.0
-        assert!((result[3] - 5.0).abs() < 1e-10);
+        // Initial ATR = (4 + 5 + 5) / 3 = 4.6666...
+        assert!((result[2] - 4.6666666667).abs() < 1e-8);
 
-        // ATR[4] = (5 * 2 + 5) / 3 = 5.0
-        assert!((result[4] - 5.0).abs() < 1e-10);
+        // ATR[3] = (4.6666... * 2 + 5) / 3
+        assert!((result[3] - 4.7777777778).abs() < 1e-8);
     }
 
     #[test]
@@ -143,6 +160,6 @@ mod tests {
     #[test]
     fn test_atr_warmup() {
         let atr = ATR::new(14);
-        assert_eq!(atr.warmup_periods(), 15);
+        assert_eq!(atr.warmup_periods(), 14);
     }
 }

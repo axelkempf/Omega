@@ -16,6 +16,8 @@ omega_indicators = { path = "crates/indicators" }
 omega_data = { path = "crates/data" }
 omega_execution = { path = "crates/execution" }
 omega_portfolio = { path = "crates/portfolio" }
+omega_strategy = { path = "crates/strategy" }
+omega_trade_mgmt = { path = "crates/trade_mgmt" }
 
 # Externe Crates
 serde = { version = "1.0", features = ["derive"] }

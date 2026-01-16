@@ -27,8 +27,14 @@ pub struct KalmanGarchZScore {
     pub garch_beta: f64,
     /// GARCH omega
     pub garch_omega: f64,
+    /// Use log returns when true
+    pub use_log_returns: bool,
+    /// Scale factor applied to returns
+    pub scale: f64,
     /// Minimum periods for GARCH initialization
     pub min_periods: usize,
+    /// Volatility floor
+    pub sigma_floor: f64,
 }
 
 impl KalmanGarchZScore {
@@ -46,7 +52,10 @@ impl KalmanGarchZScore {
             garch_alpha,
             garch_beta,
             garch_omega,
+            use_log_returns: true,
+            scale: 1.0,
             min_periods: 20,
+            sigma_floor: 1e-8,
         }
     }
 
@@ -72,6 +81,24 @@ impl KalmanGarchZScore {
         self.min_periods = periods;
         self
     }
+
+    /// Sets whether to use log returns.
+    pub fn with_log_returns(mut self, use_log: bool) -> Self {
+        self.use_log_returns = use_log;
+        self
+    }
+
+    /// Sets the returns scale factor.
+    pub fn with_scale(mut self, scale: f64) -> Self {
+        self.scale = scale;
+        self
+    }
+
+    /// Sets the volatility floor.
+    pub fn with_sigma_floor(mut self, floor: f64) -> Self {
+        self.sigma_floor = floor;
+        self
+    }
 }
 
 impl Indicator for KalmanGarchZScore {
@@ -92,9 +119,10 @@ impl Indicator for KalmanGarchZScore {
 
         // Compute GARCH volatility (scaled to 1, not 100)
         let garch = GarchVolatility::new(self.garch_alpha, self.garch_beta, self.garch_omega)
-            .with_scale(1.0)
+            .with_log_returns(self.use_log_returns)
+            .with_scale(self.scale)
             .with_min_periods(self.min_periods)
-            .with_sigma_floor(1e-8);
+            .with_sigma_floor(self.sigma_floor);
         let garch_vol = garch.compute(candles);
 
         // Compute Z-Score: (price - kalman) / garch_vol
@@ -182,5 +210,19 @@ mod tests {
         assert!((kgz.garch_alpha - 0.1).abs() < 1e-10);
         assert!((kgz.garch_beta - 0.85).abs() < 1e-10);
         assert!((kgz.garch_omega - 0.00001).abs() < 1e-10);
+    }
+
+    #[test]
+    fn test_kalman_garch_zscore_param_setters() {
+        let kgz = KalmanGarchZScore::new(0.5, 0.1, 0.1, 0.85, 0.00001)
+            .with_log_returns(false)
+            .with_scale(2.5)
+            .with_min_periods(7)
+            .with_sigma_floor(0.123);
+
+        assert!(!kgz.use_log_returns);
+        assert!((kgz.scale - 2.5).abs() < 1e-12);
+        assert_eq!(kgz.min_periods, 7);
+        assert!((kgz.sigma_floor - 0.123).abs() < 1e-12);
     }
 }

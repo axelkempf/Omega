@@ -10,6 +10,7 @@ pub mod candle;
 pub mod config;
 pub mod error;
 pub mod position;
+pub mod price_type;
 pub mod result;
 pub mod signal;
 pub mod timeframe;
@@ -23,6 +24,7 @@ pub use config::{
     TimeframeConfig, TradeManagementConfig, TradeManagementRulesConfig,
 };
 pub use error::CoreError;
+pub use price_type::PriceType;
 pub use position::Position;
 pub use result::{BacktestResult, EquityPoint, ErrorResult, Metrics, ResultMeta};
 pub use signal::{Direction, OrderType, Signal};

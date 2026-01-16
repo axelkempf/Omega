@@ -105,11 +105,19 @@ impl IndicatorRegistry {
                 alpha_x1000,
                 beta_x1000,
                 omega_x1000000,
+                use_log_returns,
+                scale_x100,
+                min_periods,
+                sigma_floor_x1e8,
             } => Ok(Arc::new(GarchVolatility::from_encoded(
                 *alpha_x1000,
                 *beta_x1000,
                 *omega_x1000000,
-            ))),
+            )
+            .with_log_returns(*use_log_returns)
+            .with_scale(*scale_x100 as f64 / 100.0)
+            .with_min_periods(*min_periods)
+            .with_sigma_floor(*sigma_floor_x1e8 as f64 / 1e8))),
             _ => Err(IndicatorError::invalid_params(
                 "GARCH_VOL requires Garch params",
             )),
@@ -124,13 +132,21 @@ impl IndicatorRegistry {
                 alpha_x1000,
                 beta_x1000,
                 omega_x1000000,
+                use_log_returns,
+                scale_x100,
+                min_periods,
+                sigma_floor_x1e8,
             } => Ok(Arc::new(KalmanGarchZScore::from_encoded(
                 *r_x1000,
                 *q_x1000,
                 *alpha_x1000,
                 *beta_x1000,
                 *omega_x1000000,
-            ))),
+            )
+            .with_log_returns(*use_log_returns)
+            .with_scale(*scale_x100 as f64 / 100.0)
+            .with_min_periods(*min_periods)
+            .with_sigma_floor(*sigma_floor_x1e8 as f64 / 1e8))),
             _ => Err(IndicatorError::invalid_params(
                 "KALMAN_GARCH_Z requires KalmanGarch params",
             )),
@@ -212,7 +228,7 @@ mod tests {
 
         let indicator = registry.create(&spec).unwrap();
         assert_eq!(indicator.name(), "EMA");
-        assert_eq!(indicator.warmup_periods(), 10);
+        assert_eq!(indicator.warmup_periods(), 1);
     }
 
     #[test]
@@ -222,7 +238,7 @@ mod tests {
 
         let indicator = registry.create(&spec).unwrap();
         assert_eq!(indicator.name(), "ATR");
-        assert_eq!(indicator.warmup_periods(), 15); // period + 1
+        assert_eq!(indicator.warmup_periods(), 14);
     }
 
     #[test]
@@ -251,6 +267,10 @@ mod tests {
                 alpha_x1000: 100,
                 beta_x1000: 850,
                 omega_x1000000: 10,
+                use_log_returns: true,
+                scale_x100: 10_000,
+                min_periods: 20,
+                sigma_floor_x1e8: 10_000,
             },
         );
 
