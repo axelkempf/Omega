@@ -129,8 +129,8 @@ mod tests {
             ok: true,
             error: None,
             trades: Some(vec![Trade {
-                entry_time_ns: 1234567890000000000,
-                exit_time_ns: 1234567900000000000,
+                entry_time_ns: 1_234_567_890_000_000_000,
+                exit_time_ns: 1_234_567_900_000_000_000,
                 direction: Direction::Long,
                 symbol: "EURUSD".to_string(),
                 entry_price: 1.1000,
@@ -202,7 +202,7 @@ mod tests {
     #[test]
     fn test_equity_point_serde() {
         let point = EquityPoint {
-            timestamp_ns: 1234567890000000000,
+            timestamp_ns: 1_234_567_890_000_000_000,
             equity: 10500.0,
             balance: 10000.0,
             drawdown: 0.05,
@@ -213,6 +213,6 @@ mod tests {
         let deserialized: EquityPoint = serde_json::from_str(&json).unwrap();
 
         assert_eq!(point.timestamp_ns, deserialized.timestamp_ns);
-        assert_eq!(point.equity, deserialized.equity);
+        assert!((point.equity - deserialized.equity).abs() < f64::EPSILON);
     }
 }

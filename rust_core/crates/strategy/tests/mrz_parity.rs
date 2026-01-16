@@ -92,16 +92,18 @@ fn test_mrz_python_parity_scenarios() {
             &mut indicator_cache,
             payload.index,
             base_params.window_length,
-            base_params.kalman_r,
-            base_params.kalman_q,
-            base_params.garch_alpha,
-            base_params.garch_beta,
-            base_params.garch_omega,
-            base_params.garch_use_log_returns,
-            base_params.garch_scale,
-            base_params.garch_min_periods,
-            base_params.garch_sigma_floor,
-            payload.indicators.kalman_garch_z,
+            KalmanGarchSnapshot {
+                r: base_params.kalman_r,
+                q: base_params.kalman_q,
+                alpha: base_params.garch_alpha,
+                beta: base_params.garch_beta,
+                omega: base_params.garch_omega,
+                use_log_returns: base_params.garch_use_log_returns,
+                scale: base_params.garch_scale,
+                min_periods: base_params.garch_min_periods,
+                sigma_floor: base_params.garch_sigma_floor,
+                value: payload.indicators.kalman_garch_z,
+            },
         );
         insert_bollinger(
             &mut indicator_cache,
@@ -194,10 +196,7 @@ fn insert_kalman_z(
     insert_scalar(cache, spec, idx, value);
 }
 
-fn insert_kalman_garch_z(
-    cache: &mut IndicatorCache,
-    idx: usize,
-    window: usize,
+struct KalmanGarchSnapshot {
     r: f64,
     q: f64,
     alpha: f64,
@@ -208,23 +207,30 @@ fn insert_kalman_garch_z(
     min_periods: usize,
     sigma_floor: f64,
     value: Option<f64>,
+}
+
+fn insert_kalman_garch_z(
+    cache: &mut IndicatorCache,
+    idx: usize,
+    window: usize,
+    snapshot: KalmanGarchSnapshot,
 ) {
     let spec = IndicatorSpec::new(
         "KALMAN_GARCH_Z",
         IndicatorParams::KalmanGarch {
             window,
-            r_x1000: (r * 1000.0).round() as u32,
-            q_x1000: (q * 1000.0).round() as u32,
-            alpha_x1000: (alpha * 1000.0).round() as u32,
-            beta_x1000: (beta * 1000.0).round() as u32,
-            omega_x1000000: (omega * 1_000_000.0).round() as u32,
-            use_log_returns,
-            scale_x100: (scale * 100.0).round() as u32,
-            min_periods,
-            sigma_floor_x1e8: (sigma_floor * 1e8).round() as u32,
+            r_x1000: (snapshot.r * 1000.0).round() as u32,
+            q_x1000: (snapshot.q * 1000.0).round() as u32,
+            alpha_x1000: (snapshot.alpha * 1000.0).round() as u32,
+            beta_x1000: (snapshot.beta * 1000.0).round() as u32,
+            omega_x1000000: (snapshot.omega * 1_000_000.0).round() as u32,
+            use_log_returns: snapshot.use_log_returns,
+            scale_x100: (snapshot.scale * 100.0).round() as u32,
+            min_periods: snapshot.min_periods,
+            sigma_floor_x1e8: (snapshot.sigma_floor * 1e8).round() as u32,
         },
     );
-    insert_scalar(cache, spec, idx, value);
+    insert_scalar(cache, spec, idx, snapshot.value);
 }
 
 fn insert_bollinger(

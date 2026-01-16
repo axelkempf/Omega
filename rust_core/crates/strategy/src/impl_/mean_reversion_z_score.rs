@@ -13,7 +13,7 @@
 use crate::context::BarContext;
 use crate::error::StrategyError;
 use crate::traits::{IndicatorRequirement, Strategy};
-use omega_indicators::{GarchLocalParams, VolFeatureSeries};
+use omega_indicators::{GarchLocalParams, VolClusterRequest, VolFeatureSeries};
 use omega_types::{Direction, OrderType, PriceType, Signal};
 use serde::{Deserialize, Serialize};
 
@@ -371,7 +371,7 @@ impl MeanReversionZScore {
     pub fn new(params: MrzParams) -> Self {
         Self {
             params,
-            state: MrzState::default(),
+            state: MrzState,
         }
     }
 
@@ -1250,7 +1250,8 @@ impl MeanReversionZScore {
             "hysteresis_bars".to_string(),
             serde_json::json!(hysteresis_bars),
         );
-        if feature != "garch_forecast" {
+        let feature_supported = matches!(feature.as_str(), "garch_forecast" | "atr_points");
+        if !feature_supported {
             meta.insert(
                 "status".to_string(),
                 serde_json::json!("feature_not_supported"),
@@ -1405,15 +1406,16 @@ impl MeanReversionZScore {
             min_periods: self.params.garch_min_periods,
             sigma_floor: self.params.garch_sigma_floor,
         };
-        cache.borrow_mut().vol_cluster_series(
-            primary_tf,
-            PriceType::Bid,
-            ctx.idx,
+        let request = VolClusterRequest {
+            timeframe: primary_tf,
+            price_type: PriceType::Bid,
+            idx: ctx.idx,
             feature,
-            self.params.atr_length,
-            self.params.intraday_vol_garch_lookback.max(1),
+            atr_length: self.params.atr_length,
+            garch_lookback: self.params.intraday_vol_garch_lookback.max(1),
             garch_params,
-        )
+        };
+        cache.borrow_mut().vol_cluster_series(request)
     }
 }
 
@@ -1459,7 +1461,7 @@ impl Strategy for MeanReversionZScore {
         ];
 
         // Add Bollinger if scenarios 2, 3, 4, 5, or 6 are enabled
-        if self.params.enabled_scenarios.iter().any(|&s| matches!(s, 2 | 3 | 4 | 5 | 6)) {
+        if self.params.enabled_scenarios.iter().any(|&s| matches!(s, 2..=6)) {
             reqs.push(IndicatorRequirement::new(
                 "BOLLINGER",
                 serde_json::json!({
@@ -1582,7 +1584,7 @@ impl Strategy for MeanReversionZScore {
 
                 // TF-specific Kalman-Z
                 reqs.push(IndicatorRequirement::with_timeframe(
-                    &format!("KALMAN_Z_{}", tf),
+                    format!("KALMAN_Z_{}", tf),
                     tf,
                     serde_json::json!({
                         "window": window,
@@ -1593,7 +1595,7 @@ impl Strategy for MeanReversionZScore {
 
                 // TF-specific Bollinger
                 reqs.push(IndicatorRequirement::with_timeframe(
-                    &format!("BOLLINGER_{}", tf),
+                    format!("BOLLINGER_{}", tf),
                     tf,
                     serde_json::json!({
                         "period": bb_period,
@@ -1603,7 +1605,7 @@ impl Strategy for MeanReversionZScore {
 
                 // TF-specific Close price
                 reqs.push(IndicatorRequirement::with_timeframe(
-                    &format!("CLOSE_{}", tf),
+                    format!("CLOSE_{}", tf),
                     tf,
                     serde_json::json!({}),
                 ));
@@ -1623,10 +1625,9 @@ impl Strategy for MeanReversionZScore {
 
         if self.params.extra_htf_filter != HtfFilter::None
             && !is_htf_disabled(&self.params.extra_htf_tf)
+            && !tfs.contains(&self.params.extra_htf_tf)
         {
-            if !tfs.contains(&self.params.extra_htf_tf) {
-                tfs.push(self.params.extra_htf_tf.clone());
-            }
+            tfs.push(self.params.extra_htf_tf.clone());
         }
 
         // Add scenario 6 timeframes
@@ -1642,7 +1643,7 @@ impl Strategy for MeanReversionZScore {
     }
 
     fn reset(&mut self) {
-        self.state = MrzState::default();
+        self.state = MrzState;
     }
 }
 
@@ -1799,15 +1800,32 @@ mod tests {
         insert_series(cache, IndicatorSpec::new(name, IndicatorParams::Period(period)), idx, value);
     }
 
+    struct BollingerValues {
+        lower: f64,
+        middle: f64,
+        upper: f64,
+    }
+
+    struct KalmanGarchInsert {
+        r: f64,
+        q: f64,
+        alpha: f64,
+        beta: f64,
+        omega: f64,
+        use_log_returns: bool,
+        scale: f64,
+        min_periods: usize,
+        sigma_floor: f64,
+        value: f64,
+    }
+
     fn insert_bollinger(
         cache: &mut IndicatorCache,
         name: &str,
         period: usize,
         std_factor: f64,
         idx: usize,
-        lower: f64,
-        middle: f64,
-        upper: f64,
+        values: BollingerValues,
     ) {
         let spec = IndicatorSpec::new(
             name,
@@ -1816,9 +1834,9 @@ mod tests {
                 std_factor_x100: (std_factor * 100.0) as u32,
             },
         );
-        insert_series(cache, spec.with_output_suffix("lower"), idx, lower);
-        insert_series(cache, spec.with_output_suffix("middle"), idx, middle);
-        insert_series(cache, spec.with_output_suffix("upper"), idx, upper);
+        insert_series(cache, spec.with_output_suffix("lower"), idx, values.lower);
+        insert_series(cache, spec.with_output_suffix("middle"), idx, values.middle);
+        insert_series(cache, spec.with_output_suffix("upper"), idx, values.upper);
     }
 
     fn insert_kalman(
@@ -1849,17 +1867,8 @@ mod tests {
         cache: &mut IndicatorCache,
         name: &str,
         window: usize,
-        r: f64,
-        q: f64,
-        alpha: f64,
-        beta: f64,
-        omega: f64,
-        use_log_returns: bool,
-        scale: f64,
-        min_periods: usize,
-        sigma_floor: f64,
         idx: usize,
-        value: f64,
+        params: KalmanGarchInsert,
     ) {
         insert_series(
             cache,
@@ -1867,19 +1876,19 @@ mod tests {
                 name,
                 IndicatorParams::KalmanGarch {
                     window,
-                    r_x1000: (r * 1000.0).round() as u32,
-                    q_x1000: (q * 1000.0).round() as u32,
-                    alpha_x1000: (alpha * 1000.0).round() as u32,
-                    beta_x1000: (beta * 1000.0).round() as u32,
-                    omega_x1000000: (omega * 1_000_000.0).round() as u32,
-                    use_log_returns,
-                    scale_x100: (scale * 100.0).round() as u32,
-                    min_periods,
-                    sigma_floor_x1e8: (sigma_floor * 1e8).round() as u32,
+                    r_x1000: (params.r * 1000.0).round() as u32,
+                    q_x1000: (params.q * 1000.0).round() as u32,
+                    alpha_x1000: (params.alpha * 1000.0).round() as u32,
+                    beta_x1000: (params.beta * 1000.0).round() as u32,
+                    omega_x1000000: (params.omega * 1_000_000.0).round() as u32,
+                    use_log_returns: params.use_log_returns,
+                    scale_x100: (params.scale * 100.0).round() as u32,
+                    min_periods: params.min_periods,
+                    sigma_floor_x1e8: (params.sigma_floor * 1e8).round() as u32,
                 },
             ),
             idx,
-            value,
+            params.value,
         );
     }
 
@@ -1924,9 +1933,11 @@ mod tests {
 
     #[test]
     fn test_mrz_required_indicators() {
-        let mut params = MrzParams::default();
-        params.enabled_scenarios = vec![1, 2, 4, 5];
-        params.htf_filter = HtfFilter::Above;
+        let params = MrzParams {
+            enabled_scenarios: vec![1, 2, 4, 5],
+            htf_filter: HtfFilter::Above,
+            ..Default::default()
+        };
 
         let strategy = MeanReversionZScore::new(params);
         let reqs = strategy.required_indicators();
@@ -1986,9 +1997,11 @@ mod tests {
 
     #[test]
     fn test_mrz_direction_filter_long_only() {
-        let mut params = MrzParams::default();
-        params.direction_filter = DirectionFilter::Long;
-        params.z_score_short = 0.5; // Very low threshold
+        let params = MrzParams {
+            direction_filter: DirectionFilter::Long,
+            z_score_short: 0.5,
+            ..Default::default()
+        };
         let strategy = MeanReversionZScore::new(params);
 
         // Uptrend (should trigger short normally, but filter blocks)
@@ -2058,8 +2071,10 @@ mod tests {
 
     #[test]
     fn test_scenario_1_long_signal() {
-        let mut params = MrzParams::default();
-        params.enabled_scenarios = vec![1];
+        let params = MrzParams {
+            enabled_scenarios: vec![1],
+            ..Default::default()
+        };
         let strategy = MeanReversionZScore::new(params);
 
         let idx = 0;
@@ -2081,8 +2096,10 @@ mod tests {
 
     #[test]
     fn test_scenario_1_long_no_signal_when_zscore_above_threshold() {
-        let mut params = MrzParams::default();
-        params.enabled_scenarios = vec![1];
+        let params = MrzParams {
+            enabled_scenarios: vec![1],
+            ..Default::default()
+        };
         let strategy = MeanReversionZScore::new(params);
 
         let idx = 0;
@@ -2101,8 +2118,10 @@ mod tests {
 
     #[test]
     fn test_scenario_1_short_no_signal_when_zscore_below_threshold() {
-        let mut params = MrzParams::default();
-        params.enabled_scenarios = vec![1];
+        let params = MrzParams {
+            enabled_scenarios: vec![1],
+            ..Default::default()
+        };
         let strategy = MeanReversionZScore::new(params);
 
         let idx = 0;
@@ -2121,14 +2140,16 @@ mod tests {
 
     #[test]
     fn test_scenario_2_short_signal() {
-        let mut params = MrzParams::default();
-        params.enabled_scenarios = vec![2];
+        let params = MrzParams {
+            enabled_scenarios: vec![2],
+            ..Default::default()
+        };
         let strategy = MeanReversionZScore::new(params);
 
         let idx = 0;
         let mut cache = IndicatorCache::new();
         insert_kalman(&mut cache, "KALMAN_Z", 20, 1.0, 0.1, idx, 3.0);
-        insert_bollinger(&mut cache, "BOLLINGER", 20, 2.0, idx, 1.0980, 1.0990, 1.1005);
+        insert_bollinger(&mut cache, "BOLLINGER", 20, 2.0, idx, BollingerValues { lower: 1.0980, middle: 1.0990, upper: 1.1005 });
         insert_period(&mut cache, "ATR", 14, idx, 0.0010);
 
         let bid = make_candle(1.1010);
@@ -2143,14 +2164,16 @@ mod tests {
 
     #[test]
     fn test_scenario_2_long_no_signal_when_kalman_z_above_threshold() {
-        let mut params = MrzParams::default();
-        params.enabled_scenarios = vec![2];
+        let params = MrzParams {
+            enabled_scenarios: vec![2],
+            ..Default::default()
+        };
         let strategy = MeanReversionZScore::new(params);
 
         let idx = 0;
         let mut cache = IndicatorCache::new();
         insert_kalman(&mut cache, "KALMAN_Z", 20, 1.0, 0.1, idx, -1.9);
-        insert_bollinger(&mut cache, "BOLLINGER", 20, 2.0, idx, 1.1000, 1.1010, 1.1020);
+        insert_bollinger(&mut cache, "BOLLINGER", 20, 2.0, idx, BollingerValues { lower: 1.1000, middle: 1.1010, upper: 1.1020 });
         insert_period(&mut cache, "ATR", 14, idx, 0.0010);
 
         let bid = make_candle(1.0990);
@@ -2163,14 +2186,16 @@ mod tests {
 
     #[test]
     fn test_scenario_2_short_no_signal_when_price_below_upper_band() {
-        let mut params = MrzParams::default();
-        params.enabled_scenarios = vec![2];
+        let params = MrzParams {
+            enabled_scenarios: vec![2],
+            ..Default::default()
+        };
         let strategy = MeanReversionZScore::new(params);
 
         let idx = 0;
         let mut cache = IndicatorCache::new();
         insert_kalman(&mut cache, "KALMAN_Z", 20, 1.0, 0.1, idx, 2.1);
-        insert_bollinger(&mut cache, "BOLLINGER", 20, 2.0, idx, 1.0980, 1.0990, 1.1005);
+        insert_bollinger(&mut cache, "BOLLINGER", 20, 2.0, idx, BollingerValues { lower: 1.0980, middle: 1.0990, upper: 1.1005 });
         insert_period(&mut cache, "ATR", 14, idx, 0.0010);
 
         let bid = make_candle(1.1000);
@@ -2183,15 +2208,17 @@ mod tests {
 
     #[test]
     fn test_scenario_3_tp_min_distance_respected() {
-        let mut params = MrzParams::default();
-        params.enabled_scenarios = vec![3];
-        params.tp_min_distance = 0.0010;
+        let params = MrzParams {
+            enabled_scenarios: vec![3],
+            tp_min_distance: 0.0010,
+            ..Default::default()
+        };
         let strategy = MeanReversionZScore::new(params);
 
         let idx = 0;
         let mut cache = IndicatorCache::new();
         insert_kalman(&mut cache, "KALMAN_Z", 20, 1.0, 0.1, idx, -3.0);
-        insert_bollinger(&mut cache, "BOLLINGER", 20, 2.0, idx, 1.1010, 1.1020, 1.1030);
+        insert_bollinger(&mut cache, "BOLLINGER", 20, 2.0, idx, BollingerValues { lower: 1.1010, middle: 1.1020, upper: 1.1030 });
         insert_period(&mut cache, "ATR", 14, idx, 0.0010);
         insert_period(&mut cache, "EMA", 20, idx, 1.1050);
 
@@ -2207,15 +2234,17 @@ mod tests {
 
     #[test]
     fn test_scenario_3_blocks_when_tp_distance_too_small() {
-        let mut params = MrzParams::default();
-        params.enabled_scenarios = vec![3];
-        params.tp_min_distance = 0.0010;
+        let params = MrzParams {
+            enabled_scenarios: vec![3],
+            tp_min_distance: 0.0010,
+            ..Default::default()
+        };
         let strategy = MeanReversionZScore::new(params);
 
         let idx = 0;
         let mut cache = IndicatorCache::new();
         insert_kalman(&mut cache, "KALMAN_Z", 20, 1.0, 0.1, idx, -3.0);
-        insert_bollinger(&mut cache, "BOLLINGER", 20, 2.0, idx, 1.1010, 1.1020, 1.1030);
+        insert_bollinger(&mut cache, "BOLLINGER", 20, 2.0, idx, BollingerValues { lower: 1.1010, middle: 1.1020, upper: 1.1030 });
         insert_period(&mut cache, "ATR", 14, idx, 0.0010);
         insert_period(&mut cache, "EMA", 20, idx, 1.1011);
 
@@ -2229,15 +2258,17 @@ mod tests {
 
     #[test]
     fn test_scenario_3_short_signal() {
-        let mut params = MrzParams::default();
-        params.enabled_scenarios = vec![3];
-        params.tp_min_distance = 0.0005;
+        let params = MrzParams {
+            enabled_scenarios: vec![3],
+            tp_min_distance: 0.0005,
+            ..Default::default()
+        };
         let strategy = MeanReversionZScore::new(params);
 
         let idx = 0;
         let mut cache = IndicatorCache::new();
         insert_kalman(&mut cache, "KALMAN_Z", 20, 1.0, 0.1, idx, 3.0);
-        insert_bollinger(&mut cache, "BOLLINGER", 20, 2.0, idx, 1.0950, 1.0960, 1.0975);
+        insert_bollinger(&mut cache, "BOLLINGER", 20, 2.0, idx, BollingerValues { lower: 1.0950, middle: 1.0960, upper: 1.0975 });
         insert_period(&mut cache, "ATR", 14, idx, 0.0010);
         insert_period(&mut cache, "EMA", 20, idx, 1.0950);
 
@@ -2253,15 +2284,17 @@ mod tests {
 
     #[test]
     fn test_scenario_3_short_blocks_when_tp_distance_too_small() {
-        let mut params = MrzParams::default();
-        params.enabled_scenarios = vec![3];
-        params.tp_min_distance = 0.0010;
+        let params = MrzParams {
+            enabled_scenarios: vec![3],
+            tp_min_distance: 0.0010,
+            ..Default::default()
+        };
         let strategy = MeanReversionZScore::new(params);
 
         let idx = 0;
         let mut cache = IndicatorCache::new();
         insert_kalman(&mut cache, "KALMAN_Z", 20, 1.0, 0.1, idx, 3.0);
-        insert_bollinger(&mut cache, "BOLLINGER", 20, 2.0, idx, 1.0950, 1.0960, 1.0975);
+        insert_bollinger(&mut cache, "BOLLINGER", 20, 2.0, idx, BollingerValues { lower: 1.0950, middle: 1.0960, upper: 1.0975 });
         insert_period(&mut cache, "ATR", 14, idx, 0.0010);
         insert_period(&mut cache, "EMA", 20, idx, 1.0998);
 
@@ -2275,8 +2308,10 @@ mod tests {
 
     #[test]
     fn test_scenario_4_long_signal() {
-        let mut params = MrzParams::default();
-        params.enabled_scenarios = vec![4];
+        let params = MrzParams {
+            enabled_scenarios: vec![4],
+            ..Default::default()
+        };
         let strategy = MeanReversionZScore::new(params);
 
         let idx = 0;
@@ -2285,19 +2320,21 @@ mod tests {
             &mut cache,
             "KALMAN_GARCH_Z",
             20,
-            1.0,
-            0.1,
-            0.1,
-            0.8,
-            0.00001,
-            true,
-            100.0,
-            50,
-            1e-6,
             idx,
-            -3.0,
+            KalmanGarchInsert {
+                r: 1.0,
+                q: 0.1,
+                alpha: 0.1,
+                beta: 0.8,
+                omega: 0.00001,
+                use_log_returns: true,
+                scale: 100.0,
+                min_periods: 50,
+                sigma_floor: 1e-6,
+                value: -3.0,
+            },
         );
-        insert_bollinger(&mut cache, "BOLLINGER", 20, 2.0, idx, 1.1010, 1.1020, 1.1030);
+        insert_bollinger(&mut cache, "BOLLINGER", 20, 2.0, idx, BollingerValues { lower: 1.1010, middle: 1.1020, upper: 1.1030 });
         insert_period(&mut cache, "ATR", 14, idx, 0.0010);
 
         let bid = make_candle(1.1000);
@@ -2312,8 +2349,10 @@ mod tests {
 
     #[test]
     fn test_scenario_4_short_signal() {
-        let mut params = MrzParams::default();
-        params.enabled_scenarios = vec![4];
+        let params = MrzParams {
+            enabled_scenarios: vec![4],
+            ..Default::default()
+        };
         let strategy = MeanReversionZScore::new(params);
 
         let idx = 0;
@@ -2322,19 +2361,21 @@ mod tests {
             &mut cache,
             "KALMAN_GARCH_Z",
             20,
-            1.0,
-            0.1,
-            0.1,
-            0.8,
-            0.00001,
-            true,
-            100.0,
-            50,
-            1e-6,
             idx,
-            3.0,
+            KalmanGarchInsert {
+                r: 1.0,
+                q: 0.1,
+                alpha: 0.1,
+                beta: 0.8,
+                omega: 0.00001,
+                use_log_returns: true,
+                scale: 100.0,
+                min_periods: 50,
+                sigma_floor: 1e-6,
+                value: 3.0,
+            },
         );
-        insert_bollinger(&mut cache, "BOLLINGER", 20, 2.0, idx, 1.0980, 1.0990, 1.1005);
+        insert_bollinger(&mut cache, "BOLLINGER", 20, 2.0, idx, BollingerValues { lower: 1.0980, middle: 1.0990, upper: 1.1005 });
         insert_period(&mut cache, "ATR", 14, idx, 0.0010);
 
         let bid = make_candle(1.1010);
@@ -2349,8 +2390,10 @@ mod tests {
 
     #[test]
     fn test_scenario_4_blocks_when_zscore_not_met() {
-        let mut params = MrzParams::default();
-        params.enabled_scenarios = vec![4];
+        let params = MrzParams {
+            enabled_scenarios: vec![4],
+            ..Default::default()
+        };
         let strategy = MeanReversionZScore::new(params);
 
         let idx = 0;
@@ -2359,19 +2402,21 @@ mod tests {
             &mut cache,
             "KALMAN_GARCH_Z",
             20,
-            1.0,
-            0.1,
-            0.1,
-            0.8,
-            0.00001,
-            true,
-            100.0,
-            50,
-            1e-6,
             idx,
-            -1.0,
+            KalmanGarchInsert {
+                r: 1.0,
+                q: 0.1,
+                alpha: 0.1,
+                beta: 0.8,
+                omega: 0.00001,
+                use_log_returns: true,
+                scale: 100.0,
+                min_periods: 50,
+                sigma_floor: 1e-6,
+                value: -1.0,
+            },
         );
-        insert_bollinger(&mut cache, "BOLLINGER", 20, 2.0, idx, 1.1010, 1.1020, 1.1030);
+        insert_bollinger(&mut cache, "BOLLINGER", 20, 2.0, idx, BollingerValues { lower: 1.1010, middle: 1.1020, upper: 1.1030 });
         insert_period(&mut cache, "ATR", 14, idx, 0.0010);
 
         let bid = make_candle(1.1000);
@@ -2384,27 +2429,29 @@ mod tests {
 
     #[test]
     fn test_scenario_5_blocks_disallowed_vol_cluster() {
-        let mut params = MrzParams::default();
-        params.enabled_scenarios = vec![5];
-        params.intraday_vol_feature = "garch_forecast".to_string();
-        params.intraday_vol_cluster_window = 3;
-        params.intraday_vol_cluster_k = 1;
-        params.intraday_vol_min_points = 1;
-        params.intraday_vol_log_transform = false;
-        params.intraday_vol_garch_lookback = 3;
-        params.intraday_vol_allowed = vec!["high".to_string()];
-        params.cluster_hysteresis_bars = 1;
-        params.garch_min_periods = 1;
-        params.garch_scale = 1.0;
-        params.garch_use_log_returns = false;
-        params.atr_length = 2;
+        let params = MrzParams {
+            enabled_scenarios: vec![5],
+            intraday_vol_feature: "garch_forecast".to_string(),
+            intraday_vol_cluster_window: 3,
+            intraday_vol_cluster_k: 1,
+            intraday_vol_min_points: 1,
+            intraday_vol_log_transform: false,
+            intraday_vol_garch_lookback: 3,
+            intraday_vol_allowed: vec!["high".to_string()],
+            cluster_hysteresis_bars: 1,
+            garch_min_periods: 1,
+            garch_scale: 1.0,
+            garch_use_log_returns: false,
+            atr_length: 2,
+            ..Default::default()
+        };
         let mut strategy = MeanReversionZScore::new(params);
 
         let closes = vec![1.1000, 1.1002, 1.1004, 1.1006];
         let idx = closes.len() - 1;
         let mut cache = IndicatorCache::new();
         insert_kalman(&mut cache, "KALMAN_Z", 20, 1.0, 0.1, idx, -3.0);
-        insert_bollinger(&mut cache, "BOLLINGER", 20, 2.0, idx, 1.1010, 1.1020, 1.1030);
+        insert_bollinger(&mut cache, "BOLLINGER", 20, 2.0, idx, BollingerValues { lower: 1.1010, middle: 1.1020, upper: 1.1030 });
         insert_period(&mut cache, "ATR", 2, idx, 0.0010);
 
         let bid = make_candle(closes[idx]);
@@ -2419,27 +2466,29 @@ mod tests {
 
     #[test]
     fn test_scenario_5_allows_vol_cluster() {
-        let mut params = MrzParams::default();
-        params.enabled_scenarios = vec![5];
-        params.intraday_vol_feature = "garch_forecast".to_string();
-        params.intraday_vol_cluster_window = 3;
-        params.intraday_vol_cluster_k = 1;
-        params.intraday_vol_min_points = 1;
-        params.intraday_vol_log_transform = false;
-        params.intraday_vol_garch_lookback = 3;
-        params.intraday_vol_allowed = vec!["low".to_string()];
-        params.cluster_hysteresis_bars = 1;
-        params.garch_min_periods = 1;
-        params.garch_scale = 1.0;
-        params.garch_use_log_returns = false;
-        params.atr_length = 2;
+        let params = MrzParams {
+            enabled_scenarios: vec![5],
+            intraday_vol_feature: "garch_forecast".to_string(),
+            intraday_vol_cluster_window: 3,
+            intraday_vol_cluster_k: 1,
+            intraday_vol_min_points: 1,
+            intraday_vol_log_transform: false,
+            intraday_vol_garch_lookback: 3,
+            intraday_vol_allowed: vec!["low".to_string()],
+            cluster_hysteresis_bars: 1,
+            garch_min_periods: 1,
+            garch_scale: 1.0,
+            garch_use_log_returns: false,
+            atr_length: 2,
+            ..Default::default()
+        };
         let mut strategy = MeanReversionZScore::new(params);
 
         let closes = vec![1.1000, 1.1002, 1.1004, 1.1006];
         let idx = closes.len() - 1;
         let mut cache = IndicatorCache::new();
         insert_kalman(&mut cache, "KALMAN_Z", 20, 1.0, 0.1, idx, -3.0);
-        insert_bollinger(&mut cache, "BOLLINGER", 20, 2.0, idx, 1.1010, 1.1020, 1.1030);
+        insert_bollinger(&mut cache, "BOLLINGER", 20, 2.0, idx, BollingerValues { lower: 1.1010, middle: 1.1020, upper: 1.1030 });
         insert_period(&mut cache, "ATR", 2, idx, 0.0010);
 
         let bid = make_candle(closes[idx]);
@@ -2455,27 +2504,29 @@ mod tests {
 
     #[test]
     fn test_scenario_5_short_signal() {
-        let mut params = MrzParams::default();
-        params.enabled_scenarios = vec![5];
-        params.intraday_vol_feature = "garch_forecast".to_string();
-        params.intraday_vol_cluster_window = 3;
-        params.intraday_vol_cluster_k = 1;
-        params.intraday_vol_min_points = 1;
-        params.intraday_vol_log_transform = false;
-        params.intraday_vol_garch_lookback = 3;
-        params.intraday_vol_allowed = vec!["low".to_string()];
-        params.cluster_hysteresis_bars = 1;
-        params.garch_min_periods = 1;
-        params.garch_scale = 1.0;
-        params.garch_use_log_returns = false;
-        params.atr_length = 2;
+        let params = MrzParams {
+            enabled_scenarios: vec![5],
+            intraday_vol_feature: "garch_forecast".to_string(),
+            intraday_vol_cluster_window: 3,
+            intraday_vol_cluster_k: 1,
+            intraday_vol_min_points: 1,
+            intraday_vol_log_transform: false,
+            intraday_vol_garch_lookback: 3,
+            intraday_vol_allowed: vec!["low".to_string()],
+            cluster_hysteresis_bars: 1,
+            garch_min_periods: 1,
+            garch_scale: 1.0,
+            garch_use_log_returns: false,
+            atr_length: 2,
+            ..Default::default()
+        };
         let mut strategy = MeanReversionZScore::new(params);
 
         let closes = vec![1.1000, 1.1002, 1.1004, 1.1006];
         let idx = closes.len() - 1;
         let mut cache = IndicatorCache::new();
         insert_kalman(&mut cache, "KALMAN_Z", 20, 1.0, 0.1, idx, 3.0);
-        insert_bollinger(&mut cache, "BOLLINGER", 20, 2.0, idx, 1.0980, 1.0990, 1.1005);
+        insert_bollinger(&mut cache, "BOLLINGER", 20, 2.0, idx, BollingerValues { lower: 1.0980, middle: 1.0990, upper: 1.1005 });
         insert_period(&mut cache, "ATR", 2, idx, 0.0010);
 
         let bid = make_candle(1.1010);
@@ -2492,26 +2543,28 @@ mod tests {
 
     #[test]
     fn test_scenario_5_blocks_on_hysteresis() {
-        let mut params = MrzParams::default();
-        params.enabled_scenarios = vec![5];
-        params.intraday_vol_feature = "garch_forecast".to_string();
-        params.intraday_vol_cluster_window = 3;
-        params.intraday_vol_cluster_k = 1;
-        params.intraday_vol_min_points = 1;
-        params.intraday_vol_log_transform = false;
-        params.intraday_vol_garch_lookback = 3;
-        params.cluster_hysteresis_bars = 5;
-        params.garch_min_periods = 1;
-        params.garch_scale = 1.0;
-        params.garch_use_log_returns = false;
-        params.atr_length = 2;
+        let params = MrzParams {
+            enabled_scenarios: vec![5],
+            intraday_vol_feature: "garch_forecast".to_string(),
+            intraday_vol_cluster_window: 3,
+            intraday_vol_cluster_k: 1,
+            intraday_vol_min_points: 1,
+            intraday_vol_log_transform: false,
+            intraday_vol_garch_lookback: 3,
+            cluster_hysteresis_bars: 5,
+            garch_min_periods: 1,
+            garch_scale: 1.0,
+            garch_use_log_returns: false,
+            atr_length: 2,
+            ..Default::default()
+        };
         let mut strategy = MeanReversionZScore::new(params);
 
         let closes = vec![1.1000, 1.1002, 1.1004, 1.1006];
         let idx = closes.len() - 1;
         let mut cache = IndicatorCache::new();
         insert_kalman(&mut cache, "KALMAN_Z", 20, 1.0, 0.1, idx, -3.0);
-        insert_bollinger(&mut cache, "BOLLINGER", 20, 2.0, idx, 1.1010, 1.1020, 1.1030);
+        insert_bollinger(&mut cache, "BOLLINGER", 20, 2.0, idx, BollingerValues { lower: 1.1010, middle: 1.1020, upper: 1.1030 });
         insert_period(&mut cache, "ATR", 2, idx, 0.0010);
 
         let bid = make_candle(closes[idx]);
@@ -2526,8 +2579,10 @@ mod tests {
 
     #[test]
     fn test_vol_cluster_guard_blocks_unsupported_feature() {
-        let mut params = MrzParams::default();
-        params.intraday_vol_feature = "atr_points".to_string();
+        let params = MrzParams {
+            intraday_vol_feature: "unsupported_feature".to_string(),
+            ..Default::default()
+        };
         let strategy = MeanReversionZScore::new(params);
 
         let bid = make_candle(1.1000);
@@ -2546,20 +2601,22 @@ mod tests {
 
     #[test]
     fn test_scenario_6_multi_tf_all_agreement() {
-        let mut params = MrzParams::default();
-        params.enabled_scenarios = vec![6];
-        params.scenario6_mode = Scenario6Mode::All;
-        params.scenario6_timeframes = vec!["H1".to_string()];
+        let params = MrzParams {
+            enabled_scenarios: vec![6],
+            scenario6_mode: Scenario6Mode::All,
+            scenario6_timeframes: vec!["H1".to_string()],
+            ..Default::default()
+        };
         let strategy = MeanReversionZScore::new(params);
 
         let idx = 0;
         let mut cache = IndicatorCache::new();
         insert_kalman(&mut cache, "KALMAN_Z", 20, 1.0, 0.1, idx, -3.0);
-        insert_bollinger(&mut cache, "BOLLINGER", 20, 2.0, idx, 1.1010, 1.1020, 1.1030);
+        insert_bollinger(&mut cache, "BOLLINGER", 20, 2.0, idx, BollingerValues { lower: 1.1010, middle: 1.1020, upper: 1.1030 });
         insert_period(&mut cache, "ATR", 14, idx, 0.0010);
 
         insert_kalman(&mut cache, "KALMAN_Z_H1", 20, 1.0, 0.1, idx, -3.0);
-        insert_bollinger(&mut cache, "BOLLINGER_H1", 20, 2.0, idx, 1.1010, 1.1020, 1.1030);
+        insert_bollinger(&mut cache, "BOLLINGER_H1", 20, 2.0, idx, BollingerValues { lower: 1.1010, middle: 1.1020, upper: 1.1030 });
         insert_period(&mut cache, "CLOSE_H1", 1, idx, 1.1000);
 
         let bid = make_candle(1.1000);
@@ -2573,20 +2630,22 @@ mod tests {
 
     #[test]
     fn test_scenario_6_blocks_when_tf_disagrees() {
-        let mut params = MrzParams::default();
-        params.enabled_scenarios = vec![6];
-        params.scenario6_mode = Scenario6Mode::All;
-        params.scenario6_timeframes = vec!["H1".to_string()];
+        let params = MrzParams {
+            enabled_scenarios: vec![6],
+            scenario6_mode: Scenario6Mode::All,
+            scenario6_timeframes: vec!["H1".to_string()],
+            ..Default::default()
+        };
         let strategy = MeanReversionZScore::new(params);
 
         let idx = 0;
         let mut cache = IndicatorCache::new();
         insert_kalman(&mut cache, "KALMAN_Z", 20, 1.0, 0.1, idx, -3.0);
-        insert_bollinger(&mut cache, "BOLLINGER", 20, 2.0, idx, 1.1010, 1.1020, 1.1030);
+        insert_bollinger(&mut cache, "BOLLINGER", 20, 2.0, idx, BollingerValues { lower: 1.1010, middle: 1.1020, upper: 1.1030 });
         insert_period(&mut cache, "ATR", 14, idx, 0.0010);
 
         insert_kalman(&mut cache, "KALMAN_Z_H1", 20, 1.0, 0.1, idx, -1.0);
-        insert_bollinger(&mut cache, "BOLLINGER_H1", 20, 2.0, idx, 1.1010, 1.1020, 1.1030);
+        insert_bollinger(&mut cache, "BOLLINGER_H1", 20, 2.0, idx, BollingerValues { lower: 1.1010, middle: 1.1020, upper: 1.1030 });
         insert_period(&mut cache, "CLOSE_H1", 1, idx, 1.1000);
 
         let bid = make_candle(1.1000);
@@ -2599,24 +2658,26 @@ mod tests {
 
     #[test]
     fn test_scenario_6_any_allows_partial_agreement() {
-        let mut params = MrzParams::default();
-        params.enabled_scenarios = vec![6];
-        params.scenario6_mode = Scenario6Mode::Any;
-        params.scenario6_timeframes = vec!["H1".to_string(), "H4".to_string()];
+        let params = MrzParams {
+            enabled_scenarios: vec![6],
+            scenario6_mode: Scenario6Mode::Any,
+            scenario6_timeframes: vec!["H1".to_string(), "H4".to_string()],
+            ..Default::default()
+        };
         let strategy = MeanReversionZScore::new(params);
 
         let idx = 0;
         let mut cache = IndicatorCache::new();
         insert_kalman(&mut cache, "KALMAN_Z", 20, 1.0, 0.1, idx, -3.0);
-        insert_bollinger(&mut cache, "BOLLINGER", 20, 2.0, idx, 1.1010, 1.1020, 1.1030);
+        insert_bollinger(&mut cache, "BOLLINGER", 20, 2.0, idx, BollingerValues { lower: 1.1010, middle: 1.1020, upper: 1.1030 });
         insert_period(&mut cache, "ATR", 14, idx, 0.0010);
 
         insert_kalman(&mut cache, "KALMAN_Z_H1", 20, 1.0, 0.1, idx, -3.0);
-        insert_bollinger(&mut cache, "BOLLINGER_H1", 20, 2.0, idx, 1.1010, 1.1020, 1.1030);
+        insert_bollinger(&mut cache, "BOLLINGER_H1", 20, 2.0, idx, BollingerValues { lower: 1.1010, middle: 1.1020, upper: 1.1030 });
         insert_period(&mut cache, "CLOSE_H1", 1, idx, 1.1000);
 
         insert_kalman(&mut cache, "KALMAN_Z_H4", 20, 1.0, 0.1, idx, -1.0);
-        insert_bollinger(&mut cache, "BOLLINGER_H4", 20, 2.0, idx, 1.1010, 1.1020, 1.1030);
+        insert_bollinger(&mut cache, "BOLLINGER_H4", 20, 2.0, idx, BollingerValues { lower: 1.1010, middle: 1.1020, upper: 1.1030 });
         insert_period(&mut cache, "CLOSE_H4", 1, idx, 1.1000);
 
         let bid = make_candle(1.1000);
@@ -2631,20 +2692,22 @@ mod tests {
 
     #[test]
     fn test_scenario_6_short_signal() {
-        let mut params = MrzParams::default();
-        params.enabled_scenarios = vec![6];
-        params.scenario6_mode = Scenario6Mode::All;
-        params.scenario6_timeframes = vec!["H1".to_string()];
+        let params = MrzParams {
+            enabled_scenarios: vec![6],
+            scenario6_mode: Scenario6Mode::All,
+            scenario6_timeframes: vec!["H1".to_string()],
+            ..Default::default()
+        };
         let strategy = MeanReversionZScore::new(params);
 
         let idx = 0;
         let mut cache = IndicatorCache::new();
         insert_kalman(&mut cache, "KALMAN_Z", 20, 1.0, 0.1, idx, 3.0);
-        insert_bollinger(&mut cache, "BOLLINGER", 20, 2.0, idx, 1.0980, 1.0990, 1.1005);
+        insert_bollinger(&mut cache, "BOLLINGER", 20, 2.0, idx, BollingerValues { lower: 1.0980, middle: 1.0990, upper: 1.1005 });
         insert_period(&mut cache, "ATR", 14, idx, 0.0010);
 
         insert_kalman(&mut cache, "KALMAN_Z_H1", 20, 1.0, 0.1, idx, 3.0);
-        insert_bollinger(&mut cache, "BOLLINGER_H1", 20, 2.0, idx, 1.0980, 1.0990, 1.1005);
+        insert_bollinger(&mut cache, "BOLLINGER_H1", 20, 2.0, idx, BollingerValues { lower: 1.0980, middle: 1.0990, upper: 1.1005 });
         insert_period(&mut cache, "CLOSE_H1", 1, idx, 1.1010);
 
         let bid = make_candle(1.1010);
@@ -2658,24 +2721,26 @@ mod tests {
 
     #[test]
     fn test_scenario_6_any_blocks_when_no_tf_agrees() {
-        let mut params = MrzParams::default();
-        params.enabled_scenarios = vec![6];
-        params.scenario6_mode = Scenario6Mode::Any;
-        params.scenario6_timeframes = vec!["H1".to_string(), "H4".to_string()];
+        let params = MrzParams {
+            enabled_scenarios: vec![6],
+            scenario6_mode: Scenario6Mode::Any,
+            scenario6_timeframes: vec!["H1".to_string(), "H4".to_string()],
+            ..Default::default()
+        };
         let strategy = MeanReversionZScore::new(params);
 
         let idx = 0;
         let mut cache = IndicatorCache::new();
         insert_kalman(&mut cache, "KALMAN_Z", 20, 1.0, 0.1, idx, -3.0);
-        insert_bollinger(&mut cache, "BOLLINGER", 20, 2.0, idx, 1.1010, 1.1020, 1.1030);
+        insert_bollinger(&mut cache, "BOLLINGER", 20, 2.0, idx, BollingerValues { lower: 1.1010, middle: 1.1020, upper: 1.1030 });
         insert_period(&mut cache, "ATR", 14, idx, 0.0010);
 
         insert_kalman(&mut cache, "KALMAN_Z_H1", 20, 1.0, 0.1, idx, -1.0);
-        insert_bollinger(&mut cache, "BOLLINGER_H1", 20, 2.0, idx, 1.1010, 1.1020, 1.1030);
+        insert_bollinger(&mut cache, "BOLLINGER_H1", 20, 2.0, idx, BollingerValues { lower: 1.1010, middle: 1.1020, upper: 1.1030 });
         insert_period(&mut cache, "CLOSE_H1", 1, idx, 1.1000);
 
         insert_kalman(&mut cache, "KALMAN_Z_H4", 20, 1.0, 0.1, idx, -1.0);
-        insert_bollinger(&mut cache, "BOLLINGER_H4", 20, 2.0, idx, 1.1010, 1.1020, 1.1030);
+        insert_bollinger(&mut cache, "BOLLINGER_H4", 20, 2.0, idx, BollingerValues { lower: 1.1010, middle: 1.1020, upper: 1.1030 });
         insert_period(&mut cache, "CLOSE_H4", 1, idx, 1.1000);
 
         let bid = make_candle(1.1000);
@@ -2688,16 +2753,18 @@ mod tests {
 
     #[test]
     fn test_scenario_6_blocks_when_timeframes_empty() {
-        let mut params = MrzParams::default();
-        params.enabled_scenarios = vec![6];
-        params.scenario6_mode = Scenario6Mode::All;
-        params.scenario6_timeframes = Vec::new();
+        let params = MrzParams {
+            enabled_scenarios: vec![6],
+            scenario6_mode: Scenario6Mode::All,
+            scenario6_timeframes: Vec::new(),
+            ..Default::default()
+        };
         let strategy = MeanReversionZScore::new(params);
 
         let idx = 0;
         let mut cache = IndicatorCache::new();
         insert_kalman(&mut cache, "KALMAN_Z", 20, 1.0, 0.1, idx, -3.0);
-        insert_bollinger(&mut cache, "BOLLINGER", 20, 2.0, idx, 1.1010, 1.1020, 1.1030);
+        insert_bollinger(&mut cache, "BOLLINGER", 20, 2.0, idx, BollingerValues { lower: 1.1010, middle: 1.1020, upper: 1.1030 });
         insert_period(&mut cache, "ATR", 14, idx, 0.0010);
 
         let bid = make_candle(1.1000);

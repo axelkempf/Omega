@@ -431,12 +431,12 @@ impl<'a> BarContext<'a> {
             let series = cache.borrow_mut().ema_stepwise(tf, price_type, period);
             return value_at(&series, self.idx);
         }
-        if let Some(htf) = self.htf_data.as_ref() {
-            if htf.timeframe.eq_ignore_ascii_case(timeframe) {
-                let spec = IndicatorSpec::new("EMA", IndicatorParams::Period(period));
-                let value = htf.indicators.get_at(&spec, htf.idx)?;
-                return if value.is_nan() { None } else { Some(value) };
-            }
+        if let Some(htf) = self.htf_data.as_ref()
+            && htf.timeframe.eq_ignore_ascii_case(timeframe)
+        {
+            let spec = IndicatorSpec::new("EMA", IndicatorParams::Period(period));
+            let value = htf.indicators.get_at(&spec, htf.idx)?;
+            return if value.is_nan() { None } else { Some(value) };
         }
         None
     }
@@ -504,13 +504,13 @@ impl<'a> BarContext<'a> {
                 PriceType::Ask => Some(self.ask.close),
             };
         }
-        if let Some(htf) = self.htf_data.as_ref() {
-            if htf.timeframe.eq_ignore_ascii_case(timeframe) {
-                return match price_type {
-                    PriceType::Bid => Some(htf.bid.close),
-                    PriceType::Ask => Some(htf.ask.close),
-                };
-            }
+        if let Some(htf) = self.htf_data.as_ref()
+            && htf.timeframe.eq_ignore_ascii_case(timeframe)
+        {
+            return match price_type {
+                PriceType::Bid => Some(htf.bid.close),
+                PriceType::Ask => Some(htf.ask.close),
+            };
         }
         let name = format!("CLOSE_{}", timeframe);
         self.get_indicator(&name, &serde_json::json!({}))
@@ -534,6 +534,10 @@ impl<'a> HtfContext<'a> {
             timeframe,
         }
     }
+}
+
+fn value_at(series: &[f64], idx: usize) -> Option<f64> {
+    series.get(idx).copied().filter(|v| v.is_finite())
 }
 
 #[cfg(test)]
@@ -637,8 +641,4 @@ mod tests {
         assert_eq!(htf.idx, 5);
         assert_eq!(htf.timeframe, "H4");
     }
-}
-
-fn value_at(series: &[f64], idx: usize) -> Option<f64> {
-    series.get(idx).copied().filter(|v| v.is_finite())
 }

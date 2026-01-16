@@ -239,6 +239,11 @@ impl TimeframeMapping {
     pub fn len(&self) -> usize {
         self.primary_to_target.len()
     }
+
+    /// Returns true when mapping is empty.
+    pub fn is_empty(&self) -> bool {
+        self.primary_to_target.is_empty()
+    }
 }
 
 impl MultiOutputResult {

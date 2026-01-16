@@ -84,6 +84,23 @@ impl Indicator for KalmanZScore {
     }
 }
 
+fn sample_std(values: &[f64]) -> f64 {
+    if values.iter().any(|v| !v.is_finite()) {
+        return f64::NAN;
+    }
+    if values.len() < 2 {
+        return f64::NAN;
+    }
+    let mean = values.iter().sum::<f64>() / values.len() as f64;
+    let denom = (values.len() as f64) - 1.0;
+    let variance = values
+        .iter()
+        .map(|v| (*v - mean).powi(2))
+        .sum::<f64>()
+        / denom;
+    variance.sqrt()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -160,21 +177,4 @@ mod tests {
         assert!((kz.r - 0.5).abs() < 1e-10);
         assert!((kz.q - 0.1).abs() < 1e-10);
     }
-}
-
-fn sample_std(values: &[f64]) -> f64 {
-    if values.iter().any(|v| !v.is_finite()) {
-        return f64::NAN;
-    }
-    if values.len() < 2 {
-        return f64::NAN;
-    }
-    let mean = values.iter().sum::<f64>() / values.len() as f64;
-    let denom = (values.len() as f64) - 1.0;
-    let variance = values
-        .iter()
-        .map(|v| (*v - mean).powi(2))
-        .sum::<f64>()
-        / denom;
-    variance.sqrt()
 }

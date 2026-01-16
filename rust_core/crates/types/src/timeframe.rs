@@ -94,7 +94,7 @@ mod tests {
         assert_eq!(Timeframe::H1.to_seconds(), 3600);
         assert_eq!(Timeframe::H4.to_seconds(), 14400);
         assert_eq!(Timeframe::D1.to_seconds(), 86400);
-        assert_eq!(Timeframe::W1.to_seconds(), 604800);
+        assert_eq!(Timeframe::W1.to_seconds(), 604_800);
     }
 
     #[test]

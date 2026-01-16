@@ -59,8 +59,8 @@ mod tests {
     #[test]
     fn test_trade_serde_roundtrip() {
         let trade = Trade {
-            entry_time_ns: 1234567890000000000,
-            exit_time_ns: 1234567900000000000,
+            entry_time_ns: 1_234_567_890_000_000_000,
+            exit_time_ns: 1_234_567_900_000_000_000,
             direction: Direction::Long,
             symbol: "EURUSD".to_string(),
             entry_price: 1.1000,

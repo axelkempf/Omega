@@ -31,6 +31,25 @@ pub struct MultiTfIndicatorCache {
     local_scalar_cache: HashMap<IndicatorSpec, Option<f64>>,
 }
 
+/// Request parameters for volatility clustering series.
+#[derive(Debug, Clone, Copy)]
+pub struct VolClusterRequest<'a> {
+    /// Target timeframe.
+    pub timeframe: Timeframe,
+    /// Price type (bid/ask).
+    pub price_type: PriceType,
+    /// Primary index for local window end.
+    pub idx: usize,
+    /// Feature name to compute.
+    pub feature: &'a str,
+    /// ATR length for feature construction.
+    pub atr_length: usize,
+    /// Lookback window for GARCH.
+    pub garch_lookback: usize,
+    /// GARCH parameters.
+    pub garch_params: GarchLocalParams,
+}
+
 impl MultiTfIndicatorCache {
     /// Creates a new cache from primary candle store and additional timeframe stores.
     pub fn new(
@@ -478,23 +497,18 @@ impl MultiTfIndicatorCache {
     /// Returns volatility feature series for clustering.
     pub fn vol_cluster_series(
         &mut self,
-        timeframe: Timeframe,
-        price_type: PriceType,
-        idx: usize,
-        feature: &str,
-        atr_length: usize,
-        garch_lookback: usize,
-        garch_params: GarchLocalParams,
+        request: VolClusterRequest<'_>,
     ) -> Option<VolFeatureSeries> {
+        let garch_params = request.garch_params;
         let spec = IndicatorSpec::new(
             "VOL_CLUSTER_FEATURE",
             cache_params(
-                timeframe,
-                price_type,
+                request.timeframe,
+                request.price_type,
                 [
-                    ("idx", idx as i64),
-                    ("atr_length", atr_length as i64),
-                    ("garch_lookback", garch_lookback as i64),
+                    ("idx", request.idx as i64),
+                    ("atr_length", request.atr_length as i64),
+                    ("garch_lookback", request.garch_lookback as i64),
                     ("alpha_x1000", (garch_params.alpha * 1000.0).round() as i64),
                     ("beta_x1000", (garch_params.beta * 1000.0).round() as i64),
                     (
@@ -518,18 +532,18 @@ impl MultiTfIndicatorCache {
             return Some(series.clone());
         }
 
-        let atr_series = self.atr(timeframe, price_type, atr_length);
-        let end_pos = idx + 1;
-        let start_pos = end_pos.saturating_sub(garch_lookback.max(1));
+        let atr_series = self.atr(request.timeframe, request.price_type, request.atr_length);
+        let end_pos = request.idx + 1;
+        let start_pos = end_pos.saturating_sub(request.garch_lookback.max(1));
         let local_sigma = self.garch_volatility_local(
-            timeframe,
-            price_type,
-            idx,
-            garch_lookback,
+            request.timeframe,
+            request.price_type,
+            request.idx,
+            request.garch_lookback,
             garch_params,
         );
 
-        let series = vol_cluster_series(feature, atr_series, local_sigma, start_pos);
+        let series = vol_cluster_series(request.feature, atr_series, local_sigma, start_pos);
         if let Some(series) = series.clone() {
             self.vol_feature_cache.insert(spec, series.clone());
         }
@@ -596,12 +610,11 @@ fn reduce_by_mapping(mapping: Option<&TimeframeMapping>, series: &[f64]) -> Vec<
             let mut reduced = Vec::new();
             let mut last_idx = None;
             for maybe_idx in &map.primary_to_target {
-                if let Some(idx) = *maybe_idx {
-                    if last_idx != Some(idx) {
+                if let Some(idx) = *maybe_idx
+                    && last_idx != Some(idx) {
                         reduced.push(series[idx]);
                         last_idx = Some(idx);
                     }
-                }
             }
             reduced
         }

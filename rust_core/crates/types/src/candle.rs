@@ -23,7 +23,7 @@ mod tests {
     #[test]
     fn test_candle_serde_roundtrip() {
         let candle = Candle {
-            timestamp_ns: 1234567890000000000,
+            timestamp_ns: 1_234_567_890_000_000_000,
             open: 1.1000,
             high: 1.1020,
             low: 1.0980,

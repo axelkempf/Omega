@@ -33,7 +33,7 @@ mod tests {
         let position = Position {
             id: 1,
             direction: Direction::Long,
-            entry_time_ns: 1234567890000000000,
+            entry_time_ns: 1_234_567_890_000_000_000,
             entry_price: 1.1000,
             size: 0.1,
             stop_loss: 1.0950,

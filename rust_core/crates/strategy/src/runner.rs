@@ -128,10 +128,11 @@ fn build_multi_tf_cache(store: &MultiTfStore) -> MultiTfIndicatorCache {
     let mut additional = Vec::new();
     let mut seen = HashSet::new();
 
-    if let Some(htf) = &store.htf {
-        if htf.timeframe != primary_tf && seen.insert(htf.timeframe) {
-            additional.push((htf.timeframe, htf.bid.clone(), htf.ask.clone()));
-        }
+    if let Some(htf) = &store.htf
+        && htf.timeframe != primary_tf
+        && seen.insert(htf.timeframe)
+    {
+        additional.push((htf.timeframe, htf.bid.clone(), htf.ask.clone()));
     }
 
     for extra in &store.additional {

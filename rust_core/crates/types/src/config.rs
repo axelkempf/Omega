@@ -448,12 +448,18 @@ impl Default for MaxHoldingTimeConfig {
 mod tests {
     use super::*;
 
+    const FLOAT_EPS: f64 = 1e-12;
+
+    fn assert_f64_eq(left: f64, right: f64) {
+        assert!((left - right).abs() < FLOAT_EPS);
+    }
+
     #[test]
     fn test_account_config_defaults() {
         let config = AccountConfig::default();
-        assert_eq!(config.initial_balance, 10000.0);
+        assert_f64_eq(config.initial_balance, 10000.0);
         assert_eq!(config.account_currency, "EUR");
-        assert_eq!(config.risk_per_trade, 100.0);
+        assert_f64_eq(config.risk_per_trade, 100.0);
         assert_eq!(config.max_positions, 1);
     }
 
@@ -461,10 +467,10 @@ mod tests {
     fn test_costs_config_defaults() {
         let config = CostsConfig::default();
         assert!(config.enabled);
-        assert_eq!(config.fee_multiplier, 1.0);
-        assert_eq!(config.slippage_multiplier, 1.0);
-        assert_eq!(config.spread_multiplier, 1.0);
-        assert_eq!(config.pip_buffer_factor, 0.5);
+        assert_f64_eq(config.fee_multiplier, 1.0);
+        assert_f64_eq(config.slippage_multiplier, 1.0);
+        assert_f64_eq(config.spread_multiplier, 1.0);
+        assert_f64_eq(config.pip_buffer_factor, 0.5);
     }
 
     #[test]

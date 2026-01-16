@@ -31,7 +31,7 @@ pub mod timeframe_mapping;
 
 // Re-export main types
 pub use cache::IndicatorCache;
-pub use cache_multi_tf::MultiTfIndicatorCache;
+pub use cache_multi_tf::{MultiTfIndicatorCache, VolClusterRequest};
 pub use error::IndicatorError;
 pub use registry::IndicatorRegistry;
 pub use traits::{
