@@ -23,12 +23,14 @@ pub enum OrderType {
 impl OrderType {
     /// Returns true if this is a pending order (Limit or Stop)
     #[inline]
+    #[must_use]
     pub fn is_pending(&self) -> bool {
         matches!(self, OrderType::Limit | OrderType::Stop)
     }
 
     /// Returns true if this is a market order
     #[inline]
+    #[must_use]
     pub fn is_market(&self) -> bool {
         matches!(self, OrderType::Market)
     }

@@ -318,11 +318,11 @@ impl Portfolio {
 
     /// Validates portfolio consistency after a backtest run.
     ///
-    /// Ensures the recorded equity equals cash plus unrealized PnL within
+    /// Ensures the recorded equity equals cash plus unrealized `PnL` within
     /// a floating-point tolerance and that all values are finite.
     ///
     /// # Arguments
-    /// * `current_price` - Market price used to compute unrealized PnL
+    /// * `current_price` - Market price used to compute unrealized `PnL`
     ///
     /// # Errors
     /// Returns [`PortfolioError::ConsistencyViolation`] when the invariant

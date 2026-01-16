@@ -1687,7 +1687,8 @@ mod tests {
             .iter()
             .enumerate()
             .map(|(idx, close)| {
-                let ts = BASE_TS + (idx as i64) * STEP_NS;
+                let idx_i64 = i64::try_from(idx).expect("idx fits in i64");
+                let ts = BASE_TS + idx_i64 * STEP_NS;
                 Candle {
                     timestamp_ns: ts,
                     close_time_ns: ts + STEP_NS - 1,
@@ -1711,7 +1712,7 @@ mod tests {
         let file = File::create(path)?;
         let mut writer = ArrowWriter::try_new(file, schema, None)?;
         writer.write(&batch)?;
-        writer.close().map(|_| ()).map_err(|e| e.into())
+        writer.close().map(|_| ()).map_err(Into::into)
     }
 
     fn write_candle_parquet(

@@ -47,7 +47,7 @@ pub struct StopCheckResult {
 /// false TP triggers from intra-candle price spikes.
 ///
 /// # Arguments
-/// * `position` - The position to check (includes order_type)
+/// * `position` - The position to check (includes `order_type`)
 /// * `bid` - Current bid candle (used for long position exits)
 /// * `ask` - Current ask candle (used for short position exits)
 /// * `pip_size` - Pip size for the instrument
@@ -465,7 +465,7 @@ mod tests {
         assert!(exit.is_none(), "Market Order should NOT exit in entry candle");
     }
 
-    /// Rule 2: Market Order CAN exit in next candle (in_entry_candle = false)
+    /// Rule 2: Market Order CAN exit in next candle (`in_entry_candle` = false)
     #[test]
     fn test_rule2_market_order_exits_in_next_candle() {
         let bid = make_candle(1.2000, 1.2050, 1.1900, 1.2020); // Low hits SL

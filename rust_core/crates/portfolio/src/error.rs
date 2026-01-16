@@ -57,7 +57,7 @@ pub enum PortfolioError {
     ConsistencyViolation {
         /// Recorded equity value
         equity: f64,
-        /// Expected equity from cash + unrealized PnL
+        /// Expected equity from cash + unrealized `PnL`
         expected: f64,
         /// Absolute difference between equity and expected value
         diff: f64,
