@@ -11,7 +11,7 @@ use omega_data::{
     load_and_validate_bid_ask, load_candles, load_news_calendar, resolve_data_path,
     resolve_news_calendar_path, validate_spread,
 };
-use omega_types::Candle;
+use omega_types::{Candle, Timeframe};
 
 mod common;
 use common::{
@@ -21,6 +21,8 @@ use common::{
 mod generators;
 use proptest::prelude::*;
 
+const TEST_STEP_NS: i64 = 60_000_000_000;
+
 #[test]
 fn test_load_candles_roundtrip() {
     let dir = tempdir().unwrap();
@@ -28,7 +30,7 @@ fn test_load_candles_roundtrip() {
     let candles = sample_candles();
     write_candle_parquet(&path, &candles).unwrap();
 
-    let loaded = load_candles(&path).unwrap();
+    let loaded = load_candles(&path, Timeframe::M1).unwrap();
     assert_eq!(loaded, candles);
 }
 
@@ -40,7 +42,7 @@ fn test_load_and_validate_rejects_nan() {
     candles[0].open = f64::NAN;
     write_candle_parquet(&path, &candles).unwrap();
 
-    let err = load_and_validate(&path).unwrap_err();
+    let err = load_and_validate(&path, Timeframe::M1).unwrap_err();
     assert!(matches!(err, DataError::CorruptData(_)));
 }
 
@@ -52,6 +54,7 @@ fn test_load_and_validate_rejects_non_monotonic() {
     let candles = vec![
         Candle {
             timestamp_ns: 2,
+            close_time_ns: 2 + TEST_STEP_NS - 1,
             open: 1.0,
             high: 1.1,
             low: 0.9,
@@ -60,6 +63,7 @@ fn test_load_and_validate_rejects_non_monotonic() {
         },
         Candle {
             timestamp_ns: 1,
+            close_time_ns: 1 + TEST_STEP_NS - 1,
             open: 1.0,
             high: 1.1,
             low: 0.9,
@@ -69,7 +73,7 @@ fn test_load_and_validate_rejects_non_monotonic() {
     ];
 
     write_candle_parquet(&path, &candles).unwrap();
-    let err = load_and_validate(&path).unwrap_err();
+    let err = load_and_validate(&path, Timeframe::M1).unwrap_err();
     assert!(matches!(err, DataError::CorruptData(_)));
 }
 
@@ -82,7 +86,7 @@ fn test_load_and_validate_rejects_invalid_ohlc() {
     candles[0].low = candles[0].high + 0.1;
     write_candle_parquet(&path, &candles).unwrap();
 
-    let err = load_and_validate(&path).unwrap_err();
+    let err = load_and_validate(&path, Timeframe::M1).unwrap_err();
     assert!(matches!(err, DataError::CorruptData(_)));
 }
 
@@ -95,7 +99,50 @@ fn test_load_and_validate_rejects_negative_volume() {
     candles[1].volume = -1.0;
     write_candle_parquet(&path, &candles).unwrap();
 
-    let err = load_and_validate(&path).unwrap_err();
+    let err = load_and_validate(&path, Timeframe::M1).unwrap_err();
+    assert!(matches!(err, DataError::CorruptData(_)));
+}
+
+#[test]
+fn test_validate_candles_rejects_close_time_before_open() {
+    let candles = vec![Candle {
+        timestamp_ns: 10,
+        close_time_ns: 9,
+        open: 1.0,
+        high: 1.1,
+        low: 0.9,
+        close: 1.05,
+        volume: 1.0,
+    }];
+
+    let err = omega_data::validate_candles(&candles).unwrap_err();
+    assert!(matches!(err, DataError::CorruptData(_)));
+}
+
+#[test]
+fn test_validate_candles_rejects_non_monotonic_close_time() {
+    let candles = vec![
+        Candle {
+            timestamp_ns: 1,
+            close_time_ns: 10,
+            open: 1.0,
+            high: 1.1,
+            low: 0.9,
+            close: 1.05,
+            volume: 1.0,
+        },
+        Candle {
+            timestamp_ns: 2,
+            close_time_ns: 9,
+            open: 1.0,
+            high: 1.1,
+            low: 0.9,
+            close: 1.05,
+            volume: 1.0,
+        },
+    ];
+
+    let err = omega_data::validate_candles(&candles).unwrap_err();
     assert!(matches!(err, DataError::CorruptData(_)));
 }
 
@@ -112,6 +159,7 @@ fn test_align_bid_ask_success() {
 fn test_align_bid_ask_rejects_high_loss() {
     let bid = vec![Candle {
         timestamp_ns: 1,
+        close_time_ns: 1 + TEST_STEP_NS - 1,
         open: 1.0,
         high: 1.1,
         low: 0.9,
@@ -120,6 +168,7 @@ fn test_align_bid_ask_rejects_high_loss() {
     }];
     let ask = vec![Candle {
         timestamp_ns: 2,
+        close_time_ns: 2 + TEST_STEP_NS - 1,
         open: 1.0,
         high: 1.1,
         low: 0.9,
@@ -135,6 +184,7 @@ fn test_align_bid_ask_rejects_high_loss() {
 fn test_validate_spread_rejects_bid_gt_ask() {
     let bid = vec![Candle {
         timestamp_ns: 1,
+        close_time_ns: 1 + TEST_STEP_NS - 1,
         open: 1.1,
         high: 1.1,
         low: 1.1,
@@ -143,6 +193,7 @@ fn test_validate_spread_rejects_bid_gt_ask() {
     }];
     let ask = vec![Candle {
         timestamp_ns: 1,
+        close_time_ns: 1 + TEST_STEP_NS - 1,
         open: 1.0,
         high: 1.0,
         low: 1.0,
@@ -199,7 +250,7 @@ fn test_load_candles_rejects_divergent_duplicate() {
     )
     .unwrap();
 
-    let err = load_candles(&path).unwrap_err();
+    let err = load_candles(&path, Timeframe::M1).unwrap_err();
     assert!(matches!(err, DataError::CorruptData(_)));
 }
 
@@ -223,7 +274,7 @@ fn test_load_and_validate_bid_ask_checks_spread() {
     write_candle_parquet(&bid_path, &bid_candles).unwrap();
     write_candle_parquet(&ask_path, &ask_candles).unwrap();
 
-    let err = load_and_validate_bid_ask(&bid_path, &ask_path).unwrap_err();
+    let err = load_and_validate_bid_ask(&bid_path, &ask_path, Timeframe::M1).unwrap_err();
     assert!(matches!(err, DataError::InvalidSpread(_)));
 }
 
@@ -264,7 +315,7 @@ fn test_load_and_validate_detects_missing_column() {
     ];
 
     write_custom_parquet(&path, fields, vec![timestamps, opens, highs, lows, volumes]).unwrap();
-    let err = load_candles(&path).unwrap_err();
+    let err = load_candles(&path, Timeframe::M1).unwrap_err();
     assert!(matches!(err, DataError::MissingColumn(_)));
 }
 
@@ -312,7 +363,7 @@ fn test_load_and_validate_rejects_wrong_column_type() {
     )
     .unwrap();
 
-    let err = load_candles(&path).unwrap_err();
+    let err = load_candles(&path, Timeframe::M1).unwrap_err();
     assert!(matches!(err, DataError::InvalidColumnType(_)));
 }
 
@@ -323,7 +374,7 @@ fn test_timezone_contract_rejects_missing_timezone() {
     let candles = sample_candles();
 
     write_candle_parquet_with_timezone(&path, &candles, None).unwrap();
-    let err = load_candles(&path).unwrap_err();
+    let err = load_candles(&path, Timeframe::M1).unwrap_err();
     assert!(matches!(err, DataError::InvalidTimezone { .. }));
 }
 
@@ -334,7 +385,7 @@ fn test_timezone_contract_rejects_non_utc_timezone() {
     let candles = sample_candles();
 
     write_candle_parquet_with_timezone(&path, &candles, Some("Europe/Berlin")).unwrap();
-    let err = load_candles(&path).unwrap_err();
+    let err = load_candles(&path, Timeframe::M1).unwrap_err();
     assert!(matches!(err, DataError::InvalidTimezone { .. }));
 }
 
@@ -346,6 +397,7 @@ fn test_gap_analysis_session_aware() {
     let candles = vec![
         Candle {
             timestamp_ns: base,
+            close_time_ns: base + step_ns - 1,
             open: 1.0,
             high: 1.1,
             low: 0.9,
@@ -354,6 +406,7 @@ fn test_gap_analysis_session_aware() {
         },
         Candle {
             timestamp_ns: base + step_ns,
+            close_time_ns: base + step_ns + step_ns - 1,
             open: 1.0,
             high: 1.1,
             low: 0.9,
@@ -362,6 +415,7 @@ fn test_gap_analysis_session_aware() {
         },
         Candle {
             timestamp_ns: base + step_ns * 3,
+            close_time_ns: base + step_ns * 3 + step_ns - 1,
             open: 1.0,
             high: 1.1,
             low: 0.9,
@@ -384,6 +438,7 @@ fn test_gap_analysis_respects_sessions() {
     let candles = vec![
         Candle {
             timestamp_ns: base + step_ns * 479, // 07:59
+            close_time_ns: base + step_ns * 479 + step_ns - 1,
             open: 1.0,
             high: 1.1,
             low: 0.9,
@@ -392,6 +447,7 @@ fn test_gap_analysis_respects_sessions() {
         },
         Candle {
             timestamp_ns: base + step_ns * 480, // 08:00
+            close_time_ns: base + step_ns * 480 + step_ns - 1,
             open: 1.0,
             high: 1.1,
             low: 0.9,
@@ -400,6 +456,7 @@ fn test_gap_analysis_respects_sessions() {
         },
         Candle {
             timestamp_ns: base + step_ns * 482, // 08:02
+            close_time_ns: base + step_ns * 482 + step_ns - 1,
             open: 1.0,
             high: 1.1,
             low: 0.9,

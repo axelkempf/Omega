@@ -72,6 +72,7 @@ mod tests {
         let candles = vec![
             Candle {
                 timestamp_ns: 0, // 00:00 UTC
+                close_time_ns: 60_000_000_000 - 1,
                 open: 1.0,
                 high: 1.0,
                 low: 1.0,
@@ -80,6 +81,7 @@ mod tests {
             },
             Candle {
                 timestamp_ns: 8 * 3_600 * 1_000_000_000, // 08:00 UTC
+                close_time_ns: 8 * 3_600 * 1_000_000_000 + 60_000_000_000 - 1,
                 open: 1.0,
                 high: 1.0,
                 low: 1.0,
@@ -101,6 +103,7 @@ mod tests {
         let candles = vec![
             Candle {
                 timestamp_ns: monday_ts,
+                close_time_ns: monday_ts + 60_000_000_000 - 1,
                 open: 1.0,
                 high: 1.0,
                 low: 1.0,
@@ -109,6 +112,7 @@ mod tests {
             },
             Candle {
                 timestamp_ns: saturday_ts,
+                close_time_ns: saturday_ts + 60_000_000_000 - 1,
                 open: 1.0,
                 high: 1.0,
                 low: 1.0,

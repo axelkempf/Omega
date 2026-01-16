@@ -194,6 +194,7 @@ fn test_python_parity_stepwise_and_local() {
 fn make_candle(timestamp_ns: i64, close: f64) -> Candle {
     Candle {
         timestamp_ns,
+        close_time_ns: timestamp_ns + 60 - 1,
         open: close - 0.01,
         high: close + 0.02,
         low: close - 0.02,

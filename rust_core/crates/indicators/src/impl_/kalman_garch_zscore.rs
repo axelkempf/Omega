@@ -169,6 +169,7 @@ mod tests {
     fn make_candle(close: f64) -> Candle {
         Candle {
             timestamp_ns: 0,
+            close_time_ns: 60_000_000_000 - 1,
             open: close,
             high: close + 0.01,
             low: close - 0.01,

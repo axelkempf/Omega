@@ -161,8 +161,9 @@ mod tests {
         for (i, close) in closes.iter().enumerate() {
             let idx = i64::try_from(i).unwrap_or(i64::MAX / step.max(1));
             let ts = idx * step;
-            bid.push(make_candle(ts, *close));
-            ask.push(make_candle(ts, *close + 0.0002));
+            let close_time_ns = ts + step - 1;
+            bid.push(make_candle(ts, close_time_ns, *close));
+            ask.push(make_candle(ts, close_time_ns, *close + 0.0002));
             timestamps.push(ts);
         }
         CandleStore {
@@ -175,9 +176,10 @@ mod tests {
         }
     }
 
-    fn make_candle(timestamp_ns: i64, close: f64) -> Candle {
+    fn make_candle(timestamp_ns: i64, close_time_ns: i64, close: f64) -> Candle {
         Candle {
             timestamp_ns,
+            close_time_ns,
             open: close,
             high: close,
             low: close,

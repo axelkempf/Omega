@@ -232,6 +232,7 @@ mod tests {
     fn make_candle(close: f64) -> omega_types::Candle {
         omega_types::Candle {
             timestamp_ns: 0,
+            close_time_ns: 60_000_000_000 - 1,
             open: close,
             high: close,
             low: close,

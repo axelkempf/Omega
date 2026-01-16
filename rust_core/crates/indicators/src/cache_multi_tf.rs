@@ -681,13 +681,18 @@ fn candles_from_close(close: &[f64]) -> Vec<Candle> {
     close
         .iter()
         .enumerate()
-        .map(|(idx, &value)| Candle {
-            timestamp_ns: usize_to_i64(idx),
-            open: value,
-            high: value,
-            low: value,
-            close: value,
-            volume: 0.0,
+        .map(|(idx, &value)| {
+            let timestamp_ns = usize_to_i64(idx);
+            let close_time_ns = timestamp_ns;
+            Candle {
+                timestamp_ns,
+                close_time_ns,
+                open: value,
+                high: value,
+                low: value,
+                close: value,
+                volume: 0.0,
+            }
         })
         .collect()
 }

@@ -13,6 +13,8 @@ pub fn validate_candles(candles: &[Candle]) -> Result<(), DataError> {
         return Err(DataError::EmptyData);
     }
 
+    let mut prev_close_time: Option<i64> = None;
+
     for (i, candle) in candles.iter().enumerate() {
         if !candle.open.is_finite()
             || !candle.high.is_finite()
@@ -44,6 +46,22 @@ pub fn validate_candles(candles: &[Candle]) -> Result<(), DataError> {
             )));
         }
 
+        if candle.close_time_ns < candle.timestamp_ns {
+            return Err(DataError::CorruptData(format!(
+                "Close time before open at index {i}: close_time_ns={} < timestamp_ns={}",
+                candle.close_time_ns, candle.timestamp_ns
+            )));
+        }
+
+        if let Some(prev_close) = prev_close_time
+            && candle.close_time_ns <= prev_close
+        {
+            return Err(DataError::CorruptData(format!(
+                "Non-monotonic close_time_ns at index {i}: {} <= {}",
+                candle.close_time_ns, prev_close
+            )));
+        }
+
         if i > 0 && candle.timestamp_ns <= candles[i - 1].timestamp_ns {
             return Err(DataError::CorruptData(format!(
                 "Non-monotonic timestamp at index {i}: {} <= {}",
@@ -51,6 +69,8 @@ pub fn validate_candles(candles: &[Candle]) -> Result<(), DataError> {
                 candles[i - 1].timestamp_ns
             )));
         }
+
+        prev_close_time = Some(candle.close_time_ns);
     }
 
     Ok(())

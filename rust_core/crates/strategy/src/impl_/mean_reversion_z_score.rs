@@ -470,7 +470,7 @@ impl MeanReversionZScore {
                 take_profit: tp,
                 size: None,
                 scenario_id: 1,
-                tags: vec!["scenario1".to_string()],
+                tags: vec!["scenario1".to_string(), "long_1".to_string()],
                 meta: serde_json::json!({"zscore": zscore}),
             });
         }
@@ -494,7 +494,7 @@ impl MeanReversionZScore {
                 take_profit: tp,
                 size: None,
                 scenario_id: 1,
-                tags: vec!["scenario1".to_string()],
+                tags: vec!["scenario1".to_string(), "short_1".to_string()],
                 meta: serde_json::json!({"zscore": zscore}),
             });
         }
@@ -566,7 +566,11 @@ impl MeanReversionZScore {
                 take_profit: bb_mid,
                 size: None,
                 scenario_id: 2,
-                tags: vec!["scenario2".to_string(), "kalman".to_string()],
+                tags: vec![
+                    "scenario2".to_string(),
+                    "long_2".to_string(),
+                    "kalman".to_string(),
+                ],
                 meta: serde_json::json!({
                     "kalman_z": kalman_z,
                     "bb_lower": bb_lower
@@ -587,7 +591,11 @@ impl MeanReversionZScore {
                 take_profit: bb_mid,
                 size: None,
                 scenario_id: 2,
-                tags: vec!["scenario2".to_string(), "kalman".to_string()],
+                tags: vec![
+                    "scenario2".to_string(),
+                    "short_2".to_string(),
+                    "kalman".to_string(),
+                ],
                 meta: serde_json::json!({
                     "kalman_z": kalman_z,
                     "bb_upper": bb_upper
@@ -660,7 +668,11 @@ impl MeanReversionZScore {
                 take_profit: ema,
                 size: None,
                 scenario_id: 3,
-                tags: vec!["scenario3".to_string(), "kalman".to_string()],
+                tags: vec![
+                    "scenario3".to_string(),
+                    "long_3".to_string(),
+                    "kalman".to_string(),
+                ],
                 meta: serde_json::json!({
                     "kalman_z": kalman_z,
                     "bb_lower": bb_lower,
@@ -685,7 +697,11 @@ impl MeanReversionZScore {
                 take_profit: ema,
                 size: None,
                 scenario_id: 3,
-                tags: vec!["scenario3".to_string(), "kalman".to_string()],
+                tags: vec![
+                    "scenario3".to_string(),
+                    "short_3".to_string(),
+                    "kalman".to_string(),
+                ],
                 meta: serde_json::json!({
                     "kalman_z": kalman_z,
                     "bb_upper": bb_upper,
@@ -769,7 +785,11 @@ impl MeanReversionZScore {
                 take_profit: bb_mid,
                 size: None,
                 scenario_id: 4,
-                tags: vec!["scenario4".to_string(), "kalman_garch".to_string()],
+                tags: vec![
+                    "scenario4".to_string(),
+                    "long_4".to_string(),
+                    "kalman_garch".to_string(),
+                ],
                 meta: serde_json::json!({
                     "kalman_garch_z": kalman_garch_z,
                     "bb_lower": bb_lower,
@@ -791,7 +811,11 @@ impl MeanReversionZScore {
                 take_profit: bb_mid,
                 size: None,
                 scenario_id: 4,
-                tags: vec!["scenario4".to_string(), "kalman_garch".to_string()],
+                tags: vec![
+                    "scenario4".to_string(),
+                    "short_4".to_string(),
+                    "kalman_garch".to_string(),
+                ],
                 meta: serde_json::json!({
                     "kalman_garch_z": kalman_garch_z,
                     "bb_upper": bb_upper,
@@ -884,6 +908,7 @@ impl MeanReversionZScore {
                 scenario_id: 5,
                 tags: vec![
                     "scenario5".to_string(),
+                    "long_5".to_string(),
                     "kalman".to_string(),
                     "vol_cluster".to_string(),
                 ],
@@ -914,6 +939,7 @@ impl MeanReversionZScore {
                 scenario_id: 5,
                 tags: vec![
                     "scenario5".to_string(),
+                    "short_5".to_string(),
                     "kalman".to_string(),
                     "vol_cluster".to_string(),
                 ],
@@ -1037,6 +1063,7 @@ impl MeanReversionZScore {
                 scenario_id: 6,
                 tags: vec![
                     "scenario6".to_string(),
+                    "long_6".to_string(),
                     "kalman".to_string(),
                     format!("multi_tf_{}", mode_str),
                 ],
@@ -1063,6 +1090,7 @@ impl MeanReversionZScore {
                 scenario_id: 6,
                 tags: vec![
                     "scenario6".to_string(),
+                    "short_6".to_string(),
                     "kalman".to_string(),
                     format!("multi_tf_{}", mode_str),
                 ],
@@ -1895,6 +1923,7 @@ mod tests {
     fn make_candle(close: f64) -> Candle {
         Candle {
             timestamp_ns: 0,
+            close_time_ns: 300_000_000_000 - 1,
             open: close - 0.001,
             high: close + 0.002,
             low: close - 0.002,

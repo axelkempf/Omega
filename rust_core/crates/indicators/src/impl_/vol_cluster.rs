@@ -171,6 +171,7 @@ mod tests {
     fn make_candle_ohlc(open: f64, high: f64, low: f64, close: f64) -> Candle {
         Candle {
             timestamp_ns: 0,
+            close_time_ns: 60_000_000_000 - 1,
             open,
             high,
             low,

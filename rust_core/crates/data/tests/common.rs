@@ -142,9 +142,11 @@ pub fn write_custom_parquet(
 }
 
 pub fn sample_candles() -> Vec<Candle> {
+    let step_ns = 60_000_000_000i64;
     vec![
         Candle {
             timestamp_ns: 1_700_000_000_000_000_000,
+            close_time_ns: 1_700_000_000_000_000_000 + step_ns - 1,
             open: 1.1,
             high: 1.2,
             low: 1.0,
@@ -153,6 +155,7 @@ pub fn sample_candles() -> Vec<Candle> {
         },
         Candle {
             timestamp_ns: 1_700_000_060_000_000_000,
+            close_time_ns: 1_700_000_060_000_000_000 + step_ns - 1,
             open: 1.15,
             high: 1.25,
             low: 1.05,

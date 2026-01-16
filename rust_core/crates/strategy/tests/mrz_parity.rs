@@ -166,13 +166,18 @@ fn build_candles(closes: &[f64], start_ts: i64, step: i64) -> Vec<Candle> {
     closes
         .iter()
         .enumerate()
-        .map(|(idx, close)| Candle {
-            timestamp_ns: start_ts + (idx as i64 * step),
-            open: close - 0.01,
-            high: close + 0.02,
-            low: close - 0.02,
-            close: *close,
-            volume: 1.0,
+        .map(|(idx, close)| {
+            let timestamp_ns = start_ts + (idx as i64 * step);
+            let close_time_ns = timestamp_ns + step - 1;
+            Candle {
+                timestamp_ns,
+                close_time_ns,
+                open: close - 0.01,
+                high: close + 0.02,
+                low: close - 0.02,
+                close: *close,
+                volume: 1.0,
+            }
         })
         .collect()
 }

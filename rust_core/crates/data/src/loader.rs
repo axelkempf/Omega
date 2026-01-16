@@ -10,7 +10,7 @@ use parquet::arrow::arrow_reader::ParquetRecordBatchReaderBuilder;
 use crate::alignment::align_bid_ask;
 use crate::error::DataError;
 use crate::validation::{validate_candles, validate_spread};
-use omega_types::Candle;
+use omega_types::{Candle, Timeframe};
 
 /// Resolve a Parquet candle path using the canonical layout or an env override.
 #[must_use]
@@ -35,7 +35,7 @@ pub fn resolve_data_path(symbol: &str, timeframe: &str, side: &str) -> PathBuf {
 /// - [`DataError::InvalidTimezone`] when `UTC time` is missing timezone or not UTC.
 /// - [`DataError::CorruptData`] for out-of-order or divergent duplicates.
 /// - [`DataError::EmptyData`] when no rows are loaded.
-pub fn load_candles(path: &Path) -> Result<Vec<Candle>, DataError> {
+pub fn load_candles(path: &Path, timeframe: Timeframe) -> Result<Vec<Candle>, DataError> {
     let file = std::fs::File::open(path)
         .map_err(|e| DataError::FileNotFound(path.display().to_string(), e.to_string()))?;
 
@@ -45,6 +45,7 @@ pub fn load_candles(path: &Path) -> Result<Vec<Candle>, DataError> {
         .build()
         .map_err(|e| DataError::ParseError(e.to_string()))?;
 
+    let duration_ns = timeframe_duration_ns(timeframe)?;
     let mut candles = Vec::new();
     let mut seen: HashMap<i64, Candle> = HashMap::new();
     let mut last_ts: Option<i64> = None;
@@ -81,8 +82,10 @@ pub fn load_candles(path: &Path) -> Result<Vec<Candle>, DataError> {
                 )));
             }
 
+            let close_time_ns = close_time_from_open(ts, duration_ns, processed_rows + row_idx)?;
             let candle = Candle {
                 timestamp_ns: ts,
+                close_time_ns,
                 open: open_arr.value(row_idx),
                 high: high_arr.value(row_idx),
                 low: low_arr.value(row_idx),
@@ -119,8 +122,8 @@ pub fn load_candles(path: &Path) -> Result<Vec<Candle>, DataError> {
 /// # Errors
 /// - Propagates [`load_candles`] errors.
 /// - Propagates [`validate_candles`] errors.
-pub fn load_and_validate(path: &Path) -> Result<Vec<Candle>, DataError> {
-    let candles = load_candles(path)?;
+pub fn load_and_validate(path: &Path, timeframe: Timeframe) -> Result<Vec<Candle>, DataError> {
+    let candles = load_candles(path, timeframe)?;
     validate_candles(&candles)?;
     Ok(candles)
 }
@@ -134,9 +137,10 @@ pub fn load_and_validate(path: &Path) -> Result<Vec<Candle>, DataError> {
 pub fn load_and_validate_bid_ask(
     bid_path: &Path,
     ask_path: &Path,
+    timeframe: Timeframe,
 ) -> Result<crate::alignment::AlignedData, DataError> {
-    let bid = load_and_validate(bid_path)?;
-    let ask = load_and_validate(ask_path)?;
+    let bid = load_and_validate(bid_path, timeframe)?;
+    let ask = load_and_validate(ask_path, timeframe)?;
 
     let aligned = align_bid_ask(bid, ask)?;
     validate_spread(&aligned.bid, &aligned.ask)?;
@@ -173,11 +177,44 @@ pub fn filter_by_date_range(
 }
 
 fn same_candle(a: &Candle, b: &Candle) -> bool {
-    a.open.to_bits() == b.open.to_bits()
+    a.close_time_ns == b.close_time_ns
+        && a.open.to_bits() == b.open.to_bits()
         && a.high.to_bits() == b.high.to_bits()
         && a.low.to_bits() == b.low.to_bits()
         && a.close.to_bits() == b.close.to_bits()
         && a.volume.to_bits() == b.volume.to_bits()
+}
+
+fn timeframe_duration_ns(timeframe: Timeframe) -> Result<i64, DataError> {
+    let seconds = i64::try_from(timeframe.to_seconds()).map_err(|_| {
+        DataError::CorruptData(format!(
+            "Timeframe seconds overflow: {}",
+            timeframe.as_str()
+        ))
+    })?;
+    seconds
+        .checked_mul(1_000_000_000)
+        .ok_or_else(|| {
+            DataError::CorruptData(format!(
+                "Timeframe duration overflow: {}",
+                timeframe.as_str()
+            ))
+        })
+}
+
+fn close_time_from_open(
+    open_ns: i64,
+    duration_ns: i64,
+    row_idx: usize,
+) -> Result<i64, DataError> {
+    open_ns
+        .checked_add(duration_ns)
+        .and_then(|value| value.checked_sub(1))
+        .ok_or_else(|| {
+            DataError::CorruptData(format!(
+                "Close time overflow at row {row_idx}: open_ns={open_ns}, duration_ns={duration_ns}"
+            ))
+        })
 }
 
 enum NumericAccessor<'a> {

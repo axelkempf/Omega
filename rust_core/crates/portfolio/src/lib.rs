@@ -50,6 +50,7 @@
 //! // Check stops on a new bar
 //! let bid = Candle {
 //!     timestamp_ns: 2_000_000,
+//!     close_time_ns: 2_000_000 + 60_000_000_000 - 1,
 //!     open: 1.2050,
 //!     high: 1.2110,
 //!     low: 1.2040,
