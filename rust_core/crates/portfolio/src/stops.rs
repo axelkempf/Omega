@@ -16,7 +16,7 @@ pub const DEFAULT_PIP_BUFFER_FACTOR: f64 = 0.5;
 pub struct StopCheckResult {
     /// Whether a stop was triggered
     pub triggered: bool,
-    /// Exit reason (StopLoss or TakeProfit)
+    /// Exit reason (`StopLoss` or `TakeProfit`)
     pub reason: ExitReason,
     /// Exit price (at the SL or TP level)
     pub exit_price: f64,
@@ -47,6 +47,7 @@ pub struct StopCheckResult {
 ///
 /// # Returns
 /// `Some(StopCheckResult)` if a stop was triggered, `None` otherwise.
+#[must_use]
 pub fn check_stops(
     position: &Position,
     bid: &Candle,
@@ -114,6 +115,7 @@ pub fn check_stops(
 /// Checks if a position's stop-loss has been hit (SL only, ignores TP).
 ///
 /// This is useful for the first pass of stop checks where SL takes priority.
+#[must_use]
 pub fn check_stop_loss_only(
     position: &Position,
     bid: &Candle,
@@ -142,6 +144,7 @@ pub fn check_stop_loss_only(
 /// Checks if a position's take-profit has been hit (TP only, ignores SL).
 ///
 /// This is useful for the second pass of stop checks after SL has been processed.
+#[must_use]
 pub fn check_take_profit_only(
     position: &Position,
     bid: &Candle,
@@ -190,6 +193,7 @@ pub fn check_take_profit_only(
 /// * `bid` - Current bid candle
 /// * `ask` - Current ask candle
 /// * `is_stop_loss` - Whether this is an SL (affects gap direction)
+#[must_use]
 pub fn calculate_gap_exit_price(
     stop_level: f64,
     direction: &Direction,

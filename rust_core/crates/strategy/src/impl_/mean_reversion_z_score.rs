@@ -1071,7 +1071,8 @@ impl MeanReversionZScore {
 
                 let window = tf_params
                     .and_then(|p| p.get("window_length").and_then(|v| v.as_u64()))
-                    .unwrap_or(self.params.window_length as u64) as usize;
+                    .unwrap_or(self.params.window_length as u64)
+                    as usize;
                 let kalman_r = tf_params
                     .and_then(|p| p.get("kalman_r").and_then(|v| v.as_f64()))
                     .unwrap_or(self.params.kalman_r);
@@ -1080,7 +1081,8 @@ impl MeanReversionZScore {
                     .unwrap_or(self.params.kalman_q);
                 let bb_period = tf_params
                     .and_then(|p| p.get("b_b_length").and_then(|v| v.as_u64()))
-                    .unwrap_or(self.params.b_b_length as u64) as usize;
+                    .unwrap_or(self.params.b_b_length as u64)
+                    as usize;
                 let std_factor = tf_params
                     .and_then(|p| p.get("std_factor").and_then(|v| v.as_f64()))
                     .unwrap_or(self.params.std_factor);
@@ -1102,13 +1104,8 @@ impl MeanReversionZScore {
                 });
 
                 // Get TF-specific Kalman-Z
-                let kalman_z = ctx.get_stepwise_kalman_zscore(
-                    tf,
-                    PriceType::Bid,
-                    window,
-                    kalman_r,
-                    kalman_q,
-                );
+                let kalman_z =
+                    ctx.get_stepwise_kalman_zscore(tf, PriceType::Bid, window, kalman_r, kalman_q);
 
                 // Get TF-specific price and Bollinger
                 let tf_price = ctx.get_tf_close(tf, PriceType::Bid);
@@ -1245,7 +1242,10 @@ impl MeanReversionZScore {
         meta.insert("window".to_string(), serde_json::json!(window));
         meta.insert("k".to_string(), serde_json::json!(k));
         meta.insert("min_points".to_string(), serde_json::json!(min_points));
-        meta.insert("log_transform".to_string(), serde_json::json!(log_transform));
+        meta.insert(
+            "log_transform".to_string(),
+            serde_json::json!(log_transform),
+        );
         meta.insert(
             "hysteresis_bars".to_string(),
             serde_json::json!(hysteresis_bars),
@@ -1266,7 +1266,10 @@ impl MeanReversionZScore {
             VolFeatureSeries::Local { values, .. } => values,
         };
         if values.is_empty() {
-            meta.insert("status".to_string(), serde_json::json!("series_unavailable"));
+            meta.insert(
+                "status".to_string(),
+                serde_json::json!("series_unavailable"),
+            );
             return None;
         }
 
@@ -1276,14 +1279,20 @@ impl MeanReversionZScore {
         let sample_size = cleaned.len();
         meta.insert("sample_size".to_string(), serde_json::json!(sample_size));
         if sample_size < min_points {
-            meta.insert("status".to_string(), serde_json::json!("insufficient_points"));
+            meta.insert(
+                "status".to_string(),
+                serde_json::json!("insufficient_points"),
+            );
             return None;
         }
 
         let start = sample_size.saturating_sub(window);
         let tail = cleaned.split_off(start);
         if tail.len() < k {
-            meta.insert("status".to_string(), serde_json::json!("insufficient_unique"));
+            meta.insert(
+                "status".to_string(),
+                serde_json::json!("insufficient_unique"),
+            );
             return None;
         }
 
@@ -1308,7 +1317,11 @@ impl MeanReversionZScore {
         };
 
         let mut order: Vec<usize> = (0..centers.len()).collect();
-        order.sort_by(|a, b| centers[*a].partial_cmp(&centers[*b]).unwrap_or(std::cmp::Ordering::Equal));
+        order.sort_by(|a, b| {
+            centers[*a]
+                .partial_cmp(&centers[*b])
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
 
         let label_names = ["low", "mid", "high", "very_high", "extreme"];
         let mut mapping = vec![String::new(); centers.len()];
@@ -1357,11 +1370,14 @@ impl MeanReversionZScore {
             .map(|label| label.trim().to_lowercase())
             .collect();
         if !allowed_labels.is_empty() {
-            meta.insert("allowed_labels".to_string(), serde_json::json!(allowed_labels));
+            meta.insert(
+                "allowed_labels".to_string(),
+                serde_json::json!(allowed_labels),
+            );
         }
 
-        let allowed_now = allowed_labels.is_empty()
-            || allowed_labels.contains(&current_label.to_lowercase());
+        let allowed_now =
+            allowed_labels.is_empty() || allowed_labels.contains(&current_label.to_lowercase());
         meta.insert("allowed_now".to_string(), serde_json::json!(allowed_now));
 
         let hysteresis_ok = if hysteresis_bars > 1 {
@@ -1375,7 +1391,10 @@ impl MeanReversionZScore {
         } else {
             true
         };
-        meta.insert("hysteresis_ok".to_string(), serde_json::json!(hysteresis_ok));
+        meta.insert(
+            "hysteresis_ok".to_string(),
+            serde_json::json!(hysteresis_ok),
+        );
 
         if !hysteresis_ok {
             meta.insert("status".to_string(), serde_json::json!("hysteresis_block"));
@@ -1442,14 +1461,8 @@ impl Strategy for MeanReversionZScore {
 
     fn required_indicators(&self) -> Vec<IndicatorRequirement> {
         let mut reqs = vec![
-            IndicatorRequirement::new(
-                "EMA",
-                serde_json::json!({"period": self.params.ema_length}),
-            ),
-            IndicatorRequirement::new(
-                "ATR",
-                serde_json::json!({"period": self.params.atr_length}),
-            ),
+            IndicatorRequirement::new("EMA", serde_json::json!({"period": self.params.ema_length})),
+            IndicatorRequirement::new("ATR", serde_json::json!({"period": self.params.atr_length})),
             IndicatorRequirement::new(
                 "Z_SCORE",
                 serde_json::json!({
@@ -1461,7 +1474,12 @@ impl Strategy for MeanReversionZScore {
         ];
 
         // Add Bollinger if scenarios 2, 3, 4, 5, or 6 are enabled
-        if self.params.enabled_scenarios.iter().any(|&s| matches!(s, 2..=6)) {
+        if self
+            .params
+            .enabled_scenarios
+            .iter()
+            .any(|&s| matches!(s, 2..=6))
+        {
             reqs.push(IndicatorRequirement::new(
                 "BOLLINGER",
                 serde_json::json!({
@@ -1472,7 +1490,12 @@ impl Strategy for MeanReversionZScore {
         }
 
         // Add Kalman Z if scenarios 2, 3, 5, or 6 are enabled
-        if self.params.enabled_scenarios.iter().any(|&s| matches!(s, 2 | 3 | 5 | 6)) {
+        if self
+            .params
+            .enabled_scenarios
+            .iter()
+            .any(|&s| matches!(s, 2 | 3 | 5 | 6))
+        {
             reqs.push(IndicatorRequirement::new(
                 "KALMAN_Z",
                 serde_json::json!({
@@ -1563,12 +1586,16 @@ impl Strategy for MeanReversionZScore {
         if self.params.enabled_scenarios.contains(&6) {
             for tf in &self.params.scenario6_timeframes {
                 // Get TF-specific params or defaults
-                let tf_params = self.params.scenario6_params.get(tf)
+                let tf_params = self
+                    .params
+                    .scenario6_params
+                    .get(tf)
                     .or_else(|| self.params.scenario6_params.get("*"));
 
                 let window = tf_params
                     .and_then(|p| p.get("window_length").and_then(|v| v.as_u64()))
-                    .unwrap_or(self.params.window_length as u64) as usize;
+                    .unwrap_or(self.params.window_length as u64)
+                    as usize;
                 let kalman_r = tf_params
                     .and_then(|p| p.get("kalman_r").and_then(|v| v.as_f64()))
                     .unwrap_or(self.params.kalman_r);
@@ -1577,7 +1604,8 @@ impl Strategy for MeanReversionZScore {
                     .unwrap_or(self.params.kalman_q);
                 let bb_period = tf_params
                     .and_then(|p| p.get("b_b_length").and_then(|v| v.as_u64()))
-                    .unwrap_or(self.params.b_b_length as u64) as usize;
+                    .unwrap_or(self.params.b_b_length as u64)
+                    as usize;
                 let std_factor = tf_params
                     .and_then(|p| p.get("std_factor").and_then(|v| v.as_f64()))
                     .unwrap_or(self.params.std_factor);
@@ -1735,7 +1763,9 @@ fn quantile_sorted(sorted: &[f64], q: f64) -> f64 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use omega_indicators::{IndicatorCache, IndicatorParams, IndicatorSpec, MultiTfIndicatorCache, EMA, ATR, ZScore};
+    use omega_indicators::{
+        ATR, EMA, IndicatorCache, IndicatorParams, IndicatorSpec, MultiTfIndicatorCache, ZScore,
+    };
     use omega_types::{Candle, Timeframe};
     use std::cell::RefCell;
 
@@ -1797,7 +1827,12 @@ mod tests {
         idx: usize,
         value: f64,
     ) {
-        insert_series(cache, IndicatorSpec::new(name, IndicatorParams::Period(period)), idx, value);
+        insert_series(
+            cache,
+            IndicatorSpec::new(name, IndicatorParams::Period(period)),
+            idx,
+            value,
+        );
     }
 
     struct BollingerValues {
@@ -1958,9 +1993,7 @@ mod tests {
         let mut strategy = MeanReversionZScore::new(params);
 
         // Create a downtrend (should trigger long)
-        let closes: Vec<f64> = (0..50)
-            .map(|i| 1.1000 - (i as f64) * 0.001)
-            .collect();
+        let closes: Vec<f64> = (0..50).map(|i| 1.1000 - (i as f64) * 0.001).collect();
         let candles = make_candles(&closes);
         let cache = setup_cache(&candles);
 
@@ -1979,9 +2012,7 @@ mod tests {
         let params = MrzParams::default();
         let mut strategy = MeanReversionZScore::new(params);
 
-        let closes: Vec<f64> = (0..50)
-            .map(|i| 1.1000 - (i as f64) * 0.001)
-            .collect();
+        let closes: Vec<f64> = (0..50).map(|i| 1.1000 - (i as f64) * 0.001).collect();
         let candles = make_candles(&closes);
         let cache = setup_cache(&candles);
 
@@ -2005,9 +2036,7 @@ mod tests {
         let strategy = MeanReversionZScore::new(params);
 
         // Uptrend (should trigger short normally, but filter blocks)
-        let closes: Vec<f64> = (0..50)
-            .map(|i| 1.0000 + (i as f64) * 0.001)
-            .collect();
+        let closes: Vec<f64> = (0..50).map(|i| 1.0000 + (i as f64) * 0.001).collect();
         let candles = make_candles(&closes);
         let cache = setup_cache(&candles);
 
@@ -2149,7 +2178,18 @@ mod tests {
         let idx = 0;
         let mut cache = IndicatorCache::new();
         insert_kalman(&mut cache, "KALMAN_Z", 20, 1.0, 0.1, idx, 3.0);
-        insert_bollinger(&mut cache, "BOLLINGER", 20, 2.0, idx, BollingerValues { lower: 1.0980, middle: 1.0990, upper: 1.1005 });
+        insert_bollinger(
+            &mut cache,
+            "BOLLINGER",
+            20,
+            2.0,
+            idx,
+            BollingerValues {
+                lower: 1.0980,
+                middle: 1.0990,
+                upper: 1.1005,
+            },
+        );
         insert_period(&mut cache, "ATR", 14, idx, 0.0010);
 
         let bid = make_candle(1.1010);
@@ -2173,7 +2213,18 @@ mod tests {
         let idx = 0;
         let mut cache = IndicatorCache::new();
         insert_kalman(&mut cache, "KALMAN_Z", 20, 1.0, 0.1, idx, -1.9);
-        insert_bollinger(&mut cache, "BOLLINGER", 20, 2.0, idx, BollingerValues { lower: 1.1000, middle: 1.1010, upper: 1.1020 });
+        insert_bollinger(
+            &mut cache,
+            "BOLLINGER",
+            20,
+            2.0,
+            idx,
+            BollingerValues {
+                lower: 1.1000,
+                middle: 1.1010,
+                upper: 1.1020,
+            },
+        );
         insert_period(&mut cache, "ATR", 14, idx, 0.0010);
 
         let bid = make_candle(1.0990);
@@ -2195,7 +2246,18 @@ mod tests {
         let idx = 0;
         let mut cache = IndicatorCache::new();
         insert_kalman(&mut cache, "KALMAN_Z", 20, 1.0, 0.1, idx, 2.1);
-        insert_bollinger(&mut cache, "BOLLINGER", 20, 2.0, idx, BollingerValues { lower: 1.0980, middle: 1.0990, upper: 1.1005 });
+        insert_bollinger(
+            &mut cache,
+            "BOLLINGER",
+            20,
+            2.0,
+            idx,
+            BollingerValues {
+                lower: 1.0980,
+                middle: 1.0990,
+                upper: 1.1005,
+            },
+        );
         insert_period(&mut cache, "ATR", 14, idx, 0.0010);
 
         let bid = make_candle(1.1000);
@@ -2218,7 +2280,18 @@ mod tests {
         let idx = 0;
         let mut cache = IndicatorCache::new();
         insert_kalman(&mut cache, "KALMAN_Z", 20, 1.0, 0.1, idx, -3.0);
-        insert_bollinger(&mut cache, "BOLLINGER", 20, 2.0, idx, BollingerValues { lower: 1.1010, middle: 1.1020, upper: 1.1030 });
+        insert_bollinger(
+            &mut cache,
+            "BOLLINGER",
+            20,
+            2.0,
+            idx,
+            BollingerValues {
+                lower: 1.1010,
+                middle: 1.1020,
+                upper: 1.1030,
+            },
+        );
         insert_period(&mut cache, "ATR", 14, idx, 0.0010);
         insert_period(&mut cache, "EMA", 20, idx, 1.1050);
 
@@ -2244,7 +2317,18 @@ mod tests {
         let idx = 0;
         let mut cache = IndicatorCache::new();
         insert_kalman(&mut cache, "KALMAN_Z", 20, 1.0, 0.1, idx, -3.0);
-        insert_bollinger(&mut cache, "BOLLINGER", 20, 2.0, idx, BollingerValues { lower: 1.1010, middle: 1.1020, upper: 1.1030 });
+        insert_bollinger(
+            &mut cache,
+            "BOLLINGER",
+            20,
+            2.0,
+            idx,
+            BollingerValues {
+                lower: 1.1010,
+                middle: 1.1020,
+                upper: 1.1030,
+            },
+        );
         insert_period(&mut cache, "ATR", 14, idx, 0.0010);
         insert_period(&mut cache, "EMA", 20, idx, 1.1011);
 
@@ -2268,7 +2352,18 @@ mod tests {
         let idx = 0;
         let mut cache = IndicatorCache::new();
         insert_kalman(&mut cache, "KALMAN_Z", 20, 1.0, 0.1, idx, 3.0);
-        insert_bollinger(&mut cache, "BOLLINGER", 20, 2.0, idx, BollingerValues { lower: 1.0950, middle: 1.0960, upper: 1.0975 });
+        insert_bollinger(
+            &mut cache,
+            "BOLLINGER",
+            20,
+            2.0,
+            idx,
+            BollingerValues {
+                lower: 1.0950,
+                middle: 1.0960,
+                upper: 1.0975,
+            },
+        );
         insert_period(&mut cache, "ATR", 14, idx, 0.0010);
         insert_period(&mut cache, "EMA", 20, idx, 1.0950);
 
@@ -2294,7 +2389,18 @@ mod tests {
         let idx = 0;
         let mut cache = IndicatorCache::new();
         insert_kalman(&mut cache, "KALMAN_Z", 20, 1.0, 0.1, idx, 3.0);
-        insert_bollinger(&mut cache, "BOLLINGER", 20, 2.0, idx, BollingerValues { lower: 1.0950, middle: 1.0960, upper: 1.0975 });
+        insert_bollinger(
+            &mut cache,
+            "BOLLINGER",
+            20,
+            2.0,
+            idx,
+            BollingerValues {
+                lower: 1.0950,
+                middle: 1.0960,
+                upper: 1.0975,
+            },
+        );
         insert_period(&mut cache, "ATR", 14, idx, 0.0010);
         insert_period(&mut cache, "EMA", 20, idx, 1.0998);
 
@@ -2334,7 +2440,18 @@ mod tests {
                 value: -3.0,
             },
         );
-        insert_bollinger(&mut cache, "BOLLINGER", 20, 2.0, idx, BollingerValues { lower: 1.1010, middle: 1.1020, upper: 1.1030 });
+        insert_bollinger(
+            &mut cache,
+            "BOLLINGER",
+            20,
+            2.0,
+            idx,
+            BollingerValues {
+                lower: 1.1010,
+                middle: 1.1020,
+                upper: 1.1030,
+            },
+        );
         insert_period(&mut cache, "ATR", 14, idx, 0.0010);
 
         let bid = make_candle(1.1000);
@@ -2375,7 +2492,18 @@ mod tests {
                 value: 3.0,
             },
         );
-        insert_bollinger(&mut cache, "BOLLINGER", 20, 2.0, idx, BollingerValues { lower: 1.0980, middle: 1.0990, upper: 1.1005 });
+        insert_bollinger(
+            &mut cache,
+            "BOLLINGER",
+            20,
+            2.0,
+            idx,
+            BollingerValues {
+                lower: 1.0980,
+                middle: 1.0990,
+                upper: 1.1005,
+            },
+        );
         insert_period(&mut cache, "ATR", 14, idx, 0.0010);
 
         let bid = make_candle(1.1010);
@@ -2416,7 +2544,18 @@ mod tests {
                 value: -1.0,
             },
         );
-        insert_bollinger(&mut cache, "BOLLINGER", 20, 2.0, idx, BollingerValues { lower: 1.1010, middle: 1.1020, upper: 1.1030 });
+        insert_bollinger(
+            &mut cache,
+            "BOLLINGER",
+            20,
+            2.0,
+            idx,
+            BollingerValues {
+                lower: 1.1010,
+                middle: 1.1020,
+                upper: 1.1030,
+            },
+        );
         insert_period(&mut cache, "ATR", 14, idx, 0.0010);
 
         let bid = make_candle(1.1000);
@@ -2451,14 +2590,24 @@ mod tests {
         let idx = closes.len() - 1;
         let mut cache = IndicatorCache::new();
         insert_kalman(&mut cache, "KALMAN_Z", 20, 1.0, 0.1, idx, -3.0);
-        insert_bollinger(&mut cache, "BOLLINGER", 20, 2.0, idx, BollingerValues { lower: 1.1010, middle: 1.1020, upper: 1.1030 });
+        insert_bollinger(
+            &mut cache,
+            "BOLLINGER",
+            20,
+            2.0,
+            idx,
+            BollingerValues {
+                lower: 1.1010,
+                middle: 1.1020,
+                upper: 1.1030,
+            },
+        );
         insert_period(&mut cache, "ATR", 2, idx, 0.0010);
 
         let bid = make_candle(closes[idx]);
         let ask = make_candle(closes[idx] + 0.0002);
         let multi_tf = make_multi_tf_cache(&closes);
-        let ctx = BarContext::new(idx, 1_000_000_000, &bid, &ask, &cache)
-            .with_multi_tf(&multi_tf);
+        let ctx = BarContext::new(idx, 1_000_000_000, &bid, &ask, &cache).with_multi_tf(&multi_tf);
 
         let signal = strategy.scenario_5(&ctx);
         assert!(signal.is_none());
@@ -2488,14 +2637,24 @@ mod tests {
         let idx = closes.len() - 1;
         let mut cache = IndicatorCache::new();
         insert_kalman(&mut cache, "KALMAN_Z", 20, 1.0, 0.1, idx, -3.0);
-        insert_bollinger(&mut cache, "BOLLINGER", 20, 2.0, idx, BollingerValues { lower: 1.1010, middle: 1.1020, upper: 1.1030 });
+        insert_bollinger(
+            &mut cache,
+            "BOLLINGER",
+            20,
+            2.0,
+            idx,
+            BollingerValues {
+                lower: 1.1010,
+                middle: 1.1020,
+                upper: 1.1030,
+            },
+        );
         insert_period(&mut cache, "ATR", 2, idx, 0.0010);
 
         let bid = make_candle(closes[idx]);
         let ask = make_candle(closes[idx] + 0.0002);
         let multi_tf = make_multi_tf_cache(&closes);
-        let ctx = BarContext::new(idx, 1_000_000_000, &bid, &ask, &cache)
-            .with_multi_tf(&multi_tf);
+        let ctx = BarContext::new(idx, 1_000_000_000, &bid, &ask, &cache).with_multi_tf(&multi_tf);
 
         let signal = strategy.scenario_5(&ctx).expect("expected signal");
         assert_eq!(signal.direction, Direction::Long);
@@ -2526,14 +2685,24 @@ mod tests {
         let idx = closes.len() - 1;
         let mut cache = IndicatorCache::new();
         insert_kalman(&mut cache, "KALMAN_Z", 20, 1.0, 0.1, idx, 3.0);
-        insert_bollinger(&mut cache, "BOLLINGER", 20, 2.0, idx, BollingerValues { lower: 1.0980, middle: 1.0990, upper: 1.1005 });
+        insert_bollinger(
+            &mut cache,
+            "BOLLINGER",
+            20,
+            2.0,
+            idx,
+            BollingerValues {
+                lower: 1.0980,
+                middle: 1.0990,
+                upper: 1.1005,
+            },
+        );
         insert_period(&mut cache, "ATR", 2, idx, 0.0010);
 
         let bid = make_candle(1.1010);
         let ask = make_candle(1.1012);
         let multi_tf = make_multi_tf_cache(&closes);
-        let ctx = BarContext::new(idx, 1_000_000_000, &bid, &ask, &cache)
-            .with_multi_tf(&multi_tf);
+        let ctx = BarContext::new(idx, 1_000_000_000, &bid, &ask, &cache).with_multi_tf(&multi_tf);
 
         let signal = strategy.scenario_5(&ctx).expect("expected signal");
         assert_eq!(signal.direction, Direction::Short);
@@ -2564,14 +2733,24 @@ mod tests {
         let idx = closes.len() - 1;
         let mut cache = IndicatorCache::new();
         insert_kalman(&mut cache, "KALMAN_Z", 20, 1.0, 0.1, idx, -3.0);
-        insert_bollinger(&mut cache, "BOLLINGER", 20, 2.0, idx, BollingerValues { lower: 1.1010, middle: 1.1020, upper: 1.1030 });
+        insert_bollinger(
+            &mut cache,
+            "BOLLINGER",
+            20,
+            2.0,
+            idx,
+            BollingerValues {
+                lower: 1.1010,
+                middle: 1.1020,
+                upper: 1.1030,
+            },
+        );
         insert_period(&mut cache, "ATR", 2, idx, 0.0010);
 
         let bid = make_candle(closes[idx]);
         let ask = make_candle(closes[idx] + 0.0002);
         let multi_tf = make_multi_tf_cache(&closes);
-        let ctx = BarContext::new(idx, 1_000_000_000, &bid, &ask, &cache)
-            .with_multi_tf(&multi_tf);
+        let ctx = BarContext::new(idx, 1_000_000_000, &bid, &ask, &cache).with_multi_tf(&multi_tf);
 
         let signal = strategy.scenario_5(&ctx);
         assert!(signal.is_none());
@@ -2612,11 +2791,33 @@ mod tests {
         let idx = 0;
         let mut cache = IndicatorCache::new();
         insert_kalman(&mut cache, "KALMAN_Z", 20, 1.0, 0.1, idx, -3.0);
-        insert_bollinger(&mut cache, "BOLLINGER", 20, 2.0, idx, BollingerValues { lower: 1.1010, middle: 1.1020, upper: 1.1030 });
+        insert_bollinger(
+            &mut cache,
+            "BOLLINGER",
+            20,
+            2.0,
+            idx,
+            BollingerValues {
+                lower: 1.1010,
+                middle: 1.1020,
+                upper: 1.1030,
+            },
+        );
         insert_period(&mut cache, "ATR", 14, idx, 0.0010);
 
         insert_kalman(&mut cache, "KALMAN_Z_H1", 20, 1.0, 0.1, idx, -3.0);
-        insert_bollinger(&mut cache, "BOLLINGER_H1", 20, 2.0, idx, BollingerValues { lower: 1.1010, middle: 1.1020, upper: 1.1030 });
+        insert_bollinger(
+            &mut cache,
+            "BOLLINGER_H1",
+            20,
+            2.0,
+            idx,
+            BollingerValues {
+                lower: 1.1010,
+                middle: 1.1020,
+                upper: 1.1030,
+            },
+        );
         insert_period(&mut cache, "CLOSE_H1", 1, idx, 1.1000);
 
         let bid = make_candle(1.1000);
@@ -2641,11 +2842,33 @@ mod tests {
         let idx = 0;
         let mut cache = IndicatorCache::new();
         insert_kalman(&mut cache, "KALMAN_Z", 20, 1.0, 0.1, idx, -3.0);
-        insert_bollinger(&mut cache, "BOLLINGER", 20, 2.0, idx, BollingerValues { lower: 1.1010, middle: 1.1020, upper: 1.1030 });
+        insert_bollinger(
+            &mut cache,
+            "BOLLINGER",
+            20,
+            2.0,
+            idx,
+            BollingerValues {
+                lower: 1.1010,
+                middle: 1.1020,
+                upper: 1.1030,
+            },
+        );
         insert_period(&mut cache, "ATR", 14, idx, 0.0010);
 
         insert_kalman(&mut cache, "KALMAN_Z_H1", 20, 1.0, 0.1, idx, -1.0);
-        insert_bollinger(&mut cache, "BOLLINGER_H1", 20, 2.0, idx, BollingerValues { lower: 1.1010, middle: 1.1020, upper: 1.1030 });
+        insert_bollinger(
+            &mut cache,
+            "BOLLINGER_H1",
+            20,
+            2.0,
+            idx,
+            BollingerValues {
+                lower: 1.1010,
+                middle: 1.1020,
+                upper: 1.1030,
+            },
+        );
         insert_period(&mut cache, "CLOSE_H1", 1, idx, 1.1000);
 
         let bid = make_candle(1.1000);
@@ -2669,15 +2892,48 @@ mod tests {
         let idx = 0;
         let mut cache = IndicatorCache::new();
         insert_kalman(&mut cache, "KALMAN_Z", 20, 1.0, 0.1, idx, -3.0);
-        insert_bollinger(&mut cache, "BOLLINGER", 20, 2.0, idx, BollingerValues { lower: 1.1010, middle: 1.1020, upper: 1.1030 });
+        insert_bollinger(
+            &mut cache,
+            "BOLLINGER",
+            20,
+            2.0,
+            idx,
+            BollingerValues {
+                lower: 1.1010,
+                middle: 1.1020,
+                upper: 1.1030,
+            },
+        );
         insert_period(&mut cache, "ATR", 14, idx, 0.0010);
 
         insert_kalman(&mut cache, "KALMAN_Z_H1", 20, 1.0, 0.1, idx, -3.0);
-        insert_bollinger(&mut cache, "BOLLINGER_H1", 20, 2.0, idx, BollingerValues { lower: 1.1010, middle: 1.1020, upper: 1.1030 });
+        insert_bollinger(
+            &mut cache,
+            "BOLLINGER_H1",
+            20,
+            2.0,
+            idx,
+            BollingerValues {
+                lower: 1.1010,
+                middle: 1.1020,
+                upper: 1.1030,
+            },
+        );
         insert_period(&mut cache, "CLOSE_H1", 1, idx, 1.1000);
 
         insert_kalman(&mut cache, "KALMAN_Z_H4", 20, 1.0, 0.1, idx, -1.0);
-        insert_bollinger(&mut cache, "BOLLINGER_H4", 20, 2.0, idx, BollingerValues { lower: 1.1010, middle: 1.1020, upper: 1.1030 });
+        insert_bollinger(
+            &mut cache,
+            "BOLLINGER_H4",
+            20,
+            2.0,
+            idx,
+            BollingerValues {
+                lower: 1.1010,
+                middle: 1.1020,
+                upper: 1.1030,
+            },
+        );
         insert_period(&mut cache, "CLOSE_H4", 1, idx, 1.1000);
 
         let bid = make_candle(1.1000);
@@ -2703,11 +2959,33 @@ mod tests {
         let idx = 0;
         let mut cache = IndicatorCache::new();
         insert_kalman(&mut cache, "KALMAN_Z", 20, 1.0, 0.1, idx, 3.0);
-        insert_bollinger(&mut cache, "BOLLINGER", 20, 2.0, idx, BollingerValues { lower: 1.0980, middle: 1.0990, upper: 1.1005 });
+        insert_bollinger(
+            &mut cache,
+            "BOLLINGER",
+            20,
+            2.0,
+            idx,
+            BollingerValues {
+                lower: 1.0980,
+                middle: 1.0990,
+                upper: 1.1005,
+            },
+        );
         insert_period(&mut cache, "ATR", 14, idx, 0.0010);
 
         insert_kalman(&mut cache, "KALMAN_Z_H1", 20, 1.0, 0.1, idx, 3.0);
-        insert_bollinger(&mut cache, "BOLLINGER_H1", 20, 2.0, idx, BollingerValues { lower: 1.0980, middle: 1.0990, upper: 1.1005 });
+        insert_bollinger(
+            &mut cache,
+            "BOLLINGER_H1",
+            20,
+            2.0,
+            idx,
+            BollingerValues {
+                lower: 1.0980,
+                middle: 1.0990,
+                upper: 1.1005,
+            },
+        );
         insert_period(&mut cache, "CLOSE_H1", 1, idx, 1.1010);
 
         let bid = make_candle(1.1010);
@@ -2732,15 +3010,48 @@ mod tests {
         let idx = 0;
         let mut cache = IndicatorCache::new();
         insert_kalman(&mut cache, "KALMAN_Z", 20, 1.0, 0.1, idx, -3.0);
-        insert_bollinger(&mut cache, "BOLLINGER", 20, 2.0, idx, BollingerValues { lower: 1.1010, middle: 1.1020, upper: 1.1030 });
+        insert_bollinger(
+            &mut cache,
+            "BOLLINGER",
+            20,
+            2.0,
+            idx,
+            BollingerValues {
+                lower: 1.1010,
+                middle: 1.1020,
+                upper: 1.1030,
+            },
+        );
         insert_period(&mut cache, "ATR", 14, idx, 0.0010);
 
         insert_kalman(&mut cache, "KALMAN_Z_H1", 20, 1.0, 0.1, idx, -1.0);
-        insert_bollinger(&mut cache, "BOLLINGER_H1", 20, 2.0, idx, BollingerValues { lower: 1.1010, middle: 1.1020, upper: 1.1030 });
+        insert_bollinger(
+            &mut cache,
+            "BOLLINGER_H1",
+            20,
+            2.0,
+            idx,
+            BollingerValues {
+                lower: 1.1010,
+                middle: 1.1020,
+                upper: 1.1030,
+            },
+        );
         insert_period(&mut cache, "CLOSE_H1", 1, idx, 1.1000);
 
         insert_kalman(&mut cache, "KALMAN_Z_H4", 20, 1.0, 0.1, idx, -1.0);
-        insert_bollinger(&mut cache, "BOLLINGER_H4", 20, 2.0, idx, BollingerValues { lower: 1.1010, middle: 1.1020, upper: 1.1030 });
+        insert_bollinger(
+            &mut cache,
+            "BOLLINGER_H4",
+            20,
+            2.0,
+            idx,
+            BollingerValues {
+                lower: 1.1010,
+                middle: 1.1020,
+                upper: 1.1030,
+            },
+        );
         insert_period(&mut cache, "CLOSE_H4", 1, idx, 1.1000);
 
         let bid = make_candle(1.1000);
@@ -2764,7 +3075,18 @@ mod tests {
         let idx = 0;
         let mut cache = IndicatorCache::new();
         insert_kalman(&mut cache, "KALMAN_Z", 20, 1.0, 0.1, idx, -3.0);
-        insert_bollinger(&mut cache, "BOLLINGER", 20, 2.0, idx, BollingerValues { lower: 1.1010, middle: 1.1020, upper: 1.1030 });
+        insert_bollinger(
+            &mut cache,
+            "BOLLINGER",
+            20,
+            2.0,
+            idx,
+            BollingerValues {
+                lower: 1.1010,
+                middle: 1.1020,
+                upper: 1.1030,
+            },
+        );
         insert_period(&mut cache, "ATR", 14, idx, 0.0010);
 
         let bid = make_candle(1.1000);

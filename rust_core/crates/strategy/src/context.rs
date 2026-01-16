@@ -127,11 +127,7 @@ impl<'a> BarContext<'a> {
         }
         let spec = self.params_to_spec(name, params)?;
         let value = self.indicators.get_at(&spec, self.idx)?;
-        if value.is_nan() {
-            None
-        } else {
-            Some(value)
-        }
+        if value.is_nan() { None } else { Some(value) }
     }
 
     /// Gets an HTF indicator value for the last completed bar.
@@ -155,11 +151,7 @@ impl<'a> BarContext<'a> {
         }
         let spec = self.params_to_spec(name, params)?;
         let value = htf.indicators.get_at(&spec, htf.idx)?;
-        if value.is_nan() {
-            None
-        } else {
-            Some(value)
-        }
+        if value.is_nan() { None } else { Some(value) }
     }
 
     /// Gets a multi-output indicator value (e.g., Bollinger upper band).
@@ -177,11 +169,7 @@ impl<'a> BarContext<'a> {
         let spec = self.params_to_spec(name, params)?;
         let full_spec = spec.with_output_suffix(output);
         let value = self.indicators.get_at(&full_spec, self.idx)?;
-        if value.is_nan() {
-            None
-        } else {
-            Some(value)
-        }
+        if value.is_nan() { None } else { Some(value) }
     }
 
     /// Gets an HTF multi-output indicator value.
@@ -201,9 +189,10 @@ impl<'a> BarContext<'a> {
                     .get("std_factor")
                     .and_then(|v| v.as_f64())
                     .unwrap_or(2.0);
-                let (upper, middle, lower) = cache
-                    .borrow_mut()
-                    .bollinger_stepwise(tf, PriceType::Bid, period, std_factor);
+                let (upper, middle, lower) =
+                    cache
+                        .borrow_mut()
+                        .bollinger_stepwise(tf, PriceType::Bid, period, std_factor);
                 return match output {
                     "upper" => value_at(&upper, self.idx),
                     "middle" => value_at(&middle, self.idx),
@@ -215,11 +204,7 @@ impl<'a> BarContext<'a> {
         let spec = self.params_to_spec(name, params)?;
         let full_spec = spec.with_output_suffix(output);
         let value = htf.indicators.get_at(&full_spec, htf.idx)?;
-        if value.is_nan() {
-            None
-        } else {
-            Some(value)
-        }
+        if value.is_nan() { None } else { Some(value) }
     }
 
     /// Converts JSON params to IndicatorSpec.
@@ -253,7 +238,10 @@ impl<'a> BarContext<'a> {
             }
             "BOLLINGER" => {
                 let period = params.get("period")?.as_u64()? as usize;
-                let std_factor = params.get("std_factor").and_then(|v| v.as_f64()).unwrap_or(2.0);
+                let std_factor = params
+                    .get("std_factor")
+                    .and_then(|v| v.as_f64())
+                    .unwrap_or(2.0);
                 IndicatorParams::Bollinger {
                     period,
                     std_factor_x100: (std_factor * 100.0).round() as u32,
@@ -272,12 +260,18 @@ impl<'a> BarContext<'a> {
             "GARCH_VOL" | "GARCH" => {
                 let alpha = params.get("alpha").and_then(|v| v.as_f64()).unwrap_or(0.1);
                 let beta = params.get("beta").and_then(|v| v.as_f64()).unwrap_or(0.8);
-                let omega = params.get("omega").and_then(|v| v.as_f64()).unwrap_or(0.00001);
+                let omega = params
+                    .get("omega")
+                    .and_then(|v| v.as_f64())
+                    .unwrap_or(0.00001);
                 let use_log_returns = params
                     .get("use_log_returns")
                     .and_then(|v| v.as_bool())
                     .unwrap_or(true);
-                let scale = params.get("scale").and_then(|v| v.as_f64()).unwrap_or(100.0);
+                let scale = params
+                    .get("scale")
+                    .and_then(|v| v.as_f64())
+                    .unwrap_or(100.0);
                 let min_periods = params
                     .get("min_periods")
                     .and_then(|v| v.as_u64())
@@ -302,7 +296,10 @@ impl<'a> BarContext<'a> {
                 let q = params.get("q").and_then(|v| v.as_f64()).unwrap_or(0.1);
                 let alpha = params.get("alpha").and_then(|v| v.as_f64()).unwrap_or(0.1);
                 let beta = params.get("beta").and_then(|v| v.as_f64()).unwrap_or(0.8);
-                let omega = params.get("omega").and_then(|v| v.as_f64()).unwrap_or(0.00001);
+                let omega = params
+                    .get("omega")
+                    .and_then(|v| v.as_f64())
+                    .unwrap_or(0.00001);
                 let use_log_returns = params
                     .get("use_log_returns")
                     .and_then(|v| v.as_bool())
@@ -457,11 +454,14 @@ impl<'a> BarContext<'a> {
             return value_at(&series, self.idx);
         }
         let name = format!("KALMAN_Z_{}", timeframe);
-        let value = self.get_indicator(&name, &serde_json::json!({
-            "window": window,
-            "r": r,
-            "q": q
-        }))?;
+        let value = self.get_indicator(
+            &name,
+            &serde_json::json!({
+                "window": window,
+                "r": r,
+                "q": q
+            }),
+        )?;
         Some(value)
     }
 
@@ -475,8 +475,9 @@ impl<'a> BarContext<'a> {
     ) -> Option<f64> {
         if let Some(cache) = self.multi_tf {
             let tf = self.parse_timeframe(timeframe)?;
-            let (upper, middle, lower) =
-                cache.borrow_mut().bollinger_stepwise(tf, price_type, period, std_factor);
+            let (upper, middle, lower) = cache
+                .borrow_mut()
+                .bollinger_stepwise(tf, price_type, period, std_factor);
             return match output {
                 "upper" => value_at(&upper, self.idx),
                 "middle" => value_at(&middle, self.idx),

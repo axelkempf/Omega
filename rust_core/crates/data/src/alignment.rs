@@ -113,9 +113,8 @@ pub fn align_bid_ask(bid: Vec<Candle>, ask: Vec<Candle>) -> Result<AlignedData, 
 }
 
 fn count_to_f64(value: usize, label: &str) -> Result<f64, DataError> {
-    let value_u64 = u64::try_from(value).map_err(|_| {
-        DataError::CorruptData(format!("Count overflow for {label}: {value}"))
-    })?;
+    let value_u64 = u64::try_from(value)
+        .map_err(|_| DataError::CorruptData(format!("Count overflow for {label}: {value}")))?;
     #[allow(clippy::cast_precision_loss)]
     let value_as_f64 = value_u64 as f64;
     Ok(value_as_f64)

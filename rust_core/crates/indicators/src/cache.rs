@@ -2,7 +2,7 @@
 
 use crate::traits::{Indicator, IndicatorSpec, IntoMultiVecs, MultiOutputIndicator};
 use omega_types::Candle;
-use std::collections::{hash_map::Entry, HashMap};
+use std::collections::{HashMap, hash_map::Entry};
 
 /// Cache for computed indicator values.
 ///

@@ -52,7 +52,10 @@ impl StrategyRegistry {
     /// * `factory` - Factory function that creates the strategy
     pub fn register<F>(&mut self, name: impl Into<String>, factory: F)
     where
-        F: Fn(&serde_json::Value) -> Result<Box<dyn Strategy>, StrategyError> + Send + Sync + 'static,
+        F: Fn(&serde_json::Value) -> Result<Box<dyn Strategy>, StrategyError>
+            + Send
+            + Sync
+            + 'static,
     {
         self.factories
             .insert(name.into().to_lowercase(), Arc::new(Box::new(factory)));

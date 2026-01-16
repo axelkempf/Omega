@@ -25,6 +25,7 @@ defaults:
   per_lot: 2.5              # nur für per_lot (pro Lot und pro Seite)
   pct: 0.0                  # nur für percent_of_notional (z.B. 0.0002 = 2 bp)
   min_fee: 0.0              # Mindestgebühr pro Order/Seite in fee_ccy
+  pip_buffer_factor: 0.5    # SL/TP-Pufferfaktor (0.0 = kein Puffer)
 
 # Symbol-spezifische Overrides für CommissionModel
 per_symbol:

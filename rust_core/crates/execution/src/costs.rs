@@ -4,8 +4,11 @@
 //! with the existing Omega Python stack.
 
 use crate::error::ExecutionError;
-use crate::fees::{FeeModel, FixedFee, NoFee, PercentageFee};
+use crate::fees::{
+    FeeModel, FixedFee, MinFee, NoFee, PerMillionNotionalFee, PercentageFee,
+};
 use crate::slippage::{FixedSlippage, NoSlippage, SlippageModel, VolatilitySlippage};
+use crate::symbol_specs::SymbolSpec;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::Path;
@@ -48,6 +51,10 @@ fn default_lot_size() -> f64 {
     100_000.0
 }
 
+fn default_pip_buffer_factor() -> f64 {
+    0.5
+}
+
 impl Default for LegacyFeeConfig {
     fn default() -> Self {
         Self {
@@ -62,9 +69,12 @@ impl Default for LegacyFeeConfig {
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum CommissionSchema {
+    /// Fee charged per lot
     #[default]
     PerLot,
+    /// Fee charged per million notional
     PerMillionNotional,
+    /// Fee charged as percent of notional
     PercentOfNotional,
 }
 
@@ -72,8 +82,11 @@ pub enum CommissionSchema {
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum CommissionSide {
+    /// Fee applied on entry only
     Entry,
+    /// Fee applied on exit only
     Exit,
+    /// Fee applied on both entry and exit
     #[default]
     Both,
 }
@@ -89,13 +102,13 @@ pub struct CommissionConfig {
     pub side: CommissionSide,
     /// Fee currency (optional)
     pub fee_ccy: Option<String>,
-    /// Rate per million notional (for per_million_notional schema)
+    /// Rate per million notional (for `per_million_notional` schema)
     #[serde(default)]
     pub rate_per_million: f64,
-    /// Fee per lot (for per_lot schema)
+    /// Fee per lot (for `per_lot` schema)
     #[serde(default)]
     pub per_lot: f64,
-    /// Percentage of notional (for percent_of_notional schema)
+    /// Percentage of notional (for `percent_of_notional` schema)
     #[serde(default)]
     pub pct: f64,
     /// Minimum fee per order/side
@@ -118,7 +131,7 @@ impl Default for CommissionConfig {
 }
 
 /// Default costs configuration section.
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DefaultsConfig {
     /// Slippage configuration
     #[serde(default)]
@@ -144,6 +157,25 @@ pub struct DefaultsConfig {
     /// Default minimum fee
     #[serde(default)]
     pub min_fee: f64,
+    /// Pip buffer factor for SL/TP checks
+    #[serde(default = "default_pip_buffer_factor")]
+    pub pip_buffer_factor: f64,
+}
+
+impl Default for DefaultsConfig {
+    fn default() -> Self {
+        Self {
+            slippage: SlippageConfig::default(),
+            fees: LegacyFeeConfig::default(),
+            schema: CommissionSchema::default(),
+            side: CommissionSide::default(),
+            rate_per_million: 0.0,
+            per_lot: 0.0,
+            pct: 0.0,
+            min_fee: 0.0,
+            pip_buffer_factor: default_pip_buffer_factor(),
+        }
+    }
 }
 
 /// Complete execution costs configuration.
@@ -159,6 +191,9 @@ pub struct ExecutionCostsConfig {
 
 impl ExecutionCostsConfig {
     /// Loads execution costs from a YAML file.
+    ///
+    /// # Errors
+    /// Returns an error if the file cannot be read or YAML parsing fails.
     pub fn load(path: &Path) -> Result<Self, ExecutionError> {
         let content = std::fs::read_to_string(path)?;
         let config: ExecutionCostsConfig = serde_yaml::from_str(&content)?;
@@ -166,12 +201,16 @@ impl ExecutionCostsConfig {
     }
 
     /// Loads execution costs from a YAML string.
+    ///
+    /// # Errors
+    /// Returns an error if YAML parsing fails.
     pub fn from_yaml(yaml: &str) -> Result<Self, ExecutionError> {
         let config: ExecutionCostsConfig = serde_yaml::from_str(yaml)?;
         Ok(config)
     }
 
     /// Gets the commission config for a symbol, falling back to defaults.
+    #[must_use]
     pub fn get_commission_config(&self, symbol: &str) -> CommissionConfig {
         if let Some(config) = self.per_symbol.get(symbol) {
             config.clone()
@@ -190,18 +229,24 @@ impl ExecutionCostsConfig {
 
     /// Creates a slippage model from the configuration.
     ///
-    /// If both fixed_pips and random_pips are set, creates a VolatilitySlippage.
-    /// If only fixed_pips is set, creates a FixedSlippage.
-    /// Otherwise, creates a NoSlippage.
+    /// If both `fixed_pips` and `random_pips` are set, creates a `VolatilitySlippage`.
+    /// If only `fixed_pips` is set, creates a `FixedSlippage`.
+    /// Otherwise, creates a `NoSlippage`.
+    #[must_use]
     pub fn create_slippage_model(&self, pip_size: f64) -> Box<dyn SlippageModel> {
         let config = &self.defaults.slippage;
 
         if config.random_pips > 0.0 {
-            Box::new(VolatilitySlippage::new(
-                config.fixed_pips,
-                pip_size,
-                config.random_pips / config.fixed_pips.max(0.1), // jitter factor
-            ))
+            if config.fixed_pips > 0.0 {
+                Box::new(VolatilitySlippage::new(
+                    config.fixed_pips,
+                    pip_size,
+                    config.random_pips / config.fixed_pips.max(0.1),
+                ))
+            } else {
+                let base_pips = config.random_pips / 2.0;
+                Box::new(VolatilitySlippage::new(base_pips, pip_size, 1.0))
+            }
         } else if config.fixed_pips > 0.0 {
             Box::new(FixedSlippage::new(config.fixed_pips, pip_size))
         } else {
@@ -210,27 +255,37 @@ impl ExecutionCostsConfig {
     }
 
     /// Creates a fee model for a symbol from the configuration.
-    pub fn create_fee_model(&self, symbol: &str, _lot_size: f64) -> Box<dyn FeeModel> {
+    #[must_use]
+    pub fn create_fee_model(&self, symbol: &str, lot_size: f64) -> Box<dyn FeeModel> {
         let config = self.get_commission_config(symbol);
 
-        match config.schema {
+        let base_model: Box<dyn FeeModel> = match config.schema {
             CommissionSchema::PerLot => Box::new(FixedFee::new(config.per_lot)),
             CommissionSchema::PerMillionNotional => {
-                // Convert per-million rate to percentage
-                let pct = config.rate_per_million / 1_000_000.0;
-                Box::new(PercentageFee::new(pct))
+                Box::new(PerMillionNotionalFee::new(
+                    config.rate_per_million,
+                    lot_size,
+                ))
             }
             CommissionSchema::PercentOfNotional => Box::new(PercentageFee::new(config.pct)),
+        };
+
+        if config.min_fee > 0.0 {
+            Box::new(MinFee::new(base_model, config.min_fee))
+        } else {
+            base_model
         }
     }
 
     /// Checks if fees should be applied on entry for a symbol.
+    #[must_use]
     pub fn apply_on_entry(&self, symbol: &str) -> bool {
         let config = self.get_commission_config(symbol);
         matches!(config.side, CommissionSide::Entry | CommissionSide::Both)
     }
 
     /// Checks if fees should be applied on exit for a symbol.
+    #[must_use]
     pub fn apply_on_exit(&self, symbol: &str) -> bool {
         let config = self.get_commission_config(symbol);
         matches!(config.side, CommissionSide::Exit | CommissionSide::Both)
@@ -251,22 +306,52 @@ pub struct SymbolCosts {
     pub pip_size: f64,
     /// Pip buffer factor for SL/TP checks
     pub pip_buffer_factor: f64,
+    /// Minimum SL distance in pips
+    pub min_sl_distance_pips: f64,
+    /// Minimum volume
+    pub volume_min: f64,
+    /// Volume step
+    pub volume_step: f64,
+    /// Maximum volume
+    pub volume_max: f64,
 }
 
 impl SymbolCosts {
-    /// Creates symbol costs from config.
-    pub fn from_config(config: &ExecutionCostsConfig, symbol: &str, pip_size: f64) -> Self {
+    /// Creates symbol costs from config and optional symbol specs.
+    pub fn from_config(
+        config: &ExecutionCostsConfig,
+        symbol: &str,
+        pip_size: f64,
+        symbol_spec: Option<&SymbolSpec>,
+    ) -> Self {
+        let resolved_pip_size = symbol_spec
+            .map(SymbolSpec::resolved_pip_size)
+            .filter(|value| *value > 0.0)
+            .unwrap_or(pip_size);
+        let (volume_min, volume_step, volume_max) =
+            symbol_spec.map_or((0.01, 0.01, 100.0), SymbolSpec::volume_limits);
+        let min_sl_distance_pips = symbol_spec.map_or(0.1, SymbolSpec::min_sl_distance_pips);
+        let lot_size = symbol_spec
+            .and_then(|spec| spec.contract_size)
+            .filter(|value| *value > 0.0)
+            .unwrap_or_else(|| config.defaults.fees.lot_size.max(100_000.0));
+
         Self {
-            slippage: config.create_slippage_model(pip_size),
-            fee: config.create_fee_model(symbol, 100_000.0),
+            slippage: config.create_slippage_model(resolved_pip_size),
+            fee: config.create_fee_model(symbol, lot_size),
             apply_entry_fee: config.apply_on_entry(symbol),
             apply_exit_fee: config.apply_on_exit(symbol),
-            pip_size,
-            pip_buffer_factor: 0.5,
+            pip_size: resolved_pip_size,
+            pip_buffer_factor: config.defaults.pip_buffer_factor,
+            min_sl_distance_pips,
+            volume_min,
+            volume_step,
+            volume_max,
         }
     }
 
     /// Creates symbol costs with no fees or slippage (for testing).
+    #[must_use]
     pub fn zero_cost(pip_size: f64) -> Self {
         Self {
             slippage: Box::new(NoSlippage),
@@ -274,7 +359,11 @@ impl SymbolCosts {
             apply_entry_fee: false,
             apply_exit_fee: false,
             pip_size,
-            pip_buffer_factor: 0.5,
+            pip_buffer_factor: default_pip_buffer_factor(),
+            min_sl_distance_pips: 0.1,
+            volume_min: 0.01,
+            volume_step: 0.01,
+            volume_max: 100.0,
         }
     }
 }
@@ -282,37 +371,42 @@ impl SymbolCosts {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use approx::assert_relative_eq;
+    use omega_types::Direction;
+    use rand::SeedableRng;
+    use rand_chacha::ChaCha8Rng;
 
-    const TEST_YAML: &str = r#"
+        const TEST_YAML: &str = r"
 defaults:
-  slippage:
-    fixed_pips: 0.20
-    random_pips: 0.30
-  fees:
-    per_million: 25.0
-    lot_size: 100000.0
+    slippage:
+        fixed_pips: 0.20
+        random_pips: 0.30
+    fees:
+        per_million: 25.0
+        lot_size: 100000.0
+        min_fee: 0.0
+    schema: per_lot
+    side: both
+    rate_per_million: 5.0
+    per_lot: 2.5
+    pct: 0.0
     min_fee: 0.0
-  schema: per_lot
-  side: both
-  rate_per_million: 5.0
-  per_lot: 2.5
-  pct: 0.0
-  min_fee: 0.0
+    pip_buffer_factor: 0.6
 
 per_symbol:
-  XAUUSD:
-    schema: per_lot
-    per_lot: 3.50
-    fee_ccy: USD
-    side: both
-    min_fee: 0.00
-  USDJPY:
-    schema: per_million_notional
-    fee_ccy: USD
-    rate_per_million: 6.0
-    side: both
-    min_fee: 1.0
-"#;
+    XAUUSD:
+        schema: per_lot
+        per_lot: 3.50
+        fee_ccy: USD
+        side: both
+        min_fee: 0.00
+    USDJPY:
+        schema: per_million_notional
+        fee_ccy: USD
+        rate_per_million: 6.0
+        side: both
+        min_fee: 1.0
+";
 
     #[test]
     fn test_load_yaml() {
@@ -323,6 +417,7 @@ per_symbol:
         assert!((config.defaults.slippage.random_pips - 0.30).abs() < 0.001);
         assert_eq!(config.defaults.schema, CommissionSchema::PerLot);
         assert!((config.defaults.per_lot - 2.5).abs() < 0.001);
+        assert_relative_eq!(config.defaults.pip_buffer_factor, 0.6, epsilon = 1e-12);
 
         // Check per-symbol overrides
         assert!(config.per_symbol.contains_key("XAUUSD"));
@@ -366,11 +461,38 @@ per_symbol:
     #[test]
     fn test_symbol_costs() {
         let config = ExecutionCostsConfig::from_yaml(TEST_YAML).unwrap();
-        let costs = SymbolCosts::from_config(&config, "EURUSD", 0.0001);
+        let costs = SymbolCosts::from_config(&config, "EURUSD", 0.0001, None);
 
-        assert_eq!(costs.pip_size, 0.0001);
+        assert_relative_eq!(costs.pip_size, 0.0001, epsilon = 1e-12);
         assert!(costs.apply_entry_fee);
         assert!(costs.apply_exit_fee);
+    }
+
+    #[test]
+    fn test_symbol_costs_with_specs() {
+        let config = ExecutionCostsConfig::from_yaml(TEST_YAML).unwrap();
+        let spec = SymbolSpec {
+            contract_size: None,
+            tick_size: None,
+            tick_value: None,
+            pip_size: 0.001,
+            volume_min: 0.2,
+            volume_step: 0.1,
+            volume_max: 5.0,
+            min_sl_distance_pips: Some(0.5),
+            base_currency: None,
+            quote_currency: None,
+            profit_currency: None,
+            symbol: None,
+        };
+
+        let costs = SymbolCosts::from_config(&config, "EURUSD", 0.0001, Some(&spec));
+
+        assert_relative_eq!(costs.pip_size, 0.001, epsilon = 1e-12);
+        assert_relative_eq!(costs.min_sl_distance_pips, 0.5, epsilon = 1e-12);
+        assert_relative_eq!(costs.volume_min, 0.2, epsilon = 1e-12);
+        assert_relative_eq!(costs.volume_step, 0.1, epsilon = 1e-12);
+        assert_relative_eq!(costs.volume_max, 5.0, epsilon = 1e-12);
     }
 
     #[test]
@@ -382,4 +504,68 @@ per_symbol:
         assert!(!costs.apply_entry_fee);
         assert!(!costs.apply_exit_fee);
     }
+
+        #[test]
+        fn test_min_fee_applied_per_lot() {
+                let yaml = r"
+defaults:
+    schema: per_lot
+    per_lot: 1.0
+    min_fee: 5.0
+";
+                let config = ExecutionCostsConfig::from_yaml(yaml).unwrap();
+                let model = config.create_fee_model("EURUSD", 100_000.0);
+
+                let fee = model.calculate(1.0, 100.0);
+                assert_relative_eq!(fee, 5.0, epsilon = 1e-10);
+        }
+
+        #[test]
+        fn test_min_fee_applied_per_million() {
+                let yaml = r"
+defaults:
+    schema: per_million_notional
+    rate_per_million: 10.0
+    min_fee: 2.0
+";
+                let config = ExecutionCostsConfig::from_yaml(yaml).unwrap();
+                let model = config.create_fee_model("EURUSD", 100_000.0);
+
+            let fee = model.calculate(1.0, 1.0);
+                assert_relative_eq!(fee, 2.0, epsilon = 1e-10);
+        }
+
+        #[test]
+        fn test_min_fee_applied_percent_of_notional() {
+                let yaml = r"
+defaults:
+    schema: percent_of_notional
+    pct: 0.00001
+    min_fee: 1.0
+";
+                let config = ExecutionCostsConfig::from_yaml(yaml).unwrap();
+                let model = config.create_fee_model("EURUSD", 100_000.0);
+
+                let fee = model.calculate(1.0, 100.0);
+                assert_relative_eq!(fee, 1.0, epsilon = 1e-10);
+        }
+
+        #[test]
+        fn test_random_slippage_without_fixed_pips() {
+                let yaml = r"
+defaults:
+    slippage:
+        fixed_pips: 0.0
+        random_pips: 0.4
+";
+                let config = ExecutionCostsConfig::from_yaml(yaml).unwrap();
+                let model = config.create_slippage_model(0.0001);
+
+                let mut rng = ChaCha8Rng::seed_from_u64(7);
+                let s1 = model.calculate(1.2000, Direction::Long, &mut rng);
+                let s2 = model.calculate(1.2000, Direction::Long, &mut rng);
+
+                assert!(s1.abs() > 0.0);
+                assert_ne!(s1, s2);
+        }
 }

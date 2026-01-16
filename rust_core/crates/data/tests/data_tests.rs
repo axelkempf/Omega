@@ -3,8 +3,8 @@ use std::sync::Arc;
 
 use arrow::array::{ArrayRef, Float64Array, Int64Array, StringArray, TimestampNanosecondArray};
 use arrow::datatypes::{DataType, Field, TimeUnit};
-use tempfile::tempdir;
 use temp_env::with_var;
+use tempfile::tempdir;
 
 use omega_data::{
     DataError, align_bid_ask, analyze_gaps, filter_by_date_range, load_and_validate,
@@ -444,9 +444,8 @@ fn test_load_news_calendar_rejects_missing_column() {
     let dir = tempdir().unwrap();
     let path = dir.path().join("news_missing.parquet");
 
-    let timestamps: ArrayRef = Arc::new(
-        TimestampNanosecondArray::from(vec![1_i64]).with_timezone("UTC"),
-    );
+    let timestamps: ArrayRef =
+        Arc::new(TimestampNanosecondArray::from(vec![1_i64]).with_timezone("UTC"));
     let ids: ArrayRef = Arc::new(Int64Array::from(vec![1_i64]));
     let names: ArrayRef = Arc::new(StringArray::from(vec!["Event"]));
     let impacts: ArrayRef = Arc::new(StringArray::from(vec!["HIGH"]));
@@ -545,8 +544,16 @@ fn test_news_timezone_contract_rejects_missing_timezone() {
     let dir = tempdir().unwrap();
     let path = dir.path().join("news_no_tz.parquet");
 
-    write_news_parquet(&path, &[1_i64], &[1_i64], &["Event"], &["HIGH"], &["USD"], None)
-        .unwrap();
+    write_news_parquet(
+        &path,
+        &[1_i64],
+        &[1_i64],
+        &["Event"],
+        &["HIGH"],
+        &["USD"],
+        None,
+    )
+    .unwrap();
 
     let err = load_news_calendar(&path).unwrap_err();
     assert!(matches!(err, DataError::InvalidTimezone { .. }));

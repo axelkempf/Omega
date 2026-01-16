@@ -20,8 +20,11 @@ pub enum ExecutionError {
     /// Invalid state transition
     #[error("invalid state transition from {from} to {to}: {reason}")]
     InvalidStateTransition {
+        /// Previous state
         from: String,
+        /// Target state
         to: String,
+        /// Reason for invalid transition
         reason: String,
     },
 

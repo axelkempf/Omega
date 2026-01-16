@@ -20,6 +20,7 @@ pub struct PositionManager {
 
 impl PositionManager {
     /// Creates a new position manager with the given maximum positions.
+    #[must_use]
     pub fn new(max_positions: usize) -> Self {
         Self {
             positions: Vec::new(),
@@ -29,11 +30,13 @@ impl PositionManager {
     }
 
     /// Checks if a new position can be opened.
+    #[must_use]
     pub fn can_open(&self) -> bool {
         self.positions.len() < self.max_positions
     }
 
     /// Returns the number of available position slots.
+    #[must_use]
     pub fn available_slots(&self) -> usize {
         self.max_positions.saturating_sub(self.positions.len())
     }
@@ -48,6 +51,9 @@ impl PositionManager {
     ///
     /// # Returns
     /// The assigned position ID.
+    ///
+    /// # Errors
+    /// Returns an error if position limits are exceeded or size is invalid.
     pub fn open_position(
         &mut self,
         signal: &Signal,
@@ -55,6 +61,12 @@ impl PositionManager {
         size: f64,
         entry_time_ns: i64,
     ) -> Result<u64, PortfolioError> {
+        if !size.is_finite() || size <= 0.0 {
+            return Err(PortfolioError::InvalidSize(
+                "position size must be positive and finite".to_string(),
+            ));
+        }
+
         if !self.can_open() {
             return Err(PortfolioError::MaxPositionsReached {
                 max: self.max_positions,
@@ -81,6 +93,9 @@ impl PositionManager {
     }
 
     /// Opens a position from raw parameters (not from a Signal).
+    ///
+    /// # Errors
+    /// Returns an error if position limits are exceeded or size is invalid.
     #[allow(clippy::too_many_arguments)]
     pub fn open_position_raw(
         &mut self,
@@ -93,6 +108,12 @@ impl PositionManager {
         scenario_id: u8,
         meta: JsonValue,
     ) -> Result<u64, PortfolioError> {
+        if !size.is_finite() || size <= 0.0 {
+            return Err(PortfolioError::InvalidSize(
+                "position size must be positive and finite".to_string(),
+            ));
+        }
+
         if !self.can_open() {
             return Err(PortfolioError::MaxPositionsReached {
                 max: self.max_positions,
@@ -127,6 +148,7 @@ impl PositionManager {
     }
 
     /// Gets a reference to a position by ID.
+    #[must_use]
     pub fn get_position(&self, position_id: u64) -> Option<&Position> {
         self.positions.iter().find(|p| p.id == position_id)
     }
@@ -137,6 +159,9 @@ impl PositionManager {
     }
 
     /// Modifies a position's stop-loss.
+    ///
+    /// # Errors
+    /// Returns an error if the position is missing or the new SL is invalid.
     pub fn modify_stop_loss(
         &mut self,
         position_id: u64,
@@ -169,6 +194,9 @@ impl PositionManager {
     }
 
     /// Modifies a position's take-profit.
+    ///
+    /// # Errors
+    /// Returns an error if the position is missing or the new TP is invalid.
     pub fn modify_take_profit(
         &mut self,
         position_id: u64,
@@ -201,6 +229,9 @@ impl PositionManager {
     }
 
     /// Moves stop-loss to break-even (entry price).
+    ///
+    /// # Errors
+    /// Returns an error if the position is missing.
     pub fn move_to_break_even(&mut self, position_id: u64) -> Result<(), PortfolioError> {
         let position = self
             .get_position_mut(position_id)
@@ -210,13 +241,15 @@ impl PositionManager {
         Ok(())
     }
 
-    /// Calculates unrealized PnL for a position at the given price.
+    /// Calculates unrealized `PnL` for a position at the given price.
+    #[must_use]
     pub fn unrealized_pnl(&self, position_id: u64, current_price: f64) -> Option<f64> {
         let position = self.get_position(position_id)?;
         Some(Self::calculate_pnl(position, current_price))
     }
 
-    /// Calculates total unrealized PnL for all positions.
+    /// Calculates total unrealized `PnL` for all positions.
+    #[must_use]
     pub fn total_unrealized_pnl(&self, current_price: f64) -> f64 {
         self.positions
             .iter()
@@ -224,7 +257,7 @@ impl PositionManager {
             .sum()
     }
 
-    /// Helper to calculate PnL for a position.
+    /// Helper to calculate `PnL` for a position.
     fn calculate_pnl(position: &Position, current_price: f64) -> f64 {
         match position.direction {
             Direction::Long => (current_price - position.entry_price) * position.size,
@@ -233,12 +266,14 @@ impl PositionManager {
     }
 
     /// Calculates the risk (distance to SL * size) for a position.
+    #[must_use]
     pub fn position_risk(&self, position_id: u64) -> Option<f64> {
         let position = self.get_position(position_id)?;
         Some((position.entry_price - position.stop_loss).abs() * position.size)
     }
 
     /// Calculates total risk for all positions.
+    #[must_use]
     pub fn total_risk(&self) -> f64 {
         self.positions
             .iter()
@@ -247,6 +282,7 @@ impl PositionManager {
     }
 
     /// Returns all open positions.
+    #[must_use]
     pub fn positions(&self) -> &[Position] {
         &self.positions
     }
@@ -257,16 +293,19 @@ impl PositionManager {
     }
 
     /// Returns the number of open positions.
+    #[must_use]
     pub fn len(&self) -> usize {
         self.positions.len()
     }
 
     /// Checks if there are no open positions.
+    #[must_use]
     pub fn is_empty(&self) -> bool {
         self.positions.is_empty()
     }
 
     /// Returns positions filtered by direction.
+    #[must_use]
     pub fn positions_by_direction(&self, direction: &Direction) -> Vec<&Position> {
         self.positions
             .iter()
@@ -275,6 +314,7 @@ impl PositionManager {
     }
 
     /// Returns positions that entered on or after the given timestamp.
+    #[must_use]
     pub fn positions_since(&self, timestamp_ns: i64) -> Vec<&Position> {
         self.positions
             .iter()
@@ -283,6 +323,7 @@ impl PositionManager {
     }
 
     /// Checks if a position was entered in the current bar.
+    #[must_use]
     pub fn is_entry_candle(&self, position_id: u64, current_bar_ns: i64) -> bool {
         self.get_position(position_id)
             .is_some_and(|p| p.entry_time_ns == current_bar_ns)
@@ -315,7 +356,9 @@ mod tests {
         let mut manager = PositionManager::new(5);
 
         let signal = make_signal(Direction::Long, 1.2000, 1.1950, 1.2100);
-        let id = manager.open_position(&signal, 1.2001, 1.0, 1_000_000).unwrap();
+        let id = manager
+            .open_position(&signal, 1.2001, 1.0, 1_000_000)
+            .unwrap();
 
         assert_eq!(id, 1);
         assert_eq!(manager.len(), 1);
@@ -330,13 +373,29 @@ mod tests {
 
         let signal = make_signal(Direction::Long, 1.2000, 1.1950, 1.2100);
 
-        manager.open_position(&signal, 1.2001, 1.0, 1_000_000).unwrap();
-        manager.open_position(&signal, 1.2002, 1.0, 2_000_000).unwrap();
+        manager
+            .open_position(&signal, 1.2001, 1.0, 1_000_000)
+            .unwrap();
+        manager
+            .open_position(&signal, 1.2002, 1.0, 2_000_000)
+            .unwrap();
 
         // Third should fail
         let result = manager.open_position(&signal, 1.2003, 1.0, 3_000_000);
         assert!(result.is_err());
-        assert!(matches!(result.unwrap_err(), PortfolioError::MaxPositionsReached { .. }));
+        assert!(matches!(
+            result.unwrap_err(),
+            PortfolioError::MaxPositionsReached { .. }
+        ));
+    }
+
+    #[test]
+    fn test_invalid_size_rejected() {
+        let mut manager = PositionManager::new(2);
+        let signal = make_signal(Direction::Long, 1.2000, 1.1950, 1.2100);
+
+        let result = manager.open_position(&signal, 1.2000, 0.0, 1_000_000);
+        assert!(matches!(result, Err(PortfolioError::InvalidSize(_))));
     }
 
     #[test]
@@ -344,7 +403,9 @@ mod tests {
         let mut manager = PositionManager::new(5);
 
         let signal = make_signal(Direction::Long, 1.2000, 1.1950, 1.2100);
-        let id = manager.open_position(&signal, 1.2001, 1.0, 1_000_000).unwrap();
+        let id = manager
+            .open_position(&signal, 1.2001, 1.0, 1_000_000)
+            .unwrap();
 
         let closed = manager.close_position(id);
         assert!(closed.is_some());
@@ -356,7 +417,9 @@ mod tests {
         let mut manager = PositionManager::new(5);
 
         let signal = make_signal(Direction::Long, 1.2000, 1.1950, 1.2100);
-        let id = manager.open_position(&signal, 1.2000, 1.0, 1_000_000).unwrap();
+        let id = manager
+            .open_position(&signal, 1.2000, 1.0, 1_000_000)
+            .unwrap();
 
         // Move SL up (trailing)
         manager.modify_stop_loss(id, 1.1980).unwrap();
@@ -376,7 +439,9 @@ mod tests {
         let mut manager = PositionManager::new(5);
 
         let signal = make_signal(Direction::Long, 1.2000, 1.1950, 1.2100);
-        let id = manager.open_position(&signal, 1.2000, 1.0, 1_000_000).unwrap();
+        let id = manager
+            .open_position(&signal, 1.2000, 1.0, 1_000_000)
+            .unwrap();
 
         manager.move_to_break_even(id).unwrap();
         assert_relative_eq!(
@@ -391,7 +456,9 @@ mod tests {
         let mut manager = PositionManager::new(5);
 
         let signal = make_signal(Direction::Long, 1.2000, 1.1950, 1.2100);
-        let id = manager.open_position(&signal, 1.2000, 1.0, 1_000_000).unwrap();
+        let id = manager
+            .open_position(&signal, 1.2000, 1.0, 1_000_000)
+            .unwrap();
 
         // Price went up
         let pnl = manager.unrealized_pnl(id, 1.2050).unwrap();
@@ -407,7 +474,9 @@ mod tests {
         let mut manager = PositionManager::new(5);
 
         let signal = make_signal(Direction::Short, 1.2000, 1.2050, 1.1900);
-        let id = manager.open_position(&signal, 1.2000, 1.0, 1_000_000).unwrap();
+        let id = manager
+            .open_position(&signal, 1.2000, 1.0, 1_000_000)
+            .unwrap();
 
         // Price went down (profit for short)
         let pnl = manager.unrealized_pnl(id, 1.1950).unwrap();
@@ -419,7 +488,9 @@ mod tests {
         let mut manager = PositionManager::new(5);
 
         let signal = make_signal(Direction::Long, 1.2000, 1.1950, 1.2100);
-        let id = manager.open_position(&signal, 1.2000, 1.0, 1_000_000).unwrap();
+        let id = manager
+            .open_position(&signal, 1.2000, 1.0, 1_000_000)
+            .unwrap();
 
         let risk = manager.position_risk(id).unwrap();
         assert_relative_eq!(risk, 0.0050, epsilon = 1e-10);
@@ -430,7 +501,9 @@ mod tests {
         let mut manager = PositionManager::new(5);
 
         let signal = make_signal(Direction::Long, 1.2000, 1.1950, 1.2100);
-        let id = manager.open_position(&signal, 1.2000, 1.0, 1_000_000).unwrap();
+        let id = manager
+            .open_position(&signal, 1.2000, 1.0, 1_000_000)
+            .unwrap();
 
         assert!(manager.is_entry_candle(id, 1_000_000));
         assert!(!manager.is_entry_candle(id, 2_000_000));

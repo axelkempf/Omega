@@ -223,9 +223,9 @@ mod tests {
         let manager = TradeManager::new(rules);
 
         let positions = vec![
-            make_position_view(1, Direction::Long, 1000000000, 1),         // Will timeout
-            make_position_view(2, Direction::Short, 500_000_000_000, 1),   // Won't timeout
-            make_position_view(3, Direction::Long, 100_000_000_000, 1),    // Will timeout
+            make_position_view(1, Direction::Long, 1000000000, 1), // Will timeout
+            make_position_view(2, Direction::Short, 500_000_000_000, 1), // Won't timeout
+            make_position_view(3, Direction::Long, 100_000_000_000, 1), // Will timeout
         ];
 
         let timestamp_ns = 1000000000 + (15 * 60_000_000_000);

@@ -204,17 +204,10 @@ mod tests {
 
     #[test]
     fn test_position_view_builder() {
-        let view = PositionView::new(
-            42,
-            "EURUSD",
-            Direction::Long,
-            1000000000,
-            1.1000,
-            0.1,
-        )
-        .with_stop_loss(1.0950)
-        .with_take_profit(1.1100)
-        .with_scenario(3);
+        let view = PositionView::new(42, "EURUSD", Direction::Long, 1000000000, 1.1000, 0.1)
+            .with_stop_loss(1.0950)
+            .with_take_profit(1.1100)
+            .with_scenario(3);
 
         assert_eq!(view.position_id, 42);
         assert_eq!(view.symbol, "EURUSD");

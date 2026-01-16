@@ -35,8 +35,8 @@ pub use config::{
     TimeframeConfig, TradeManagementConfig, TradeManagementRulesConfig,
 };
 pub use error::CoreError;
-pub use price_type::PriceType;
 pub use position::Position;
+pub use price_type::PriceType;
 pub use result::{BacktestResult, EquityPoint, ErrorResult, Metrics, ResultMeta};
 pub use signal::{Direction, OrderType, Signal};
 pub use timeframe::{ParseTimeframeError, Timeframe};

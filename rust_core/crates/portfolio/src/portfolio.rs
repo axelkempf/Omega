@@ -7,6 +7,7 @@ use crate::equity::EquityTracker;
 use crate::error::PortfolioError;
 use crate::position_manager::PositionManager;
 use omega_types::{Direction, ExitReason, Position, Signal, Trade};
+use serde_json::{Map as JsonMap, Value as JsonValue};
 
 /// Portfolio state for backtesting.
 ///
@@ -47,11 +48,13 @@ impl Portfolio {
     }
 
     /// Checks if a new position can be opened.
+    #[must_use]
     pub fn can_open_position(&self) -> bool {
         self.position_manager.can_open()
     }
 
     /// Returns the number of available position slots.
+    #[must_use]
     pub fn available_slots(&self) -> usize {
         self.position_manager.available_slots()
     }
@@ -67,6 +70,9 @@ impl Portfolio {
     ///
     /// # Returns
     /// The assigned position ID.
+    ///
+    /// # Errors
+    /// Returns an error if position limits are exceeded or size is invalid.
     pub fn open_position(
         &mut self,
         signal: &Signal,
@@ -116,6 +122,34 @@ impl Portfolio {
         let risk = (position.entry_price - position.stop_loss).abs() * position.size;
         let r_multiple = if risk > 0.0 { pnl / risk } else { 0.0 };
 
+        let mut meta_map = match position.meta {
+            JsonValue::Object(map) => map,
+            other => {
+                let mut map = JsonMap::new();
+                if !other.is_null() {
+                    map.insert("raw_meta".to_string(), other);
+                }
+                map
+            }
+        };
+
+        if !meta_map.contains_key("stop_loss_kind") {
+            let kind = match reason {
+                ExitReason::BreakEvenStopLoss => "break_even",
+                ExitReason::TrailingStopLoss => "trailing",
+                _ => "initial",
+            };
+            meta_map.insert("stop_loss_kind".to_string(), JsonValue::String(kind.to_string()));
+        }
+
+        if !meta_map.contains_key("in_entry_candle") {
+            let in_entry_candle = exit_time_ns == position.entry_time_ns;
+            meta_map.insert(
+                "in_entry_candle".to_string(),
+                JsonValue::Bool(in_entry_candle),
+            );
+        }
+
         // Create trade record
         let trade = Trade {
             entry_time_ns: position.entry_time_ns,
@@ -131,7 +165,7 @@ impl Portfolio {
             r_multiple,
             reason,
             scenario_id: position.scenario_id,
-            meta: position.meta,
+            meta: JsonValue::Object(meta_map),
         };
 
         // Update cash: add PnL, deduct exit fee
@@ -149,7 +183,7 @@ impl Portfolio {
     ///
     /// # Arguments
     /// * `timestamp_ns` - Current timestamp
-    /// * `current_price` - Current market price for unrealized PnL calculation
+    /// * `current_price` - Current market price for unrealized `PnL` calculation
     pub fn update_equity(&mut self, timestamp_ns: i64, current_price: f64) {
         let unrealized_pnl = self.position_manager.total_unrealized_pnl(current_price);
         let equity = self.cash + unrealized_pnl;
@@ -157,16 +191,19 @@ impl Portfolio {
     }
 
     /// Returns the current cash balance.
+    #[must_use]
     pub fn cash(&self) -> f64 {
         self.cash
     }
 
-    /// Returns the current equity (cash + unrealized PnL).
+    /// Returns the current equity (cash + unrealized `PnL`).
+    #[must_use]
     pub fn equity(&self) -> f64 {
         self.equity_tracker.equity()
     }
 
     /// Returns a reference to the position manager.
+    #[must_use]
     pub fn position_manager(&self) -> &PositionManager {
         &self.position_manager
     }
@@ -177,73 +214,88 @@ impl Portfolio {
     }
 
     /// Returns all open positions.
+    #[must_use]
     pub fn positions(&self) -> &[Position] {
         self.position_manager.positions()
     }
 
     /// Returns the number of open positions.
+    #[must_use]
     pub fn position_count(&self) -> usize {
         self.position_manager.len()
     }
 
     /// Returns all closed trades.
+    #[must_use]
     pub fn closed_trades(&self) -> &[Trade] {
         &self.closed_trades
     }
 
     /// Returns the number of closed trades.
+    #[must_use]
     pub fn trade_count(&self) -> usize {
         self.closed_trades.len()
     }
 
     /// Returns a reference to the equity tracker.
+    #[must_use]
     pub fn equity_tracker(&self) -> &EquityTracker {
         &self.equity_tracker
     }
 
     /// Consumes the portfolio and returns the equity tracker.
+    #[must_use]
     pub fn into_equity_tracker(self) -> EquityTracker {
         self.equity_tracker
     }
 
     /// Consumes the portfolio and returns the closed trades.
+    #[must_use]
     pub fn into_trades(self) -> Vec<Trade> {
         self.closed_trades
     }
 
     /// Returns the maximum drawdown percentage.
+    #[must_use]
     pub fn max_drawdown(&self) -> f64 {
         self.equity_tracker.max_drawdown()
     }
 
     /// Returns the maximum drawdown in absolute terms.
+    #[must_use]
     pub fn max_drawdown_abs(&self) -> f64 {
         self.equity_tracker.max_drawdown_abs()
     }
 
     /// Returns the total return percentage.
+    #[must_use]
     pub fn total_return(&self) -> f64 {
         self.equity_tracker.total_return()
     }
 
     /// Returns the total return in absolute terms.
+    #[must_use]
     pub fn total_return_abs(&self) -> f64 {
         self.equity_tracker.total_return_abs()
     }
 
     /// Returns the initial balance.
+    #[must_use]
     pub fn initial_balance(&self) -> f64 {
         self.equity_tracker.initial_balance()
     }
 
     /// Checks if a position was entered in the current bar.
+    #[must_use]
     pub fn is_entry_candle(&self, position_id: u64, current_bar_ns: i64) -> bool {
-        self.position_manager.is_entry_candle(position_id, current_bar_ns)
+        self.position_manager
+            .is_entry_candle(position_id, current_bar_ns)
     }
 
     /// Calculates total fees paid (sum of all trade fees).
     ///
     /// Note: This is an approximation based on cash changes.
+    #[must_use]
     pub fn total_fees(&self) -> f64 {
         // Total PnL from trades
         let gross_pnl: f64 = self.closed_trades.iter().map(|t| t.result).sum();
@@ -257,6 +309,7 @@ impl Portfolio {
     }
 
     /// Returns the symbol being traded.
+    #[must_use]
     pub fn symbol(&self) -> &str {
         &self.symbol
     }
@@ -276,7 +329,12 @@ impl Portfolio {
         let win_count = wins.len();
         let loss_count = losses.len();
 
-        let win_rate = win_count as f64 / total_trades as f64;
+        let to_f64 = |value: usize| f64::from(u32::try_from(value).unwrap_or(u32::MAX));
+        let total_trades_f64 = to_f64(total_trades);
+        let win_count_f64 = to_f64(win_count);
+        let loss_count_f64 = to_f64(loss_count);
+
+        let win_rate = win_count_f64 / total_trades_f64;
 
         let gross_profit: f64 = wins.iter().map(|t| t.result).sum();
         let gross_loss: f64 = losses.iter().map(|t| t.result).sum::<f64>().abs();
@@ -290,18 +348,18 @@ impl Portfolio {
         };
 
         let avg_win = if win_count > 0 {
-            gross_profit / win_count as f64
+            gross_profit / win_count_f64
         } else {
             0.0
         };
 
         let avg_loss = if loss_count > 0 {
-            gross_loss / loss_count as f64
+            gross_loss / loss_count_f64
         } else {
             0.0
         };
 
-        let avg_r_multiple = trades.iter().map(|t| t.r_multiple).sum::<f64>() / total_trades as f64;
+        let avg_r_multiple = trades.iter().map(|t| t.r_multiple).sum::<f64>() / total_trades_f64;
 
         let largest_win = wins.iter().map(|t| t.result).fold(0.0, f64::max);
         let largest_loss = losses.iter().map(|t| t.result.abs()).fold(0.0, f64::max);
@@ -339,9 +397,9 @@ pub struct TradeStats {
     pub gross_profit: f64,
     /// Gross loss from losers (positive value)
     pub gross_loss: f64,
-    /// Net profit (gross_profit - gross_loss)
+    /// Net profit (`gross_profit` - `gross_loss`)
     pub net_profit: f64,
-    /// Profit factor (gross_profit / gross_loss)
+    /// Profit factor (`gross_profit` / `gross_loss`)
     pub profit_factor: f64,
     /// Average winning trade
     pub avg_win: f64,
@@ -536,5 +594,51 @@ mod tests {
         // Verify equity matches cash (no unrealized PnL)
         portfolio.update_equity(10_000_000, 1.2000);
         assert_relative_eq!(portfolio.equity(), portfolio.cash(), epsilon = 1e-10);
+    }
+
+    #[test]
+    fn test_trade_meta_defaults() {
+        let mut portfolio = Portfolio::new(10_000.0, 5, "EURUSD");
+
+        let signal = make_signal(Direction::Long, 1.2000, 1.1950, 1.2100);
+        let id = portfolio
+            .open_position(&signal, 1.2000, 1.0, 1_000_000, 0.0)
+            .unwrap();
+
+        let trade = portfolio
+            .close_position(id, 1.1950, 2_000_000, ExitReason::StopLoss, 0.0)
+            .unwrap();
+
+        let stop_loss_kind = trade
+            .meta
+            .get("stop_loss_kind")
+            .and_then(|value| value.as_str());
+        assert_eq!(stop_loss_kind, Some("initial"));
+
+        let in_entry_candle = trade
+            .meta
+            .get("in_entry_candle")
+            .and_then(|value| value.as_bool());
+        assert_eq!(in_entry_candle, Some(false));
+    }
+
+    #[test]
+    fn test_trade_meta_break_even_kind() {
+        let mut portfolio = Portfolio::new(10_000.0, 5, "EURUSD");
+
+        let signal = make_signal(Direction::Long, 1.2000, 1.1950, 1.2100);
+        let id = portfolio
+            .open_position(&signal, 1.2000, 1.0, 1_000_000, 0.0)
+            .unwrap();
+
+        let trade = portfolio
+            .close_position(id, 1.2000, 2_000_000, ExitReason::BreakEvenStopLoss, 0.0)
+            .unwrap();
+
+        let stop_loss_kind = trade
+            .meta
+            .get("stop_loss_kind")
+            .and_then(|value| value.as_str());
+        assert_eq!(stop_loss_kind, Some("break_even"));
     }
 }

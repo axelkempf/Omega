@@ -26,6 +26,7 @@ pub struct EquityTracker {
 
 impl EquityTracker {
     /// Creates a new equity tracker with the given initial balance.
+    #[must_use]
     pub fn new(initial_balance: f64) -> Self {
         Self {
             initial_balance,
@@ -42,7 +43,7 @@ impl EquityTracker {
     ///
     /// # Arguments
     /// * `timestamp_ns` - Current timestamp in nanoseconds
-    /// * `equity` - Current equity (balance + unrealized PnL)
+    /// * `equity` - Current equity (balance + unrealized `PnL`)
     /// * `balance` - Current balance (realized funds)
     pub fn update(&mut self, timestamp_ns: i64, equity: f64, balance: f64) {
         self.current_equity = equity;
@@ -78,36 +79,43 @@ impl EquityTracker {
     }
 
     /// Returns the initial balance.
+    #[must_use]
     pub fn initial_balance(&self) -> f64 {
         self.initial_balance
     }
 
     /// Returns the current equity.
+    #[must_use]
     pub fn equity(&self) -> f64 {
         self.current_equity
     }
 
     /// Returns the current balance.
+    #[must_use]
     pub fn balance(&self) -> f64 {
         self.current_balance
     }
 
     /// Returns the high-water mark.
+    #[must_use]
     pub fn high_water_mark(&self) -> f64 {
         self.high_water_mark
     }
 
     /// Returns the maximum drawdown as a percentage (0-1).
+    #[must_use]
     pub fn max_drawdown(&self) -> f64 {
         self.max_drawdown
     }
 
     /// Returns the maximum drawdown in absolute terms.
+    #[must_use]
     pub fn max_drawdown_abs(&self) -> f64 {
         self.max_drawdown_abs
     }
 
     /// Returns the current drawdown as a percentage (0-1).
+    #[must_use]
     pub fn current_drawdown(&self) -> f64 {
         if self.high_water_mark > 0.0 {
             (self.high_water_mark - self.current_equity) / self.high_water_mark
@@ -117,11 +125,13 @@ impl EquityTracker {
     }
 
     /// Returns the current drawdown in absolute terms.
+    #[must_use]
     pub fn current_drawdown_abs(&self) -> f64 {
         self.high_water_mark - self.current_equity
     }
 
     /// Returns the total return as a percentage.
+    #[must_use]
     pub fn total_return(&self) -> f64 {
         if self.initial_balance > 0.0 {
             (self.current_equity - self.initial_balance) / self.initial_balance
@@ -131,26 +141,31 @@ impl EquityTracker {
     }
 
     /// Returns the total return in absolute terms.
+    #[must_use]
     pub fn total_return_abs(&self) -> f64 {
         self.current_equity - self.initial_balance
     }
 
     /// Returns the equity curve history.
+    #[must_use]
     pub fn equity_curve(&self) -> &[EquityPoint] {
         &self.equity_curve
     }
 
     /// Consumes the tracker and returns the equity curve.
+    #[must_use]
     pub fn into_equity_curve(self) -> Vec<EquityPoint> {
         self.equity_curve
     }
 
     /// Returns the number of equity points recorded.
+    #[must_use]
     pub fn len(&self) -> usize {
         self.equity_curve.len()
     }
 
     /// Checks if the equity curve is empty.
+    #[must_use]
     pub fn is_empty(&self) -> bool {
         self.equity_curve.is_empty()
     }

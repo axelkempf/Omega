@@ -95,8 +95,8 @@ fn sample_std(values: &[f64]) -> f64 {
     }
     #[allow(clippy::cast_precision_loss)]
     let len_f = values.len() as f64;
-        let mean = values.iter().sum::<f64>() / len_f;
-        let denom = len_f - 1.0;
+    let mean = values.iter().sum::<f64>() / len_f;
+    let denom = len_f - 1.0;
     let variance = values.iter().map(|v| (*v - mean).powi(2)).sum::<f64>() / denom;
     variance.sqrt()
 }

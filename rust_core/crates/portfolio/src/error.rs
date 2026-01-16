@@ -7,11 +7,19 @@ use thiserror::Error;
 pub enum PortfolioError {
     /// Maximum number of positions reached
     #[error("maximum positions reached: {max}")]
-    MaxPositionsReached { max: usize },
+    MaxPositionsReached {
+        /// Maximum allowed positions
+        max: usize,
+    },
 
     /// Insufficient funds for operation
     #[error("insufficient funds: required {required}, available {available}")]
-    InsufficientFunds { required: f64, available: f64 },
+    InsufficientFunds {
+        /// Required amount
+        required: f64,
+        /// Available amount
+        available: f64,
+    },
 
     /// Position not found
     #[error("position not found: {0}")]

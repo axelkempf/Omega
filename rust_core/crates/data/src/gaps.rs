@@ -95,7 +95,10 @@ pub fn analyze_gaps(
     })
 }
 
-fn is_session_active(timestamp_ns: i64, sessions: Option<&[SessionConfig]>) -> Result<bool, DataError> {
+fn is_session_active(
+    timestamp_ns: i64,
+    sessions: Option<&[SessionConfig]>,
+) -> Result<bool, DataError> {
     match sessions {
         Some(configured) if !configured.is_empty() => {
             let seconds = seconds_since_midnight_utc(timestamp_ns)?;
@@ -124,16 +127,14 @@ fn weekday_index_utc(timestamp_ns: i64) -> Result<u32, DataError> {
 }
 
 fn count_to_f64(value: usize, label: &str) -> Result<f64, DataError> {
-    let value_u64 = u64::try_from(value).map_err(|_| {
-        DataError::CorruptData(format!("Count overflow for {label}: {value}"))
-    })?;
+    let value_u64 = u64::try_from(value)
+        .map_err(|_| DataError::CorruptData(format!("Count overflow for {label}: {value}")))?;
     #[allow(clippy::cast_precision_loss)]
     let value_as_f64 = value_u64 as f64;
     Ok(value_as_f64)
 }
 
 fn u32_from_i64(value: i64) -> Result<u32, DataError> {
-    u32::try_from(value).map_err(|_| {
-        DataError::CorruptData(format!("Invalid u32 conversion from i64: {value}"))
-    })
+    u32::try_from(value)
+        .map_err(|_| DataError::CorruptData(format!("Invalid u32 conversion from i64: {value}")))
 }

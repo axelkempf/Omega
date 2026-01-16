@@ -248,7 +248,12 @@ fn insert_bollinger(
         },
     );
     insert_scalar(cache, spec.with_output_suffix("upper"), idx, snapshot.upper);
-    insert_scalar(cache, spec.with_output_suffix("middle"), idx, snapshot.middle);
+    insert_scalar(
+        cache,
+        spec.with_output_suffix("middle"),
+        idx,
+        snapshot.middle,
+    );
     insert_scalar(cache, spec.with_output_suffix("lower"), idx, snapshot.lower);
 }
 
@@ -288,16 +293,16 @@ fn insert_stepwise_bollinger(
         },
     );
     insert_scalar(cache, spec.with_output_suffix("upper"), idx, snapshot.upper);
-    insert_scalar(cache, spec.with_output_suffix("middle"), idx, snapshot.middle);
+    insert_scalar(
+        cache,
+        spec.with_output_suffix("middle"),
+        idx,
+        snapshot.middle,
+    );
     insert_scalar(cache, spec.with_output_suffix("lower"), idx, snapshot.lower);
 }
 
-fn insert_tf_close(
-    cache: &mut IndicatorCache,
-    idx: usize,
-    timeframe: &str,
-    value: Option<f64>,
-) {
+fn insert_tf_close(cache: &mut IndicatorCache, idx: usize, timeframe: &str, value: Option<f64>) {
     let spec = IndicatorSpec::new(
         format!("CLOSE_{timeframe}").as_str(),
         IndicatorParams::Period(1),
@@ -305,12 +310,7 @@ fn insert_tf_close(
     insert_scalar(cache, spec, idx, value);
 }
 
-fn insert_scalar(
-    cache: &mut IndicatorCache,
-    spec: IndicatorSpec,
-    idx: usize,
-    value: Option<f64>,
-) {
+fn insert_scalar(cache: &mut IndicatorCache, spec: IndicatorSpec, idx: usize, value: Option<f64>) {
     let mut values = vec![f64::NAN; idx + 1];
     if let Some(val) = value {
         values[idx] = val;
@@ -334,13 +334,33 @@ fn assert_signal_matches(
                 other => panic!("Scenario {scenario_id}: unknown direction {other}"),
             };
             assert_eq!(
-                act.direction,
-                expected_dir,
+                act.direction, expected_dir,
                 "Case {case_key} scenario {scenario_id} direction"
             );
-            assert_close(exp.entry, act.entry_price, tolerance, case_key, scenario_id, "entry");
-            assert_close(exp.sl, act.stop_loss, tolerance, case_key, scenario_id, "sl");
-            assert_close(exp.tp, act.take_profit, tolerance, case_key, scenario_id, "tp");
+            assert_close(
+                exp.entry,
+                act.entry_price,
+                tolerance,
+                case_key,
+                scenario_id,
+                "entry",
+            );
+            assert_close(
+                exp.sl,
+                act.stop_loss,
+                tolerance,
+                case_key,
+                scenario_id,
+                "sl",
+            );
+            assert_close(
+                exp.tp,
+                act.take_profit,
+                tolerance,
+                case_key,
+                scenario_id,
+                "tp",
+            );
         }
         (None, Some(act)) => panic!(
             "Case {case_key} scenario {scenario_id}: expected no signal, got {:?}",

@@ -40,6 +40,7 @@ pub struct FixedSlippage {
 
 impl FixedSlippage {
     /// Creates a new fixed slippage model.
+    #[must_use]
     pub fn new(pips: f64, pip_size: f64) -> Self {
         Self { pips, pip_size }
     }
@@ -80,6 +81,7 @@ impl VolatilitySlippage {
     /// * `base_pips` - Base slippage in pips
     /// * `pip_size` - Pip size for the instrument
     /// * `jitter_factor` - Variance factor (0.0 = no jitter, 1.0 = full variance)
+    #[must_use]
     pub fn new(base_pips: f64, pip_size: f64, jitter_factor: f64) -> Self {
         Self {
             base_pips,
@@ -166,7 +168,7 @@ mod tests {
         let s2 = model.calculate(1.2000, Direction::Long, &mut rng);
 
         // Different calls should produce different results
-        assert_ne!(s1, s2);
+        assert!((s1 - s2).abs() > 1e-12);
     }
 
     #[test]

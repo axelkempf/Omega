@@ -40,12 +40,13 @@ pub enum OrderState {
     Rejected,
     /// Order cancelled by user/system
     Cancelled,
-    /// Order expired (GoodTillDate reached)
+    /// Order expired (`GoodTillDate` reached)
     Expired,
 }
 
 impl OrderState {
     /// Returns the allowed transitions from the current state.
+    #[must_use]
     pub fn allowed_transitions(&self) -> &[OrderState] {
         match self {
             OrderState::Pending => &[
@@ -54,30 +55,30 @@ impl OrderState {
                 OrderState::Expired,
             ],
             OrderState::Triggered => &[OrderState::Filled, OrderState::Rejected],
-            OrderState::Filled => &[],    // Terminal
-            OrderState::Rejected => &[],  // Terminal
-            OrderState::Cancelled => &[], // Terminal
-            OrderState::Expired => &[],   // Terminal
+            OrderState::Filled
+            | OrderState::Rejected
+            | OrderState::Cancelled
+            | OrderState::Expired => &[],
         }
     }
 
     /// Checks if this is a terminal (final) state.
+    #[must_use]
     pub fn is_terminal(&self) -> bool {
         matches!(
             self,
-            OrderState::Filled
-                | OrderState::Rejected
-                | OrderState::Cancelled
-                | OrderState::Expired
+            OrderState::Filled | OrderState::Rejected | OrderState::Cancelled | OrderState::Expired
         )
     }
 
     /// Checks if a transition to the target state is valid.
+    #[must_use]
     pub fn can_transition_to(&self, target: OrderState) -> bool {
         self.allowed_transitions().contains(&target)
     }
 
     /// Checks if the order is still active (not terminal).
+    #[must_use]
     pub fn is_active(&self) -> bool {
         !self.is_terminal()
     }
@@ -127,20 +128,24 @@ pub enum PositionState {
 
 impl PositionState {
     /// Returns the allowed transitions from the current state.
+    #[must_use]
     pub fn allowed_transitions(&self) -> &[PositionState] {
         match self {
-            PositionState::Open => &[PositionState::Modified, PositionState::Closed],
-            PositionState::Modified => &[PositionState::Modified, PositionState::Closed],
+            PositionState::Open | PositionState::Modified => {
+                &[PositionState::Modified, PositionState::Closed]
+            }
             PositionState::Closed => &[], // Terminal
         }
     }
 
     /// Checks if this is a terminal (final) state.
+    #[must_use]
     pub fn is_terminal(&self) -> bool {
         matches!(self, PositionState::Closed)
     }
 
     /// Checks if a transition to the target state is valid.
+    #[must_use]
     pub fn can_transition_to(&self, target: PositionState) -> bool {
         self.allowed_transitions().contains(&target)
     }
@@ -191,20 +196,26 @@ impl<S: Clone + fmt::Display> fmt::Display for StateTransition<S> {
 ///
 /// This struct documents the processing order for a single bar.
 /// The order is normative and must be followed for reproducibility.
+///
+/// Pending orders are placed at candle close and therefore cannot trigger in
+/// the same candle as placement. If a pending order triggers in a bar, the
+/// fill occurs in that same bar, allowing SL/TP to hit in the entry candle.
 pub struct TriggerOrderPolicy;
 
 impl TriggerOrderPolicy {
     /// Processing order for a single bar (normative).
     ///
-    /// 1. **SL-Check**: All open positions, SL takes priority over TP
-    /// 2. **Pending-Triggers**: FIFO by (created_at_ns, order_id)
-    /// 3. **TP-Check**: Remaining positions, with in_entry_candle rule
-    /// 4. **Strategy-Signals**: New orders from strategy.on_bar()
+    /// 1. **Pending-Trigger**: Limit/Stop → open (FIFO)
+    /// 2. **Exit-Check**: SL/TP checks for open positions
+    /// 3. **Trade-Management**: Rule-based actions (timeout, etc.)
+    /// 4. **Equity-Update**: Portfolio equity curve update
+    /// 5. **New-Signals**: Strategy generates new orders
     pub const PROCESSING_ORDER: &'static [&'static str] = &[
-        "1. SL-Check (all open positions, SL > TP priority)",
-        "2. Pending-Triggers (FIFO by created_at_ns, order_id)",
-        "3. TP-Check (remaining positions, in_entry_candle rule)",
-        "4. Strategy-Signals (new orders created)",
+        "1. Pending-Trigger (FIFO by created_at_ns, order_id)",
+        "2. Exit-Check (SL/TP checks for open positions)",
+        "3. Trade-Management (rule-based actions)",
+        "4. Equity-Update (portfolio equity curve)",
+        "5. New-Signals (strategy generates new orders)",
     ];
 
     /// When both SL and TP are hit in the same bar, SL always wins.

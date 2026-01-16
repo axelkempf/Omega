@@ -10,12 +10,12 @@
 pub mod alignment;
 /// Data-layer error types.
 pub mod error;
+/// Gap analysis and statistics.
+pub mod gaps;
 /// Parquet loading and data filters.
 pub mod loader;
 /// Session handling helpers.
 pub mod market_hours;
-/// Gap analysis and statistics.
-pub mod gaps;
 /// News calendar loading.
 pub mod news;
 /// Candle stores and multi-timeframe mapping.

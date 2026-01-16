@@ -23,6 +23,7 @@ pub struct FillResult {
 /// * `signal_price` - The price at which the signal was generated
 /// * `direction` - Trade direction
 /// * `slippage` - Pre-calculated slippage amount
+#[must_use]
 pub fn market_fill(signal_price: f64, direction: Direction, slippage: f64) -> FillResult {
     let fill_price = match direction {
         Direction::Long => signal_price + slippage,
@@ -40,8 +41,8 @@ pub fn market_fill(signal_price: f64, direction: Direction, slippage: f64) -> Fi
 /// # Gap-Aware Fill Logic
 ///
 /// When a pending order triggers, the fill price accounts for potential gaps:
-/// - For long entries: fill price is the worse of entry_price and bar open (plus slippage)
-/// - For short entries: fill price is the worse of entry_price and bar open (minus slippage)
+/// - For long entries: fill price is the worse of `entry_price` and bar open (plus slippage)
+/// - For short entries: fill price is the worse of `entry_price` and bar open (minus slippage)
 ///
 /// This simulates realistic execution where gaps can cause adverse fills.
 ///
@@ -61,6 +62,7 @@ pub fn market_fill(signal_price: f64, direction: Direction, slippage: f64) -> Fi
 /// * `bid` - Current bid candle (for short exits/entries)
 /// * `ask` - Current ask candle (for long exits/entries)
 /// * `slippage` - Pre-calculated slippage amount
+#[must_use]
 pub fn pending_fill(
     order_type: OrderType,
     entry_price: f64,
@@ -87,8 +89,26 @@ pub fn pending_fill(
         return None;
     }
 
-    // Gap-aware fill: use the worse of entry_price and bar open
-    // This simulates adverse gap execution
+    Some(pending_fill_triggered(
+        entry_price,
+        direction,
+        bid,
+        ask,
+        slippage,
+    ))
+}
+
+/// Calculates a fill for an already-triggered pending order (next-bar fill).
+///
+/// This uses gap-aware pricing against the current bar open and applies
+/// slippage in the entry direction.
+pub(crate) fn pending_fill_triggered(
+    entry_price: f64,
+    direction: Direction,
+    bid: &Candle,
+    ask: &Candle,
+    slippage: f64,
+) -> FillResult {
     let base_fill = match direction {
         // For longs: worse fill is the higher price
         Direction::Long => entry_price.max(ask.open),
@@ -96,43 +116,15 @@ pub fn pending_fill(
         Direction::Short => entry_price.min(bid.open),
     };
 
-    // Apply slippage (always adverse)
     let fill_price = match direction {
         Direction::Long => base_fill + slippage,
         Direction::Short => base_fill - slippage,
     };
 
-    Some(FillResult {
+    FillResult {
         filled: true,
         fill_price,
         slippage_applied: slippage,
-    })
-}
-
-/// Checks if a stop-loss or take-profit is triggered.
-///
-/// # Arguments
-/// * `exit_price` - The SL or TP price level
-/// * `direction` - Position direction
-/// * `bid` - Current bid candle
-/// * `ask` - Current ask candle
-/// * `is_stop_loss` - True for SL check, false for TP check
-pub fn check_exit_triggered(
-    exit_price: f64,
-    direction: &Direction,
-    bid: &Candle,
-    ask: &Candle,
-    is_stop_loss: bool,
-) -> bool {
-    match (direction, is_stop_loss) {
-        // Long position SL: triggered when bid drops to/below SL
-        (Direction::Long, true) => bid.low <= exit_price,
-        // Long position TP: triggered when bid rises to/above TP
-        (Direction::Long, false) => bid.high >= exit_price,
-        // Short position SL: triggered when ask rises to/above SL
-        (Direction::Short, true) => ask.high >= exit_price,
-        // Short position TP: triggered when ask drops to/below TP
-        (Direction::Short, false) => ask.low <= exit_price,
     }
 }
 
@@ -172,7 +164,14 @@ mod tests {
         let ask = make_candle(1.2002, 1.2052, 1.1982, 1.2032);
 
         // Limit buy at 1.1990 - ask.low (1.1982) is below entry
-        let result = pending_fill(OrderType::Limit, 1.1990, Direction::Long, &bid, &ask, 0.0001);
+        let result = pending_fill(
+            OrderType::Limit,
+            1.1990,
+            Direction::Long,
+            &bid,
+            &ask,
+            0.0001,
+        );
         assert!(result.is_some());
 
         let fill = result.unwrap();
@@ -187,7 +186,14 @@ mod tests {
         let ask = make_candle(1.2002, 1.2052, 1.1992, 1.2032);
 
         // Limit buy at 1.1980 - ask.low (1.1992) is above entry
-        let result = pending_fill(OrderType::Limit, 1.1980, Direction::Long, &bid, &ask, 0.0001);
+        let result = pending_fill(
+            OrderType::Limit,
+            1.1980,
+            Direction::Long,
+            &bid,
+            &ask,
+            0.0001,
+        );
         assert!(result.is_none());
     }
 
@@ -211,7 +217,14 @@ mod tests {
         let ask = make_candle(1.2002, 1.2052, 1.1982, 1.2032);
 
         // Limit sell at 1.2040 - bid.high (1.2050) is above entry
-        let result = pending_fill(OrderType::Limit, 1.2040, Direction::Short, &bid, &ask, 0.0001);
+        let result = pending_fill(
+            OrderType::Limit,
+            1.2040,
+            Direction::Short,
+            &bid,
+            &ask,
+            0.0001,
+        );
         assert!(result.is_some());
 
         let fill = result.unwrap();
@@ -243,7 +256,14 @@ mod tests {
 
         // Stop sell at 1.1970 - triggered because bid.low < entry
         // But opens at 1.1950, so fill should be at the worse (lower) open price
-        let result = pending_fill(OrderType::Stop, 1.1970, Direction::Short, &bid, &ask, 0.0001);
+        let result = pending_fill(
+            OrderType::Stop,
+            1.1970,
+            Direction::Short,
+            &bid,
+            &ask,
+            0.0001,
+        );
         assert!(result.is_some());
 
         let fill = result.unwrap();
@@ -252,50 +272,11 @@ mod tests {
     }
 
     #[test]
-    fn test_sl_check_long() {
-        let bid = make_candle(1.2000, 1.2050, 1.1950, 1.2030);
-        let ask = make_candle(1.2002, 1.2052, 1.1952, 1.2032);
+    fn test_pending_fill_triggered_long() {
+        let bid = make_candle(1.2000, 1.2050, 1.1980, 1.2030);
+        let ask = make_candle(1.2002, 1.2052, 1.1982, 1.2032);
 
-        // SL at 1.1960 - bid.low (1.1950) is below SL
-        assert!(check_exit_triggered(
-            1.1960,
-            &Direction::Long,
-            &bid,
-            &ask,
-            true
-        ));
-
-        // SL at 1.1940 - bid.low (1.1950) is above SL
-        assert!(!check_exit_triggered(
-            1.1940,
-            &Direction::Long,
-            &bid,
-            &ask,
-            true
-        ));
-    }
-
-    #[test]
-    fn test_tp_check_long() {
-        let bid = make_candle(1.2000, 1.2050, 1.1950, 1.2030);
-        let ask = make_candle(1.2002, 1.2052, 1.1952, 1.2032);
-
-        // TP at 1.2040 - bid.high (1.2050) is above TP
-        assert!(check_exit_triggered(
-            1.2040,
-            &Direction::Long,
-            &bid,
-            &ask,
-            false
-        ));
-
-        // TP at 1.2060 - bid.high (1.2050) is below TP
-        assert!(!check_exit_triggered(
-            1.2060,
-            &Direction::Long,
-            &bid,
-            &ask,
-            false
-        ));
+        let fill = pending_fill_triggered(1.1990, Direction::Long, &bid, &ask, 0.0001);
+        assert_relative_eq!(fill.fill_price, 1.2003, epsilon = 1e-10);
     }
 }

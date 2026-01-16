@@ -1,4 +1,4 @@
-# Omega V2 – Execution Model Plan
+## Omega V2 – Execution Model Plan
 
 > **Status**: Planungsphase  
 > **Erstellt**: 12. Januar 2026  
@@ -82,7 +82,11 @@ Dieses Dokument definiert die **universale Wahrheit** für das Omega V2 Backtest
 
 **Normativ:**
 
-- Pending Orders dürfen **nicht** in derselben Candle auslösen, in der sie platziert wurden (Trigger erst ab `next_bar`).
+- Pending Orders werden am **Candle‑Close** platziert.
+- Daher können sie **nicht** in derselben Candle ausgelöst oder gefüllt werden.
+- Trigger ist erst ab `next_bar` möglich.
+- Wenn ein Trigger in Bar $t$ passiert, erfolgt der Fill **in derselben Bar $t$**;
+  SL/TP können somit in der Entry‑Candle getroffen werden.
 
 ---
 
@@ -113,6 +117,8 @@ Pro Candle-Step (pro `timestamp_ns`) gilt die Reihenfolge:
 - Market-Orders werden zum Signal-Zeitpunkt ausgeführt.
 - Pending Orders triggern erst ab der nächsten Candle (`bid.timestamp > pos.entry_time`).
 - Entry und Exit können in derselben Candle passieren (Same-Bar), wenn `trigger_time == candle.timestamp`.
+- Bei Pending Orders bedeutet das: Trigger + Fill passieren in Bar $t$;
+  SL/TP können in Bar $t$ greifen.
 
 **Trade-Management (MVP-Contract):**
 
@@ -162,6 +168,13 @@ Wenn eine Pending Order in Candle $t$ triggert, gilt:
 
 - long Entries (Buy): `fill_price = max(entry_price, ask_open_t)`
 - short Entries (Sell): `fill_price = min(entry_price, bid_open_t)`
+
+**Timing‑Hinweis (normativ):**
+
+- Pending Orders werden am Candle‑Close platziert.
+- Trigger und Fill erfolgen in der **gleichen** Candle $t$
+  (nicht in der Placement‑Candle).
+- Dadurch kann SL/TP in der Entry‑Candle ausgelöst werden.
 
 ### 6.4 Slippage auf Limit/Stop-Entries
 

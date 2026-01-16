@@ -2,6 +2,7 @@
 //!
 //! Manages all pending orders (Limit/Stop) with deterministic trigger ordering.
 
+use crate::error::ExecutionError;
 use crate::state::OrderState;
 use omega_types::{Candle, Direction, OrderType};
 use serde::{Deserialize, Serialize};
@@ -35,10 +36,15 @@ pub struct PendingOrder {
     pub scenario_id: u8,
     /// Custom metadata
     pub meta: JsonValue,
+    /// Timestamp when order was triggered (if triggered)
+    pub triggered_at_ns: Option<i64>,
 }
 
 impl PendingOrder {
     /// Creates a new pending order.
+    ///
+    /// # Errors
+    /// Returns [`ExecutionError::InvalidOrder`] if `order_type` is Market.
     #[allow(clippy::too_many_arguments)]
     pub fn new(
         order_type: OrderType,
@@ -50,8 +56,14 @@ impl PendingOrder {
         created_at_ns: i64,
         scenario_id: u8,
         meta: JsonValue,
-    ) -> Self {
-        Self {
+    ) -> Result<Self, ExecutionError> {
+        if matches!(order_type, OrderType::Market) {
+            return Err(ExecutionError::InvalidOrder(
+                "market orders cannot be pending".to_string(),
+            ));
+        }
+
+        Ok(Self {
             id: 0, // Will be assigned by PendingBook
             order_type,
             direction,
@@ -64,10 +76,12 @@ impl PendingOrder {
             good_till_ns: None,
             scenario_id,
             meta,
-        }
+            triggered_at_ns: None,
+        })
     }
 
     /// Sets the expiration time.
+    #[must_use]
     pub fn with_good_till(mut self, good_till_ns: i64) -> Self {
         self.good_till_ns = Some(good_till_ns);
         self
@@ -91,10 +105,10 @@ pub struct TriggerEvent {
 ///
 /// 1. Orders are sorted by `(created_at_ns, id)` for FIFO + tie-break
 /// 2. Trigger checks occur in this deterministic order
-/// 3. Multiple orders triggered in the same bar: all trigger, fill starts next bar
+/// 3. Multiple orders triggered in the same bar: all trigger, fill can occur in that bar
 #[derive(Debug, Default)]
 pub struct PendingBook {
-    /// Orders sorted by (created_at_ns, order_id) for deterministic iteration
+    /// Orders sorted by (`created_at_ns`, `order_id`) for deterministic iteration
     orders: BTreeMap<(i64, u64), PendingOrder>,
     /// Next order ID to assign
     next_id: u64,
@@ -102,6 +116,7 @@ pub struct PendingBook {
 
 impl PendingBook {
     /// Creates a new empty pending book.
+    #[must_use]
     pub fn new() -> Self {
         Self {
             orders: BTreeMap::new(),
@@ -112,7 +127,16 @@ impl PendingBook {
     /// Adds a new pending order to the book.
     ///
     /// Returns the assigned order ID.
-    pub fn add_order(&mut self, mut order: PendingOrder) -> u64 {
+    ///
+    /// # Errors
+    /// Returns [`ExecutionError::InvalidOrder`] if the order type is Market.
+    pub fn add_order(&mut self, mut order: PendingOrder) -> Result<u64, ExecutionError> {
+        if matches!(order.order_type, OrderType::Market) {
+            return Err(ExecutionError::InvalidOrder(
+                "market orders cannot be pending".to_string(),
+            ));
+        }
+
         let id = self.next_id;
         self.next_id += 1;
         order.id = id;
@@ -120,15 +144,15 @@ impl PendingBook {
 
         let key = (order.created_at_ns, id);
         self.orders.insert(key, order);
-        id
+        Ok(id)
     }
 
     /// Checks all orders for trigger conditions and returns triggered events.
     ///
     /// # Next-Bar Rule
     ///
-    /// Pending orders do NOT trigger in the same bar as their creation.
-    /// They only become eligible for triggering starting from the next bar.
+    /// Pending orders are created at candle close. They do NOT trigger in the
+    /// same candle as placement, but only starting from the next bar.
     ///
     /// # Arguments
     /// * `bid` - Current bid candle
@@ -142,7 +166,7 @@ impl PendingBook {
     ) -> Vec<TriggerEvent> {
         let mut events = Vec::new();
 
-        for ((created_ns, order_id), order) in self.orders.iter_mut() {
+        for ((created_ns, order_id), order) in &mut self.orders {
             // Skip: already triggered or terminal
             if order.state != OrderState::Pending {
                 continue;
@@ -154,7 +178,9 @@ impl PendingBook {
             }
 
             // Expiration check
-            if let Some(gtd) = order.good_till_ns && current_bar_ns > gtd {
+            if let Some(gtd) = order.good_till_ns
+                && current_bar_ns > gtd
+            {
                 order.state = OrderState::Expired;
                 continue;
             }
@@ -170,11 +196,15 @@ impl PendingBook {
                 // Stop Short: Bid falls to/below entry (breakdown sell)
                 (OrderType::Stop, Direction::Short) => bid.low <= order.entry_price,
                 // Market orders should not be in PendingBook
-                (OrderType::Market, _) => true,
+                (OrderType::Market, _) => {
+                    order.state = OrderState::Rejected;
+                    false
+                }
             };
 
             if triggered {
                 order.state = OrderState::Triggered;
+                order.triggered_at_ns = Some(current_bar_ns);
                 events.push(TriggerEvent {
                     order_id: *order_id,
                     triggered_at_ns: current_bar_ns,
@@ -205,7 +235,7 @@ impl PendingBook {
     ///
     /// Returns true if the order was found and rejected.
     pub fn mark_rejected(&mut self, order_id: u64) -> bool {
-        for ((_, id), order) in self.orders.iter_mut() {
+        for ((_, id), order) in &mut self.orders {
             if *id == order_id && order.state == OrderState::Triggered {
                 order.state = OrderState::Rejected;
                 return true;
@@ -218,7 +248,7 @@ impl PendingBook {
     ///
     /// Returns true if the order was found and cancelled.
     pub fn cancel_order(&mut self, order_id: u64) -> bool {
-        for ((_, id), order) in self.orders.iter_mut() {
+        for ((_, id), order) in &mut self.orders {
             if *id == order_id && order.state == OrderState::Pending {
                 order.state = OrderState::Cancelled;
                 return true;
@@ -228,6 +258,7 @@ impl PendingBook {
     }
 
     /// Returns all triggered orders (for fill processing).
+    #[must_use]
     pub fn get_triggered(&self) -> Vec<&PendingOrder> {
         self.orders
             .values()
@@ -235,18 +266,33 @@ impl PendingBook {
             .collect()
     }
 
-    /// Returns a specific order by ID.
-    pub fn get_order(&self, order_id: u64) -> Option<&PendingOrder> {
+    /// Returns orders that are eligible to fill on the current bar.
+    ///
+    /// Triggered orders are eligible in the same bar as the trigger. This still
+    /// cannot happen in the placement candle because triggers require
+    /// `created_at_ns < current_bar_ns`.
+    #[must_use]
+    pub fn eligible_for_fill(&self, current_bar_ns: i64) -> Vec<&PendingOrder> {
         self.orders
             .values()
-            .find(|o| o.id == order_id)
+            .filter(|order| {
+                order.state == OrderState::Triggered
+                    && order
+                        .triggered_at_ns
+                        .is_some_and(|triggered_at| triggered_at <= current_bar_ns)
+            })
+            .collect()
+    }
+
+    /// Returns a specific order by ID.
+    #[must_use]
+    pub fn get_order(&self, order_id: u64) -> Option<&PendingOrder> {
+        self.orders.values().find(|o| o.id == order_id)
     }
 
     /// Returns a mutable reference to a specific order by ID.
     pub fn get_order_mut(&mut self, order_id: u64) -> Option<&mut PendingOrder> {
-        self.orders
-            .values_mut()
-            .find(|o| o.id == order_id)
+        self.orders.values_mut().find(|o| o.id == order_id)
     }
 
     /// Removes all terminal orders from the book.
@@ -255,6 +301,7 @@ impl PendingBook {
     }
 
     /// Returns the count of pending (not yet triggered) orders.
+    #[must_use]
     pub fn pending_count(&self) -> usize {
         self.orders
             .values()
@@ -263,6 +310,7 @@ impl PendingBook {
     }
 
     /// Returns the count of triggered (awaiting fill) orders.
+    #[must_use]
     pub fn triggered_count(&self) -> usize {
         self.orders
             .values()
@@ -271,11 +319,13 @@ impl PendingBook {
     }
 
     /// Returns the total count of orders in the book.
+    #[must_use]
     pub fn total_count(&self) -> usize {
         self.orders.len()
     }
 
     /// Checks if the book is empty.
+    #[must_use]
     pub fn is_empty(&self) -> bool {
         self.orders.is_empty()
     }
@@ -289,6 +339,7 @@ impl PendingBook {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use approx::assert_relative_eq;
     use serde_json::json;
 
     fn make_candle(open: f64, high: f64, low: f64, close: f64, ts: i64) -> Candle {
@@ -314,6 +365,7 @@ mod tests {
             0,
             json!({}),
         )
+        .unwrap()
     }
 
     fn make_stop_long(entry: f64, created_at: i64) -> PendingOrder {
@@ -328,6 +380,7 @@ mod tests {
             0,
             json!({}),
         )
+        .unwrap()
     }
 
     #[test]
@@ -337,8 +390,8 @@ mod tests {
         let order1 = make_limit_long(1.2000, 1_000_000);
         let order2 = make_limit_long(1.2010, 2_000_000);
 
-        let id1 = book.add_order(order1);
-        let id2 = book.add_order(order2);
+        let id1 = book.add_order(order1).unwrap();
+        let id2 = book.add_order(order2).unwrap();
 
         assert_eq!(id1, 1);
         assert_eq!(id2, 2);
@@ -351,7 +404,7 @@ mod tests {
 
         // Order created at bar 1000
         let order = make_limit_long(1.1980, 1000);
-        book.add_order(order);
+        book.add_order(order).unwrap();
 
         // Check in same bar - should NOT trigger
         let bid = make_candle(1.2000, 1.2050, 1.1960, 1.2030, 1000);
@@ -372,7 +425,7 @@ mod tests {
 
         // Limit buy at 1.1980
         let order = make_limit_long(1.1980, 0);
-        book.add_order(order);
+        book.add_order(order).unwrap();
 
         // Ask low reaches entry price
         let bid = make_candle(1.2000, 1.2050, 1.1970, 1.2030, 1000);
@@ -380,7 +433,7 @@ mod tests {
 
         let events = book.check_triggers(&bid, &ask, 1000);
         assert_eq!(events.len(), 1);
-        assert_eq!(events[0].trigger_price, 1.1980);
+        assert_relative_eq!(events[0].trigger_price, 1.1980, epsilon = 1e-10);
     }
 
     #[test]
@@ -389,7 +442,7 @@ mod tests {
 
         // Stop buy at 1.2050
         let order = make_stop_long(1.2050, 0);
-        book.add_order(order);
+        book.add_order(order).unwrap();
 
         // Ask high reaches entry price
         let bid = make_candle(1.2000, 1.2060, 1.1980, 1.2040, 1000);
@@ -397,7 +450,7 @@ mod tests {
 
         let events = book.check_triggers(&bid, &ask, 1000);
         assert_eq!(events.len(), 1);
-        assert_eq!(events[0].trigger_price, 1.2050);
+        assert_relative_eq!(events[0].trigger_price, 1.2050, epsilon = 1e-10);
     }
 
     #[test]
@@ -406,7 +459,7 @@ mod tests {
 
         // Order with expiration at bar 5000
         let order = make_limit_long(1.1980, 0).with_good_till(5000);
-        book.add_order(order);
+        book.add_order(order).unwrap();
 
         // Check after expiration
         let bid = make_candle(1.2000, 1.2050, 1.1960, 1.2030, 6000);
@@ -425,7 +478,7 @@ mod tests {
         let mut book = PendingBook::new();
 
         let order = make_limit_long(1.1980, 0);
-        let id = book.add_order(order);
+        let id = book.add_order(order).unwrap();
 
         // Trigger the order
         let bid = make_candle(1.2000, 1.2050, 1.1960, 1.2030, 1000);
@@ -444,7 +497,7 @@ mod tests {
         let mut book = PendingBook::new();
 
         let order = make_limit_long(1.1980, 0);
-        let id = book.add_order(order);
+        let id = book.add_order(order).unwrap();
 
         assert!(book.cancel_order(id));
         let order = book.get_order(id).unwrap();
@@ -460,15 +513,15 @@ mod tests {
         let order1 = make_limit_long(1.1970, 1000);
         let order2 = make_limit_long(1.1970, 2000);
 
-        book.add_order(order3);
-        book.add_order(order1);
-        book.add_order(order2);
+        book.add_order(order3).unwrap();
+        book.add_order(order1).unwrap();
+        book.add_order(order2).unwrap();
 
         // Iteration should be in chronological order by (created_at_ns, id)
-        let orders: Vec<_> = book.iter().collect();
-        assert_eq!(orders[0].created_at_ns, 1000);
-        assert_eq!(orders[1].created_at_ns, 2000);
-        assert_eq!(orders[2].created_at_ns, 3000);
+        let ordered: Vec<_> = book.iter().collect();
+        assert_eq!(ordered[0].created_at_ns, 1000);
+        assert_eq!(ordered[1].created_at_ns, 2000);
+        assert_eq!(ordered[2].created_at_ns, 3000);
     }
 
     #[test]
@@ -478,8 +531,8 @@ mod tests {
         let order1 = make_limit_long(1.1980, 0);
         let order2 = make_limit_long(1.1990, 0);
 
-        let id1 = book.add_order(order1);
-        book.add_order(order2);
+        let id1 = book.add_order(order1).unwrap();
+        book.add_order(order2).unwrap();
 
         // Cancel first order
         book.cancel_order(id1);
@@ -488,5 +541,44 @@ mod tests {
         // Cleanup terminal
         book.cleanup_terminal();
         assert_eq!(book.total_count(), 1);
+    }
+
+    #[test]
+    fn test_market_order_rejected() {
+        let order = PendingOrder::new(
+            OrderType::Market,
+            Direction::Long,
+            1.2000,
+            1.0,
+            1.1900,
+            1.2100,
+            0,
+            0,
+            json!({}),
+        );
+
+        assert!(matches!(order, Err(ExecutionError::InvalidOrder(_))));
+
+        let mut book = PendingBook::new();
+        let order = PendingOrder {
+            id: 0,
+            order_type: OrderType::Market,
+            direction: Direction::Long,
+            entry_price: 1.2000,
+            size: 1.0,
+            stop_loss: 1.1900,
+            take_profit: 1.2100,
+            state: OrderState::Pending,
+            created_at_ns: 0,
+            good_till_ns: None,
+            scenario_id: 0,
+            meta: json!({}),
+            triggered_at_ns: None,
+        };
+
+        assert!(matches!(
+            book.add_order(order),
+            Err(ExecutionError::InvalidOrder(_))
+        ));
     }
 }

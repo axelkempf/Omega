@@ -465,10 +465,7 @@ impl MultiTfIndicatorCache {
                     ("use_log_returns", bool_code(params.use_log_returns)),
                     ("scale_x100", round_to_i64(params.scale * 100.0)),
                     ("min_periods", usize_to_i64(params.min_periods)),
-                    (
-                        "sigma_floor_x1e8",
-                        round_to_i64(params.sigma_floor * 1e8),
-                    ),
+                    ("sigma_floor_x1e8", round_to_i64(params.sigma_floor * 1e8)),
                 ],
             ),
         );

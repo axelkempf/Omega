@@ -19,6 +19,8 @@
 //! - **Equity Curve**: Full equity history with drawdown tracking
 
 #![deny(clippy::all)]
+#![warn(clippy::pedantic)]
+#![deny(missing_docs)]
 
 //! ## Example
 //!
@@ -75,11 +77,16 @@ pub mod position_manager;
 pub mod stops;
 
 // Re-exports for convenience
+/// Equity tracking utilities.
 pub use equity::EquityTracker;
+/// Portfolio error type.
 pub use error::PortfolioError;
+/// Portfolio management types.
 pub use portfolio::{Portfolio, TradeStats};
+/// Position manager.
 pub use position_manager::PositionManager;
+/// Stop-check helpers and constants.
 pub use stops::{
-    calculate_gap_exit_price, check_stop_loss_only, check_stops, check_take_profit_only,
-    StopCheckResult, DEFAULT_PIP_BUFFER_FACTOR,
+    DEFAULT_PIP_BUFFER_FACTOR, StopCheckResult, calculate_gap_exit_price, check_stop_loss_only,
+    check_stops, check_take_profit_only,
 };

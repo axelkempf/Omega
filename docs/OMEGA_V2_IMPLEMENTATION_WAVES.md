@@ -1,4 +1,4 @@
-# Omega V2 – Implementierungs-Wellen
+## Omega V2 – Implementierungs-Wellen
 
 > **Status**: Implementierungsphase
 > **Erstellt**: 14. Januar 2026
@@ -2198,7 +2198,9 @@ pub struct TriggerEvent {
 /// DETERMINISMUS-REGELN (normativ):
 /// 1. Orders werden nach (created_at_ns, id) sortiert → FIFO + Tie-Break
 /// 2. Trigger-Prüfung erfolgt in dieser Reihenfolge
-/// 3. Mehrere Orders im selben Bar: Alle triggern, aber Fill erst ab next_bar
+/// 3. Orders werden am Candle-Close platziert → Trigger erst ab next_bar
+/// 4. Wenn Trigger in Bar t: Fill in derselben Bar t (Same-Bar Entry möglich)
+///    → SL/TP können in der Entry-Candle ausgelöst werden
 #[derive(Debug, Default)]
 pub struct PendingBook {
     /// Orders sortiert nach (created_at_ns, order_id) für deterministische Iteration
@@ -2228,7 +2230,8 @@ impl PendingBook {
 
     /// Prüft alle Orders auf Trigger und gibt Events zurück (deterministisch sortiert)
     /// 
-    /// WICHTIG: Pending Orders triggern NICHT im selben Bar wie Erstellung (next_bar Regel)
+    /// WICHTIG: Pending Orders werden am Candle-Close platziert.
+    /// Trigger daher NICHT im selben Bar wie Erstellung (next_bar Regel).
     pub fn check_triggers(
         &mut self,
         bid: &Candle,
@@ -2331,34 +2334,39 @@ impl PendingBook {
 
 ```rust
 /// Deterministische Verarbeitungsreihenfolge für einen Bar
-/// 
-/// PHASE 1: Stop-Loss Checks (höchste Priorität)
+///
+/// PHASE 1: Pending Order Triggers
+///   - Sortiert nach: (created_at_ns, order_id) → FIFO + Tie-Break
+///   - Alle Orders die Trigger-Bedingung erfüllen werden markiert
+///   - Fill erfolgt mit pending_fill() (Gap-aware) in derselben Trigger-Candle
+///
+/// PHASE 2: Exit-Checks (SL/TP)
 ///   - SL hat IMMER Priorität über TP
 ///   - Begründung: Risikomanagement > Profit-Taking
 ///   - Bei gleichzeitigem SL+TP Hit: SL gewinnt
-/// 
-/// PHASE 2: Pending Order Triggers
-///   - Sortiert nach: (created_at_ns, order_id) → FIFO + Tie-Break
-///   - Alle Orders die Trigger-Bedingung erfüllen werden markiert
-///   - Fill erfolgt mit pending_fill() (Gap-aware)
-/// 
-/// PHASE 3: Take-Profit Checks
-///   - Nur für Positionen die NICHT in Phase 1 geschlossen wurden
 ///   - in_entry_candle Speziallogik: TP nur wenn Close beyond TP
-/// 
-/// PHASE 4: Neue Signale
+///
+/// PHASE 3: Trade-Management
+///   - Rule-basierte Actions (z.B. Timeout)
+///   - Stop/TP-Updates gelten ab next_bar
+///
+/// PHASE 4: Equity-Update
+///   - Equity/Balance pro Bar aktualisieren
+///
+/// PHASE 5: Neue Signale
 ///   - Strategy.on_bar() wird aufgerufen
 ///   - Neue Market Orders: sofort Fill
-///   - Neue Pending Orders: in PendingBook (trigger ab next_bar)
+///   - Neue Pending Orders: in PendingBook (Placement am Candle-Close, Trigger ab next_bar)
 pub struct TriggerOrderPolicy;
 
 impl TriggerOrderPolicy {
     /// Dokumentiert die Verarbeitungsreihenfolge für Audit
     pub const PROCESSING_ORDER: &'static [&'static str] = &[
-        "1. SL-Check (alle offenen Positionen, SL > TP Priorität)",
-        "2. Pending-Triggers (FIFO nach created_at_ns, order_id)",
-        "3. TP-Check (verbleibende Positionen, in_entry_candle Regel)",
-        "4. Strategy-Signale (neue Orders erstellen)",
+        "1. Pending-Triggers (FIFO nach created_at_ns, order_id)",
+        "2. Exit-Checks (SL/TP, SL > TP Priorität, in_entry_candle Regel)",
+        "3. Trade-Management (Rule-Actions, Stop/TP-Updates ab next_bar)",
+        "4. Equity-Update (Equity/Balance pro Bar)",
+        "5. Strategy-Signale (neue Orders erstellen)",
     ];
 
     /// Bei gleichzeitigem SL und TP Hit: SL gewinnt

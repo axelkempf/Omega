@@ -66,9 +66,7 @@ impl<'a> BarContextBuilder<'a> {
         let htf_store = self.store.htf.as_ref()?;
         let htf_idx = self.store.htf_index_at(idx)?;
         let (htf_bid, htf_ask) = htf_store.get(htf_idx)?;
-        let cache = self
-            .htf_indicators
-            .unwrap_or(&self.empty_htf_cache);
+        let cache = self.htf_indicators.unwrap_or(&self.empty_htf_cache);
         Some(HtfContext::new(
             htf_bid,
             htf_ask,

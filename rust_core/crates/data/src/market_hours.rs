@@ -54,9 +54,8 @@ fn weekday_index_utc(timestamp_ns: i64) -> Result<u32, DataError> {
 }
 
 fn u32_from_i64(value: i64) -> Result<u32, DataError> {
-    u32::try_from(value).map_err(|_| {
-        DataError::CorruptData(format!("Invalid u32 conversion from i64: {value}"))
-    })
+    u32::try_from(value)
+        .map_err(|_| DataError::CorruptData(format!("Invalid u32 conversion from i64: {value}")))
 }
 
 #[cfg(test)]

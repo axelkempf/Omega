@@ -76,11 +76,7 @@ impl Action {
     }
 
     /// Creates a close position action with exit price hint.
-    pub fn close_with_price(
-        position_id: u64,
-        reason: ExitReason,
-        exit_price_hint: f64,
-    ) -> Self {
+    pub fn close_with_price(position_id: u64, reason: ExitReason, exit_price_hint: f64) -> Self {
         Action::ClosePosition {
             position_id,
             reason,
@@ -171,7 +167,9 @@ mod tests {
 
         assert!(action.is_close());
         match action {
-            Action::ClosePosition { exit_price_hint, .. } => {
+            Action::ClosePosition {
+                exit_price_hint, ..
+            } => {
                 assert_eq!(exit_price_hint, Some(1.1000));
             }
             _ => panic!("Expected ClosePosition"),
@@ -187,7 +185,9 @@ mod tests {
         assert_eq!(action.position_id(), Some(42));
 
         match action {
-            Action::ModifyStopLoss { effective_from_idx, .. } => {
+            Action::ModifyStopLoss {
+                effective_from_idx, ..
+            } => {
                 assert_eq!(effective_from_idx, 100);
             }
             _ => panic!("Expected ModifyStopLoss"),
@@ -203,7 +203,9 @@ mod tests {
         assert_eq!(action.position_id(), Some(42));
 
         match action {
-            Action::ModifyTakeProfit { effective_from_idx, .. } => {
+            Action::ModifyTakeProfit {
+                effective_from_idx, ..
+            } => {
                 assert_eq!(effective_from_idx, 50);
             }
             _ => panic!("Expected ModifyTakeProfit"),

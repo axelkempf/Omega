@@ -18,11 +18,13 @@
 //!
 //! All execution is deterministic:
 //!
-//! - Uses ChaCha8Rng with configurable seed for reproducible slippage
+//! - Uses `ChaCha8Rng` with configurable seed for reproducible slippage
 //! - Pending orders are processed in FIFO order (by creation time, then ID)
 //! - State transitions follow defined rules with no rollback
 
 #![deny(clippy::all)]
+#![warn(clippy::pedantic)]
+#![deny(missing_docs)]
 
 //! ## Example
 //!
@@ -54,7 +56,7 @@
 //!     meta: json!({}),
 //! };
 //!
-//! let result = engine.execute_market_order(&signal, &costs);
+//! let result = engine.execute_market_order(&signal, &costs).unwrap();
 //! assert!(result.filled);
 //! ```
 
@@ -66,18 +68,32 @@ pub mod fill;
 pub mod pending_book;
 pub mod slippage;
 pub mod state;
+pub mod symbol_specs;
 
 // Re-exports for convenience
+/// Execution cost configuration and symbol cost types.
 pub use costs::{
     CommissionConfig, CommissionSchema, CommissionSide, ExecutionCostsConfig, SymbolCosts,
 };
+/// Execution engine types.
 pub use engine::{
-    ExecutionEngine, ExecutionEngineConfig, MarketOrderResult, PendingFillResult,
-    PendingProcessResult,
+    ExecutionEngine, ExecutionEngineConfig, ExitFillResult, MarketOrderResult, PendingFillResult,
+    PendingOrderRejection, PendingProcessResult,
 };
+/// Execution error type.
 pub use error::ExecutionError;
-pub use fees::{CombinedFee, FeeModel, FixedFee, NoFee, PercentageFee, TieredFee};
-pub use fill::{check_exit_triggered, market_fill, pending_fill, FillResult};
+/// Fee model implementations.
+pub use fees::{
+    CombinedFee, FeeModel, FixedFee, MinFee, NoFee, PerMillionNotionalFee, PercentageFee,
+    TieredFee,
+};
+/// Fill helpers and results.
+pub use fill::{FillResult, market_fill, pending_fill};
+/// Pending order book types.
 pub use pending_book::{PendingBook, PendingOrder, TriggerEvent};
+/// Slippage model implementations.
 pub use slippage::{FixedSlippage, NoSlippage, SlippageModel, VolatilitySlippage};
+/// Order and position state types.
 pub use state::{OrderState, PositionState, StateTransition, TriggerOrderPolicy};
+/// Symbol specifications loader.
+pub use symbol_specs::{SymbolSpec, get_symbol_spec_or_default, load_symbol_specs};

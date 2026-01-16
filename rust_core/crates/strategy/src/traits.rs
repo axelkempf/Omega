@@ -121,7 +121,8 @@ mod tests {
 
     #[test]
     fn test_indicator_requirement_with_timeframe() {
-        let req = IndicatorRequirement::with_timeframe("EMA", "H4", serde_json::json!({"period": 200}));
+        let req =
+            IndicatorRequirement::with_timeframe("EMA", "H4", serde_json::json!({"period": 200}));
         assert_eq!(req.name, "EMA");
         assert_eq!(req.timeframe, Some("H4".to_string()));
         assert_eq!(req.params["period"], 200);
