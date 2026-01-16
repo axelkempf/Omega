@@ -837,6 +837,7 @@ dependencies = [
 name = "omega_backtest"
 version = "0.1.0"
 dependencies = [
+ "arrow",
  "omega_data",
  "omega_execution",
  "omega_indicators",
@@ -844,9 +845,12 @@ dependencies = [
  "omega_strategy",
  "omega_trade_mgmt",
  "omega_types",
+ "parquet",
  "rand_chacha 0.3.1",
  "serde",
  "serde_json",
+ "temp-env",
+ "tempfile",
  "thiserror",
  "tracing",
 ]

@@ -41,6 +41,30 @@ pub enum PortfolioError {
     #[error("invalid position size: {0}")]
     InvalidSize(String),
 
+    /// Non-finite portfolio value
+    #[error("portfolio value is not finite: {field}={value}")]
+    NonFiniteValue {
+        /// Name of the field
+        field: String,
+        /// Non-finite value encountered
+        value: f64,
+    },
+
+    /// Portfolio consistency check failed
+    #[error(
+        "portfolio consistency violation: equity {equity}, expected {expected} (diff {diff}, tolerance {tolerance})"
+    )]
+    ConsistencyViolation {
+        /// Recorded equity value
+        equity: f64,
+        /// Expected equity from cash + unrealized PnL
+        expected: f64,
+        /// Absolute difference between equity and expected value
+        diff: f64,
+        /// Allowed tolerance
+        tolerance: f64,
+    },
+
     /// General portfolio error
     #[error("portfolio error: {0}")]
     General(String),

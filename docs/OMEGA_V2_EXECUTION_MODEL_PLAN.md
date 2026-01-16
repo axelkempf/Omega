@@ -74,19 +74,41 @@ Dieses Dokument definiert die **universale Wahrheit** für das Omega V2 Backtest
 - Candles sind Bar-Daten mit **Open-Time** als `timestamp_ns` (siehe Data-Flow Plan).
 - Alle Zeiten sind UTC.
 
-### 3.2 Position/Order State
+### 3.2 Order-Typen und Position State
+
+**Order-Typen (normativ):**
+
+Omega V2 unterscheidet zwei **zentrale** Order-Kategorien:
+
+| Kategorie | Order-Typen | Entry-Semantik | Exit-Semantik (SL/TP) |
+|-----------|-------------|----------------|----------------------|
+| **Market Order** | `market` | Fill in **aktueller** Candle (Signal-Bar) | SL/TP erst ab **next_bar** |
+| **Pending Order** | `limit`, `stop` | Trigger erst ab **next_bar** | SL/TP **erlaubt** in Trigger-Candle |
+
+**Position State:**
 
 - `pending`: Limit/Stop ist platziert, aber noch nicht ausgelöst.
 - `open`: Position ist aktiv.
 - `closed`: Position ist geschlossen.
 
-**Normativ:**
+**Normativ (Market Order):**
+
+- Market Orders werden in der **Signal-Candle** gefüllt.
+- SL und TP können **NICHT** in der Entry-Candle ausgelöst werden.
+- Exits sind erst ab `next_bar` möglich.
+
+**Normativ (Pending Orders: Limit/Stop):**
 
 - Pending Orders werden am **Candle‑Close** platziert.
 - Daher können sie **nicht** in derselben Candle ausgelöst oder gefüllt werden.
 - Trigger ist erst ab `next_bar` möglich.
 - Wenn ein Trigger in Bar $t$ passiert, erfolgt der Fill **in derselben Bar $t$**;
-  SL/TP können somit in der Entry‑Candle getroffen werden.
+  SL/TP **können** in der Trigger-Candle (Bar $t$) getroffen werden.
+
+**Begründung:**
+
+- Bei Market Orders ist der Entry-Preis bekannt (Fill sofort), daher wäre ein SL/TP in derselben Candle potentiell Lookahead.
+- Bei Pending Orders ist der Trigger-Zeitpunkt die "neue Information" – der Entry-Preis ist erst in Bar $t$ bekannt, und SL/TP-Prüfung ist realistisch.
 
 ---
 
@@ -112,13 +134,18 @@ Pro Candle-Step (pro `timestamp_ns`) gilt die Reihenfolge:
 3. **Trade-/Position-Management** evaluieren (Rules → Actions; z.B. `timeout` Close)
 4. **Portfolio/Equity** updaten (siehe Output-Contract `equity.csv`)
 
-**Normativ:**
+**Normativ (Market Orders):**
 
-- Market-Orders werden zum Signal-Zeitpunkt ausgeführt.
-- Pending Orders triggern erst ab der nächsten Candle (`bid.timestamp > pos.entry_time`).
-- Entry und Exit können in derselben Candle passieren (Same-Bar), wenn `trigger_time == candle.timestamp`.
+- Market-Orders werden zum Signal-Zeitpunkt ausgeführt (Fill in Signal-Candle).
+- SL und TP werden **NICHT** in der Entry-Candle geprüft.
+- Exit-Prüfung erfolgt erst ab `next_bar` (`candle.timestamp_ns > position.entry_time_ns`).
+
+**Normativ (Pending Orders: Limit/Stop):**
+
+- Pending Orders triggern erst ab der nächsten Candle (`candle.timestamp_ns > order.placement_time_ns`).
+- Entry und Exit **können** in derselben Candle passieren (Same-Bar), wenn `trigger_time_ns == candle.timestamp_ns`.
 - Bei Pending Orders bedeutet das: Trigger + Fill passieren in Bar $t$;
-  SL/TP können in Bar $t$ greifen.
+  SL/TP **können** in Bar $t$ greifen (keine Blockierung).
 
 **Trade-Management (MVP-Contract):**
 
@@ -207,18 +234,55 @@ Wenn eine Pending Order in Candle $t$ triggert, gilt:
 
 - Wenn SL und TP im selben Candle hit sind, hat **SL Priorität**.
 
-### 7.3 `in_entry_candle` Speziallogik
+### 7.3 `in_entry_candle` Speziallogik (Order-Type-abhängig)
 
-`in_entry_candle = (candle.timestamp_ns == trigger_time_ns)`.
+`in_entry_candle = (candle.timestamp_ns == entry_time_ns)`.
 
-Wenn `in_entry_candle`:
+**Die Exit-Erlaubnis in der Entry-Candle hängt vom Order-Typ ab (normativ):**
 
-- SL hat Priorität.
-- TP ist grundsätzlich erlaubt.
-- **Spezialfall Limit-TP:** TP darf in Entry-Candle nur realisiert werden, wenn der Close “jenseits” des TP liegt:
+#### 7.3.1 Market Orders
+
+Bei **Market Orders** ist `in_entry_candle` die Candle, in der die Order ausgeführt wurde.
+
+**Regel (normativ):** Wenn `in_entry_candle && order_type == Market`:
+- **KEINE Exits erlaubt** (weder SL noch TP).
+- Exit-Check beginnt erst in der **nächsten Candle**.
+
+**Rationale:** Der Entry-Fill passiert am Open der Candle. Die Intra-Candle-Bewegung ist zum Zeitpunkt des Entries unbekannt; SL/TP könnten auf vergangenen Preisen basieren (Lookahead-Verdacht).
+
+```rust
+if in_entry_candle && position.order_type == OrderType::Market {
+    return None; // Kein Exit in Entry-Candle
+}
+```
+
+#### 7.3.2 Pending Orders (Limit/Stop)
+
+Bei **Pending Orders** ist `in_entry_candle` die Candle, in der die Order **getriggert** wurde (nicht platziert).
+
+**Regel (normativ):** Wenn `in_entry_candle && order_type.is_pending()`:
+- **Exits SIND erlaubt** (SL und TP können triggern).
+- SL hat Priorität bei Tie-Break.
+- **Spezialfall Limit-TP:** TP darf in Trigger-Candle nur realisiert werden, wenn der Close "jenseits" des TP liegt:
   - long: `bid.close > take_profit`
   - short: `ask.close < take_profit`
-  - sonst: kein Exit in dieser Candle.
+  - sonst: kein TP-Exit in dieser Candle (SL kann aber triggern).
+
+**Rationale:** Pending Orders werden in einer **früheren** Candle platziert und triggern erst wenn der Markt den Entry-Preis erreicht. Die volle Intra-Candle-Bewegung der Trigger-Candle ist "fair game" für SL/TP.
+
+```rust
+if in_entry_candle && position.order_type.is_pending() {
+    // SL/TP-Check ist erlaubt
+    // Limit-TP Speziallogik anwenden
+}
+```
+
+#### 7.3.3 Zusammenfassung
+
+| Order-Typ | In Entry-Candle | SL erlaubt? | TP erlaubt? |
+|-----------|-----------------|-------------|-------------|
+| **Market** | Ja | ❌ Nein | ❌ Nein |
+| **Pending (Limit/Stop)** | Ja (Trigger-Candle) | ✅ Ja | ✅ Ja (mit Limit-TP-Regel) |
 
 ### 7.4 Exit-Slippage (adverse, Richtung invertiert)
 

@@ -9,6 +9,8 @@ use crate::position_manager::PositionManager;
 use omega_types::{Direction, ExitReason, Position, Signal, Trade};
 use serde_json::{Map as JsonMap, Value as JsonValue};
 
+const CONSISTENCY_EPS: f64 = 1e-8;
+
 /// Portfolio state for backtesting.
 ///
 /// Manages:
@@ -312,6 +314,55 @@ impl Portfolio {
     #[must_use]
     pub fn symbol(&self) -> &str {
         &self.symbol
+    }
+
+    /// Validates portfolio consistency after a backtest run.
+    ///
+    /// Ensures the recorded equity equals cash plus unrealized PnL within
+    /// a floating-point tolerance and that all values are finite.
+    ///
+    /// # Arguments
+    /// * `current_price` - Market price used to compute unrealized PnL
+    ///
+    /// # Errors
+    /// Returns [`PortfolioError::ConsistencyViolation`] when the invariant
+    /// is violated, or [`PortfolioError::NonFiniteValue`] if any input or
+    /// computed value is not finite.
+    pub fn validate_consistency(&self, current_price: f64) -> Result<(), PortfolioError> {
+        let ensure_finite = |field: &str, value: f64| {
+            if value.is_finite() {
+                Ok(())
+            } else {
+                Err(PortfolioError::NonFiniteValue {
+                    field: field.to_string(),
+                    value,
+                })
+            }
+        };
+
+        ensure_finite("current_price", current_price)?;
+
+        let cash = self.cash;
+        let equity = self.equity_tracker.equity();
+        let unrealized = self.position_manager.total_unrealized_pnl(current_price);
+        let expected = cash + unrealized;
+
+        ensure_finite("cash", cash)?;
+        ensure_finite("equity", equity)?;
+        ensure_finite("unrealized_pnl", unrealized)?;
+        ensure_finite("expected_equity", expected)?;
+
+        let diff = (equity - expected).abs();
+        if diff > CONSISTENCY_EPS {
+            return Err(PortfolioError::ConsistencyViolation {
+                equity,
+                expected,
+                diff,
+                tolerance: CONSISTENCY_EPS,
+            });
+        }
+
+        Ok(())
     }
 
     /// Calculates summary statistics for closed trades.
@@ -640,5 +691,43 @@ mod tests {
             .get("stop_loss_kind")
             .and_then(|value| value.as_str());
         assert_eq!(stop_loss_kind, Some("break_even"));
+    }
+
+    #[test]
+    fn test_consistency_validation_passes() {
+        let mut portfolio = Portfolio::new(10_000.0, 5, "EURUSD");
+
+        let signal = make_signal(Direction::Long, 1.2000, 1.1950, 1.2100);
+        portfolio
+            .open_position(&signal, 1.2000, 1.0, 1_000_000, 0.0)
+            .unwrap();
+
+        portfolio.update_equity(1_500_000, 1.2050);
+
+        let result = portfolio.validate_consistency(1.2050);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_consistency_validation_fails_on_mismatch() {
+        let mut portfolio = Portfolio::new(10_000.0, 5, "EURUSD");
+
+        let signal = make_signal(Direction::Long, 1.2000, 1.1950, 1.2100);
+        portfolio
+            .open_position(&signal, 1.2000, 1.0, 1_000_000, 0.0)
+            .unwrap();
+
+        portfolio.update_equity(1_500_000, 1.2050);
+
+        let bad_equity = portfolio.cash + 0.0100;
+        portfolio
+            .equity_tracker
+            .update(2_000_000, bad_equity, portfolio.cash);
+
+        let result = portfolio.validate_consistency(1.2050);
+        assert!(matches!(
+            result,
+            Err(PortfolioError::ConsistencyViolation { .. })
+        ));
     }
 }

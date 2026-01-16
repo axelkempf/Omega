@@ -17,3 +17,9 @@ serde_json = { workspace = true }
 thiserror = { workspace = true }
 tracing = "0.1"
 rand_chacha = "0.3"
+
+[dev-dependencies]
+arrow = "51"
+parquet = "51"
+temp-env = "0.3"
+tempfile = "3"

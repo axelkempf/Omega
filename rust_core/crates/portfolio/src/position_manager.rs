@@ -4,7 +4,7 @@
 //! and tracking of position-level metrics.
 
 use crate::error::PortfolioError;
-use omega_types::{Direction, Position, Signal};
+use omega_types::{Direction, OrderType, Position, Signal};
 use serde_json::Value as JsonValue;
 
 /// Manages a collection of open positions.
@@ -79,6 +79,7 @@ impl PositionManager {
         let position = Position {
             id,
             direction: signal.direction,
+            order_type: signal.order_type,
             entry_time_ns,
             entry_price: fill_price,
             size,
@@ -100,6 +101,7 @@ impl PositionManager {
     pub fn open_position_raw(
         &mut self,
         direction: Direction,
+        order_type: OrderType,
         fill_price: f64,
         size: f64,
         stop_loss: f64,
@@ -126,6 +128,7 @@ impl PositionManager {
         let position = Position {
             id,
             direction,
+            order_type,
             entry_time_ns,
             entry_price: fill_price,
             size,

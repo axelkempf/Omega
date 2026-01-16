@@ -5,6 +5,9 @@ use omega_data::CandleStore;
 use crate::error::BacktestError;
 
 /// Validates that sufficient data exists for warmup.
+///
+/// # Errors
+/// Returns an error if the available data is shorter than the warmup period.
 pub fn validate_warmup(data: &CandleStore, warmup_bars: usize) -> Result<(), BacktestError> {
     if data.len() <= warmup_bars {
         return Err(BacktestError::InsufficientData {
@@ -24,6 +27,9 @@ pub fn validate_warmup(data: &CandleStore, warmup_bars: usize) -> Result<(), Bac
 }
 
 /// Validates HTF warmup (if HTF enabled).
+///
+/// # Errors
+/// Returns an error if HTF data is present but shorter than the warmup period.
 pub fn validate_htf_warmup(
     htf_data: Option<&CandleStore>,
     warmup_bars: usize,

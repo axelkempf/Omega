@@ -748,22 +748,55 @@ Vor Start des Loops wird die **ExecutionEngine** einmalig initialisiert:
 │  ┌───────────────────────────────────────────────────────────────────────────┐   │
 │  │  STEP 4: Portfolio.check_stops(bid, ask)                                   │   │
 │  │                                                                            │   │
-│  │  Für jede offene Position:                                                 │   │
+│  │  Für jede offene Position (nur SL/TP, kein Trade Management):              │   │
 │  │                                                                            │   │
 │  │  ┌─────────────────────────────────────────────────────────────────────┐  │   │
 │  │  │  Stop Loss getroffen?                                                │  │   │
 │  │  │  Take Profit getroffen?                                              │  │   │
-│  │  │  Max Holding Time erreicht?                                          │  │   │
-│  │  │  Trailing Stop triggered?                                            │  │   │
 │  │  └─────────────────────────────────────────────────────────────────────┘  │   │
 │  │                              │                                             │   │
 │  │                              ▼                                             │   │
 │  │  ┌─────────────────────────────────────────────────────────────────────┐  │   │
 │  │  │  Falls Close-Bedingung erfüllt:                                      │  │   │
 │  │  │  • Position schließen                                                │  │   │
-│  │  │  • Trade-Record erstellen                                            │  │   │
+│  │  │  • Trade-Record erstellen (reason: stop_loss | take_profit)          │  │   │
 │  │  │  • PnL berechnen (inkl. Slippage/Fee)                                │  │   │
 │  │  │  • Cash aktualisieren                                                │  │   │
+│  │  └─────────────────────────────────────────────────────────────────────┘  │   │
+│  └───────────────────────────────────────────────────────────────────────────┘   │
+│                                          │                                        │
+│                                          ▼                                        │
+│  ┌───────────────────────────────────────────────────────────────────────────┐   │
+│  │  STEP 4b: TradeManager.evaluate(&ctx, &portfolio) → Vec<Action>            │   │
+│  │                                                                            │   │
+│  │  Trade Management Regeln evaluieren (nach SL/TP Check):                    │   │
+│  │  Siehe: OMEGA_V2_TRADE_MANAGER_PLAN.md                                     │   │
+│  │                                                                            │   │
+│  │  ┌─────────────────────────────────────────────────────────────────────┐  │   │
+│  │  │  Für jede noch offene Position:                                      │  │   │
+│  │  │  • MaxHoldingTimeRule: Δt ≥ max_holding_minutes × 60 × 10⁹ ns?       │  │   │
+│  │  │  • (Zukünftig: TrailingStopRule, BreakEvenRule, ...)                 │  │   │
+│  │  └─────────────────────────────────────────────────────────────────────┘  │   │
+│  │                              │                                             │   │
+│  │                              ▼                                             │   │
+│  │  ┌─────────────────────────────────────────────────────────────────────┐  │   │
+│  │  │  Actions nach Priorität sortieren (0=höchste):                       │  │   │
+│  │  │  • Priority 0: Hard Safety / Kill Switch                            │  │   │
+│  │  │  • Priority 10: Hard Close (z.B. MaxHoldingTime → timeout)          │  │   │
+│  │  │  • Priority 20: Protective Stops (Break-Even)                       │  │   │
+│  │  │  • Priority 30: Trailing Stops                                      │  │   │
+│  │  │  • Priority 40: Profit Management                                   │  │   │
+│  │  │                                                                      │  │   │
+│  │  │  Konfliktauflösung:                                                  │  │   │
+│  │  │  • ClosePosition gewinnt immer über ModifyStops                     │  │   │
+│  │  │  • Bei gleicher Priorität: lexikografisch nach RuleId               │  │   │
+│  │  └─────────────────────────────────────────────────────────────────────┘  │   │
+│  │                              │                                             │   │
+│  │                              ▼                                             │   │
+│  │  ┌─────────────────────────────────────────────────────────────────────┐  │   │
+│  │  │  Actions ausführen:                                                  │  │   │
+│  │  │  • ClosePosition → Position schließen, reason = timeout / rule_id   │  │   │
+│  │  │  • ModifyStops → SL/TP anpassen (monoton: SL nur enger, TP nur weiter)│  │   │
 │  │  └─────────────────────────────────────────────────────────────────────┘  │   │
 │  └───────────────────────────────────────────────────────────────────────────┘   │
 │                                          │                                        │
@@ -1162,7 +1195,8 @@ CHECKPOINT 5: Vor Result Serialization
 │         │         │        ├─▶ BarContext (Refs)                        │        │
 │         │         │        ├─▶ Strategy.on_bar() → Signal               │        │
 │         │         │        ├─▶ Execution.process(Signal)                │        │
-│         │         │        ├─▶ Portfolio.check_stops()                  │        │
+│         │         │        ├─▶ Portfolio.check_stops() (SL/TP)          │        │
+│         │         │        ├─▶ TradeManager.evaluate() → Actions        │        │
 │         │         │        └─▶ Portfolio.update_equity()                │        │
 │         │         │                         │                           │        │
 │         │         │   5. Trades ───▶ Metrics                            │        │

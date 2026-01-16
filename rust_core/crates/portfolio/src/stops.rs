@@ -31,19 +31,28 @@ pub struct StopCheckResult {
 /// When both SL and TP are hit in the same candle, the SL is executed
 /// because risk management takes precedence over profit-taking.
 ///
-/// # Entry Candle Rule
+/// # Order Type Differentiation (The 4 Rules)
 ///
-/// When checking in the entry candle (`in_entry_candle = true`), TP is only
+/// 1. **Market Orders**: SL/TP can only trigger in the NEXT candle after entry.
+///    In the entry candle (`in_entry_candle = true`), no exit is allowed.
+///
+/// 2. **Pending Orders (Limit/Stop)**: Can trigger SL/TP in the SAME candle
+///    where the pending order was triggered (not where it was placed).
+///    This is because the pending order already waited for trigger.
+///
+/// # Entry Candle Rule (for Pending Orders only)
+///
+/// When checking in the entry candle for pending orders, TP is only
 /// valid if the candle's close price is beyond the TP level. This prevents
 /// false TP triggers from intra-candle price spikes.
 ///
 /// # Arguments
-/// * `position` - The position to check
+/// * `position` - The position to check (includes order_type)
 /// * `bid` - Current bid candle (used for long position exits)
 /// * `ask` - Current ask candle (used for short position exits)
 /// * `pip_size` - Pip size for the instrument
 /// * `pip_buffer_factor` - Buffer factor (typically 0.5)
-/// * `in_entry_candle` - Whether this is the entry candle (affects TP logic)
+/// * `in_entry_candle` - Whether this is the entry candle (affects behavior)
 ///
 /// # Returns
 /// `Some(StopCheckResult)` if a stop was triggered, `None` otherwise.
@@ -56,6 +65,12 @@ pub fn check_stops(
     pip_buffer_factor: f64,
     in_entry_candle: bool,
 ) -> Option<StopCheckResult> {
+    // Rule 1+2: Market Orders cannot exit in entry candle
+    // Pending Orders (Limit/Stop) CAN exit in entry candle (where triggered)
+    if in_entry_candle && position.order_type.is_market() {
+        return None;
+    }
+
     let pip_buffer = pip_size * pip_buffer_factor;
 
     // Check SL and TP hit conditions based on direction
@@ -87,9 +102,10 @@ pub fn check_stops(
         });
     }
 
-    // TP check with entry candle special logic
+    // TP check with entry candle special logic (for pending orders only)
     if tp_hit {
-        // In entry candle: TP only valid if close is "beyond" TP
+        // In entry candle (pending order): TP only valid if close is "beyond" TP
+        // Note: Market orders never reach here in entry candle (returned early)
         if in_entry_candle {
             let tp_valid = match position.direction {
                 // Long: close must be above TP
@@ -217,12 +233,21 @@ pub fn calculate_gap_exit_price(
 mod tests {
     use super::*;
     use approx::assert_relative_eq;
+    use omega_types::OrderType;
     use serde_json::json;
 
-    fn make_position(direction: Direction, entry: f64, sl: f64, tp: f64) -> Position {
+    /// Creates a Position with specified order type for testing.
+    fn make_position_with_order_type(
+        direction: Direction,
+        order_type: OrderType,
+        entry: f64,
+        sl: f64,
+        tp: f64,
+    ) -> Position {
         Position {
             id: 1,
             direction,
+            order_type,
             entry_time_ns: 0,
             entry_price: entry,
             size: 1.0,
@@ -231,6 +256,16 @@ mod tests {
             scenario_id: 0,
             meta: json!({}),
         }
+    }
+
+    /// Creates a Market Order Position (default for most tests).
+    fn make_position(direction: Direction, entry: f64, sl: f64, tp: f64) -> Position {
+        make_position_with_order_type(direction, OrderType::Market, entry, sl, tp)
+    }
+
+    /// Creates a Pending (Limit) Order Position.
+    fn make_pending_position(direction: Direction, entry: f64, sl: f64, tp: f64) -> Position {
+        make_position_with_order_type(direction, OrderType::Limit, entry, sl, tp)
     }
 
     fn make_candle(open: f64, high: f64, low: f64, close: f64) -> Candle {
@@ -336,14 +371,16 @@ mod tests {
 
     #[test]
     fn test_entry_candle_tp_valid_when_close_beyond() {
-        // Long position with TP at 1.2100
-        let position = make_position(Direction::Long, 1.2000, 1.1950, 1.2100);
+        // Pending (Limit) Order position with TP at 1.2100.
+        // This tests Rule 4: A triggered Pending Order CAN exit in the same candle
+        // where it was triggered (the "entry candle").
+        let position = make_pending_position(Direction::Long, 1.2000, 1.1950, 1.2100);
 
         // Close is above TP
         let bid = make_candle(1.2000, 1.2150, 1.1990, 1.2120);
         let ask = make_candle(1.2002, 1.2152, 1.1992, 1.2122);
 
-        // In entry candle but close is beyond TP: should trigger
+        // In entry candle and close is beyond TP: should trigger for Pending Orders
         let result = check_stops(&position, &bid, &ask, 0.0001, 0.5, true);
         assert!(result.is_some());
         assert_eq!(result.unwrap().reason, ExitReason::TakeProfit);
@@ -377,5 +414,160 @@ mod tests {
         // TP at 1.2100 but opened at 1.2120 - exit at better price
         let exit = calculate_gap_exit_price(1.2100, &Direction::Long, &bid, &bid, false);
         assert_relative_eq!(exit, 1.2120, epsilon = 1e-10);
+    }
+
+    // =========================================================================
+    // Explicit tests for the 4 Order Execution Rules
+    // =========================================================================
+    //
+    // Rule 1: Two order types exist - Market Order and Pending Order (Limit/Stop)
+    // Rule 2: Market Order -> SL/TP can only trigger in NEXT candle
+    // Rule 3: Pending Order -> Can only trigger (be filled) in NEXT candle
+    // Rule 4: Pending Order -> Once triggered, CAN exit in SAME candle
+
+    /// Rule 2: Market Order cannot exit via SL in entry candle
+    #[test]
+    fn test_rule2_market_order_no_sl_in_entry_candle() {
+        let bid = make_candle(1.2000, 1.2050, 1.1900, 1.2020); // Low at 1.1900
+        let ask = make_candle(1.2002, 1.2052, 1.1902, 1.2022);
+
+        // Market Order Long with SL at 1.1950 - hit by candle low
+        let pos = make_position_with_order_type(
+            Direction::Long,
+            OrderType::Market,
+            1.2000,
+            1.1950, // SL would be hit
+            1.2100,
+        );
+
+        // Entry candle (in_entry_candle = true) -> NO exit for Market Order
+        let exit = check_stops(&pos, &bid, &ask, 0.0001, 0.5, true);
+        assert!(exit.is_none(), "Market Order should NOT exit in entry candle");
+    }
+
+    /// Rule 2: Market Order cannot exit via TP in entry candle
+    #[test]
+    fn test_rule2_market_order_no_tp_in_entry_candle() {
+        let bid = make_candle(1.2000, 1.2200, 1.1980, 1.2150); // High at 1.2200
+        let ask = make_candle(1.2002, 1.2202, 1.1982, 1.2152);
+
+        // Market Order Long with TP at 1.2100 - hit by candle high
+        let pos = make_position_with_order_type(
+            Direction::Long,
+            OrderType::Market,
+            1.2000,
+            1.1950,
+            1.2100, // TP would be hit
+        );
+
+        // Entry candle (in_entry_candle = true) -> NO exit for Market Order
+        let exit = check_stops(&pos, &bid, &ask, 0.0001, 0.5, true);
+        assert!(exit.is_none(), "Market Order should NOT exit in entry candle");
+    }
+
+    /// Rule 2: Market Order CAN exit in next candle (in_entry_candle = false)
+    #[test]
+    fn test_rule2_market_order_exits_in_next_candle() {
+        let bid = make_candle(1.2000, 1.2050, 1.1900, 1.2020); // Low hits SL
+        let ask = make_candle(1.2002, 1.2052, 1.1902, 1.2022);
+
+        // Market Order Long with SL at 1.1950
+        let pos = make_position_with_order_type(
+            Direction::Long,
+            OrderType::Market,
+            1.2000,
+            1.1950, // SL hit
+            1.2100,
+        );
+
+        // Next candle (in_entry_candle = false) -> Market Order CAN exit
+        let exit = check_stops(&pos, &bid, &ask, 0.0001, 0.5, false);
+        assert!(exit.is_some(), "Market Order SHOULD exit in next candle");
+        assert_eq!(exit.unwrap().reason, ExitReason::StopLoss);
+    }
+
+    /// Rule 4: Pending Order (Limit) CAN exit via SL in entry candle
+    #[test]
+    fn test_rule4_pending_order_sl_in_entry_candle() {
+        let bid = make_candle(1.2000, 1.2050, 1.1900, 1.2020); // Low at 1.1900
+        let ask = make_candle(1.2002, 1.2052, 1.1902, 1.2022);
+
+        // Pending Order (Limit) Long with SL at 1.1950 - hit by low
+        let pos = make_position_with_order_type(
+            Direction::Long,
+            OrderType::Limit,
+            1.2000,
+            1.1950, // SL hit
+            1.2100,
+        );
+
+        // Entry candle (in_entry_candle = true) -> Pending Order CAN exit
+        let exit = check_stops(&pos, &bid, &ask, 0.0001, 0.5, true);
+        assert!(exit.is_some(), "Pending Order SHOULD exit via SL in entry candle");
+        assert_eq!(exit.unwrap().reason, ExitReason::StopLoss);
+    }
+
+    /// Rule 4: Pending Order (Limit) CAN exit via TP in entry candle
+    #[test]
+    fn test_rule4_pending_order_tp_in_entry_candle() {
+        let bid = make_candle(1.2000, 1.2200, 1.1980, 1.2150); // High at 1.2200
+        let ask = make_candle(1.2002, 1.2202, 1.1982, 1.2152);
+
+        // Pending Order (Limit) Long with TP at 1.2100 - hit by high
+        let pos = make_position_with_order_type(
+            Direction::Long,
+            OrderType::Limit,
+            1.2000,
+            1.1950,
+            1.2100, // TP hit
+        );
+
+        // Entry candle (in_entry_candle = true) -> Pending Order CAN exit
+        let exit = check_stops(&pos, &bid, &ask, 0.0001, 0.5, true);
+        assert!(exit.is_some(), "Pending Order SHOULD exit via TP in entry candle");
+        assert_eq!(exit.unwrap().reason, ExitReason::TakeProfit);
+    }
+
+    /// Rule 4: Pending Order (Stop) also CAN exit in entry candle
+    #[test]
+    fn test_rule4_stop_order_exits_in_entry_candle() {
+        let bid = make_candle(1.2000, 1.2050, 1.1900, 1.2020); // Low at 1.1900
+        let ask = make_candle(1.2002, 1.2052, 1.1902, 1.2022);
+
+        // Stop Order Long with SL at 1.1950
+        let pos = make_position_with_order_type(
+            Direction::Long,
+            OrderType::Stop,
+            1.2000,
+            1.1950, // SL hit
+            1.2100,
+        );
+
+        // Entry candle (in_entry_candle = true) -> Stop Order (is_pending) CAN exit
+        let exit = check_stops(&pos, &bid, &ask, 0.0001, 0.5, true);
+        assert!(exit.is_some(), "Stop Order SHOULD exit in entry candle");
+        assert_eq!(exit.unwrap().reason, ExitReason::StopLoss);
+    }
+
+    /// Rule 4: SL has priority over TP when both hit in same candle
+    #[test]
+    fn test_rule4_sl_priority_over_tp_in_entry_candle() {
+        // Candle where both SL and TP would be hit
+        let bid = make_candle(1.2000, 1.2200, 1.1800, 1.2100);
+        let ask = make_candle(1.2002, 1.2202, 1.1802, 1.2102);
+
+        // Pending Order Long - both SL (1.1900) and TP (1.2100) hit
+        let pos = make_position_with_order_type(
+            Direction::Long,
+            OrderType::Limit,
+            1.2000,
+            1.1900, // SL hit by low (1.1800)
+            1.2100, // TP hit by high (1.2200)
+        );
+
+        // SL takes priority per documented behavior
+        let exit = check_stops(&pos, &bid, &ask, 0.0001, 0.5, true);
+        assert!(exit.is_some());
+        assert_eq!(exit.unwrap().reason, ExitReason::StopLoss, "SL should have priority over TP");
     }
 }

@@ -20,6 +20,20 @@ pub enum OrderType {
     Stop,
 }
 
+impl OrderType {
+    /// Returns true if this is a pending order (Limit or Stop)
+    #[inline]
+    pub fn is_pending(&self) -> bool {
+        matches!(self, OrderType::Limit | OrderType::Stop)
+    }
+
+    /// Returns true if this is a market order
+    #[inline]
+    pub fn is_market(&self) -> bool {
+        matches!(self, OrderType::Market)
+    }
+}
+
 /// Trading signal from strategy
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Signal {
@@ -77,5 +91,19 @@ mod tests {
             serde_json::to_string(&Direction::Short).unwrap(),
             "\"short\""
         );
+    }
+
+    #[test]
+    fn test_order_type_is_pending() {
+        assert!(!OrderType::Market.is_pending());
+        assert!(OrderType::Limit.is_pending());
+        assert!(OrderType::Stop.is_pending());
+    }
+
+    #[test]
+    fn test_order_type_is_market() {
+        assert!(OrderType::Market.is_market());
+        assert!(!OrderType::Limit.is_market());
+        assert!(!OrderType::Stop.is_market());
     }
 }

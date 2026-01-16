@@ -75,6 +75,11 @@ struct TakeProfitUpdate {
 
 impl BacktestEngine {
     /// Creates a new backtest engine from config.
+    ///
+    /// # Errors
+    /// Returns an error if the configuration is invalid, data loading fails,
+    /// or indicator preparation cannot be completed.
+    #[allow(clippy::too_many_lines)]
     pub fn new(config: BacktestConfig) -> Result<Self, BacktestError> {
         if config.data_mode != DataMode::Candle {
             return Err(BacktestError::ConfigValidation(
@@ -96,10 +101,18 @@ impl BacktestEngine {
         let (indicators, htf_indicators) =
             compute_indicators(&data, &strategy.required_indicators(), data.htf.as_ref())?;
 
-        let symbol_specs = load_symbol_specs(&config_path("configs/symbol_specs.yaml"))?;
+        // Validate indicators per DATA_FLOW_PLAN §5.2 Checkpoint 3
+        validate_indicators(&indicators, data.primary.len(), config.warmup_bars)?;
+        if let Some(ref htf_cache) = htf_indicators
+            && let Some(ref htf_store) = data.htf
+        {
+            validate_indicators(htf_cache, htf_store.len(), config.warmup_bars)?;
+        }
+
+        let symbol_specs = load_symbol_specs(&resolve_symbol_specs_path())?;
         let symbol_spec = get_symbol_spec_or_default(&symbol_specs, &config.symbol);
 
-        let costs_cfg = ExecutionCostsConfig::load(&config_path("configs/execution_costs.yaml"))?;
+        let costs_cfg = ExecutionCostsConfig::load(&resolve_execution_costs_path())?;
         let resolved_pip_size = config
             .costs
             .pip_size
@@ -111,12 +124,7 @@ impl BacktestEngine {
             Some(&symbol_spec),
         );
 
-        if !config.costs.enabled {
-            symbol_costs.slippage = Box::new(NoSlippage);
-            symbol_costs.fee = Box::new(NoFee);
-            symbol_costs.apply_entry_fee = false;
-            symbol_costs.apply_exit_fee = false;
-        } else {
+        if config.costs.enabled {
             if (config.costs.slippage_multiplier - 1.0).abs() > f64::EPSILON {
                 symbol_costs.slippage = Box::new(SlippageMultiplier::new(
                     symbol_costs.slippage,
@@ -129,6 +137,11 @@ impl BacktestEngine {
                     config.costs.fee_multiplier,
                 ));
             }
+        } else {
+            symbol_costs.slippage = Box::new(NoSlippage);
+            symbol_costs.fee = Box::new(NoFee);
+            symbol_costs.apply_entry_fee = false;
+            symbol_costs.apply_exit_fee = false;
         }
 
         let rng_seed = match config.run_mode {
@@ -149,7 +162,7 @@ impl BacktestEngine {
             config.symbol.clone(),
         );
 
-        let trade_manager = create_trade_manager(&config, bar_duration_ns)?;
+        let trade_manager = create_trade_manager(&config, bar_duration_ns);
 
         let run_ctx = RunContext::new(
             &data.primary.timestamps,
@@ -188,9 +201,13 @@ impl BacktestEngine {
     }
 
     /// Runs the backtest event loop and returns the result.
-    pub fn run(mut self) -> BacktestResult {
+    ///
+    /// # Errors
+    /// Returns an error if post-run consistency validation fails.
+    pub fn run(mut self) -> Result<BacktestResult, BacktestError> {
         self.start_instant = Instant::now();
         event_loop::run_event_loop(&mut self);
+        self.validate_portfolio_consistency()?;
         let runtime_seconds = self.runtime_seconds();
         let meta = result_builder::build_meta(
             &self.data.primary.timestamps,
@@ -200,7 +217,7 @@ impl BacktestEngine {
         let trades = self.portfolio.closed_trades().to_vec();
         let equity_curve = self.portfolio.into_equity_tracker().into_equity_curve();
 
-        result_builder::build_result(trades, equity_curve, meta)
+        Ok(result_builder::build_result(trades, equity_curve, meta))
     }
 
     pub(crate) fn warmup_bars(&self) -> usize {
@@ -257,7 +274,7 @@ impl BacktestEngine {
             self.process_signal(signal, timestamp_ns);
         }
 
-        let mid_price = (bid.close + ask.close) / 2.0;
+        let mid_price = f64::midpoint(bid.close, ask.close);
         self.portfolio.update_equity(timestamp_ns, mid_price);
     }
 
@@ -288,6 +305,14 @@ impl BacktestEngine {
         ctx
     }
 
+    /// Builds HTF context using only **completed** HTF bars (Lookahead Prevention).
+    ///
+    /// Per `DATA_FLOW_PLAN` §4.2:
+    /// - `completed_idx = htf_idx - 1` (only use the last **completed** HTF bar)
+    /// - If `htf_idx == 0` (no completed bar yet), return `None`
+    ///
+    /// This prevents lookahead bias where strategies would see HTF data
+    /// from the current, still-forming HTF bar.
     fn build_htf_context<'a>(
         data: &'a MultiTfStore,
         htf_indicators: Option<&'a IndicatorCache>,
@@ -296,13 +321,19 @@ impl BacktestEngine {
     ) -> Option<HtfContext<'a>> {
         let htf_store = data.htf.as_ref()?;
         let htf_idx = data.htf_index_at(idx)?;
-        let (bid, ask) = htf_store.get(htf_idx)?;
+
+        // Lookahead Prevention: Only use completed HTF bars.
+        // htf_idx points to the current/forming HTF bar, so we need htf_idx - 1.
+        // If htf_idx == 0, there's no completed bar yet → return None.
+        let completed_idx = htf_idx.checked_sub(1)?;
+
+        let (bid, ask) = htf_store.get(completed_idx)?;
         let cache = htf_indicators.unwrap_or(empty_htf_cache);
         Some(HtfContext::new(
             bid,
             ask,
             cache,
-            htf_idx,
+            completed_idx,
             htf_store.timeframe.as_str(),
         ))
     }
@@ -641,6 +672,24 @@ impl BacktestEngine {
     pub(crate) fn runtime_seconds(&self) -> f64 {
         self.start_instant.elapsed().as_secs_f64()
     }
+
+    fn validate_portfolio_consistency(&self) -> Result<(), BacktestError> {
+        let len = self.data.primary.len();
+        if len == 0 {
+            return Err(BacktestError::Runtime(
+                "no candle data for portfolio consistency check".to_string(),
+            ));
+        }
+
+        let last_idx = len - 1;
+        let (bid, ask) = self.data.primary.get(last_idx).ok_or_else(|| {
+            BacktestError::Runtime("missing last candle for portfolio consistency check".to_string())
+        })?;
+        let mid_price = f64::midpoint(bid.close, ask.close);
+
+        self.portfolio.validate_consistency(mid_price)?;
+        Ok(())
+    }
 }
 
 fn load_data(config: &BacktestConfig, required_tfs: &[String]) -> Result<MultiTfStore, BacktestError> {
@@ -752,6 +801,7 @@ fn load_timeframe_store(
     })
 }
 
+#[allow(clippy::too_many_lines)]
 fn compute_indicators(
     data: &MultiTfStore,
     requirements: &[IndicatorRequirement],
@@ -779,8 +829,7 @@ fn compute_indicators(
 
         let needs_primary = !cache.contains(&spec);
         let needs_htf = htf_store
-            .map(|store| store.timeframe == target_tf)
-            .unwrap_or(false)
+            .is_some_and(|store| store.timeframe == target_tf)
             && htf_cache
                 .as_ref()
                 .is_some_and(|htf_cache| !htf_cache.contains(&spec));
@@ -973,12 +1022,9 @@ fn build_multi_tf_cache(store: &MultiTfStore) -> MultiTfIndicatorCache {
     )
 }
 
-fn create_trade_manager(
-    config: &BacktestConfig,
-    bar_duration_ns: i64,
-) -> Result<TradeManager, BacktestError> {
+fn create_trade_manager(config: &BacktestConfig, bar_duration_ns: i64) -> TradeManager {
     let Some(tm_cfg) = config.trade_management.as_ref() else {
-        return Ok(TradeManager::empty());
+        return TradeManager::empty();
     };
 
     let max_minutes = tm_cfg
@@ -1007,11 +1053,7 @@ fn create_trade_manager(
         .get("max_holding_minutes")
         .and_then(JsonValue::as_u64);
 
-    Ok(TradeManager::from_config(
-        &trade_manager_config,
-        bar_duration_ns,
-        fallback_max,
-    ))
+    TradeManager::from_config(&trade_manager_config, bar_duration_ns, fallback_max)
 }
 
 fn parse_timeframe(value: &str) -> Result<Timeframe, BacktestError> {
@@ -1057,10 +1099,46 @@ fn timeframe_to_ns(tf: Timeframe) -> Result<i64, BacktestError> {
     i64::try_from(ns).map_err(|_| BacktestError::Runtime("timeframe overflow".to_string()))
 }
 
-fn indicator_spec_from_params(
-    name: &str,
-    params: &JsonValue,
-) -> Option<IndicatorSpec> {
+/// Validates indicator arrays per `DATA_FLOW_PLAN` §5.1 Invariants I4 and I5.
+///
+/// Checks:
+/// - I4: All indicator arrays have length == `expected_len`
+/// - I5: No NaN values after warmup period (from index `warmup_bars` onwards)
+fn validate_indicators(
+    cache: &IndicatorCache,
+    expected_len: usize,
+    warmup_bars: usize,
+) -> Result<(), BacktestError> {
+    for spec in cache.specs() {
+        let Some(values) = cache.get(spec) else {
+            continue;
+        };
+
+        // I4: Length must match candle count
+        if values.len() != expected_len {
+            return Err(BacktestError::Runtime(format!(
+                "indicator '{}' length mismatch: expected {}, got {}",
+                spec.name,
+                expected_len,
+                values.len()
+            )));
+        }
+
+        // I5: No NaN after warmup period
+        for (idx, &value) in values.iter().enumerate().skip(warmup_bars) {
+            if value.is_nan() {
+                return Err(BacktestError::Runtime(format!(
+                    "indicator '{}' has NaN at index {} (after warmup period {})",
+                    spec.name, idx, warmup_bars
+                )));
+            }
+        }
+    }
+    Ok(())
+}
+
+#[allow(clippy::too_many_lines)]
+fn indicator_spec_from_params(name: &str, params: &JsonValue) -> Option<IndicatorSpec> {
     let name_upper = name.trim().to_uppercase();
     let base_name = base_indicator_name(&name_upper);
 
@@ -1239,12 +1317,14 @@ fn base_indicator_name(name: &str) -> String {
         .unwrap_or(name_upper)
 }
 
+#[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
 fn scale_to_u32(value: f64, scale: f64) -> u32 {
-    if value.is_finite() {
-        (value * scale).round().max(0.0) as u32
-    } else {
-        0
+    if !value.is_finite() {
+        return 0;
     }
+    let scaled = (value * scale).round();
+    let clamped = scaled.clamp(0.0, f64::from(u32::MAX));
+    clamped as u32
 }
 
 fn u64_to_usize(value: u64) -> Option<usize> {
@@ -1258,7 +1338,8 @@ fn u64_from_usize(value: usize) -> u64 {
 fn random_seed() -> u64 {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
-        .map(|dur| dur.as_nanos() as u64)
+        .ok()
+        .and_then(|dur| u64::try_from(dur.as_nanos()).ok())
         .unwrap_or(42)
 }
 
@@ -1274,6 +1355,32 @@ fn unit_value_per_price(spec: &omega_execution::SymbolSpec) -> f64 {
 fn config_path(rel: &str) -> PathBuf {
     let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     manifest_dir.join("../../../").join(rel)
+}
+
+/// Resolves the execution costs file path.
+///
+/// Uses `OMEGA_EXECUTION_COSTS_FILE` env var if set, otherwise defaults to
+/// `configs/execution_costs.yaml` relative to the repo root.
+fn resolve_execution_costs_path() -> PathBuf {
+    std::env::var("OMEGA_EXECUTION_COSTS_FILE")
+        .ok()
+        .map_or_else(
+            || config_path("configs/execution_costs.yaml"),
+            PathBuf::from,
+        )
+}
+
+/// Resolves the symbol specs file path.
+///
+/// Uses `OMEGA_SYMBOL_SPECS_FILE` env var if set, otherwise defaults to
+/// `configs/symbol_specs.yaml` relative to the repo root.
+fn resolve_symbol_specs_path() -> PathBuf {
+    std::env::var("OMEGA_SYMBOL_SPECS_FILE")
+        .ok()
+        .map_or_else(
+            || config_path("configs/symbol_specs.yaml"),
+            PathBuf::from,
+        )
 }
 
 /// Date parsing boundary for date-only inputs.
@@ -1322,9 +1429,9 @@ pub(crate) fn parse_datetime_ns(value: &str, boundary: DateBoundary) -> Result<i
         .checked_sub(i64::from(offset))
         .ok_or_else(|| BacktestError::DateParse("datetime overflow".to_string()))?;
 
-    let total_ns = (total_seconds as i128)
+    let total_ns = i128::from(total_seconds)
         .checked_mul(1_000_000_000)
-        .and_then(|v| v.checked_add(nanos as i128))
+        .and_then(|v| v.checked_add(i128::from(nanos)))
         .ok_or_else(|| BacktestError::DateParse("datetime overflow".to_string()))?;
 
     i64::try_from(total_ns).map_err(|_| BacktestError::DateParse("datetime overflow".to_string()))
@@ -1469,7 +1576,7 @@ fn days_from_civil(year: i32, month: u32, day: u32) -> i64 {
     let d = i64::from(day);
     let doy = (153 * (m + if m > 2 { -3 } else { 9 }) + 2) / 5 + d - 1;
     let doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
-    era * 146097 + doe - 719_468
+    era * 146_097 + doe - 719_468
 }
 
 fn days_in_month(year: i32, month: u32) -> u32 {
@@ -1543,6 +1650,18 @@ impl FeeModel for FeeMultiplier {
 
 #[cfg(test)]
 mod tests {
+    use std::fs::File;
+    use std::path::Path;
+    use std::sync::Arc;
+
+    use arrow::array::{ArrayRef, Float64Array, TimestampNanosecondArray};
+    use arrow::datatypes::{DataType, Field, Schema, TimeUnit};
+    use arrow::record_batch::RecordBatch;
+    use omega_types::{ExitReason, OrderType, Signal};
+    use parquet::arrow::arrow_writer::ArrowWriter;
+    use temp_env::with_var;
+    use tempfile::tempdir;
+
     use super::*;
 
     #[test]
@@ -1558,5 +1677,169 @@ mod tests {
         let ts = parse_datetime_ns("2024-01-01T01:00:00+01:00", DateBoundary::Start).unwrap();
         let ts_utc = parse_datetime_ns("2024-01-01T00:00:00Z", DateBoundary::Start).unwrap();
         assert_eq!(ts, ts_utc);
+    }
+
+    const STEP_NS: i64 = 60_000_000_000;
+    const BASE_TS: i64 = 1_704_067_200_000_000_000;
+
+    fn make_candles(closes: &[f64], high_delta: f64, low_delta: f64) -> Vec<Candle> {
+        closes
+            .iter()
+            .enumerate()
+            .map(|(idx, close)| {
+                let ts = BASE_TS + (idx as i64) * STEP_NS;
+                Candle {
+                    timestamp_ns: ts,
+                    close_time_ns: ts + STEP_NS - 1,
+                    open: *close,
+                    high: *close + high_delta,
+                    low: *close - low_delta,
+                    close: *close,
+                    volume: 100.0,
+                }
+            })
+            .collect()
+    }
+
+    fn write_custom_parquet(
+        path: &Path,
+        fields: Vec<Field>,
+        columns: Vec<ArrayRef>,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        let schema = Arc::new(Schema::new(fields));
+        let batch = RecordBatch::try_new(schema.clone(), columns)?;
+        let file = File::create(path)?;
+        let mut writer = ArrowWriter::try_new(file, schema, None)?;
+        writer.write(&batch)?;
+        writer.close().map(|_| ()).map_err(|e| e.into())
+    }
+
+    fn write_candle_parquet(
+        path: &Path,
+        candles: &[Candle],
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        let timestamps: Vec<i64> = candles.iter().map(|c| c.timestamp_ns).collect();
+        let opens: Vec<f64> = candles.iter().map(|c| c.open).collect();
+        let highs: Vec<f64> = candles.iter().map(|c| c.high).collect();
+        let lows: Vec<f64> = candles.iter().map(|c| c.low).collect();
+        let closes: Vec<f64> = candles.iter().map(|c| c.close).collect();
+        let volumes: Vec<f64> = candles.iter().map(|c| c.volume).collect();
+
+        let fields = vec![
+            Field::new(
+                "UTC time",
+                DataType::Timestamp(TimeUnit::Nanosecond, Some("UTC".into())),
+                false,
+            ),
+            Field::new("Open", DataType::Float64, false),
+            Field::new("High", DataType::Float64, false),
+            Field::new("Low", DataType::Float64, false),
+            Field::new("Close", DataType::Float64, false),
+            Field::new("Volume", DataType::Float64, false),
+        ];
+
+        let columns: Vec<ArrayRef> = vec![
+            Arc::new(TimestampNanosecondArray::from(timestamps).with_timezone("UTC")),
+            Arc::new(Float64Array::from(opens)),
+            Arc::new(Float64Array::from(highs)),
+            Arc::new(Float64Array::from(lows)),
+            Arc::new(Float64Array::from(closes)),
+            Arc::new(Float64Array::from(volumes)),
+        ];
+
+        write_custom_parquet(path, fields, columns)
+    }
+
+    fn setup_engine_with_fixture() -> BacktestEngine {
+        let dir = tempdir().expect("tempdir");
+        let root = dir.path();
+        let symbol_dir = root.join("EURUSD");
+        std::fs::create_dir_all(&symbol_dir).expect("symbol dir");
+
+        let bid = make_candles(&[1.0, 1.1, 0.9], 0.02, 0.02);
+        let ask: Vec<Candle> = bid
+            .iter()
+            .map(|c| Candle {
+                timestamp_ns: c.timestamp_ns,
+                close_time_ns: c.close_time_ns,
+                open: c.open + 0.0002,
+                high: c.high + 0.0002,
+                low: c.low + 0.0002,
+                close: c.close + 0.0002,
+                volume: c.volume,
+            })
+            .collect();
+
+        let bid_path = symbol_dir.join("EURUSD_M1_BID.parquet");
+        let ask_path = symbol_dir.join("EURUSD_M1_ASK.parquet");
+        write_candle_parquet(&bid_path, &bid).expect("bid parquet");
+        write_candle_parquet(&ask_path, &ask).expect("ask parquet");
+
+        let config = serde_json::json!({
+            "schema_version": "2",
+            "strategy_name": "mean_reversion_z_score",
+            "symbol": "EURUSD",
+            "start_date": "2024-01-01T00:00:00Z",
+            "end_date": "2024-01-01T00:02:00Z",
+            "run_mode": "dev",
+            "data_mode": "candle",
+            "execution_variant": "v2",
+            "timeframes": {
+                "primary": "M1",
+                "additional": [],
+                "additional_source": "separate_parquet"
+            },
+            "warmup_bars": 2,
+            "rng_seed": 42,
+            "costs": {"enabled": false},
+            "strategy_parameters": {
+                "ema_length": 2,
+                "atr_length": 1,
+                "atr_mult": 1.0,
+                "window_length": 2,
+                "z_score_long": -0.5,
+                "z_score_short": 0.5,
+                "htf_filter": "none",
+                "extra_htf_filter": "none",
+                "enabled_scenarios": []
+            }
+        });
+
+        let config_json = serde_json::to_string(&config).expect("config json");
+
+        with_var("OMEGA_DATA_PARQUET_ROOT", Some(root), || {
+            let cfg: BacktestConfig = serde_json::from_str(&config_json).expect("config parse");
+            BacktestEngine::new(cfg).expect("engine")
+        })
+    }
+
+    #[test]
+    fn test_pending_trigger_before_stops_allows_same_bar_exit() {
+        let mut engine = setup_engine_with_fixture();
+
+        let signal = Signal {
+            direction: Direction::Long,
+            order_type: OrderType::Limit,
+            entry_price: 1.0,
+            stop_loss: 0.99,
+            take_profit: 1.02,
+            size: Some(1.0),
+            scenario_id: 1,
+            tags: Vec::new(),
+            meta: serde_json::json!({}),
+        };
+
+        let created_at = BASE_TS + STEP_NS;
+        engine
+            .execution
+            .add_pending_order(&signal, created_at, &engine.symbol_costs)
+            .expect("pending order");
+
+        engine.process_bar(2);
+
+        let trades = engine.portfolio.closed_trades();
+        assert_eq!(trades.len(), 1);
+        assert_eq!(trades[0].exit_time_ns, BASE_TS + STEP_NS * 2);
+        assert_eq!(trades[0].reason, ExitReason::StopLoss);
     }
 }

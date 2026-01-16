@@ -3471,7 +3471,7 @@ mod tests {
             .expect("params object");
         let z_long = params_obj
             .get("z_score_long")
-            .and_then(|v| v.as_f64())
+            .and_then(serde_json::Value::as_f64)
             .expect("z_score_long");
         assert!((z_long + 3.0).abs() < 1e-10);
     }
