@@ -1,0 +1,14 @@
+[package]
+name = "omega_bt"
+version.workspace = true
+edition.workspace = true
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+omega_types = { workspace = true }
+omega_backtest = { workspace = true }
+omega_metrics = { workspace = true }
+pyo3 = { version = "0.20", features = ["extension-module"] }
+serde_json = { workspace = true }

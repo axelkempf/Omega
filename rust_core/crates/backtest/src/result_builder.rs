@@ -1,5 +1,6 @@
 //! Backtest result assembly helpers.
 
+use omega_metrics::compute::compute_metrics;
 use omega_types::{BacktestResult, EquityPoint, ResultMeta, Trade};
 
 /// Builds a successful backtest result payload.
@@ -7,13 +8,18 @@ use omega_types::{BacktestResult, EquityPoint, ResultMeta, Trade};
 pub(crate) fn build_result(
     trades: Vec<Trade>,
     equity_curve: Vec<EquityPoint>,
+    fees_total: f64,
+    risk_per_trade: f64,
     meta: ResultMeta,
 ) -> BacktestResult {
+    let metrics_output = compute_metrics(&trades, &equity_curve, fees_total, risk_per_trade);
+
     BacktestResult {
         ok: true,
         error: None,
         trades: Some(trades),
-        metrics: None,
+        metrics: Some(metrics_output.metrics),
+        metric_definitions: Some(metrics_output.definitions),
         equity_curve: Some(equity_curve),
         meta: Some(meta),
     }

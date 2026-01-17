@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use crate::trade::Trade;
 
 /// Backtest result container
@@ -14,6 +16,9 @@ pub struct BacktestResult {
     /// Performance metrics
     #[serde(skip_serializing_if = "Option::is_none")]
     pub metrics: Option<Metrics>,
+    /// Metric definitions (output contract)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub metric_definitions: Option<HashMap<String, MetricDefinition>>,
     /// Equity curve data
     #[serde(skip_serializing_if = "Option::is_none")]
     pub equity_curve: Option<Vec<EquityPoint>>,
@@ -50,7 +55,7 @@ pub struct EquityPoint {
 }
 
 /// Performance metrics
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct Metrics {
     /// Total number of trades
     pub total_trades: u64,
@@ -70,10 +75,25 @@ pub struct Metrics {
     pub max_drawdown: f64,
     /// Maximum drawdown absolute value
     pub max_drawdown_abs: f64,
+    /// Maximum drawdown duration in bars
+    #[serde(default)]
+    pub max_drawdown_duration_bars: u64,
     /// Average R-multiple
     pub avg_r_multiple: f64,
     /// Profit factor (gross profit / gross loss)
     pub profit_factor: f64,
+    /// Average trade `PnL` (`profit_net` / `total_trades`)
+    #[serde(default)]
+    pub avg_trade_pnl: f64,
+    /// Expectancy in R-multiples
+    #[serde(default)]
+    pub expectancy: f64,
+    /// Count of unique active trading days
+    #[serde(default)]
+    pub active_days: u64,
+    /// Trades per active day
+    #[serde(default)]
+    pub trades_per_day: f64,
     /// Average win amount
     #[serde(default)]
     pub avg_win: f64,
@@ -117,6 +137,22 @@ pub struct ResultMeta {
     pub extra: serde_json::Value,
 }
 
+/// Metric definition metadata for output consumers.
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct MetricDefinition {
+    /// Unit of the metric (e.g. ratio, `account_currency`)
+    pub unit: String,
+    /// Human-readable description
+    pub description: String,
+    /// Allowed domain of values
+    pub domain: String,
+    /// Source of the metric (trades, equity, etc.)
+    pub source: String,
+    /// Value type for serialization
+    #[serde(rename = "type")]
+    pub value_type: String,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -156,14 +192,9 @@ mod tests {
                 max_drawdown_abs: 0.0,
                 avg_r_multiple: 1.0,
                 profit_factor: 0.0,
-                avg_win: 50.0,
-                avg_loss: 0.0,
-                largest_win: 50.0,
-                largest_loss: 0.0,
-                sharpe_ratio: 0.0,
-                sortino_ratio: 0.0,
-                calmar_ratio: 0.0,
+                ..Metrics::default()
             }),
+            metric_definitions: None,
             equity_curve: None,
             meta: None,
         };
@@ -187,6 +218,7 @@ mod tests {
             }),
             trades: None,
             metrics: None,
+            metric_definitions: None,
             equity_curve: None,
             meta: None,
         };

@@ -83,6 +83,10 @@ package-dir = {"" = "src"}
 where = ["src"]
 include = ["omega*", "backtest_engine*", "hf_engine*", "shared*", "strategies*", "ui_engine*"]
 
+[tool.maturin]
+module-name = "omega_bt"
+python-source = "python"
+
 [tool.isort]
 profile = "black"
 
@@ -253,4 +257,3 @@ ignore_errors = true
 # [x] hf_engine.* und ui_engine.*: permissive (nicht FFI-relevant)
 # [x] Keine globalen ignore_errors für backtest_engine
 # ══════════════════════════════════════════════════════════════════════════════
-

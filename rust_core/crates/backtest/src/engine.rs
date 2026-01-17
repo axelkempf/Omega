@@ -214,10 +214,18 @@ impl BacktestEngine {
             self.config.warmup_bars,
             runtime_seconds,
         );
+        let fees_total = self.portfolio.total_fees();
+        let risk_per_trade = self.config.account.risk_per_trade;
         let trades = self.portfolio.closed_trades().to_vec();
         let equity_curve = self.portfolio.into_equity_tracker().into_equity_curve();
 
-        Ok(result_builder::build_result(trades, equity_curve, meta))
+        Ok(result_builder::build_result(
+            trades,
+            equity_curve,
+            fees_total,
+            risk_per_trade,
+            meta,
+        ))
     }
 
     pub(crate) fn warmup_bars(&self) -> usize {

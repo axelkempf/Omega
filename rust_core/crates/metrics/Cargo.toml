@@ -1,0 +1,9 @@
+[package]
+name = "omega_metrics"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+omega_types = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }

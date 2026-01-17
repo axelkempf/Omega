@@ -37,7 +37,9 @@ pub use config::{
 pub use error::CoreError;
 pub use position::Position;
 pub use price_type::PriceType;
-pub use result::{BacktestResult, EquityPoint, ErrorResult, Metrics, ResultMeta};
+pub use result::{
+    BacktestResult, EquityPoint, ErrorResult, MetricDefinition, Metrics, ResultMeta,
+};
 pub use signal::{Direction, OrderType, Signal};
 pub use timeframe::{ParseTimeframeError, Timeframe};
 pub use trade::{ExitReason, Trade};

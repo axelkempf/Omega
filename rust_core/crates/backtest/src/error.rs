@@ -1,5 +1,7 @@
 //! Backtest error types.
 
+use omega_types::ErrorResult;
+use serde_json::json;
 use thiserror::Error;
 
 /// Errors that can occur during backtest orchestration.
@@ -77,5 +79,16 @@ impl BacktestError {
     #[must_use]
     pub fn is_config_error(&self) -> bool {
         matches!(self, BacktestError::ConfigParse(_) | BacktestError::ConfigValidation(_))
+    }
+}
+
+impl From<BacktestError> for ErrorResult {
+    fn from(err: BacktestError) -> Self {
+        let category = if err.is_config_error() { "config" } else { "runtime" };
+        Self {
+            category: category.to_string(),
+            message: err.to_string(),
+            details: json!({}),
+        }
     }
 }
