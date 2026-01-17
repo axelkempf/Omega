@@ -53,10 +53,8 @@ pub fn round_metrics(mut metrics: Metrics) -> Metrics {
     metrics.trades_per_day = round_to_decimals(metrics.trades_per_day, RATIO_DECIMALS);
     metrics.sharpe_trade_r = round_metric_value(metrics.sharpe_trade_r, RATIO_DECIMALS);
     metrics.sortino_trade_r = round_metric_value(metrics.sortino_trade_r, RATIO_DECIMALS);
-    metrics.sharpe_equity_daily =
-        round_metric_value(metrics.sharpe_equity_daily, RATIO_DECIMALS);
-    metrics.sortino_equity_daily =
-        round_metric_value(metrics.sortino_equity_daily, RATIO_DECIMALS);
+    metrics.sharpe_equity_daily = round_metric_value(metrics.sharpe_equity_daily, RATIO_DECIMALS);
+    metrics.sortino_equity_daily = round_metric_value(metrics.sortino_equity_daily, RATIO_DECIMALS);
     metrics.calmar_ratio = round_to_decimals(metrics.calmar_ratio, RATIO_DECIMALS);
 
     metrics

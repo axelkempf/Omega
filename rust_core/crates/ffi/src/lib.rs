@@ -107,7 +107,10 @@ mod tests {
             let parsed: JsonValue = serde_json::from_str(&result_json).expect("parsed json");
 
             assert_eq!(parsed["ok"], JsonValue::Bool(false));
-            assert_eq!(parsed["error"]["category"], JsonValue::String("market_data".to_string()));
+            assert_eq!(
+                parsed["error"]["category"],
+                JsonValue::String("market_data".to_string())
+            );
         });
     }
 }

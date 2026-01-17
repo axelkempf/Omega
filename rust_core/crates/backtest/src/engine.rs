@@ -27,7 +27,7 @@ use omega_trade_mgmt::{
 use omega_types::{
     BacktestConfig, BacktestResult, Candle, DataMode, Direction, RunMode, Signal, Timeframe,
 };
-use serde_json::{json, Value as JsonValue};
+use serde_json::{Value as JsonValue, json};
 use sha2::{Digest, Sha256};
 
 use crate::context::RunContext;
@@ -319,13 +319,8 @@ impl BacktestEngine {
         let config_hash = compute_config_hash(&config);
         let manifest_hash = build_manifest_hash(&manifest_inputs);
         let run_id = compute_run_id(config.run_mode, &config_hash, &manifest_hash);
-        let meta_extra = build_meta_extra(
-            &config,
-            &governance,
-            &config_hash,
-            &manifest_hash,
-            &run_id,
-        );
+        let meta_extra =
+            build_meta_extra(&config, &governance, &config_hash, &manifest_hash, &run_id);
 
         Ok(Self {
             config,
@@ -1582,7 +1577,7 @@ fn repo_root() -> PathBuf {
 fn resolve_data_root() -> PathBuf {
     std::env::var("OMEGA_DATA_PARQUET_ROOT")
         .ok()
-    .map_or_else(|| repo_root().join("data/parquet"), PathBuf::from)
+        .map_or_else(|| repo_root().join("data/parquet"), PathBuf::from)
 }
 
 fn normalize_path(path: &Path, base: Option<&Path>) -> String {
@@ -1613,8 +1608,10 @@ fn build_manifest_input(
 }
 
 fn build_manifest_hash(inputs: &[ManifestInput]) -> String {
-    let mut entries: Vec<(&ManifestInput, JsonValue)> =
-        inputs.iter().map(|input| (input, input.to_json())).collect();
+    let mut entries: Vec<(&ManifestInput, JsonValue)> = inputs
+        .iter()
+        .map(|input| (input, input.to_json()))
+        .collect();
     entries.sort_by_key(|(input, _)| input.sort_key());
     let inputs_json: Vec<JsonValue> = entries.into_iter().map(|(_, value)| value).collect();
     let manifest = json!({

@@ -94,14 +94,9 @@ pub fn compute_metrics(
     metrics.largest_loss = largest_loss;
 
     // Trade-based Sharpe/Sortino (R-multiples, no annualization)
-    metrics.sharpe_trade_r = metric_value_or_na(
-        r_multiples.len(),
-        sharpe_ratio(&r_multiples, 1.0),
-    );
-    metrics.sortino_trade_r = metric_value_or_na(
-        r_multiples.len(),
-        sortino_ratio(&r_multiples, 1.0),
-    );
+    metrics.sharpe_trade_r = metric_value_or_na(r_multiples.len(), sharpe_ratio(&r_multiples, 1.0));
+    metrics.sortino_trade_r =
+        metric_value_or_na(r_multiples.len(), sortino_ratio(&r_multiples, 1.0));
 
     // Equity-based Sharpe/Sortino (daily returns, annualized with sqrt(252))
     let daily_returns = compute_daily_returns(equity_curve);

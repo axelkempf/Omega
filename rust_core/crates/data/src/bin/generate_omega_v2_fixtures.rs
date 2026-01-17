@@ -50,22 +50,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         &m5_ask,
     )?;
 
-    write_candle_csv(
-        &csv_root.join(format!("{SYMBOL}_M1_BID.csv")),
-        &m1_bid,
-    )?;
-    write_candle_csv(
-        &csv_root.join(format!("{SYMBOL}_M1_ASK.csv")),
-        &m1_ask,
-    )?;
-    write_candle_csv(
-        &csv_root.join(format!("{SYMBOL}_M5_BID.csv")),
-        &m5_bid,
-    )?;
-    write_candle_csv(
-        &csv_root.join(format!("{SYMBOL}_M5_ASK.csv")),
-        &m5_ask,
-    )?;
+    write_candle_csv(&csv_root.join(format!("{SYMBOL}_M1_BID.csv")), &m1_bid)?;
+    write_candle_csv(&csv_root.join(format!("{SYMBOL}_M1_ASK.csv")), &m1_ask)?;
+    write_candle_csv(&csv_root.join(format!("{SYMBOL}_M5_BID.csv")), &m5_bid)?;
+    write_candle_csv(&csv_root.join(format!("{SYMBOL}_M5_ASK.csv")), &m5_ask)?;
 
     Ok(())
 }
@@ -209,12 +197,7 @@ fn write_candle_csv(path: &Path, candles: &[Candle]) -> Result<(), Box<dyn std::
         writeln!(
             writer,
             "{},{:.5},{:.5},{:.5},{:.5},{:.1}",
-            timestamp,
-            candle.open,
-            candle.high,
-            candle.low,
-            candle.close,
-            candle.volume
+            timestamp, candle.open, candle.high, candle.low, candle.close, candle.volume
         )?;
     }
     Ok(())
