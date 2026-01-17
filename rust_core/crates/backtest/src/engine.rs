@@ -208,8 +208,14 @@ impl BacktestEngine {
         let (indicators, htf_indicators) =
             compute_indicators(&data, &strategy.required_indicators(), data.htf.as_ref())?;
 
+        // Each timeframe now has its own independent warmup period.
+        // HTF indicators are stored in htf_cache at native length (no stretching).
+        // Primary indicators are stored in the main cache at primary length.
+        // No need for compute_aligned_warmup anymore.
+        let primary_warmup = config.warmup_bars;
+
         // Validate indicators per DATA_FLOW_PLAN §5.2 Checkpoint 3
-        validate_indicators(&indicators, data.primary.len(), config.warmup_bars)?;
+        validate_indicators(&indicators, data.primary.len(), primary_warmup)?;
         if let Some(ref htf_cache) = htf_indicators
             && let Some(ref htf_store) = data.htf
         {
@@ -1045,7 +1051,10 @@ fn compute_indicators(
         let target_store = find_store(data, target_tf)
             .ok_or_else(|| BacktestError::InvalidTimeframe(target_tf.as_str().to_string()))?;
 
-        let needs_primary = !cache.contains(&spec);
+        // HTF indicators are stored ONLY in htf_cache (native length, no stretching).
+        // Primary indicators are stored in the main cache.
+        // This decouples warmup: each timeframe has its own independent warmup period.
+        let needs_primary = target_tf == primary_tf && !cache.contains(&spec);
         let needs_htf = htf_store.is_some_and(|store| store.timeframe == target_tf)
             && htf_cache
                 .as_ref()
