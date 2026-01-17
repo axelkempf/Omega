@@ -52,7 +52,7 @@
   },
 
   "trade_management": {
-    "enabled": true,
+    "enabled": false,
     "stop_update_policy": "apply_next_bar",
     "rules": []
   },

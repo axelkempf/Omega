@@ -879,14 +879,10 @@ fn load_data(
         ));
     }
 
-    let max_tf_seconds = max_timeframe_seconds(primary_tf, &additional_tfs, htf_name.as_deref())?;
-    let warmup_delta = warmup_delta_ns(config.warmup_bars, max_tf_seconds)?;
-    let extended_start_ns = start_ns.saturating_sub(warmup_delta);
-
     let primary_outcome = load_timeframe_store(
         &config.symbol,
         primary_tf,
-        extended_start_ns,
+        start_ns,
         end_ns,
         config.warmup_bars,
         config.sessions.as_deref(),
@@ -913,7 +909,7 @@ fn load_data(
         let outcome = load_timeframe_store(
             &config.symbol,
             tf,
-            extended_start_ns,
+            start_ns,
             end_ns,
             config.warmup_bars,
             config.sessions.as_deref(),
@@ -944,7 +940,7 @@ fn load_data(
         let outcome = load_timeframe_store(
             &config.symbol,
             tf,
-            extended_start_ns,
+            start_ns,
             end_ns,
             config.warmup_bars,
             config.sessions.as_deref(),
@@ -986,8 +982,11 @@ fn load_timeframe_store(
     let ask_path = resolve_data_path(symbol, timeframe.as_str(), "ASK");
     let aligned = load_and_validate_bid_ask(&bid_path, &ask_path, timeframe)?;
 
-    let bid = filter_by_date_range(&aligned.bid, start_ns, end_ns)?;
-    let ask = filter_by_date_range(&aligned.ask, start_ns, end_ns)?;
+    let warmup_delta = warmup_delta_ns(warmup_bars, timeframe.to_seconds())?;
+    let extended_start_ns = start_ns.saturating_sub(warmup_delta);
+
+    let bid = filter_by_date_range(&aligned.bid, extended_start_ns, end_ns)?;
+    let ask = filter_by_date_range(&aligned.ask, extended_start_ns, end_ns)?;
 
     if bid.len() != ask.len() {
         return Err(BacktestError::Data(
@@ -1278,26 +1277,6 @@ fn parse_timeframe(value: &str) -> Result<Timeframe, BacktestError> {
     value
         .parse::<Timeframe>()
         .map_err(|_| BacktestError::InvalidTimeframe(value.to_string()))
-}
-
-fn max_timeframe_seconds(
-    primary: Timeframe,
-    additional: &[String],
-    htf: Option<&str>,
-) -> Result<u64, BacktestError> {
-    let mut max_secs = primary.to_seconds();
-
-    if let Some(htf_name) = htf {
-        let tf = parse_timeframe(htf_name)?;
-        max_secs = max_secs.max(tf.to_seconds());
-    }
-
-    for tf_name in additional {
-        let tf = parse_timeframe(tf_name)?;
-        max_secs = max_secs.max(tf.to_seconds());
-    }
-
-    Ok(max_secs)
 }
 
 fn warmup_delta_ns(warmup_bars: usize, tf_seconds: u64) -> Result<i64, BacktestError> {

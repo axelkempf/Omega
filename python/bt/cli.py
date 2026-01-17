@@ -31,7 +31,9 @@ def create_parser() -> argparse.ArgumentParser:
     """Create the CLI argument parser."""
     parser = argparse.ArgumentParser(
         prog="omega-bt",
-        description="Omega V2 Backtest Runner - High-performance Rust-based backtesting",
+        description=(
+            "Omega V2 Backtest Runner - High-performance Rust-based backtesting"
+        ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
@@ -113,7 +115,9 @@ def print_summary(result: Mapping[str, Any], config_path: Path) -> None:
     config_meta = extra.get("config", {})
 
     # Try to get config info from meta or result directly
-    strategy_name = config_meta.get("strategy_name", meta.get("strategy_name", "unknown"))
+    strategy_name = config_meta.get(
+        "strategy_name", meta.get("strategy_name", "unknown")
+        )
     symbol = config_meta.get("symbol", meta.get("symbol", "unknown"))
     start_date = config_meta.get("start_date", meta.get("start_date", ""))
     end_date = config_meta.get("end_date", meta.get("end_date", ""))
