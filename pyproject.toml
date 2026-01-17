@@ -12,6 +12,7 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "concurrent-log-handler>=0.9",
+    "jsonschema>=4.20",
     "fastapi>=0.109",
     "filelock>=3.12",
     "holidays>=0.34",
@@ -86,7 +87,7 @@ include = ["omega*", "backtest_engine*", "hf_engine*", "shared*", "strategies*",
 [tool.maturin]
 module-name = "omega_bt"
 python-source = "python"
-python-packages = ["bt"]
+python-packages = ["bt", "omega_bt"]
 features = ["extension-module"]
 
 [tool.isort]

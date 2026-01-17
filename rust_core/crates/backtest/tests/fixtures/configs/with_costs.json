@@ -1,0 +1,43 @@
+{
+  "schema_version": "2",
+  "strategy_name": "mean_reversion_z_score",
+  "symbol": "EURUSD",
+  "start_date": "2025-01-01",
+  "end_date": "2025-01-02",
+  "run_mode": "dev",
+  "data_mode": "candle",
+  "execution_variant": "v2",
+  "rng_seed": 42,
+  "timeframes": {
+    "primary": "M1",
+    "additional": [],
+    "additional_source": "separate_parquet"
+  },
+  "warmup_bars": 10,
+  "costs": {
+    "enabled": true,
+    "fee_multiplier": 1.5,
+    "slippage_multiplier": 2.0,
+    "spread_multiplier": 1.0,
+    "pip_size": 0.0001,
+    "pip_buffer_factor": 0.5
+  },
+  "account": {
+    "initial_balance": 50000.0,
+    "account_currency": "USD",
+    "risk_per_trade": 500.0,
+    "max_positions": 10
+  },
+  "strategy_parameters": {
+    "enabled_scenarios": [1],
+    "direction_filter": "both",
+    "window_length": 5,
+    "ema_length": 5,
+    "atr_length": 5,
+    "atr_mult": 1.0,
+    "z_score_long": -1.0,
+    "z_score_short": 1.0,
+    "htf_filter": "none",
+    "extra_htf_filter": "none"
+  }
+}

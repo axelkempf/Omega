@@ -1,0 +1,260 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "omega-v2-config",
+  "title": "Omega V2 Backtest Config",
+  "description": "Configuration schema for Omega V2 backtests",
+  "type": "object",
+  "required": ["strategy_name", "symbol", "start_date", "end_date"],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "default": "2",
+      "description": "Config schema version"
+    },
+    "strategy_name": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Strategy identifier"
+    },
+    "symbol": {
+      "type": "string",
+      "pattern": "^[A-Z]{6}$",
+      "description": "Trading symbol (6 uppercase letters, e.g., EURUSD)"
+    },
+    "start_date": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}(T.*)?$",
+      "description": "Backtest start date (YYYY-MM-DD or ISO 8601)"
+    },
+    "end_date": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}(T.*)?$",
+      "description": "Backtest end date (YYYY-MM-DD or ISO 8601)"
+    },
+    "run_mode": {
+      "type": "string",
+      "enum": ["dev", "prod"],
+      "default": "dev",
+      "description": "Run mode (dev enables rng_seed default)"
+    },
+    "data_mode": {
+      "type": "string",
+      "enum": ["candle", "tick"],
+      "default": "candle",
+      "description": "Data mode (tick not yet supported in MVP)"
+    },
+    "execution_variant": {
+      "type": "string",
+      "enum": ["v2", "v1_parity"],
+      "default": "v2",
+      "description": "Execution variant (v1_parity requires run_mode=dev)"
+    },
+    "rng_seed": {
+      "type": ["integer", "null"],
+      "default": 42,
+      "description": "Random seed for determinism (default 42 in dev mode)"
+    },
+    "warmup_bars": {
+      "type": "integer",
+      "minimum": 0,
+      "default": 500,
+      "description": "Number of warmup bars before trading"
+    },
+    "timeframes": {
+      "type": "object",
+      "required": ["primary"],
+      "properties": {
+        "primary": {
+          "type": "string",
+          "pattern": "^(M1|M5|M15|M30|H1|H4|D1)$",
+          "description": "Primary timeframe"
+        },
+        "additional": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^(M1|M5|M15|M30|H1|H4|D1)$"
+          },
+          "default": [],
+          "description": "Additional timeframes for multi-timeframe analysis"
+        },
+        "additional_source": {
+          "type": "string",
+          "enum": ["separate_parquet", "aggregate_from_primary"],
+          "default": "separate_parquet",
+          "description": "Source for additional timeframes"
+        }
+      }
+    },
+    "sessions": {
+      "type": ["array", "null"],
+      "items": {
+        "type": "object",
+        "required": ["start", "end"],
+        "properties": {
+          "start": {
+            "type": "string",
+            "pattern": "^\\d{2}:\\d{2}$",
+            "description": "Session start time (HH:MM)"
+          },
+          "end": {
+            "type": "string",
+            "pattern": "^\\d{2}:\\d{2}$",
+            "description": "Session end time (HH:MM)"
+          }
+        }
+      },
+      "description": "Trading session windows"
+    },
+    "account": {
+      "type": "object",
+      "properties": {
+        "initial_balance": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "default": 10000.0,
+          "description": "Initial account balance"
+        },
+        "account_currency": {
+          "type": "string",
+          "pattern": "^[A-Z]{3}$",
+          "default": "EUR",
+          "description": "Account currency (3 uppercase letters)"
+        },
+        "risk_per_trade": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "default": 100.0,
+          "description": "Risk amount per trade"
+        },
+        "max_positions": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 100,
+          "description": "Maximum concurrent positions"
+        }
+      }
+    },
+    "costs": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable transaction costs"
+        },
+        "fee_multiplier": {
+          "type": "number",
+          "minimum": 0,
+          "default": 1.0,
+          "description": "Fee multiplier"
+        },
+        "slippage_multiplier": {
+          "type": "number",
+          "minimum": 0,
+          "default": 1.0,
+          "description": "Slippage multiplier"
+        },
+        "spread_multiplier": {
+          "type": "number",
+          "minimum": 0,
+          "default": 1.0,
+          "description": "Spread multiplier"
+        },
+        "pip_size": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "default": 0.0001,
+          "description": "Pip size for the symbol"
+        },
+        "pip_buffer_factor": {
+          "type": "number",
+          "minimum": 0,
+          "default": 0.5,
+          "description": "Pip buffer factor"
+        }
+      }
+    },
+    "news_filter": {
+      "type": ["object", "null"],
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable news filtering"
+        },
+        "minutes_before": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 30,
+          "description": "Minutes before news to filter"
+        },
+        "minutes_after": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 30,
+          "description": "Minutes after news to filter"
+        },
+        "min_impact": {
+          "type": "string",
+          "enum": ["low", "medium", "high"],
+          "default": "medium",
+          "description": "Minimum news impact level"
+        },
+        "currencies": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "Currencies to filter news for"
+        }
+      }
+    },
+    "logging": {
+      "type": "object",
+      "properties": {
+        "enable_entry_logging": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable detailed entry logging"
+        },
+        "logging_mode": {
+          "type": "string",
+          "enum": ["trades_only", "full"],
+          "default": "trades_only",
+          "description": "Logging verbosity mode"
+        }
+      }
+    },
+    "metrics": {
+      "type": ["object", "null"],
+      "description": "Custom metrics configuration"
+    },
+    "trade_management": {
+      "type": ["object", "null"],
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable trade management rules"
+        },
+        "stop_update_policy": {
+          "type": "string",
+          "enum": ["apply_next_bar", "apply_immediate"],
+          "default": "apply_next_bar",
+          "description": "When to apply stop updates"
+        },
+        "rules": {
+          "type": "array",
+          "items": {"type": "object"},
+          "default": [],
+          "description": "Trade management rules"
+        }
+      }
+    },
+    "strategy_parameters": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Strategy-specific parameters"
+    }
+  },
+  "additionalProperties": true
+}

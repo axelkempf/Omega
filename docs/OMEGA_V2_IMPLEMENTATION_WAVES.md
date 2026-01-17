@@ -4938,6 +4938,71 @@ def assert_results_equal(actual: dict, expected: dict) -> None:
 
 ---
 
+## W7.5: V2-Plan-Konformität (Post-W7)
+
+### Beschreibung
+Schließt identifizierte Gaps zur vollständigen Plan-Konformität ohne Breaking Changes.
+
+### Scope
+- Python-Wrapper Ergänzungen
+- FFI-Crate Strukturierung
+- Config-Validierung
+- Rust-Fixtures
+- Test-Pfad-Konsolidierung
+
+### Implementierte Änderungen
+
+#### Python Wrapper (Phase 1)
+- [x] `python/bt/py.typed` - PEP 561 Marker
+- [x] `python/omega_bt/py.typed` - PEP 561 Marker
+- [x] `python/omega_bt/_native.pyi` - Type Stubs für FFI
+- [x] `python/omega_bt/__init__.pyi` - Package Type Stubs
+- [x] `python/omega_bt/__init__.py` - Package Init
+- [x] `python/bt/reporting.py` - Erweitert mit `extract_key_metrics()`, `format_metric()`
+
+#### Config-Schema-Validierung (Phase 2)
+- [x] `jsonschema>=4.20` in `pyproject.toml` dependencies
+- [x] `python/bt/schema/__init__.py` - Schema Package
+- [x] `python/bt/schema/v2_config.json` - JSON-Schema Draft 2020-12
+- [x] `python/bt/config.py` - `validate_config(strict=True)` mit Schema-Validierung
+
+#### FFI-Crate Modularisierung (Phase 3)
+- [x] `rust_core/crates/ffi/src/entry.rs` - Python function bindings
+- [x] `rust_core/crates/ffi/src/error.rs` - Error mapping
+- [x] `rust_core/crates/ffi/src/result.rs` - Result serialization
+- [x] `rust_core/crates/ffi/src/lib.rs` - Refactored (PyModule only)
+
+#### Rust-Fixtures (Phase 4)
+- [x] `rust_core/crates/backtest/tests/fixtures/README.md`
+- [x] `rust_core/crates/backtest/tests/fixtures/configs/minimal.json`
+- [x] `rust_core/crates/backtest/tests/fixtures/configs/with_sessions.json`
+- [x] `rust_core/crates/backtest/tests/fixtures/configs/with_costs.json`
+
+### Test-Pfadentscheidung
+
+| Typ | Pfad | Begründung |
+|-----|------|------------|
+| Python Tests | `python/tests/` | Nahe am Python-Wrapper |
+| Python Fixtures | `python/tests/fixtures/golden/` | Golden-File Regression |
+| Rust Tests | `rust_core/crates/*/tests/` | Standard Cargo-Struktur |
+| Rust Fixtures | `rust_core/crates/backtest/tests/fixtures/` | Integration-Test Configs |
+
+### Akzeptanzkriterien W7.5
+
+| # | Kriterium | Status |
+|---|-----------|--------|
+| A1 | py.typed Marker vorhanden | ✅ |
+| A2 | Type Stubs für omega_bt | ✅ |
+| A3 | reporting.py erweitert | ✅ |
+| A4 | jsonschema Dependency | ✅ |
+| A5 | v2_config.json Schema | ✅ |
+| A6 | FFI-Crate modularisiert | ✅ |
+| A7 | Rust-Fixtures angelegt | ✅ |
+| A8 | cargo fmt/clippy/test grün | Verifizierung |
+| A9 | pytest python/tests grün | Verifizierung |
+
+---
+
 ## Checkliste für jede Welle
 
 Vor dem Start einer Welle:

@@ -28,7 +28,7 @@ def parity_config() -> dict[str, Any]:
         "strategy_name": "mean_reversion_z_score",
         "symbol": "EURUSD",
         "start_date": "2025-01-01",
-        "end_date": "2025-01-01",
+        "end_date": "2025-01-02",
         "run_mode": "dev",
         "data_mode": "candle",
         "execution_variant": "v1_parity",

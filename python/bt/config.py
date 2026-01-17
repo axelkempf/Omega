@@ -7,12 +7,35 @@ import json
 from pathlib import Path
 from typing import Any, Mapping
 
+try:
+    import jsonschema
+
+    HAS_JSONSCHEMA = True
+except ImportError:
+    HAS_JSONSCHEMA = False
+
 DEFAULT_SCHEMA_VERSION = "2.0"
 DEFAULT_RUN_MODE = "dev"
 DEFAULT_DATA_MODE = "candle"
 DEFAULT_EXECUTION_VARIANT = "v2"
 DEFAULT_WARMUP_BARS = 500
 DEFAULT_ADDITIONAL_SOURCE = "separate_parquet"
+
+_SCHEMA_CACHE: dict[str, Any] | None = None
+
+
+def _load_schema() -> dict[str, Any]:
+    """Load and cache the V2 config JSON schema.
+
+    Returns:
+        JSON schema dictionary.
+    """
+    global _SCHEMA_CACHE
+    if _SCHEMA_CACHE is None:
+        schema_path = Path(__file__).parent / "schema" / "v2_config.json"
+        with schema_path.open("r", encoding="utf-8") as handle:
+            _SCHEMA_CACHE = json.load(handle)
+    return _SCHEMA_CACHE
 
 
 def load_config(path: str | Path) -> dict[str, Any]:
@@ -34,15 +57,18 @@ def load_config(path: str | Path) -> dict[str, Any]:
     return _normalize_config(config)
 
 
-def validate_config(config: Mapping[str, Any]) -> None:
+def validate_config(config: Mapping[str, Any], *, strict: bool = False) -> None:
     """Validate config structure.
 
     Args:
         config: Config dictionary to validate.
+        strict: If True and jsonschema is available, perform full schema validation.
+            Default is False (basic required field checks only).
 
     Raises:
         ValueError: If required fields are missing or invalid.
     """
+    # Basic required field checks (always run)
     required = ["strategy_name", "symbol", "start_date", "end_date"]
     for field in required:
         if field not in config:
@@ -50,6 +76,19 @@ def validate_config(config: Mapping[str, Any]) -> None:
 
     if config["start_date"] >= config["end_date"]:
         raise ValueError("start_date must be before end_date")
+
+    # execution_variant validation (CONFIG_SCHEMA_PLAN 5.1)
+    if config.get("execution_variant") == "v1_parity":
+        if config.get("run_mode", "dev") != "dev":
+            raise ValueError("execution_variant 'v1_parity' requires run_mode='dev'")
+
+    # Full schema validation if available and requested
+    if strict and HAS_JSONSCHEMA:
+        schema = _load_schema()
+        try:
+            jsonschema.validate(instance=dict(config), schema=schema)
+        except jsonschema.ValidationError as exc:
+            raise ValueError(f"Schema validation failed: {exc.message}") from exc
 
 
 def _normalize_config(config: Mapping[str, Any]) -> dict[str, Any]:
