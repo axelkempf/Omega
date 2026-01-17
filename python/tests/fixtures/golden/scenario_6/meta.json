@@ -1,0 +1,20 @@
+{
+  "config": {
+    "hash": "unknown"
+  },
+  "dataset": {
+    "end_time": "1970-01-01T00:00:00+00:00",
+    "end_time_ns": 0,
+    "manifest_sha256": "unknown",
+    "start_time": "1970-01-01T00:00:00+00:00",
+    "start_time_ns": 0,
+    "symbol": "",
+    "timeframe": ""
+  },
+  "engine": {
+    "name": "omega-v2"
+  },
+  "generated_at": "2026-01-17T14:10:33.326649+00:00",
+  "generated_at_ns": 1768659033326648832,
+  "run_id": "unknown"
+}

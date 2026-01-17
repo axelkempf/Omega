@@ -4408,6 +4408,7 @@ serde_json = { workspace = true }
 [tool.maturin]
 module-name = "omega_bt"
 python-source = "python"
+features = ["extension-module"]
 ```
 
 ## Tests
@@ -4462,7 +4463,7 @@ Erstelle das Python-Package `bt`, Output-Artefakt-Writer und V1-Python-Parity-Te
 ## Verzeichnisstruktur
 
 ```
-rust_core/python/
+python/
 ├── bt/
 │   ├── __init__.py
 │   ├── runner.py        # High-level run_backtest()
@@ -4473,9 +4474,11 @@ rust_core/python/
 └── tests/
     ├── conftest.py
     ├── test_integration.py
+    ├── test_golden.py
     ├── test_parity.py   # V1 vs V2 Vergleich
     └── fixtures/
-        └── golden/      # Golden-File Fixtures
+        ├── golden/      # Golden-File Fixtures
+        └── data/        # Parquet/CSV Testdaten
 ```
 
 ## Python Package (bt/__init__.py)
@@ -4498,7 +4501,7 @@ __all__ = ["run_backtest", "load_config", "validate_config", "write_artifacts"]
 import json
 from pathlib import Path
 from typing import Any
-import omega_v2_core  # Rust FFI Module
+import omega_bt  # Rust FFI Module
 
 from .config import load_config, validate_config
 from .output import write_artifacts
@@ -4533,7 +4536,7 @@ def run_backtest(
 
     # 3. Serialize and call Rust
     config_json = json.dumps(config)
-    result_json = omega_v2_core.run_backtest(config_json)
+    result_json = omega_bt.run_backtest(config_json)
 
     # 4. Parse Result
     result = json.loads(result_json)
@@ -4927,7 +4930,7 @@ def assert_results_equal(actual: dict, expected: dict) -> None:
 | A3 | Golden-Tests bestehen | 6 Szenarien |
 | A4 | V1-Python-Parity | Events exakt, PnL ±0.05 |
 | A5 | Determinismus | Identische DEV-Runs |
-| A6 | pip install funktioniert | maturin develop/build |
+| A6 | pip install funktioniert | maturin develop --manifest-path rust_core/crates/ffi/Cargo.toml |
 
 ### Referenzen
 - [OMEGA_V2_TESTING_VALIDATION_PLAN.md](OMEGA_V2_TESTING_VALIDATION_PLAN.md) - Vollständig

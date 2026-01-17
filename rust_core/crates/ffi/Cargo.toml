@@ -17,3 +17,9 @@ omega_backtest = { workspace = true }
 omega_metrics = { workspace = true }
 pyo3 = { version = "0.20", features = ["auto-initialize"] }
 serde_json = { workspace = true }
+
+[package.metadata.maturin]
+module-name = "omega_bt"
+python-source = "../../../python"
+python-packages = ["bt"]
+features = ["extension-module"]

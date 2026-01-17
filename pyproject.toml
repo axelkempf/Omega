@@ -86,6 +86,7 @@ include = ["omega*", "backtest_engine*", "hf_engine*", "shared*", "strategies*",
 [tool.maturin]
 module-name = "omega_bt"
 python-source = "python"
+python-packages = ["bt"]
 features = ["extension-module"]
 
 [tool.isort]

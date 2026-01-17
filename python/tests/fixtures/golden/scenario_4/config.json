@@ -1,0 +1,32 @@
+{
+  "schema_version": "2.0",
+  "strategy_name": "mean_reversion_z_score",
+  "symbol": "EURUSD",
+  "start_date": "2025-01-01",
+  "end_date": "2025-01-02",
+  "run_mode": "dev",
+  "data_mode": "candle",
+  "execution_variant": "v2",
+  "rng_seed": 42,
+  "timeframes": {"primary": "M1"},
+  "warmup_bars": 10,
+  "strategy_parameters": {
+    "enabled_scenarios": [4],
+    "direction_filter": "long",
+    "window_length": 5,
+    "ema_length": 5,
+    "atr_length": 5,
+    "atr_mult": 1.0,
+    "b_b_length": 5,
+    "std_factor": 1.0,
+    "z_score_long": -1.0,
+    "z_score_short": 1.0,
+    "garch_alpha": 0.1,
+    "garch_beta": 0.85,
+    "garch_omega": 0.00001,
+    "garch_min_periods": 5,
+    "garch_scale": 1.0,
+    "htf_filter": "none",
+    "extra_htf_filter": "none"
+  }
+}

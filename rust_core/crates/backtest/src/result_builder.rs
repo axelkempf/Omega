@@ -31,6 +31,7 @@ pub(crate) fn build_meta(
     timestamps: &[i64],
     warmup_bars: usize,
     runtime_seconds: f64,
+    extra: serde_json::Value,
 ) -> ResultMeta {
     let start_timestamp = timestamps.get(warmup_bars).copied();
     let end_timestamp = timestamps.last().copied();
@@ -41,6 +42,6 @@ pub(crate) fn build_meta(
         candles_processed,
         start_timestamp,
         end_timestamp,
-        extra: serde_json::json!({}),
+        extra,
     }
 }

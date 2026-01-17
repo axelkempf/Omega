@@ -1,2 +1,7 @@
 [build]
 # Cargo configuration for Omega workspace
+
+[env]
+PYO3_PYTHON = "/usr/local/bin/python3.12"
+PYTHON = "/Users/axelkempf/Omega/.venv/bin/python"
+PYTHONPATH = "/Users/axelkempf/Omega/src:/Users/axelkempf/Omega"

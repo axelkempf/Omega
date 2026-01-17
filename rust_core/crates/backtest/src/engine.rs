@@ -1,12 +1,14 @@
 //! Backtest engine orchestration.
 
 use std::cell::RefCell;
-use std::collections::HashSet;
-use std::path::PathBuf;
+use std::collections::{BTreeMap, HashSet};
+use std::fs;
+use std::path::{Path, PathBuf};
 use std::time::{Instant, SystemTime, UNIX_EPOCH};
 
 use omega_data::{
-    CandleStore, MultiTfStore, filter_by_date_range, load_and_validate_bid_ask, resolve_data_path,
+    CandleStore, MultiTfStore, analyze_gaps, filter_by_date_range, load_and_validate_bid_ask,
+    resolve_data_path, resolve_news_calendar_path,
 };
 use omega_execution::{
     ExecutionCostsConfig, ExecutionEngine, ExecutionEngineConfig, FeeModel, NoFee, NoSlippage,
@@ -25,7 +27,8 @@ use omega_trade_mgmt::{
 use omega_types::{
     BacktestConfig, BacktestResult, Candle, DataMode, Direction, RunMode, Signal, Timeframe,
 };
-use serde_json::Value as JsonValue;
+use serde_json::{json, Value as JsonValue};
+use sha2::{Digest, Sha256};
 
 use crate::context::RunContext;
 use crate::error::BacktestError;
@@ -54,6 +57,7 @@ pub struct BacktestEngine {
     unit_value_per_price: f64,
     bar_duration_ns: i64,
     start_instant: Instant,
+    meta_extra: JsonValue,
 }
 
 #[derive(Debug, Clone)]
@@ -69,6 +73,107 @@ struct TakeProfitUpdate {
     position_id: u64,
     new_take_profit: f64,
     effective_from_idx: usize,
+}
+
+const ENGINE_NAME: &str = "omega-v2";
+const ENGINE_VERSION: &str = env!("CARGO_PKG_VERSION");
+const MANIFEST_VERSION: u64 = 1;
+
+#[derive(Debug)]
+struct TimeframeLoadOutcome {
+    store: CandleStore,
+    bid_path: PathBuf,
+    ask_path: PathBuf,
+    alignment_stats: omega_data::AlignmentStats,
+    gap_stats: omega_data::GapStats,
+}
+
+#[derive(Debug)]
+struct ManifestInput {
+    kind: &'static str,
+    path_display: String,
+    sha256: String,
+}
+
+impl ManifestInput {
+    fn sort_key(&self) -> (String, String) {
+        (self.path_display.clone(), self.kind.to_string())
+    }
+
+    fn to_json(&self) -> JsonValue {
+        json!({
+            "kind": self.kind,
+            "path": self.path_display,
+            "sha256": self.sha256,
+        })
+    }
+}
+
+#[derive(Debug, Default)]
+struct DatasetGovernance {
+    alignment: BTreeMap<String, JsonValue>,
+    gaps: BTreeMap<String, JsonValue>,
+    alignment_loss_max: f64,
+    gap_loss_max: f64,
+}
+
+impl DatasetGovernance {
+    fn add(
+        &mut self,
+        timeframe: Timeframe,
+        alignment: &omega_data::AlignmentStats,
+        gaps: &omega_data::GapStats,
+    ) {
+        let key = timeframe.as_str().to_string();
+        self.alignment_loss_max = self.alignment_loss_max.max(alignment.alignment_loss);
+        self.gap_loss_max = self.gap_loss_max.max(gaps.gap_loss);
+        self.alignment.insert(
+            key.clone(),
+            json!({
+                "bid_count_before": alignment.bid_count_before,
+                "ask_count_before": alignment.ask_count_before,
+                "aligned_count": alignment.aligned_count,
+                "discarded_count": alignment.discarded_count,
+                "alignment_loss": alignment.alignment_loss,
+            }),
+        );
+        self.gaps.insert(
+            key,
+            json!({
+                "expected_bars": gaps.expected_bars,
+                "missing_bars": gaps.missing_bars,
+                "gap_loss": gaps.gap_loss,
+            }),
+        );
+    }
+
+    fn to_json(&self) -> JsonValue {
+        let mut alignment_map = serde_json::Map::new();
+        for (key, value) in &self.alignment {
+            alignment_map.insert(key.clone(), value.clone());
+        }
+        let mut gaps_map = serde_json::Map::new();
+        for (key, value) in &self.gaps {
+            gaps_map.insert(key.clone(), value.clone());
+        }
+
+        json!({
+            "alignment": {
+                "loss_max": self.alignment_loss_max,
+                "by_timeframe": alignment_map,
+            },
+            "gaps": {
+                "loss_max": self.gap_loss_max,
+                "by_timeframe": gaps_map,
+            },
+        })
+    }
+}
+
+struct DataLoadResult {
+    store: MultiTfStore,
+    manifest_inputs: Vec<ManifestInput>,
+    governance: DatasetGovernance,
 }
 
 impl BacktestEngine {
@@ -89,7 +194,11 @@ impl BacktestEngine {
         let strategy = registry.create(&config.strategy_name, &config.strategy_parameters)?;
         let required_htf_timeframes = strategy.required_htf_timeframes();
 
-        let data = load_data(&config, &required_htf_timeframes)?;
+        let DataLoadResult {
+            store: data,
+            manifest_inputs,
+            governance,
+        } = load_data(&config, &required_htf_timeframes)?;
         validate_warmup(&data.primary, config.warmup_bars)?;
         validate_htf_warmup(data.htf.as_ref(), config.warmup_bars)?;
 
@@ -107,10 +216,12 @@ impl BacktestEngine {
             validate_indicators(htf_cache, htf_store.len(), config.warmup_bars)?;
         }
 
-        let symbol_specs = load_symbol_specs(&resolve_symbol_specs_path())?;
+        let symbol_specs_path = resolve_symbol_specs_path();
+        let symbol_specs = load_symbol_specs(&symbol_specs_path)?;
         let symbol_spec = get_symbol_spec_or_default(&symbol_specs, &config.symbol);
 
-        let costs_cfg = ExecutionCostsConfig::load(&resolve_execution_costs_path())?;
+        let execution_costs_path = resolve_execution_costs_path();
+        let costs_cfg = ExecutionCostsConfig::load(&execution_costs_path)?;
         let resolved_pip_size = config
             .costs
             .pip_size
@@ -175,6 +286,47 @@ impl BacktestEngine {
         let pip_buffer_factor = config.costs.pip_buffer_factor;
         let unit_value_per_price = unit_value_per_price(&symbol_spec);
 
+        let repo_root = repo_root();
+        let mut manifest_inputs = manifest_inputs;
+        manifest_inputs.push(build_manifest_input(
+            "execution_costs_yaml",
+            &execution_costs_path,
+            Some(&repo_root),
+        )?);
+        manifest_inputs.push(build_manifest_input(
+            "symbol_specs_yaml",
+            &symbol_specs_path,
+            Some(&repo_root),
+        )?);
+        if config
+            .news_filter
+            .as_ref()
+            .is_some_and(|filter| filter.enabled)
+        {
+            let news_path = resolve_news_calendar_path();
+            let news_display_root = if news_path.starts_with(&repo_root) {
+                Some(repo_root.clone())
+            } else {
+                news_path.parent().map(PathBuf::from)
+            };
+            manifest_inputs.push(build_manifest_input(
+                "news_parquet",
+                &news_path,
+                news_display_root.as_deref(),
+            )?);
+        }
+
+        let config_hash = compute_config_hash(&config);
+        let manifest_hash = build_manifest_hash(&manifest_inputs);
+        let run_id = compute_run_id(config.run_mode, &config_hash, &manifest_hash);
+        let meta_extra = build_meta_extra(
+            &config,
+            &governance,
+            &config_hash,
+            &manifest_hash,
+            &run_id,
+        );
+
         Ok(Self {
             config,
             data,
@@ -195,6 +347,7 @@ impl BacktestEngine {
             unit_value_per_price,
             bar_duration_ns,
             start_instant: Instant::now(),
+            meta_extra,
         })
     }
 
@@ -211,6 +364,7 @@ impl BacktestEngine {
             &self.data.primary.timestamps,
             self.config.warmup_bars,
             runtime_seconds,
+            self.meta_extra.clone(),
         );
         let fees_total = self.portfolio.total_fees();
         let risk_per_trade = self.config.account.risk_per_trade;
@@ -689,10 +843,14 @@ impl BacktestEngine {
     }
 }
 
+#[allow(clippy::too_many_lines)]
 fn load_data(
     config: &BacktestConfig,
     required_tfs: &[String],
-) -> Result<MultiTfStore, BacktestError> {
+) -> Result<DataLoadResult, BacktestError> {
+    let data_root = resolve_data_root();
+    let mut manifest_inputs = Vec::new();
+    let mut governance = DatasetGovernance::default();
     let primary_tf = parse_timeframe(&config.timeframes.primary)?;
     let mut additional: Vec<String> = Vec::new();
     additional.extend(config.timeframes.additional.iter().cloned());
@@ -730,23 +888,57 @@ fn load_data(
     let warmup_delta = warmup_delta_ns(config.warmup_bars, max_tf_seconds)?;
     let extended_start_ns = start_ns.saturating_sub(warmup_delta);
 
-    let primary = load_timeframe_store(
+    let primary_outcome = load_timeframe_store(
         &config.symbol,
         primary_tf,
         extended_start_ns,
         end_ns,
         config.warmup_bars,
+        config.sessions.as_deref(),
     )?;
+    governance.add(
+        primary_outcome.store.timeframe,
+        &primary_outcome.alignment_stats,
+        &primary_outcome.gap_stats,
+    );
+    manifest_inputs.push(build_manifest_input(
+        "market_parquet_bid",
+        &primary_outcome.bid_path,
+        Some(&data_root),
+    )?);
+    manifest_inputs.push(build_manifest_input(
+        "market_parquet_ask",
+        &primary_outcome.ask_path,
+        Some(&data_root),
+    )?);
+    let primary = primary_outcome.store;
 
     let htf = if let Some(htf) = htf_name {
         let tf = parse_timeframe(&htf)?;
-        Some(load_timeframe_store(
+        let outcome = load_timeframe_store(
             &config.symbol,
             tf,
             extended_start_ns,
             end_ns,
             config.warmup_bars,
-        )?)
+            config.sessions.as_deref(),
+        )?;
+        governance.add(
+            outcome.store.timeframe,
+            &outcome.alignment_stats,
+            &outcome.gap_stats,
+        );
+        manifest_inputs.push(build_manifest_input(
+            "market_parquet_bid",
+            &outcome.bid_path,
+            Some(&data_root),
+        )?);
+        manifest_inputs.push(build_manifest_input(
+            "market_parquet_ask",
+            &outcome.ask_path,
+            Some(&data_root),
+        )?);
+        Some(outcome.store)
     } else {
         None
     };
@@ -754,17 +946,37 @@ fn load_data(
     let mut additional_stores = Vec::new();
     for tf_name in additional_tfs {
         let tf = parse_timeframe(&tf_name)?;
-        let store = load_timeframe_store(
+        let outcome = load_timeframe_store(
             &config.symbol,
             tf,
             extended_start_ns,
             end_ns,
             config.warmup_bars,
+            config.sessions.as_deref(),
         )?;
-        additional_stores.push(store);
+        governance.add(
+            outcome.store.timeframe,
+            &outcome.alignment_stats,
+            &outcome.gap_stats,
+        );
+        manifest_inputs.push(build_manifest_input(
+            "market_parquet_bid",
+            &outcome.bid_path,
+            Some(&data_root),
+        )?);
+        manifest_inputs.push(build_manifest_input(
+            "market_parquet_ask",
+            &outcome.ask_path,
+            Some(&data_root),
+        )?);
+        additional_stores.push(outcome.store);
     }
 
-    Ok(MultiTfStore::new(primary, htf, additional_stores))
+    Ok(DataLoadResult {
+        store: MultiTfStore::new(primary, htf, additional_stores),
+        manifest_inputs,
+        governance,
+    })
 }
 
 fn load_timeframe_store(
@@ -773,7 +985,8 @@ fn load_timeframe_store(
     start_ns: i64,
     end_ns: i64,
     warmup_bars: usize,
-) -> Result<CandleStore, BacktestError> {
+    sessions: Option<&[omega_types::SessionConfig]>,
+) -> Result<TimeframeLoadOutcome, BacktestError> {
     let bid_path = resolve_data_path(symbol, timeframe.as_str(), "BID");
     let ask_path = resolve_data_path(symbol, timeframe.as_str(), "ASK");
     let aligned = load_and_validate_bid_ask(&bid_path, &ask_path, timeframe)?;
@@ -789,15 +1002,24 @@ fn load_timeframe_store(
         ));
     }
 
+    let step_ns = timeframe_to_ns(timeframe)?;
+    let gap_stats = analyze_gaps(&bid, step_ns, sessions)?;
+
     let timestamps: Vec<i64> = bid.iter().map(|c| c.timestamp_ns).collect();
 
-    Ok(CandleStore {
-        bid,
-        ask,
-        timestamps,
-        timeframe,
-        symbol: symbol.to_string(),
-        warmup_bars,
+    Ok(TimeframeLoadOutcome {
+        store: CandleStore {
+            bid,
+            ask,
+            timestamps,
+            timeframe,
+            symbol: symbol.to_string(),
+            warmup_bars,
+        },
+        bid_path,
+        ask_path,
+        alignment_stats: aligned.alignment_stats,
+        gap_stats,
     })
 }
 
@@ -1352,9 +1574,138 @@ fn unit_value_per_price(spec: &omega_execution::SymbolSpec) -> f64 {
     spec.contract_size.unwrap_or(1.0)
 }
 
-fn config_path(rel: &str) -> PathBuf {
+fn repo_root() -> PathBuf {
     let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    manifest_dir.join("../../../").join(rel)
+    manifest_dir.join("../../../")
+}
+
+fn resolve_data_root() -> PathBuf {
+    std::env::var("OMEGA_DATA_PARQUET_ROOT")
+        .ok()
+    .map_or_else(|| repo_root().join("data/parquet"), PathBuf::from)
+}
+
+fn normalize_path(path: &Path, base: Option<&Path>) -> String {
+    let resolved = path.canonicalize().unwrap_or_else(|_| path.to_path_buf());
+    let base = base.map(|root| root.canonicalize().unwrap_or_else(|_| root.to_path_buf()));
+    let trimmed = base
+        .as_ref()
+        .and_then(|root| resolved.strip_prefix(root).ok())
+        .unwrap_or(&resolved);
+    trimmed.to_string_lossy().replace('\\', "/")
+}
+
+fn build_manifest_input(
+    kind: &'static str,
+    path: &Path,
+    display_root: Option<&Path>,
+) -> Result<ManifestInput, BacktestError> {
+    let data = fs::read(path).map_err(|err| {
+        BacktestError::Runtime(format!("failed to read {}: {}", path.display(), err))
+    })?;
+    let sha256 = sha256_hex(&data);
+    let path_display = normalize_path(path, display_root);
+    Ok(ManifestInput {
+        kind,
+        path_display,
+        sha256,
+    })
+}
+
+fn build_manifest_hash(inputs: &[ManifestInput]) -> String {
+    let mut entries: Vec<(&ManifestInput, JsonValue)> =
+        inputs.iter().map(|input| (input, input.to_json())).collect();
+    entries.sort_by_key(|(input, _)| input.sort_key());
+    let inputs_json: Vec<JsonValue> = entries.into_iter().map(|(_, value)| value).collect();
+    let manifest = json!({
+        "manifest_version": MANIFEST_VERSION,
+        "inputs": inputs_json,
+    });
+    let canonical = canonicalize_json(&manifest);
+    let payload = serde_json::to_string(&canonical).unwrap_or_default();
+    sha256_hex(payload.as_bytes())
+}
+
+fn compute_config_hash(config: &BacktestConfig) -> String {
+    let value = serde_json::to_value(config).unwrap_or_else(|_| json!({}));
+    let canonical = canonicalize_json(&value);
+    let payload = serde_json::to_string(&canonical).unwrap_or_default();
+    sha256_hex(payload.as_bytes())
+}
+
+fn compute_run_id(run_mode: RunMode, config_hash: &str, manifest_hash: &str) -> String {
+    let base = format!("{config_hash}:{manifest_hash}");
+    let seed = match run_mode {
+        RunMode::Dev => base,
+        RunMode::Prod => format!("{base}:{}", random_seed()),
+    };
+    let hashed = sha256_hex(seed.as_bytes());
+    hashed.chars().take(16).collect()
+}
+
+fn build_meta_extra(
+    config: &BacktestConfig,
+    governance: &DatasetGovernance,
+    config_hash: &str,
+    manifest_hash: &str,
+    run_id: &str,
+) -> JsonValue {
+    json!({
+        "run_id": run_id,
+        "engine": {
+            "name": ENGINE_NAME,
+            "version": ENGINE_VERSION,
+        },
+        "config": {
+            "hash": config_hash,
+        },
+        "dataset": {
+            "symbol": config.symbol,
+            "timeframe": config.timeframes.primary,
+            "manifest_sha256": manifest_hash,
+            "governance": governance.to_json(),
+        },
+        "account": {
+            "account_currency": config.account.account_currency,
+            "initial_balance": config.account.initial_balance,
+        },
+    })
+}
+
+fn canonicalize_json(value: &JsonValue) -> JsonValue {
+    match value {
+        JsonValue::Object(map) => {
+            let mut keys: Vec<&String> = map.keys().collect();
+            keys.sort();
+            let mut ordered = serde_json::Map::new();
+            for key in keys {
+                if let Some(value) = map.get(key) {
+                    ordered.insert(key.clone(), canonicalize_json(value));
+                }
+            }
+            JsonValue::Object(ordered)
+        }
+        JsonValue::Array(values) => {
+            JsonValue::Array(values.iter().map(canonicalize_json).collect())
+        }
+        _ => value.clone(),
+    }
+}
+
+fn sha256_hex(bytes: &[u8]) -> String {
+    let mut hasher = Sha256::new();
+    hasher.update(bytes);
+    let digest = hasher.finalize();
+    let mut out = String::with_capacity(digest.len() * 2);
+    for byte in digest {
+        use std::fmt::Write;
+        let _ = write!(out, "{byte:02x}");
+    }
+    out
+}
+
+fn config_path(rel: &str) -> PathBuf {
+    repo_root().join(rel)
 }
 
 /// Resolves the execution costs file path.
