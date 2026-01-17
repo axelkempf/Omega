@@ -141,7 +141,10 @@ impl Portfolio {
                 ExitReason::TrailingStopLoss => "trailing",
                 _ => "initial",
             };
-            meta_map.insert("stop_loss_kind".to_string(), JsonValue::String(kind.to_string()));
+            meta_map.insert(
+                "stop_loss_kind".to_string(),
+                JsonValue::String(kind.to_string()),
+            );
         }
 
         if !meta_map.contains_key("in_entry_candle") {

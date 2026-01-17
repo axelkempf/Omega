@@ -192,21 +192,15 @@ fn timeframe_duration_ns(timeframe: Timeframe) -> Result<i64, DataError> {
             timeframe.as_str()
         ))
     })?;
-    seconds
-        .checked_mul(1_000_000_000)
-        .ok_or_else(|| {
-            DataError::CorruptData(format!(
-                "Timeframe duration overflow: {}",
-                timeframe.as_str()
-            ))
-        })
+    seconds.checked_mul(1_000_000_000).ok_or_else(|| {
+        DataError::CorruptData(format!(
+            "Timeframe duration overflow: {}",
+            timeframe.as_str()
+        ))
+    })
 }
 
-fn close_time_from_open(
-    open_ns: i64,
-    duration_ns: i64,
-    row_idx: usize,
-) -> Result<i64, DataError> {
+fn close_time_from_open(open_ns: i64, duration_ns: i64, row_idx: usize) -> Result<i64, DataError> {
     open_ns
         .checked_add(duration_ns)
         .and_then(|value| value.checked_sub(1))

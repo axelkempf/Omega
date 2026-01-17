@@ -169,9 +169,7 @@ impl MaxHoldingTimeRule {
     pub fn from_minutes(max_minutes: u64, bar_duration_ns: i64) -> Self {
         let safe_bar_ns = bar_duration_ns.max(1);
         let bar_duration_ns_u64 = u64::try_from(safe_bar_ns).unwrap_or(1);
-        let max_time_ns = max_minutes
-            .saturating_mul(60)
-            .saturating_mul(1_000_000_000);
+        let max_time_ns = max_minutes.saturating_mul(60).saturating_mul(1_000_000_000);
         let max_bars_u64 = max_time_ns / bar_duration_ns_u64;
         let max_bars = usize::try_from(max_bars_u64).unwrap_or(usize::MAX);
         Self::new(max_bars.max(1), safe_bar_ns)

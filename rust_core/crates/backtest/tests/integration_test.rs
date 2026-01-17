@@ -7,7 +7,7 @@
 //! - Session/News gates
 //! - Event loop ordering
 
-use omega_backtest::{run_backtest_from_json, BacktestError};
+use omega_backtest::{BacktestError, run_backtest_from_json};
 
 // ============================================================================
 // CONFIG VALIDATION TESTS
@@ -479,8 +479,8 @@ mod env_overrides {
         let test_path_str = test_path.to_string_lossy().to_string();
 
         with_env_var("OMEGA_SYMBOL_SPECS_FILE", &test_path_str, || {
-            let value = env::var("OMEGA_SYMBOL_SPECS_FILE")
-                .expect("OMEGA_SYMBOL_SPECS_FILE should be set");
+            let value =
+                env::var("OMEGA_SYMBOL_SPECS_FILE").expect("OMEGA_SYMBOL_SPECS_FILE should be set");
             assert_eq!(value, test_path_str);
         });
     }
@@ -947,10 +947,8 @@ mod wave5_orchestration {
         let trades_b = serde_json::to_string(&result_b.trades.unwrap_or_default()).unwrap();
         assert_eq!(trades_a, trades_b);
 
-        let equity_a =
-            serde_json::to_string(&result_a.equity_curve.unwrap_or_default()).unwrap();
-        let equity_b =
-            serde_json::to_string(&result_b.equity_curve.unwrap_or_default()).unwrap();
+        let equity_a = serde_json::to_string(&result_a.equity_curve.unwrap_or_default()).unwrap();
+        let equity_b = serde_json::to_string(&result_b.equity_curve.unwrap_or_default()).unwrap();
         assert_eq!(equity_a, equity_b);
     }
 

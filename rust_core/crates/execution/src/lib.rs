@@ -84,8 +84,7 @@ pub use engine::{
 pub use error::ExecutionError;
 /// Fee model implementations.
 pub use fees::{
-    CombinedFee, FeeModel, FixedFee, MinFee, NoFee, PerMillionNotionalFee, PercentageFee,
-    TieredFee,
+    CombinedFee, FeeModel, FixedFee, MinFee, NoFee, PerMillionNotionalFee, PercentageFee, TieredFee,
 };
 /// Fill helpers and results.
 pub use fill::{FillResult, market_fill, pending_fill};

@@ -52,10 +52,10 @@ pub mod rules;
 pub use actions::{Action, StopModifyReason};
 pub use context::{MarketView, PositionStatus, PositionView, TradeContext, TradeMgmtMode};
 pub use engine::{
-	MaxHoldingTimeConfig, StopUpdatePolicy, TradeManager, TradeManagerBuilder,
-	TradeManagerConfig, TradeManagerRulesConfig,
+    MaxHoldingTimeConfig, StopUpdatePolicy, TradeManager, TradeManagerBuilder, TradeManagerConfig,
+    TradeManagerRulesConfig,
 };
 pub use error::TradeManagementError;
 pub use rules::{
-	BreakEvenRule, MaxHoldingTimeRule, Rule, RuleId, RulePriority, RuleSet, TrailingStopRule,
+    BreakEvenRule, MaxHoldingTimeRule, Rule, RuleId, RulePriority, RuleSet, TrailingStopRule,
 };

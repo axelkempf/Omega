@@ -355,9 +355,7 @@ mod tests {
 
     #[test]
     fn test_garch_simple_returns_non_log() {
-        let prices: Vec<f64> = (0..30_u32)
-            .map(|i| 100.0 + f64::from(i) * 0.2)
-            .collect();
+        let prices: Vec<f64> = (0..30_u32).map(|i| 100.0 + f64::from(i) * 0.2).collect();
         let candles: Vec<Candle> = prices.into_iter().map(make_candle).collect();
 
         let garch = GarchVolatility::new(0.1, 0.85, 0.000_01)

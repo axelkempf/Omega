@@ -1,6 +1,6 @@
 //! Metric definition catalog.
 
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 /// Re-exported metric definition type shared with output contract.
 pub use omega_types::MetricDefinition;
@@ -11,10 +11,11 @@ pub struct MetricDefinitions;
 
 impl MetricDefinitions {
     /// Returns the default metric definitions keyed by metric name.
+    /// Uses `BTreeMap` for deterministic (sorted) key order in JSON output.
     #[must_use]
     #[allow(clippy::too_many_lines)] // Declarative list of metric definitions
-    pub fn definitions() -> HashMap<String, MetricDefinition> {
-        let mut defs = HashMap::new();
+    pub fn definitions() -> BTreeMap<String, MetricDefinition> {
+        let mut defs = BTreeMap::new();
 
         defs.insert(
             "total_trades".to_string(),
@@ -75,8 +76,7 @@ impl MetricDefinitions {
             "fees_total".to_string(),
             MetricDefinition {
                 unit: "account_currency".to_string(),
-                description: "Summe expliziter Fees/Commission (ohne Spread/Slippage)"
-                    .to_string(),
+                description: "Summe expliziter Fees/Commission (ohne Spread/Slippage)".to_string(),
                 domain: ">=0".to_string(),
                 source: "trades".to_string(),
                 value_type: "number".to_string(),
@@ -98,8 +98,7 @@ impl MetricDefinitions {
             "max_drawdown".to_string(),
             MetricDefinition {
                 unit: "ratio".to_string(),
-                description: "Maximaler relativer Drawdown (Peak-to-Trough / Peak)"
-                    .to_string(),
+                description: "Maximaler relativer Drawdown (Peak-to-Trough / Peak)".to_string(),
                 domain: "0..1".to_string(),
                 source: "equity".to_string(),
                 value_type: "number".to_string(),
@@ -166,8 +165,7 @@ impl MetricDefinitions {
             "expectancy".to_string(),
             MetricDefinition {
                 unit: "r_multiple".to_string(),
-                description: "Erwartungswert pro Trade in R (MVP: avg_r_multiple)"
-                    .to_string(),
+                description: "Erwartungswert pro Trade in R (MVP: avg_r_multiple)".to_string(),
                 domain: "any".to_string(),
                 source: "trades".to_string(),
                 value_type: "number".to_string(),
@@ -241,24 +239,50 @@ impl MetricDefinitions {
         );
 
         defs.insert(
-            "sharpe_ratio".to_string(),
+            "sharpe_trade_r".to_string(),
             MetricDefinition {
                 unit: "ratio".to_string(),
-                description: "Sharpe Ratio".to_string(),
+                description:
+                    "Sharpe Ratio basierend auf R-Multiples pro Trade (keine Annualisierung)"
+                        .to_string(),
                 domain: "any".to_string(),
-                source: "equity".to_string(),
-                value_type: "number".to_string(),
+                source: "trades".to_string(),
+                value_type: "number|string".to_string(),
             },
         );
 
         defs.insert(
-            "sortino_ratio".to_string(),
+            "sortino_trade_r".to_string(),
             MetricDefinition {
                 unit: "ratio".to_string(),
-                description: "Sortino Ratio".to_string(),
+                description:
+                    "Sortino Ratio basierend auf R-Multiples pro Trade (keine Annualisierung)"
+                        .to_string(),
+                domain: "any".to_string(),
+                source: "trades".to_string(),
+                value_type: "number|string".to_string(),
+            },
+        );
+
+        defs.insert(
+            "sharpe_equity_daily".to_string(),
+            MetricDefinition {
+                unit: "ratio".to_string(),
+                description: "Sharpe Ratio basierend auf taeglichen Equity-Returns (annualisiert mit sqrt(252))".to_string(),
                 domain: "any".to_string(),
                 source: "equity".to_string(),
-                value_type: "number".to_string(),
+                value_type: "number|string".to_string(),
+            },
+        );
+
+        defs.insert(
+            "sortino_equity_daily".to_string(),
+            MetricDefinition {
+                unit: "ratio".to_string(),
+                description: "Sortino Ratio basierend auf taeglichen Equity-Returns (annualisiert mit sqrt(252))".to_string(),
+                domain: "any".to_string(),
+                source: "equity".to_string(),
+                value_type: "number|string".to_string(),
             },
         );
 
@@ -266,7 +290,7 @@ impl MetricDefinitions {
             "calmar_ratio".to_string(),
             MetricDefinition {
                 unit: "ratio".to_string(),
-                description: "Calmar Ratio".to_string(),
+                description: "Calmar Ratio (annualisierte Rendite / max Drawdown)".to_string(),
                 domain: "any".to_string(),
                 source: "equity".to_string(),
                 value_type: "number".to_string(),

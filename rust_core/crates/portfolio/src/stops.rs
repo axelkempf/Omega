@@ -442,7 +442,10 @@ mod tests {
 
         // Entry candle (in_entry_candle = true) -> NO exit for Market Order
         let exit = check_stops(&pos, &bid, &ask, 0.0001, 0.5, true);
-        assert!(exit.is_none(), "Market Order should NOT exit in entry candle");
+        assert!(
+            exit.is_none(),
+            "Market Order should NOT exit in entry candle"
+        );
     }
 
     /// Rule 2: Market Order cannot exit via TP in entry candle
@@ -462,7 +465,10 @@ mod tests {
 
         // Entry candle (in_entry_candle = true) -> NO exit for Market Order
         let exit = check_stops(&pos, &bid, &ask, 0.0001, 0.5, true);
-        assert!(exit.is_none(), "Market Order should NOT exit in entry candle");
+        assert!(
+            exit.is_none(),
+            "Market Order should NOT exit in entry candle"
+        );
     }
 
     /// Rule 2: Market Order CAN exit in next candle (`in_entry_candle` = false)
@@ -503,7 +509,10 @@ mod tests {
 
         // Entry candle (in_entry_candle = true) -> Pending Order CAN exit
         let exit = check_stops(&pos, &bid, &ask, 0.0001, 0.5, true);
-        assert!(exit.is_some(), "Pending Order SHOULD exit via SL in entry candle");
+        assert!(
+            exit.is_some(),
+            "Pending Order SHOULD exit via SL in entry candle"
+        );
         assert_eq!(exit.unwrap().reason, ExitReason::StopLoss);
     }
 
@@ -524,7 +533,10 @@ mod tests {
 
         // Entry candle (in_entry_candle = true) -> Pending Order CAN exit
         let exit = check_stops(&pos, &bid, &ask, 0.0001, 0.5, true);
-        assert!(exit.is_some(), "Pending Order SHOULD exit via TP in entry candle");
+        assert!(
+            exit.is_some(),
+            "Pending Order SHOULD exit via TP in entry candle"
+        );
         assert_eq!(exit.unwrap().reason, ExitReason::TakeProfit);
     }
 
@@ -568,6 +580,10 @@ mod tests {
         // SL takes priority per documented behavior
         let exit = check_stops(&pos, &bid, &ask, 0.0001, 0.5, true);
         assert!(exit.is_some());
-        assert_eq!(exit.unwrap().reason, ExitReason::StopLoss, "SL should have priority over TP");
+        assert_eq!(
+            exit.unwrap().reason,
+            ExitReason::StopLoss,
+            "SL should have priority over TP"
+        );
     }
 }

@@ -121,15 +121,9 @@ mod tests {
         // EMA should stay at 5.0 for constant input
         for (i, value) in result.iter().enumerate().take(20) {
             if i < 4 {
-                assert!(
-                    value.is_nan(),
-                    "EMA[{i}] expected NaN, got {value}"
-                );
+                assert!(value.is_nan(), "EMA[{i}] expected NaN, got {value}");
             } else {
-                assert!(
-                    (*value - 5.0).abs() < 1e-10,
-                    "EMA[{i}] = {value} != 5.0"
-                );
+                assert!((*value - 5.0).abs() < 1e-10, "EMA[{i}] = {value} != 5.0");
             }
         }
     }

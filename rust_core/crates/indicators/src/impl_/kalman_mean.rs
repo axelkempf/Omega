@@ -137,9 +137,7 @@ mod tests {
     #[test]
     fn test_kalman_tracks_trend() {
         // Linear trend
-        let prices: Vec<f64> = (0..20_u32)
-            .map(|i| 100.0 + f64::from(i))
-            .collect();
+        let prices: Vec<f64> = (0..20_u32).map(|i| 100.0 + f64::from(i)).collect();
         let kalman = KalmanFilter::new(0.5, 0.1);
         let result = kalman.compute_level(&prices);
 

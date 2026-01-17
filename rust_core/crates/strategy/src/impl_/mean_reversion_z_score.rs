@@ -1274,8 +1274,8 @@ impl MeanReversionZScore {
 
         if let Some(dir_key) = direction_key {
             let wildcard_dir_key = format!("*.{dir_key}");
-            if let Some(obj) = find_scenario6_param_value(map, &wildcard_dir_key)
-                .and_then(|v| v.as_object())
+            if let Some(obj) =
+                find_scenario6_param_value(map, &wildcard_dir_key).and_then(|v| v.as_object())
             {
                 merge_params(&mut resolved, obj);
             } else if let Some(obj) = wildcard_value
@@ -1301,8 +1301,8 @@ impl MeanReversionZScore {
             }
 
             let tf_dir_key = format!("{normalized_tf}.{dir_key}");
-            if let Some(obj) = find_scenario6_param_value(map, &tf_dir_key)
-                .and_then(|v| v.as_object())
+            if let Some(obj) =
+                find_scenario6_param_value(map, &tf_dir_key).and_then(|v| v.as_object())
             {
                 merge_params(&mut resolved, obj);
             }
@@ -2244,9 +2244,7 @@ mod tests {
         let mut strategy = MeanReversionZScore::new(params);
 
         // Create a downtrend (should trigger long)
-        let closes: Vec<f64> = (0..50)
-            .map(|i| 1.1000 - f64::from(i) * 0.001)
-            .collect();
+        let closes: Vec<f64> = (0..50).map(|i| 1.1000 - f64::from(i) * 0.001).collect();
         let candles = make_candles(&closes);
         let cache = setup_cache(&candles);
 
@@ -2265,9 +2263,7 @@ mod tests {
         let params = MrzParams::default();
         let mut strategy = MeanReversionZScore::new(params);
 
-        let closes: Vec<f64> = (0..50)
-            .map(|i| 1.1000 - f64::from(i) * 0.001)
-            .collect();
+        let closes: Vec<f64> = (0..50).map(|i| 1.1000 - f64::from(i) * 0.001).collect();
         let candles = make_candles(&closes);
         let cache = setup_cache(&candles);
 
@@ -2291,9 +2287,7 @@ mod tests {
         let strategy = MeanReversionZScore::new(params);
 
         // Uptrend (should trigger short normally, but filter blocks)
-        let closes: Vec<f64> = (0..50)
-            .map(|i| 1.0000 + f64::from(i) * 0.001)
-            .collect();
+        let closes: Vec<f64> = (0..50).map(|i| 1.0000 + f64::from(i) * 0.001).collect();
         let candles = make_candles(&closes);
         let cache = setup_cache(&candles);
 
@@ -3449,7 +3443,10 @@ mod tests {
             .get("chain")
             .and_then(|v| v.as_array())
             .expect("chain array");
-        let first = chain.first().and_then(|v| v.as_object()).expect("chain item");
+        let first = chain
+            .first()
+            .and_then(|v| v.as_object())
+            .expect("chain item");
 
         for key in [
             "tf",

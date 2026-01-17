@@ -15,8 +15,8 @@ use crate::error::BacktestError;
 /// - [`BacktestError::ConfigValidation`] for invalid configuration values.
 /// - Any errors from engine initialization or execution.
 pub fn run_backtest_from_json(config_json: &str) -> Result<String, BacktestError> {
-    let config: BacktestConfig = serde_json::from_str(config_json)
-        .map_err(|e| BacktestError::ConfigParse(e.to_string()))?;
+    let config: BacktestConfig =
+        serde_json::from_str(config_json).map_err(|e| BacktestError::ConfigParse(e.to_string()))?;
 
     let config = normalize_config(config);
     validate_config(&config)?;
@@ -24,8 +24,7 @@ pub fn run_backtest_from_json(config_json: &str) -> Result<String, BacktestError
     let engine = BacktestEngine::new(config)?;
     let result = engine.run()?;
 
-    serde_json::to_string(&result)
-        .map_err(|e| BacktestError::ResultSerialize(e.to_string()))
+    serde_json::to_string(&result).map_err(|e| BacktestError::ResultSerialize(e.to_string()))
 }
 
 /// Normalizes config fields (trim, uppercase, deduplication).
@@ -64,7 +63,9 @@ fn normalize_config(mut config: BacktestConfig) -> BacktestConfig {
 fn validate_config(config: &BacktestConfig) -> Result<(), BacktestError> {
     // Symbol must not be empty
     if config.symbol.trim().is_empty() {
-        return Err(BacktestError::ConfigValidation("symbol is empty".to_string()));
+        return Err(BacktestError::ConfigValidation(
+            "symbol is empty".to_string(),
+        ));
     }
     // Strategy name must not be empty
     if config.strategy_name.trim().is_empty() {
@@ -221,8 +222,7 @@ fn validate_account_currency(currency: &str) -> Result<(), BacktestError> {
 }
 
 fn validate_timeframe(value: &str) -> Result<(), BacktestError> {
-    Timeframe::from_str(value).map_err(|_| {
-        BacktestError::ConfigValidation(format!("invalid timeframe '{value}'"))
-    })?;
+    Timeframe::from_str(value)
+        .map_err(|_| BacktestError::ConfigValidation(format!("invalid timeframe '{value}'")))?;
     Ok(())
 }

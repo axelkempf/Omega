@@ -1,21 +1,17 @@
 name: omega-v2-ci
 
+# Note: docs-only changes are skipped via paths-ignore.
+
 on:
   pull_request:
-    paths:
-      - "rust_core/**"
-      - "python/bt/**"
-      - "pyproject.toml"
-      - ".pre-commit-config.yaml"
-      - ".github/workflows/omega-v2-ci.yml"
+    paths-ignore:
+      - "docs/**"
+      - "**/*.md"
   push:
     branches: ["main"]
-    paths:
-      - "rust_core/**"
-      - "python/bt/**"
-      - "pyproject.toml"
-      - ".pre-commit-config.yaml"
-      - ".github/workflows/omega-v2-ci.yml"
+    paths-ignore:
+      - "docs/**"
+      - "**/*.md"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

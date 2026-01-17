@@ -12,12 +12,12 @@ use serde_json as _;
 pub mod compute;
 /// Metric definition catalog for output contract.
 pub mod definitions;
-/// Trade-based metric helpers.
-pub mod trade_metrics;
 /// Equity-curve metric helpers.
 pub mod equity_metrics;
 /// Output formatting helpers.
 pub mod output;
+/// Trade-based metric helpers.
+pub mod trade_metrics;
 
 pub use compute::compute_metrics;
 pub use definitions::{MetricDefinition, MetricDefinitions};

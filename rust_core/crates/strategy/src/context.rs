@@ -391,9 +391,7 @@ impl<'a> BarContext<'a> {
                     .get("low_vol_threshold")
                     .and_then(serde_json::Value::as_f64)
                     .unwrap_or(0.5);
-                let vol_period = vol_period
-                    .as_u64()
-                    .and_then(u64_to_usize)?;
+                let vol_period = vol_period.as_u64().and_then(u64_to_usize)?;
                 IndicatorParams::VolCluster {
                     vol_period,
                     high_vol_threshold_x100: scale_to_u32(high_thresh, 100.0),

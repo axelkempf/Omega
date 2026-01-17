@@ -254,15 +254,8 @@ impl ExecutionEngine {
         for order in eligible_orders {
             let fill_result = match self.config.execution_variant {
                 ExecutionVariant::V2 => {
-                    let slippage =
-                        self.preview_slippage(order.entry_price, order.direction, costs);
-                    pending_fill_triggered(
-                        order.entry_price,
-                        order.direction,
-                        bid,
-                        ask,
-                        slippage,
-                    )
+                    let slippage = self.preview_slippage(order.entry_price, order.direction, costs);
+                    pending_fill_triggered(order.entry_price, order.direction, bid, ask, slippage)
                 }
                 ExecutionVariant::V1Parity => market_fill(order.entry_price, order.direction, 0.0),
             };

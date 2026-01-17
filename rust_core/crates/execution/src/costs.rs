@@ -4,9 +4,7 @@
 //! with the existing Omega Python stack.
 
 use crate::error::ExecutionError;
-use crate::fees::{
-    FeeModel, FixedFee, MinFee, NoFee, PerMillionNotionalFee, PercentageFee,
-};
+use crate::fees::{FeeModel, FixedFee, MinFee, NoFee, PerMillionNotionalFee, PercentageFee};
 use crate::slippage::{FixedSlippage, NoSlippage, SlippageModel, VolatilitySlippage};
 use crate::symbol_specs::SymbolSpec;
 use serde::{Deserialize, Serialize};
@@ -261,12 +259,10 @@ impl ExecutionCostsConfig {
 
         let base_model: Box<dyn FeeModel> = match config.schema {
             CommissionSchema::PerLot => Box::new(FixedFee::new(config.per_lot)),
-            CommissionSchema::PerMillionNotional => {
-                Box::new(PerMillionNotionalFee::new(
-                    config.rate_per_million,
-                    lot_size,
-                ))
-            }
+            CommissionSchema::PerMillionNotional => Box::new(PerMillionNotionalFee::new(
+                config.rate_per_million,
+                lot_size,
+            )),
             CommissionSchema::PercentOfNotional => Box::new(PercentageFee::new(config.pct)),
         };
 
@@ -376,7 +372,7 @@ mod tests {
     use rand::SeedableRng;
     use rand_chacha::ChaCha8Rng;
 
-        const TEST_YAML: &str = r"
+    const TEST_YAML: &str = r"
 defaults:
     slippage:
         fixed_pips: 0.20
@@ -505,67 +501,67 @@ per_symbol:
         assert!(!costs.apply_exit_fee);
     }
 
-        #[test]
-        fn test_min_fee_applied_per_lot() {
-                let yaml = r"
+    #[test]
+    fn test_min_fee_applied_per_lot() {
+        let yaml = r"
 defaults:
     schema: per_lot
     per_lot: 1.0
     min_fee: 5.0
 ";
-                let config = ExecutionCostsConfig::from_yaml(yaml).unwrap();
-                let model = config.create_fee_model("EURUSD", 100_000.0);
+        let config = ExecutionCostsConfig::from_yaml(yaml).unwrap();
+        let model = config.create_fee_model("EURUSD", 100_000.0);
 
-                let fee = model.calculate(1.0, 100.0);
-                assert_relative_eq!(fee, 5.0, epsilon = 1e-10);
-        }
+        let fee = model.calculate(1.0, 100.0);
+        assert_relative_eq!(fee, 5.0, epsilon = 1e-10);
+    }
 
-        #[test]
-        fn test_min_fee_applied_per_million() {
-                let yaml = r"
+    #[test]
+    fn test_min_fee_applied_per_million() {
+        let yaml = r"
 defaults:
     schema: per_million_notional
     rate_per_million: 10.0
     min_fee: 2.0
 ";
-                let config = ExecutionCostsConfig::from_yaml(yaml).unwrap();
-                let model = config.create_fee_model("EURUSD", 100_000.0);
+        let config = ExecutionCostsConfig::from_yaml(yaml).unwrap();
+        let model = config.create_fee_model("EURUSD", 100_000.0);
 
-            let fee = model.calculate(1.0, 1.0);
-                assert_relative_eq!(fee, 2.0, epsilon = 1e-10);
-        }
+        let fee = model.calculate(1.0, 1.0);
+        assert_relative_eq!(fee, 2.0, epsilon = 1e-10);
+    }
 
-        #[test]
-        fn test_min_fee_applied_percent_of_notional() {
-                let yaml = r"
+    #[test]
+    fn test_min_fee_applied_percent_of_notional() {
+        let yaml = r"
 defaults:
     schema: percent_of_notional
     pct: 0.00001
     min_fee: 1.0
 ";
-                let config = ExecutionCostsConfig::from_yaml(yaml).unwrap();
-                let model = config.create_fee_model("EURUSD", 100_000.0);
+        let config = ExecutionCostsConfig::from_yaml(yaml).unwrap();
+        let model = config.create_fee_model("EURUSD", 100_000.0);
 
-                let fee = model.calculate(1.0, 100.0);
-                assert_relative_eq!(fee, 1.0, epsilon = 1e-10);
-        }
+        let fee = model.calculate(1.0, 100.0);
+        assert_relative_eq!(fee, 1.0, epsilon = 1e-10);
+    }
 
-        #[test]
-        fn test_random_slippage_without_fixed_pips() {
-                let yaml = r"
+    #[test]
+    fn test_random_slippage_without_fixed_pips() {
+        let yaml = r"
 defaults:
     slippage:
         fixed_pips: 0.0
         random_pips: 0.4
 ";
-                let config = ExecutionCostsConfig::from_yaml(yaml).unwrap();
-                let model = config.create_slippage_model(0.0001);
+        let config = ExecutionCostsConfig::from_yaml(yaml).unwrap();
+        let model = config.create_slippage_model(0.0001);
 
-                let mut rng = ChaCha8Rng::seed_from_u64(7);
-                let s1 = model.calculate(1.2000, Direction::Long, &mut rng);
-                let s2 = model.calculate(1.2000, Direction::Long, &mut rng);
+        let mut rng = ChaCha8Rng::seed_from_u64(7);
+        let s1 = model.calculate(1.2000, Direction::Long, &mut rng);
+        let s2 = model.calculate(1.2000, Direction::Long, &mut rng);
 
-                assert!(s1.abs() > f64::EPSILON);
-                assert!((s1 - s2).abs() > 1e-12);
-        }
+        assert!(s1.abs() > f64::EPSILON);
+        assert!((s1 - s2).abs() > 1e-12);
+    }
 }

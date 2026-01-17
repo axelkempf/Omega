@@ -1,8 +1,9 @@
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 use crate::trade::Trade;
 
-/// Backtest result container
+/// Backtest result container.
+/// Uses `BTreeMap` for deterministic (sorted) key order in JSON output.
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct BacktestResult {
     /// Success flag
@@ -16,9 +17,9 @@ pub struct BacktestResult {
     /// Performance metrics
     #[serde(skip_serializing_if = "Option::is_none")]
     pub metrics: Option<Metrics>,
-    /// Metric definitions (output contract)
+    /// Metric definitions (output contract, sorted for determinism)
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub metric_definitions: Option<HashMap<String, MetricDefinition>>,
+    pub metric_definitions: Option<BTreeMap<String, MetricDefinition>>,
     /// Equity curve data
     #[serde(skip_serializing_if = "Option::is_none")]
     pub equity_curve: Option<Vec<EquityPoint>>,
@@ -52,6 +53,22 @@ pub struct EquityPoint {
     pub drawdown: f64,
     /// High water mark
     pub high_water: f64,
+}
+
+/// Metric value supporting numeric values or "n/a" strings.
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq)]
+#[serde(untagged)]
+pub enum MetricValue {
+    /// Numeric metric value.
+    Number(f64),
+    /// String metric value (e.g. "n/a").
+    Text(String),
+}
+
+impl Default for MetricValue {
+    fn default() -> Self {
+        Self::Number(0.0)
+    }
 }
 
 /// Performance metrics
@@ -106,13 +123,19 @@ pub struct Metrics {
     /// Largest loss
     #[serde(default)]
     pub largest_loss: f64,
-    /// Sharpe ratio
+    /// Trade-based Sharpe ratio (R-multiples, no annualization)
     #[serde(default)]
-    pub sharpe_ratio: f64,
-    /// Sortino ratio
+    pub sharpe_trade_r: MetricValue,
+    /// Trade-based Sortino ratio (R-multiples, no annualization)
     #[serde(default)]
-    pub sortino_ratio: f64,
-    /// Calmar ratio
+    pub sortino_trade_r: MetricValue,
+    /// Equity-based Sharpe ratio (daily returns, annualized with sqrt(252))
+    #[serde(default)]
+    pub sharpe_equity_daily: MetricValue,
+    /// Equity-based Sortino ratio (daily returns, annualized with sqrt(252))
+    #[serde(default)]
+    pub sortino_equity_daily: MetricValue,
+    /// Calmar ratio (annualized return / max drawdown)
     #[serde(default)]
     pub calmar_ratio: f64,
 }

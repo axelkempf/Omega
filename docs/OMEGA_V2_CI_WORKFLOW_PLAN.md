@@ -256,6 +256,26 @@ Wheels werden auf PRs bereits in voller Zielmatrix gebaut.
 
 - Retention: **7 Tage**.
 
+### 9.3 Manuelle Wheel-Build-Verifikation (lokal)
+
+Die folgende Checkliste dient der manuellen Verifikation von Wheels,
+z. B. vor einem Release oder bei CI-Abweichungen.
+
+1. Wheel-Build lokal ausfuehren:
+
+  ```bash
+  maturin build --release
+  ```
+
+2. Artefakte pruefen:
+  - Wheel-Dateien im `target/wheels/` Verzeichnis vorhanden
+  - Richtige Plattform-Tags (macOS, Linux, Windows) erwartet
+
+3. Import-Smoke-Test (lokal):
+  - Virtuelle Umgebung erstellen
+  - Wheel installieren
+  - `import omega_bt` ohne Fehler ausfuehren
+
 ---
 
 ## 10. Release Flow (Normativ)

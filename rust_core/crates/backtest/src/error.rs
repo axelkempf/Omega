@@ -78,17 +78,124 @@ impl BacktestError {
     /// Returns true if this is a config parse/validation error.
     #[must_use]
     pub fn is_config_error(&self) -> bool {
-        matches!(self, BacktestError::ConfigParse(_) | BacktestError::ConfigValidation(_))
+        matches!(
+            self,
+            BacktestError::ConfigParse(_) | BacktestError::ConfigValidation(_)
+        )
+    }
+
+    /// Returns the error category for the output contract.
+    /// Categories: `config`, `market_data`, `execution`, `strategy`, `runtime`
+    #[must_use]
+    pub fn error_category(&self) -> &'static str {
+        match self {
+            // Config errors
+            BacktestError::ConfigParse(_) | BacktestError::ConfigValidation(_) => "config",
+
+            // Market data errors
+            BacktestError::Data(_)
+            | BacktestError::InsufficientData { .. }
+            | BacktestError::InsufficientHtfData { .. }
+            | BacktestError::DateParse(_)
+            | BacktestError::InvalidTimeframe(_) => "market_data",
+
+            // Execution errors (including portfolio and trade management)
+            BacktestError::Execution(_)
+            | BacktestError::Portfolio(_)
+            | BacktestError::TradeManagement(_) => "execution",
+
+            // Strategy errors
+            BacktestError::Strategy(_) => "strategy",
+
+            // Runtime errors (indicator, serialization, generic)
+            BacktestError::Indicator(_)
+            | BacktestError::ResultSerialize(_)
+            | BacktestError::Runtime(_) => "runtime",
+        }
     }
 }
 
 impl From<BacktestError> for ErrorResult {
     fn from(err: BacktestError) -> Self {
-        let category = if err.is_config_error() { "config" } else { "runtime" };
         Self {
-            category: category.to_string(),
+            category: err.error_category().to_string(),
             message: err.to_string(),
             details: json!({}),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_error_category_config() {
+        let err = BacktestError::ConfigParse("invalid json".to_string());
+        assert_eq!(err.error_category(), "config");
+        assert!(err.is_config_error());
+
+        let err = BacktestError::ConfigValidation("missing field".to_string());
+        assert_eq!(err.error_category(), "config");
+        assert!(err.is_config_error());
+    }
+
+    #[test]
+    fn test_error_category_market_data() {
+        let err = BacktestError::InsufficientData {
+            required: 100,
+            available: 50,
+        };
+        assert_eq!(err.error_category(), "market_data");
+        assert!(!err.is_config_error());
+
+        let err = BacktestError::InsufficientHtfData {
+            required: 100,
+            available: 50,
+        };
+        assert_eq!(err.error_category(), "market_data");
+
+        let err = BacktestError::DateParse("invalid date".to_string());
+        assert_eq!(err.error_category(), "market_data");
+
+        let err = BacktestError::InvalidTimeframe("X1".to_string());
+        assert_eq!(err.error_category(), "market_data");
+    }
+
+    #[test]
+    fn test_error_category_runtime() {
+        let err = BacktestError::ResultSerialize("json error".to_string());
+        assert_eq!(err.error_category(), "runtime");
+        assert!(!err.is_config_error());
+
+        let err = BacktestError::Runtime("unexpected error".to_string());
+        assert_eq!(err.error_category(), "runtime");
+    }
+
+    #[test]
+    fn test_error_result_conversion_config() {
+        let err = BacktestError::ConfigParse("test".to_string());
+        let result: ErrorResult = err.into();
+        assert_eq!(result.category, "config");
+    }
+
+    #[test]
+    fn test_error_result_conversion_market_data() {
+        let err = BacktestError::InsufficientData {
+            required: 100,
+            available: 50,
+        };
+        let result: ErrorResult = err.into();
+        assert_eq!(result.category, "market_data");
+        assert!(result.message.contains("100"));
+        assert!(result.message.contains("50"));
+    }
+
+    #[test]
+    fn test_error_result_conversion_runtime() {
+        let err = BacktestError::Runtime("test error".to_string());
+        let result: ErrorResult = err.into();
+        assert_eq!(result.category, "runtime");
+        assert!(result.message.contains("test error"));
     }
 }

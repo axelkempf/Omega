@@ -174,6 +174,11 @@ Diese Keys sind bewusst günstig zu berechnen und werden im MVP+ direkt ausgegeb
 | `expectancy` | `r_multiple` | `number` | `any` | `trades` | Erwartungswert pro Trade in $R$ (im MVP identisch zu `avg_r_multiple`) |
 | `active_days` | `days` | `number` | `>=0` | `trades` | Anzahl UTC-Tage mit mindestens einem Trade-Entry |
 | `trades_per_day` | `trades` | `number` | `>=0` | `trades` | `total_trades / active_days` (falls `active_days>0`) |
+| `avg_win` | `account_currency` | `number` | `>=0` | `trades` | Durchschnittlicher Gewinn pro Trade (nur Gewinntrades) |
+| `avg_loss` | `account_currency` | `number` | `>=0` | `trades` | Durchschnittlicher Verlust pro Trade (nur Verlusttrades, absolut) |
+| `largest_win` | `account_currency` | `number` | `>=0` | `trades` | Groesster Gewinntrade |
+| `largest_loss` | `account_currency` | `number` | `>=0` | `trades` | Groesster Verlusttrade (absolut) |
+| `calmar_ratio` | `ratio` | `number` | `any` | `equity` | Annualisierte Rendite / max_drawdown |
 
 ---
 
@@ -256,6 +261,23 @@ $$
 - `trades_per_day`:
   - Wenn `active_days == 0`: `0.0`.
   - Sonst: `total_trades / active_days`.
+
+### 6.7 Win/Loss-Stats (`avg_win`, `avg_loss`, `largest_win`, `largest_loss`)
+
+- `avg_win`: Durchschnitt der positiven Trade-PnL (0 bei keinen Gewinntrades).
+- `avg_loss`: Durchschnitt der negativen Trade-PnL als absoluter Betrag (0 bei keinen Verlusttrades).
+- `largest_win`: Maximaler positiver Trade-PnL (0 bei keinen Gewinntrades).
+- `largest_loss`: Maximaler negativer Trade-PnL als absoluter Betrag (0 bei keinen Verlusttrades).
+
+### 6.8 Calmar Ratio (`calmar_ratio`)
+
+$$
+calmar\_ratio = \frac{annualized\_return}{max\_drawdown}
+$$
+
+- `annualized_return` wird aus Start- und End-Equity sowie der Run-Dauer berechnet.
+- Wenn die Run-Dauer < 1 Jahr ist, wird linear extrapoliert.
+- Wenn `max_drawdown == 0` oder die Equity-Serie zu kurz ist, wird `0.0` geschrieben.
 
 ---
 
@@ -378,21 +400,21 @@ Normative Defaults (V1-kompatibel):
 
 ---
 
-## 10. Implementierungs-Mapping (Rust, File-per-Metric)
+## 10. Implementierungs-Mapping (Rust)
 
 ### 10.1 `metrics` Crate
 
-Das Rust `metrics`-Crate folgt dem Indikator-Pattern: **eine Datei pro Metrik**.
+Das Rust `metrics`-Crate organisiert Metriken nach thematischer Zugehörigkeit.
 
-- `compute.rs`: ruft alle Metrik-Funktionen auf und erzeugt ein strukturiertes `Metrics`-Objekt.
-- Pro Key eine Datei, z.B.:
-  - `total_trades.rs`
-  - `win_rate.rs`
-  - `profit.rs` (oder getrennt `profit_gross.rs`, `profit_net.rs`, `fees_total.rs`)
-  - `drawdown.rs`
-  - `avg_r_multiple.rs`
-  - `profit_factor.rs`
-  - `activity.rs` (oder `active_days.rs`, `trades_per_day.rs`)
+**Hinweis:** Das ursprüngliche Pattern „eine Datei pro Metrik" ist **optional**. Gruppierte Dateien nach Datenquelle (z.B. `trade_metrics.rs`, `equity_metrics.rs`) sind ebenfalls erlaubt und werden bevorzugt, wenn sie bessere Kohäsion und Lesbarkeit bieten.
+
+**Aktuelle Struktur:**
+
+- `compute.rs`: Orchestriert alle Metrik-Berechnungen und erzeugt ein strukturiertes `Metrics`-Objekt.
+- `trade_metrics.rs`: Trade-basierte Metriken (Zählung, Profit/Loss, Win/Loss-Statistiken).
+- `equity_metrics.rs`: Equity-basierte Metriken (Drawdown, Daily Returns, Sharpe/Sortino).
+- `definitions.rs`: Metrik-Definitionen für den Output-Contract (BTreeMap für Determinismus).
+- `output.rs`: Rundung und Output-Formatierung.
 
 ### 10.2 Tests
 

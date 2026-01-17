@@ -29,7 +29,11 @@ impl IndicatorSpec {
     #[must_use]
     pub fn with_output_suffix(&self, output_name: &str) -> Self {
         Self {
-            name: format!("{name}_{output_name}", name = self.name, output_name = output_name),
+            name: format!(
+                "{name}_{output_name}",
+                name = self.name,
+                output_name = output_name
+            ),
             params: self.params.clone(),
         }
     }

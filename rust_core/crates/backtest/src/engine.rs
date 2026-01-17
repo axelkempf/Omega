@@ -16,9 +16,7 @@ use omega_indicators::{
     BollingerBands, IndicatorCache, IndicatorParams, IndicatorRegistry, IndicatorSpec,
     MultiOutputIndicator, MultiTfIndicatorCache, build_mapping,
 };
-use omega_portfolio::{
-    Portfolio, calculate_gap_exit_price, check_stops,
-};
+use omega_portfolio::{Portfolio, calculate_gap_exit_price, check_stops};
 use omega_strategy::{BarContext, HtfContext, IndicatorRequirement, Strategy, StrategyRegistry};
 use omega_trade_mgmt::{
     Action, MarketView, PositionView, StopModifyReason, TradeContext, TradeManager,
@@ -250,14 +248,7 @@ impl BacktestEngine {
 
         self.check_pending_triggers(&bid, &ask, timestamp_ns);
         self.check_stops(&bid, &ask, timestamp_ns);
-        self.apply_trade_management(
-            idx,
-            &bid,
-            &ask,
-            timestamp_ns,
-            session_open,
-            news_blocked,
-        );
+        self.apply_trade_management(idx, &bid, &ask, timestamp_ns, session_open, news_blocked);
 
         let htf_ctx = Self::build_htf_context(
             &self.data,
@@ -347,9 +338,9 @@ impl BacktestEngine {
     }
 
     fn check_pending_triggers(&mut self, bid: &Candle, ask: &Candle, timestamp_ns: i64) {
-        let result = self
-            .execution
-            .process_pending_orders(bid, ask, timestamp_ns, &self.symbol_costs);
+        let result =
+            self.execution
+                .process_pending_orders(bid, ask, timestamp_ns, &self.symbol_costs);
 
         for fill in result.fills {
             let entry_time_ns = fill.order.triggered_at_ns.unwrap_or(timestamp_ns);
@@ -399,23 +390,18 @@ impl BacktestEngine {
             .iter()
             .filter_map(|pos| {
                 let in_entry_candle = pos.entry_time_ns == timestamp_ns;
-                check_stops(pos, bid, ask, pip_size, pip_buffer, in_entry_candle).map(|result| {
-                    (
-                        pos.id,
-                        pos.direction,
-                        pos.size,
-                        result,
-                    )
-                })
+                check_stops(pos, bid, ask, pip_size, pip_buffer, in_entry_candle)
+                    .map(|result| (pos.id, pos.direction, pos.size, result))
             })
             .collect();
 
         for (pos_id, direction, size, result) in positions_to_close {
             let is_stop_loss = matches!(result.reason, omega_types::ExitReason::StopLoss);
-            let gap_exit = calculate_gap_exit_price(result.exit_price, &direction, bid, ask, is_stop_loss);
-            let exit_fill = self
-                .execution
-                .apply_exit_slippage(gap_exit, direction, size, &self.symbol_costs);
+            let gap_exit =
+                calculate_gap_exit_price(result.exit_price, &direction, bid, ask, is_stop_loss);
+            let exit_fill =
+                self.execution
+                    .apply_exit_slippage(gap_exit, direction, size, &self.symbol_costs);
 
             self.portfolio.close_position(
                 pos_id,
@@ -494,7 +480,8 @@ impl BacktestEngine {
                         continue;
                     };
 
-                    let exit_price = exit_price_hint.unwrap_or_else(|| market.exit_price(position.direction));
+                    let exit_price =
+                        exit_price_hint.unwrap_or_else(|| market.exit_price(position.direction));
                     let exit_fill = self.execution.apply_exit_slippage(
                         exit_price,
                         position.direction,
@@ -571,9 +558,9 @@ impl BacktestEngine {
                 }
             }
             omega_types::OrderType::Limit | omega_types::OrderType::Stop => {
-                if let Err(err) = self
-                    .execution
-                    .add_pending_order(&signal, timestamp_ns, &self.symbol_costs)
+                if let Err(err) =
+                    self.execution
+                        .add_pending_order(&signal, timestamp_ns, &self.symbol_costs)
                 {
                     tracing::warn!("pending order rejected: {err}");
                 }
@@ -691,7 +678,9 @@ impl BacktestEngine {
 
         let last_idx = len - 1;
         let (bid, ask) = self.data.primary.get(last_idx).ok_or_else(|| {
-            BacktestError::Runtime("missing last candle for portfolio consistency check".to_string())
+            BacktestError::Runtime(
+                "missing last candle for portfolio consistency check".to_string(),
+            )
         })?;
         let mid_price = f64::midpoint(bid.close, ask.close);
 
@@ -700,7 +689,10 @@ impl BacktestEngine {
     }
 }
 
-fn load_data(config: &BacktestConfig, required_tfs: &[String]) -> Result<MultiTfStore, BacktestError> {
+fn load_data(
+    config: &BacktestConfig,
+    required_tfs: &[String],
+) -> Result<MultiTfStore, BacktestError> {
     let primary_tf = parse_timeframe(&config.timeframes.primary)?;
     let mut additional: Vec<String> = Vec::new();
     additional.extend(config.timeframes.additional.iter().cloned());
@@ -821,10 +813,12 @@ fn compute_indicators(
     let registry = IndicatorRegistry::with_defaults();
 
     for req in requirements {
-        let spec = indicator_spec_from_params(&req.name, &req.params)
-            .ok_or_else(|| BacktestError::Indicator(omega_indicators::IndicatorError::InvalidParams(
-                format!("invalid indicator params for {}", req.name),
-            )))?;
+        let spec = indicator_spec_from_params(&req.name, &req.params).ok_or_else(|| {
+            BacktestError::Indicator(omega_indicators::IndicatorError::InvalidParams(format!(
+                "invalid indicator params for {}",
+                req.name
+            )))
+        })?;
 
         let target_tf = if let Some(tf) = req.timeframe.as_deref() {
             parse_timeframe(tf)?
@@ -836,8 +830,7 @@ fn compute_indicators(
             .ok_or_else(|| BacktestError::InvalidTimeframe(target_tf.as_str().to_string()))?;
 
         let needs_primary = !cache.contains(&spec);
-        let needs_htf = htf_store
-            .is_some_and(|store| store.timeframe == target_tf)
+        let needs_htf = htf_store.is_some_and(|store| store.timeframe == target_tf)
             && htf_cache
                 .as_ref()
                 .is_some_and(|htf_cache| !htf_cache.contains(&spec));
@@ -928,8 +921,8 @@ fn compute_indicators(
     Ok((cache, htf_cache))
 }
 
-    #[allow(clippy::too_many_arguments)]
-    fn insert_bollinger_outputs(
+#[allow(clippy::too_many_arguments)]
+fn insert_bollinger_outputs(
     cache: &mut IndicatorCache,
     spec: &IndicatorSpec,
     upper: &[f64],
@@ -1094,9 +1087,8 @@ fn warmup_delta_ns(warmup_bars: usize, tf_seconds: u64) -> Result<i64, BacktestE
     let bars = u128::from(u64_from_usize(warmup_bars));
     let seconds = bars.saturating_mul(u128::from(tf_seconds));
     let total_ns = seconds.saturating_mul(1_000_000_000u128);
-    i64::try_from(total_ns).map_err(|_| {
-        BacktestError::ConfigValidation("warmup period too large".to_string())
-    })
+    i64::try_from(total_ns)
+        .map_err(|_| BacktestError::ConfigValidation("warmup period too large".to_string()))
 }
 
 fn timeframe_to_ns(tf: Timeframe) -> Result<i64, BacktestError> {
@@ -1385,10 +1377,7 @@ fn resolve_execution_costs_path() -> PathBuf {
 fn resolve_symbol_specs_path() -> PathBuf {
     std::env::var("OMEGA_SYMBOL_SPECS_FILE")
         .ok()
-        .map_or_else(
-            || config_path("configs/symbol_specs.yaml"),
-            PathBuf::from,
-        )
+        .map_or_else(|| config_path("configs/symbol_specs.yaml"), PathBuf::from)
 }
 
 /// Date parsing boundary for date-only inputs.
@@ -1613,10 +1602,7 @@ struct SlippageMultiplier {
 
 impl SlippageMultiplier {
     fn new(inner: Box<dyn SlippageModel>, multiplier: f64) -> Self {
-        Self {
-            inner,
-            multiplier,
-        }
+        Self { inner, multiplier }
     }
 }
 

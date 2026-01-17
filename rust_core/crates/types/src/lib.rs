@@ -38,7 +38,7 @@ pub use error::CoreError;
 pub use position::Position;
 pub use price_type::PriceType;
 pub use result::{
-    BacktestResult, EquityPoint, ErrorResult, MetricDefinition, Metrics, ResultMeta,
+    BacktestResult, EquityPoint, ErrorResult, MetricDefinition, MetricValue, Metrics, ResultMeta,
 };
 pub use signal::{Direction, OrderType, Signal};
 pub use timeframe::{ParseTimeframeError, Timeframe};

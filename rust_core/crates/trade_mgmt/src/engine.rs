@@ -212,12 +212,11 @@ impl TradeManager {
             return None;
         }
 
-        let mut close_candidates: Vec<_> = candidates
-            .iter()
-            .filter(|c| c.action.is_close())
-            .collect();
+        let mut close_candidates: Vec<_> =
+            candidates.iter().filter(|c| c.action.is_close()).collect();
         if !close_candidates.is_empty() {
-            close_candidates.sort_by(|a, b| (a.priority, &a.rule_id).cmp(&(b.priority, &b.rule_id)));
+            close_candidates
+                .sort_by(|a, b| (a.priority, &a.rule_id).cmp(&(b.priority, &b.rule_id)));
             return close_candidates.first().map(|c| c.action.clone());
         }
 

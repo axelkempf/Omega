@@ -4,11 +4,16 @@ version.workspace = true
 edition.workspace = true
 
 [lib]
+# cdylib: Dynamische Library für Python via PyO3
+# rlib nicht nötig – kein anderer Rust-Code sollte ffi importieren
 crate-type = ["cdylib"]
+
+[features]
+extension-module = ["pyo3/extension-module"]
 
 [dependencies]
 omega_types = { workspace = true }
 omega_backtest = { workspace = true }
 omega_metrics = { workspace = true }
-pyo3 = { version = "0.20", features = ["extension-module"] }
+pyo3 = { version = "0.20", features = ["auto-initialize"] }
 serde_json = { workspace = true }
