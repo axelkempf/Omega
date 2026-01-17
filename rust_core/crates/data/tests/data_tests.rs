@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use arrow::array::{ArrayRef, Float64Array, Int64Array, StringArray, TimestampNanosecondArray};
+use arrow::array::{ArrayRef, Float64Array, StringArray, TimestampNanosecondArray};
 use arrow::datatypes::{DataType, Field, TimeUnit};
 use temp_env::with_var;
 use tempfile::tempdir;
@@ -503,7 +503,7 @@ fn test_load_news_calendar_rejects_missing_column() {
 
     let timestamps: ArrayRef =
         Arc::new(TimestampNanosecondArray::from(vec![1_i64]).with_timezone("UTC"));
-    let ids: ArrayRef = Arc::new(Int64Array::from(vec![1_i64]));
+    let ids: ArrayRef = Arc::new(StringArray::from(vec!["1"]));
     let names: ArrayRef = Arc::new(StringArray::from(vec!["Event"]));
     let impacts: ArrayRef = Arc::new(StringArray::from(vec!["HIGH"]));
     // Currency column intentionally omitted
@@ -514,7 +514,7 @@ fn test_load_news_calendar_rejects_missing_column() {
             DataType::Timestamp(TimeUnit::Nanosecond, Some("UTC".into())),
             false,
         ),
-        Field::new("Id", DataType::Int64, false),
+        Field::new("Id", DataType::Utf8, false),
         Field::new("Name", DataType::Utf8, false),
         Field::new("Impact", DataType::Utf8, false),
     ];
@@ -533,7 +533,7 @@ fn test_load_news_calendar_rejects_invalid_impact() {
     write_news_parquet(
         &path,
         &[1_i64],
-        &[1_i64],
+        &["1"],
         &["Event"],
         &["SEVERE"],
         &["USD"],
@@ -553,7 +553,7 @@ fn test_load_news_calendar_rejects_invalid_currency() {
     write_news_parquet(
         &path,
         &[1_i64],
-        &[1_i64],
+        &["1"],
         &["Event"],
         &["HIGH"],
         &["EURO"],
@@ -573,7 +573,7 @@ fn test_load_news_calendar_rejects_non_monotonic() {
     write_news_parquet(
         &path,
         &[2_i64, 1_i64],
-        &[1_i64, 2_i64],
+        &["1", "2"],
         &["Event A", "Event B"],
         &["HIGH", "LOW"],
         &["USD", "EUR"],
@@ -604,7 +604,7 @@ fn test_news_timezone_contract_rejects_missing_timezone() {
     write_news_parquet(
         &path,
         &[1_i64],
-        &[1_i64],
+        &["1"],
         &["Event"],
         &["HIGH"],
         &["USD"],
@@ -624,7 +624,7 @@ fn test_news_timezone_contract_rejects_non_utc_timezone() {
     write_news_parquet(
         &path,
         &[1_i64],
-        &[1_i64],
+        &["1"],
         &["Event"],
         &["HIGH"],
         &["USD"],

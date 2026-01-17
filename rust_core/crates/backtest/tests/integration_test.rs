@@ -582,7 +582,7 @@ mod wave5_orchestration {
     use std::path::Path;
     use std::sync::Arc;
 
-    use arrow::array::{ArrayRef, Float64Array, Int64Array, StringArray, TimestampNanosecondArray};
+    use arrow::array::{ArrayRef, Float64Array, StringArray, TimestampNanosecondArray};
     use arrow::datatypes::{DataType, Field, Schema, TimeUnit};
     use arrow::record_batch::RecordBatch;
     use omega_types::{BacktestResult, Candle, ExitReason};
@@ -602,7 +602,7 @@ mod wave5_orchestration {
     #[derive(Debug, Clone)]
     struct NewsFixture {
         timestamps: Vec<i64>,
-        ids: Vec<i64>,
+        ids: Vec<String>,
         names: Vec<&'static str>,
         impacts: Vec<&'static str>,
         currencies: Vec<&'static str>,
@@ -705,7 +705,7 @@ mod wave5_orchestration {
                 DataType::Timestamp(TimeUnit::Nanosecond, Some("UTC".into())),
                 false,
             ),
-            Field::new("Id", DataType::Int64, false),
+            Field::new("Id", DataType::Utf8, false),
             Field::new("Name", DataType::Utf8, false),
             Field::new("Impact", DataType::Utf8, false),
             Field::new("Currency", DataType::Utf8, false),
@@ -715,7 +715,7 @@ mod wave5_orchestration {
             Arc::new(
                 TimestampNanosecondArray::from(fixture.timestamps.clone()).with_timezone("UTC"),
             ),
-            Arc::new(Int64Array::from(fixture.ids.clone())),
+            Arc::new(StringArray::from(fixture.ids.clone())),
             Arc::new(StringArray::from(fixture.names.to_vec())),
             Arc::new(StringArray::from(fixture.impacts.to_vec())),
             Arc::new(StringArray::from(fixture.currencies.to_vec())),
@@ -912,7 +912,7 @@ mod wave5_orchestration {
 
         let news = NewsFixture {
             timestamps: vec![bid[2].timestamp_ns],
-            ids: vec![1],
+            ids: vec!["1".to_string()],
             names: vec!["NFP"],
             impacts: vec!["HIGH"],
             currencies: vec!["EUR"],

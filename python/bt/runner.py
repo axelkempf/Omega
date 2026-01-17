@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import importlib.util
 import json
+import sys
 from pathlib import Path
 from typing import Any, Mapping
 
@@ -61,13 +63,32 @@ def _load_ffi() -> Any:
             except Exception:
                 pass
     except ImportError:
-        try:
-            import omega_v2_core as omega_module
-        except ImportError as exc:
-            raise ImportError(
-                "omega_bt FFI module not available; build with maturin develop"
-            ) from exc
+        omega_module = _load_local_extension()
+        if omega_module is None:
+            try:
+                import omega_v2_core as omega_module
+            except ImportError as exc:
+                raise ImportError(
+                    "omega_bt FFI module not available; build with maturin develop"
+                ) from exc
     return omega_module
+
+
+def _load_local_extension() -> Any | None:
+    package_root = Path(__file__).resolve().parents[1]
+    extension_dir = package_root / "omega_bt"
+    patterns = ("omega_bt*.so", "omega_bt*.pyd", "omega_bt*.dylib")
+    for pattern in patterns:
+        for candidate in extension_dir.glob(pattern):
+            spec = importlib.util.spec_from_file_location("omega_bt", candidate)
+            if spec is None or spec.loader is None:
+                continue
+            module = importlib.util.module_from_spec(spec)
+            sys.modules["omega_bt"] = module
+            spec.loader.exec_module(module)
+            if hasattr(module, "run_backtest"):
+                return module
+    return None
 
 
 def _extract_run_id(result: Mapping[str, Any]) -> str:

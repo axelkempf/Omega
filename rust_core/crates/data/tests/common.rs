@@ -2,7 +2,7 @@ use std::fs::File;
 use std::path::Path;
 use std::sync::Arc;
 
-use arrow::array::{ArrayRef, Float64Array, Int64Array, StringArray, TimestampNanosecondArray};
+use arrow::array::{ArrayRef, Float64Array, StringArray, TimestampNanosecondArray};
 use arrow::datatypes::{DataType, Field, Schema, TimeUnit};
 use arrow::record_batch::RecordBatch;
 use omega_types::Candle;
@@ -92,7 +92,7 @@ pub fn write_candle_parquet_with_timezone(
 pub fn write_news_parquet(
     path: &Path,
     timestamps: &[i64],
-    ids: &[i64],
+    ids: &[&str],
     names: &[&str],
     impacts: &[&str],
     currencies: &[&str],
@@ -105,7 +105,7 @@ pub fn write_news_parquet(
             DataType::Timestamp(TimeUnit::Nanosecond, tz_field),
             false,
         ),
-        Field::new("Id", DataType::Int64, false),
+        Field::new("Id", DataType::Utf8, false),
         Field::new("Name", DataType::Utf8, false),
         Field::new("Impact", DataType::Utf8, false),
         Field::new("Currency", DataType::Utf8, false),
@@ -119,7 +119,7 @@ pub fn write_news_parquet(
 
     let columns: Vec<ArrayRef> = vec![
         Arc::new(ts_array),
-        Arc::new(Int64Array::from(ids.to_vec())),
+        Arc::new(StringArray::from(ids.to_vec())),
         Arc::new(StringArray::from(names.to_vec())),
         Arc::new(StringArray::from(impacts.to_vec())),
         Arc::new(StringArray::from(currencies.to_vec())),

@@ -3,7 +3,7 @@
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 
-use arrow::array::{Array, Int64Array, StringArray, TimestampNanosecondArray};
+use arrow::array::{Array, StringArray, TimestampNanosecondArray};
 use arrow::datatypes::{DataType, TimeUnit};
 use parquet::arrow::arrow_reader::ParquetRecordBatchReaderBuilder;
 
@@ -12,8 +12,8 @@ use crate::error::DataError;
 /// Normalized news calendar event.
 #[derive(Debug, Clone, PartialEq)]
 pub struct NewsEvent {
-    /// Unique event identifier.
-    pub id: i64,
+    /// Unique event identifier (UUID string).
+    pub id: String,
     /// Event timestamp in epoch-nanoseconds UTC.
     pub timestamp_ns: i64,
     /// Event name.
@@ -34,7 +34,7 @@ pub fn resolve_news_calendar_path() -> PathBuf {
 
 /// Load news calendar events from a Parquet file.
 ///
-/// Expected schema: `UTC time` (timestamp ns, UTC), `Id` (int), `Name` (string),
+/// Expected schema: `UTC time` (timestamp ns, UTC), `Id` (string/UUID), `Name` (string),
 /// `Impact` (string), `Currency` (string).
 ///
 /// # Errors
@@ -55,7 +55,7 @@ pub fn load_news_calendar(path: &Path) -> Result<Vec<NewsEvent>, DataError> {
         .map_err(|e| DataError::ParseError(e.to_string()))?;
 
     let mut events = Vec::new();
-    let mut seen_ids = HashSet::new();
+    let mut seen_ids: HashSet<String> = HashSet::new();
     let mut last_ts: Option<i64> = None;
 
     for batch_result in reader {
@@ -73,7 +73,7 @@ pub fn load_news_calendar(path: &Path) -> Result<Vec<NewsEvent>, DataError> {
             .column_by_name("Id")
             .ok_or_else(|| DataError::MissingColumn("Id".to_string()))?
             .as_any()
-            .downcast_ref::<Int64Array>()
+            .downcast_ref::<StringArray>()
             .ok_or_else(|| DataError::InvalidColumnType("Id".to_string()))?;
         let name_arr = batch
             .column_by_name("Name")
@@ -110,11 +110,11 @@ pub fn load_news_calendar(path: &Path) -> Result<Vec<NewsEvent>, DataError> {
                 )));
             }
 
-            let id = id_arr.value(row_idx);
+            let id = id_arr.value(row_idx).to_string();
             if seen_ids.contains(&id) {
                 continue;
             }
-            seen_ids.insert(id);
+            seen_ids.insert(id.clone());
 
             if name_arr.is_null(row_idx)
                 || impact_arr.is_null(row_idx)

@@ -50,7 +50,7 @@ pub fn validate_htf_warmup(
 /// Computes the effective warmup for aligned indicators.
 ///
 /// **DEPRECATED**: This function is no longer needed since HTF indicators are now stored
-/// only in the htf_cache at their native length (not stretched to primary length).
+/// only in the `htf_cache` at their native length (not stretched to primary length).
 /// Each timeframe has its own independent warmup period.
 ///
 /// When HTF indicators (e.g., D1-EMA) are aligned to the primary timeframe (e.g., H1),
@@ -68,6 +68,7 @@ pub fn validate_htf_warmup(
 /// # Returns
 /// The effective warmup for the aligned primary cache
 #[allow(dead_code)]
+#[must_use]
 pub fn compute_aligned_warmup(
     warmup_bars: usize,
     primary_tf: Timeframe,
@@ -84,7 +85,8 @@ pub fn compute_aligned_warmup(
                     if htf_seconds > primary_seconds {
                         // HTF indicator: scale warmup by tf_ratio
                         let tf_ratio = htf_seconds / primary_seconds;
-                        warmup_bars.saturating_mul(tf_ratio as usize)
+                        let ratio = usize::try_from(tf_ratio).unwrap_or(usize::MAX);
+                        warmup_bars.saturating_mul(ratio)
                     } else {
                         // Same or lower TF: use regular warmup
                         warmup_bars

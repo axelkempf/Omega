@@ -39,7 +39,7 @@
   },
 
   "news_filter": {
-    "enabled": false,
+    "enabled": true,
     "minutes_before": 30,
     "minutes_after": 30,
     "min_impact": "medium",
