@@ -101,6 +101,15 @@ Relevante projektweite Leitlinien (Auswahl):
 - `.env` wird via `python-dotenv` geladen (siehe `src/hf_engine/infra/config/environment.py` und README).
 - **Nie Secrets committen** (Tokens, API-Keys, Zugangsdaten). Wenn neue ENV-Vars erforderlich werden: Placeholder in `.env` (lokal) + Doku/README aktualisieren.
 
+### Terminal / Virtualenv (MUSS)
+
+Wenn du **irgendeinen** Shell-/Terminal-Befehl ausführst, der Python-Pakete oder die V2-Rust-Extension betrifft (z.B. `python`, `pip`, `pytest`, `pre-commit`, `maturin`, `python -m bt ...`), muss **vorher** die Repo-Virtualenv aktiv sein.
+
+- **Pflicht (macOS/Linux in diesem Workspace):** `source /Users/axelkempf/Omega/.venv/bin/activate`
+- **Begründung:** Die V2-FFI (`omega_bt`) wird via *maturin wheel/develop* in diese Umgebung installiert; ohne aktivierte Venv werden Imports/Abhängigkeiten inkonsistent und Commands schlagen (oft "Module not found") fehl.
+- **Regel:** Keine Python-Kommandos im Terminal ohne aktivierte `.venv` ausführen.
+- **Robustheit:** Nutze im Zweifel den absoluten Venv-Pfad (oben), da die Working Directory im Terminal variieren kann.
+
 ### Konfigurations- und Import-Pattern
 - Config-driven: JSON in `configs/` (live/backtest). Schlüssel: `module`, `class`, `init_args`, `magic_number`, `data_provider_only`, `data_provider_host`/`port`.
 - Strategie-Import: Config referenziert `strategies.<name>.strategy` + Klassenname; neue Strategien an Template spiegeln.
