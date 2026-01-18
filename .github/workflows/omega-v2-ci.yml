@@ -48,7 +48,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
-        id: setup-python
         with:
           python-version: "3.12"
           cache: "pip"
@@ -60,8 +59,8 @@ jobs:
       - name: Rust fmt + clippy + test
         shell: bash
         env:
-          PYTHON: ${{ steps.setup-python.outputs.python-path }}
-          PYO3_PYTHON: ${{ steps.setup-python.outputs.python-path }}
+          PYTHON: python
+          PYO3_PYTHON: python
         run: |
           set -euo pipefail
           cd rust_core
@@ -81,21 +80,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
-        id: setup-python
         with:
           python-version: ${{ matrix.python-version }}
           cache: "pip"
       - uses: dtolnay/rust-toolchain@stable
       - name: Install dependencies
-        env:
-          PYO3_PYTHON: ${{ steps.setup-python.outputs.python-path }}
         run: |
           python -m pip install -U pip
           python -m pip install -e ".[dev]"
           python -m pip install maturin
       - name: Build and install omega_bt
         env:
-          PYO3_PYTHON: ${{ steps.setup-python.outputs.python-path }}
+          PYO3_PYTHON: python
         run: |
           maturin build --release --out dist -m rust_core/crates/ffi/Cargo.toml
           pip install dist/*.whl --force-reinstall
@@ -112,21 +108,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
-        id: setup-python
         with:
           python-version: "3.12"
           cache: "pip"
       - uses: dtolnay/rust-toolchain@stable
       - name: Install dependencies
-        env:
-          PYO3_PYTHON: ${{ steps.setup-python.outputs.python-path }}
         run: |
           python -m pip install -U pip
           python -m pip install -e ".[dev]"
           python -m pip install maturin
       - name: Build and install omega_bt
         env:
-          PYO3_PYTHON: ${{ steps.setup-python.outputs.python-path }}
+          PYO3_PYTHON: python
         run: |
           maturin build --release --out dist -m rust_core/crates/ffi/Cargo.toml
           pip install dist/*.whl --force-reinstall
@@ -146,12 +139,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
-        id: setup-python
         with:
           python-version: ${{ matrix.python-version }}
       - uses: PyO3/maturin-action@v1
         env:
-          PYO3_PYTHON: ${{ steps.setup-python.outputs.python-path }}
+          PYO3_PYTHON: python
         with:
           command: build
           args: --release --out dist -m rust_core/crates/ffi/Cargo.toml
