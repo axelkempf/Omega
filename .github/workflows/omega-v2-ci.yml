@@ -24,7 +24,6 @@ jobs:
   python_precommit:
     name: python-precommit
     runs-on: ubuntu-latest
-    if: ${{ hashFiles('python/**', 'rust_core/**') != '' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -44,7 +43,6 @@ jobs:
   rust_checks:
     name: rust-checks
     runs-on: ubuntu-latest
-    if: ${{ hashFiles('rust_core/Cargo.toml') != '' }}
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
@@ -62,7 +60,6 @@ jobs:
   python_tests:
     name: python-tests
     runs-on: ubuntu-latest
-    if: ${{ hashFiles('python/tests/**/*.py') != '' }}
     strategy:
       fail-fast: false
       matrix:
@@ -90,7 +87,6 @@ jobs:
   golden_smoke:
     name: golden-smoke
     runs-on: ubuntu-latest
-    if: ${{ hashFiles('python/tests/test_golden.py') != '' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -114,7 +110,6 @@ jobs:
   build_wheels:
     name: build-wheels
     runs-on: ${{ matrix.os }}
-    if: ${{ hashFiles('rust_core/Cargo.toml') != '' }}
     strategy:
       fail-fast: false
       matrix:
