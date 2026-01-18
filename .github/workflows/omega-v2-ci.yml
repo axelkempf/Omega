@@ -43,6 +43,9 @@ jobs:
   rust_checks:
     name: rust-checks
     runs-on: ubuntu-latest
+    env:
+      PYO3_PYTHON: python3
+      PYTHONPATH: ${{ github.workspace }}/src:${{ github.workspace }}
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
@@ -60,6 +63,9 @@ jobs:
   python_tests:
     name: python-tests
     runs-on: ubuntu-latest
+    env:
+      PYO3_PYTHON: python3
+      PYTHONPATH: ${{ github.workspace }}/src:${{ github.workspace }}
     strategy:
       fail-fast: false
       matrix:
@@ -87,6 +93,9 @@ jobs:
   golden_smoke:
     name: golden-smoke
     runs-on: ubuntu-latest
+    env:
+      PYO3_PYTHON: python3
+      PYTHONPATH: ${{ github.workspace }}/src:${{ github.workspace }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -110,6 +119,8 @@ jobs:
   build_wheels:
     name: build-wheels
     runs-on: ${{ matrix.os }}
+    env:
+      PYO3_PYTHON: python3
     strategy:
       fail-fast: false
       matrix:
