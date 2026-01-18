@@ -56,6 +56,9 @@ Cargo.lock
 *.rmeta
 *.d
 
+# Machine-specific Cargo config (contains local Python paths for PyO3)
+rust_core/.cargo/config.toml
+
 # ------------------------------------------------------------------------------
 # Julia
 # ------------------------------------------------------------------------------
