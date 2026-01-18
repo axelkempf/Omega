@@ -44,7 +44,7 @@ jobs:
     name: rust-checks
     runs-on: ubuntu-latest
     env:
-      PYTHONPATH: ${{ github.workspace }}/src:${{ github.workspace }}
+      PYTHONPATH: ${{ github.workspace }}/src:${{ github.workspace }}/src/old
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -52,7 +52,9 @@ jobs:
           python-version: "3.12"
           cache: "pip"
       - name: Install Python dependencies for parity tests
-        run: pip install numpy pandas
+        run: |
+          python -m pip install -U pip
+          python -m pip install -e "."
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
