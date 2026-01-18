@@ -11,9 +11,19 @@ Omega is a Python-based trading stack with three main components:
 
 ## Common Commands
 
+**WICHTIG (MUSS):** Bevor du Shell-/Terminal-Befehle ausführst, die Python-Pakete oder die V2-Rust-Extension betreffen (z.B. `python`, `pip`, `pytest`, `pre-commit`, `maturin`, `python -m bt ...`), musst du die Repo-Virtualenv aktivieren:
+
+- `source /Users/axelkempf/Omega/.venv/bin/activate`
+
+Wenn du das Repo an einem anderen Pfad nutzt, ist das äquivalent zu `source .venv/bin/activate` (aus dem Repo-Root).
+
+Hintergrund: Die V2-FFI (`omega_bt`) wird via *maturin* in diese Umgebung installiert; ohne aktivierte Venv sind Import-/Dependency-Fehler erwartbar.
+
 ```bash
 # Development install
-python -m venv .venv && source .venv/bin/activate && pip install -e .[dev,analysis]
+python -m venv .venv
+source /Users/axelkempf/Omega/.venv/bin/activate
+pip install -e .[dev,analysis]
 
 # Full environment (includes ML/torch)
 pip install -e .[all]

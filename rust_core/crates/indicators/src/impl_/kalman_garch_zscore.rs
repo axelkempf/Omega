@@ -1,0 +1,243 @@
+//! Kalman+GARCH Z-Score indicator.
+
+use crate::impl_::garch_volatility::GarchVolatility;
+use crate::impl_::kalman_mean::KalmanFilter;
+use crate::traits::Indicator;
+use omega_types::Candle;
+
+/// Kalman+GARCH Z-Score
+///
+/// Combines Kalman filtering with GARCH volatility estimation:
+/// 1. Compute Kalman-smoothed price level
+/// 2. Calculate residuals (price - `kalman_level`)
+/// 3. Estimate volatility using GARCH on returns
+/// 4. Normalize residuals by price-scaled GARCH volatility
+///
+/// This provides a more adaptive Z-Score that accounts for
+/// time-varying volatility.
+#[derive(Debug, Clone)]
+pub struct KalmanGarchZScore {
+    /// Kalman measurement noise (R)
+    pub kalman_r: f64,
+    /// Kalman process noise (Q)
+    pub kalman_q: f64,
+    /// GARCH alpha
+    pub garch_alpha: f64,
+    /// GARCH beta
+    pub garch_beta: f64,
+    /// GARCH omega
+    pub garch_omega: f64,
+    /// Use log returns when true
+    pub use_log_returns: bool,
+    /// Scale factor applied to returns
+    pub scale: f64,
+    /// Minimum periods for GARCH initialization
+    pub min_periods: usize,
+    /// Volatility floor
+    pub sigma_floor: f64,
+}
+
+impl KalmanGarchZScore {
+    /// Creates a new Kalman+GARCH Z-Score indicator.
+    #[must_use]
+    pub fn new(
+        kalman_r: f64,
+        kalman_q: f64,
+        garch_alpha: f64,
+        garch_beta: f64,
+        garch_omega: f64,
+    ) -> Self {
+        Self {
+            kalman_r,
+            kalman_q,
+            garch_alpha,
+            garch_beta,
+            garch_omega,
+            use_log_returns: true,
+            scale: 1.0,
+            min_periods: 20,
+            sigma_floor: 1e-8,
+        }
+    }
+
+    /// Creates from encoded parameters.
+    #[must_use]
+    pub fn from_encoded(
+        r_x1000: u32,
+        q_x1000: u32,
+        alpha_x1000: u32,
+        beta_x1000: u32,
+        omega_x1000000: u32,
+    ) -> Self {
+        Self::new(
+            f64::from(r_x1000) / 1000.0,
+            f64::from(q_x1000) / 1000.0,
+            f64::from(alpha_x1000) / 1000.0,
+            f64::from(beta_x1000) / 1000.0,
+            f64::from(omega_x1000000) / 1_000_000.0,
+        )
+    }
+
+    /// Sets minimum periods for initialization.
+    #[must_use]
+    pub fn with_min_periods(mut self, periods: usize) -> Self {
+        self.min_periods = periods;
+        self
+    }
+
+    /// Sets whether to use log returns.
+    #[must_use]
+    pub fn with_log_returns(mut self, use_log: bool) -> Self {
+        self.use_log_returns = use_log;
+        self
+    }
+
+    /// Sets the returns scale factor.
+    #[must_use]
+    pub fn with_scale(mut self, scale: f64) -> Self {
+        self.scale = scale;
+        self
+    }
+
+    /// Sets the volatility floor.
+    #[must_use]
+    pub fn with_sigma_floor(mut self, floor: f64) -> Self {
+        self.sigma_floor = floor;
+        self
+    }
+}
+
+impl Indicator for KalmanGarchZScore {
+    fn compute(&self, candles: &[Candle]) -> Vec<f64> {
+        let len = candles.len();
+        let mut result = vec![f64::NAN; len];
+
+        if len < self.min_periods + 1 {
+            return result;
+        }
+
+        // Extract prices
+        let prices: Vec<f64> = candles.iter().map(|c| c.close).collect();
+
+        // Compute Kalman level
+        let kalman = KalmanFilter::new(self.kalman_r, self.kalman_q);
+        let kalman_level = kalman.compute_level(&prices);
+
+        // Compute GARCH volatility (scaled to 1, not 100)
+        let garch = GarchVolatility::new(self.garch_alpha, self.garch_beta, self.garch_omega)
+            .with_log_returns(self.use_log_returns)
+            .with_scale(self.scale)
+            .with_min_periods(self.min_periods)
+            .with_sigma_floor(self.sigma_floor);
+        let garch_vol = garch.compute(candles);
+
+        // Compute Z-Score: (price - kalman) / (|price| * garch_vol)
+        for i in self.min_periods..len {
+            let price = prices[i];
+            let kalman = kalman_level[i];
+            let vol = garch_vol[i];
+
+            if !price.is_finite() || !kalman.is_finite() || !vol.is_finite() {
+                result[i] = f64::NAN;
+                continue;
+            }
+
+            let sigma_price = price.abs() * vol;
+            if sigma_price.is_finite() && sigma_price > 1e-10 {
+                result[i] = (price - kalman) / sigma_price;
+            } else {
+                result[i] = f64::NAN;
+            }
+        }
+
+        result
+    }
+
+    fn name(&self) -> &'static str {
+        "KALMAN_GARCH_Z"
+    }
+
+    fn warmup_periods(&self) -> usize {
+        self.min_periods + 1
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn make_candle(close: f64) -> Candle {
+        Candle {
+            timestamp_ns: 0,
+            close_time_ns: 60_000_000_000 - 1,
+            open: close,
+            high: close + 0.01,
+            low: close - 0.01,
+            close,
+            volume: 0.0,
+        }
+    }
+
+    #[test]
+    fn test_kalman_garch_zscore_basic() {
+        let mut prices = vec![100.0];
+        for i in 1..50 {
+            let change = if i % 2 == 0 { 0.5 } else { -0.5 };
+            prices.push(prices[i - 1] + change);
+        }
+        let candles: Vec<Candle> = prices.into_iter().map(make_candle).collect();
+
+        let kgz = KalmanGarchZScore::new(0.5, 0.1, 0.1, 0.85, 0.00001).with_min_periods(10);
+        let result = kgz.compute(&candles);
+
+        // First min_periods values should be NaN
+        for (i, value) in result.iter().enumerate().take(10) {
+            assert!(value.is_nan(), "Expected NaN at {i}");
+        }
+
+        let first_finite = result
+            .iter()
+            .position(|v| v.is_finite())
+            .expect("Expected finite value after warmup");
+        assert!(first_finite >= 10);
+
+        // Values after first finite should remain finite
+        for (i, value) in result.iter().enumerate().take(50).skip(first_finite) {
+            assert!(value.is_finite(), "Expected finite at {i}, got {value}");
+        }
+    }
+
+    #[test]
+    fn test_kalman_garch_zscore_insufficient_data() {
+        let candles: Vec<Candle> = vec![100.0; 5].into_iter().map(make_candle).collect();
+
+        let kgz = KalmanGarchZScore::new(0.5, 0.1, 0.1, 0.85, 0.00001).with_min_periods(20);
+        let result = kgz.compute(&candles);
+
+        assert!(result.iter().all(|v| v.is_nan()));
+    }
+
+    #[test]
+    fn test_kalman_garch_zscore_from_encoded() {
+        let kgz = KalmanGarchZScore::from_encoded(500, 100, 100, 850, 10);
+        assert!((kgz.kalman_r - 0.5).abs() < 1e-10);
+        assert!((kgz.kalman_q - 0.1).abs() < 1e-10);
+        assert!((kgz.garch_alpha - 0.1).abs() < 1e-10);
+        assert!((kgz.garch_beta - 0.85).abs() < 1e-10);
+        assert!((kgz.garch_omega - 0.00001).abs() < 1e-10);
+    }
+
+    #[test]
+    fn test_kalman_garch_zscore_param_setters() {
+        let kgz = KalmanGarchZScore::new(0.5, 0.1, 0.1, 0.85, 0.00001)
+            .with_log_returns(false)
+            .with_scale(2.5)
+            .with_min_periods(7)
+            .with_sigma_floor(0.123);
+
+        assert!(!kgz.use_log_returns);
+        assert!((kgz.scale - 2.5).abs() < 1e-12);
+        assert_eq!(kgz.min_periods, 7);
+        assert!((kgz.sigma_floor - 0.123).abs() < 1e-12);
+    }
+}

@@ -1,0 +1,16 @@
+[package]
+name = "omega_data"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+omega_types = { workspace = true }
+arrow = "57"
+parquet = "57"
+thiserror = { workspace = true }
+tracing = "0.1"
+
+[dev-dependencies]
+proptest = "1"
+tempfile = "3"
+temp-env = "0.3"

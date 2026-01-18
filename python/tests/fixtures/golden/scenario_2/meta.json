@@ -1,0 +1,49 @@
+{
+  "account": {
+    "account_currency": "EUR",
+    "initial_balance": 10000.0
+  },
+  "config": {
+    "hash": "cfe9c8959d85404c39e5d12f02617846e6386d95591ca3d2d8eed0fd38ff8f15"
+  },
+  "dataset": {
+    "end_time": "2025-01-01T09:59:00+00:00",
+    "end_time_ns": 1735725540000000000,
+    "governance": {
+      "alignment": {
+        "by_timeframe": {
+          "M1": {
+            "aligned_count": 600,
+            "alignment_loss": 0.0,
+            "ask_count_before": 600,
+            "bid_count_before": 600,
+            "discarded_count": 0
+          }
+        },
+        "loss_max": 0.0
+      },
+      "gaps": {
+        "by_timeframe": {
+          "M1": {
+            "expected_bars": 600,
+            "gap_loss": 0.0,
+            "missing_bars": 0
+          }
+        },
+        "loss_max": 0.0
+      }
+    },
+    "manifest_sha256": "80f42153ea79e84dfd338521bb308d2524ce5f8785fd3772d60d222ce695c8e3",
+    "start_time": "2025-01-01T00:10:00+00:00",
+    "start_time_ns": 1735690200000000000,
+    "symbol": "EURUSD",
+    "timeframe": "M1"
+  },
+  "engine": {
+    "name": "omega-v2",
+    "version": "0.1.0"
+  },
+  "generated_at": "2026-01-17T16:01:14.083407+00:00",
+  "generated_at_ns": 1768665674083406848,
+  "run_id": "6e9a38927604a092"
+}

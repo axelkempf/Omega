@@ -1,0 +1,16 @@
+[package]
+name = "omega_indicators"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+rust-version.workspace = true
+description = "Technical indicators for Omega trading system"
+
+[dependencies]
+omega_types = { path = "../types" }
+serde = { workspace = true }
+thiserror = { workspace = true }
+
+[dev-dependencies]
+serde_json = { workspace = true }

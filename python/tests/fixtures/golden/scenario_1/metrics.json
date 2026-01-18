@@ -1,0 +1,206 @@
+{
+  "definitions": {
+    "active_days": {
+      "description": "Anzahl Tage mit mindestens einem Trade",
+      "domain": ">=0",
+      "source": "trades",
+      "type": "number",
+      "unit": "days"
+    },
+    "avg_loss": {
+      "description": "Durchschnittlicher Verlust pro Trade",
+      "domain": ">=0",
+      "source": "trades",
+      "type": "number",
+      "unit": "account_currency"
+    },
+    "avg_r_multiple": {
+      "description": "Durchschnittliches R-Multiple aller Trades",
+      "domain": "any",
+      "source": "trades",
+      "type": "number",
+      "unit": "r_multiple"
+    },
+    "avg_trade_pnl": {
+      "description": "Durchschnittlicher PnL pro Trade (profit_net / total_trades)",
+      "domain": "any",
+      "source": "trades",
+      "type": "number",
+      "unit": "account_currency"
+    },
+    "avg_win": {
+      "description": "Durchschnittlicher Gewinn pro Trade",
+      "domain": ">=0",
+      "source": "trades",
+      "type": "number",
+      "unit": "account_currency"
+    },
+    "calmar_ratio": {
+      "description": "Calmar Ratio (annualisierte Rendite / max Drawdown)",
+      "domain": "any",
+      "source": "equity",
+      "type": "number",
+      "unit": "ratio"
+    },
+    "expectancy": {
+      "description": "Erwartungswert pro Trade in R (MVP: avg_r_multiple)",
+      "domain": "any",
+      "source": "trades",
+      "type": "number",
+      "unit": "r_multiple"
+    },
+    "fees_total": {
+      "description": "Summe expliziter Fees/Commission (ohne Spread/Slippage)",
+      "domain": ">=0",
+      "source": "trades",
+      "type": "number",
+      "unit": "account_currency"
+    },
+    "largest_loss": {
+      "description": "Groesster Verlusttrade",
+      "domain": ">=0",
+      "source": "trades",
+      "type": "number",
+      "unit": "account_currency"
+    },
+    "largest_win": {
+      "description": "Groesster Gewinntrade",
+      "domain": ">=0",
+      "source": "trades",
+      "type": "number",
+      "unit": "account_currency"
+    },
+    "losses": {
+      "description": "Anzahl Verlusttrades (trade.result < 0)",
+      "domain": ">=0",
+      "source": "trades",
+      "type": "number",
+      "unit": "count"
+    },
+    "max_drawdown": {
+      "description": "Maximaler relativer Drawdown (Peak-to-Trough / Peak)",
+      "domain": "0..1",
+      "source": "equity",
+      "type": "number",
+      "unit": "ratio"
+    },
+    "max_drawdown_abs": {
+      "description": "Maximaler absoluter Drawdown in Waehrung",
+      "domain": ">=0",
+      "source": "equity",
+      "type": "number",
+      "unit": "account_currency"
+    },
+    "max_drawdown_duration_bars": {
+      "description": "Laengste Drawdown-Periode in Bars",
+      "domain": ">=0",
+      "source": "equity",
+      "type": "number",
+      "unit": "bars"
+    },
+    "profit_factor": {
+      "description": "sum(positive_pnl) / abs(sum(negative_pnl))",
+      "domain": ">=0",
+      "source": "trades",
+      "type": "number",
+      "unit": "ratio"
+    },
+    "profit_gross": {
+      "description": "Summe aller Trade-Ergebnisse vor Fees",
+      "domain": "any",
+      "source": "trades",
+      "type": "number",
+      "unit": "account_currency"
+    },
+    "profit_net": {
+      "description": "profit_gross - fees_total",
+      "domain": "any",
+      "source": "trades",
+      "type": "number",
+      "unit": "account_currency"
+    },
+    "sharpe_equity_daily": {
+      "description": "Sharpe Ratio basierend auf taeglichen Equity-Returns (annualisiert mit sqrt(252))",
+      "domain": "any",
+      "source": "equity",
+      "type": "number|string",
+      "unit": "ratio"
+    },
+    "sharpe_trade_r": {
+      "description": "Sharpe Ratio basierend auf R-Multiples pro Trade (keine Annualisierung)",
+      "domain": "any",
+      "source": "trades",
+      "type": "number|string",
+      "unit": "ratio"
+    },
+    "sortino_equity_daily": {
+      "description": "Sortino Ratio basierend auf taeglichen Equity-Returns (annualisiert mit sqrt(252))",
+      "domain": "any",
+      "source": "equity",
+      "type": "number|string",
+      "unit": "ratio"
+    },
+    "sortino_trade_r": {
+      "description": "Sortino Ratio basierend auf R-Multiples pro Trade (keine Annualisierung)",
+      "domain": "any",
+      "source": "trades",
+      "type": "number|string",
+      "unit": "ratio"
+    },
+    "total_trades": {
+      "description": "Anzahl abgeschlossener Trades",
+      "domain": ">=0",
+      "source": "trades",
+      "type": "number",
+      "unit": "count"
+    },
+    "trades_per_day": {
+      "description": "total_trades / active_days",
+      "domain": ">=0",
+      "source": "trades",
+      "type": "number",
+      "unit": "trades"
+    },
+    "win_rate": {
+      "description": "Anteil der Gewinntrades an allen Trades",
+      "domain": "0..1",
+      "source": "trades",
+      "type": "number",
+      "unit": "ratio"
+    },
+    "wins": {
+      "description": "Anzahl Gewinntrades (trade.result > 0)",
+      "domain": ">=0",
+      "source": "trades",
+      "type": "number",
+      "unit": "count"
+    }
+  },
+  "metrics": {
+    "active_days": 1,
+    "avg_loss": 0.0,
+    "avg_r_multiple": -2e-06,
+    "avg_trade_pnl": -6.99,
+    "avg_win": 0.0,
+    "calmar_ratio": -892.971138,
+    "expectancy": -2e-06,
+    "fees_total": 1879.1,
+    "largest_loss": 0.0,
+    "largest_win": 0.0,
+    "losses": 269,
+    "max_drawdown": 0.187914,
+    "max_drawdown_abs": 1879.14,
+    "max_drawdown_duration_bars": 550,
+    "profit_factor": 0.0,
+    "profit_gross": -0.04,
+    "profit_net": -1879.14,
+    "sharpe_equity_daily": "n/a",
+    "sharpe_trade_r": -5.588125,
+    "sortino_equity_daily": "n/a",
+    "sortino_trade_r": -0.98442,
+    "total_trades": 269,
+    "trades_per_day": 269.0,
+    "win_rate": 0.0,
+    "wins": 0
+  }
+}

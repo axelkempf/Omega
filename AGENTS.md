@@ -22,11 +22,19 @@ Dieses Repository ist ein **Python-basierter Trading-Stack** mit Live-Engine (Me
 
 ## Setup Commands
 
+### Terminal / Virtualenv (MUSS)
+
+Wenn du **irgendwelche** Shell-/Terminal-Befehle ausführst, die Python-Pakete oder die V2-Rust-Extension betreffen (z.B. `python`, `pip`, `pytest`, `pre-commit`, `maturin`, `python -m bt ...`), muss **vorher** die Repo-Virtualenv aktiv sein.
+
+- **Pflicht (macOS/Linux in diesem Workspace):** `source /Users/axelkempf/Omega/.venv/bin/activate`
+- Hintergrund: Die V2-FFI (`omega_bt`) wird via *maturin* in diese Umgebung installiert; ohne aktivierte Venv schlagen Imports/Abhängigkeiten oft mit „Module not found“ fehl.
+- Wenn du das Repo an einem anderen Pfad nutzt: aktiviere die entsprechende `.venv` deines Checkouts (äquivalent ist i.d.R. `source .venv/bin/activate` aus dem Repo-Root).
+
 ### Development Install (empfohlen)
 
 ```bash
 python -m venv .venv
-source .venv/bin/activate   # Windows: .venv\Scripts\activate
+source /Users/axelkempf/Omega/.venv/bin/activate   # Windows: .venv\Scripts\activate
 python -m pip install -U pip
 pip install -e .[dev,analysis]
 ```

@@ -1,0 +1,16 @@
+[package]
+name = "omega_strategy"
+description = "Strategy layer for Omega V2 trading system"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+omega_types = { workspace = true }
+omega_indicators = { workspace = true }
+omega_data = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }

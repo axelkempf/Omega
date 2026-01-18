@@ -1,0 +1,26 @@
+[build]
+# Cargo configuration for Omega workspace
+
+[env]
+# IMPORTANT: Copy this file to config.toml and adjust paths to your local environment.
+# This file is a template – the actual config.toml is gitignored to avoid
+# committing machine-specific paths that break CI.
+
+# Path to Python 3.12 interpreter (for PyO3 build)
+PYO3_PYTHON = "/path/to/python3.12"
+
+# Path to your virtualenv Python
+PYTHON = "/path/to/Omega/.venv/bin/python"
+
+# PYTHONPATH for module resolution
+PYTHONPATH = "/path/to/Omega/src:/path/to/Omega"
+
+# Example for macOS with Homebrew Python:
+# PYO3_PYTHON = "/usr/local/bin/python3.12"
+# PYTHON = "/Users/username/Omega/.venv/bin/python"
+# PYTHONPATH = "/Users/username/Omega/src:/Users/username/Omega"
+
+# Example for Linux (Ubuntu):
+# PYO3_PYTHON = "/usr/bin/python3.12"
+# PYTHON = "/home/username/Omega/.venv/bin/python"
+# PYTHONPATH = "/home/username/Omega/src:/home/username/Omega"

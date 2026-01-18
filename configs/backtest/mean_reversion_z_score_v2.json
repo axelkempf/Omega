@@ -1,0 +1,106 @@
+{
+  "schema_version": "2.0",
+  "strategy_name": "mean_reversion_z_score",
+  "symbol": "EURUSD",
+  "start_date": "2021-01-01",
+  "end_date": "2025-09-12",
+
+  "run_mode": "dev",
+  "data_mode": "candle",
+  "execution_variant": "v2",
+  "rng_seed": 42,
+  "warmup_bars": 500,
+
+  "timeframes": {
+    "primary": "H1",
+    "additional": ["D1"],
+    "additional_source": "separate_parquet"
+  },
+
+  "sessions": [
+    {"start": "23:00", "end": "05:00"},
+    {"start": "15:00", "end": "19:00"}
+  ],
+
+  "account": {
+    "initial_balance": 100000.0,
+    "account_currency": "USD",
+    "risk_per_trade": 100.0,
+    "max_positions": 1
+  },
+
+  "costs": {
+    "enabled": true,
+    "fee_multiplier": 1.0,
+    "slippage_multiplier": 1.0,
+    "spread_multiplier": 1.0,
+    "pip_size": 0.0001,
+    "pip_buffer_factor": 0.5
+  },
+
+  "news_filter": {
+    "enabled": true,
+    "minutes_before": 60,
+    "minutes_after": 30,
+    "min_impact": "medium",
+    "currencies": ["EUR", "USD"]
+  },
+
+  "logging": {
+    "enable_entry_logging": true,
+    "logging_mode": "trades_only"
+  },
+
+  "profiling": {
+    "enabled": true
+  },
+
+  "trade_management": {
+    "enabled": false,
+    "stop_update_policy": "apply_next_bar",
+    "rules": []
+  },
+
+  "strategy_parameters": {
+    "ema_length": 18,
+    "atr_length": 14,
+    "atr_mult": 1.4,
+    "b_b_length": 48,
+    "std_factor": 2.0,
+    "window_length": 180,
+
+    "z_score_long": -0.31,
+    "z_score_short": 1.5,
+    "kalman_q": 1.3,
+    "kalman_r": 0.546,
+
+    "htf_tf": "D1",
+    "htf_ema": 75,
+    "htf_filter": "above",
+
+    "garch_alpha": 0.1,
+    "garch_beta": 0.76,
+    "garch_omega": 0.0,
+    "garch_use_log_returns": true,
+    "garch_scale": 100.0,
+    "garch_min_periods": 170,
+    "garch_sigma_floor": 1e-6,
+    "local_z_lookback": 500,
+
+    "intraday_vol_cluster_window": 150,
+    "intraday_vol_cluster_k": 3,
+    "intraday_vol_min_points": 80,
+    "intraday_vol_log_transform": true,
+    "intraday_vol_allowed": ["low", "mid"],
+    "intraday_vol_feature": "garch_forecast",
+    "cluster_hysteresis_bars": 1,
+    "intraday_vol_garch_lookback": 500,
+
+    "tp_min_distance": 0.0003,
+    "max_holding_minutes": 300,
+
+    "direction_filter": "long",
+    "enabled_scenarios": [4],
+    "use_position_manager": false
+  }
+}

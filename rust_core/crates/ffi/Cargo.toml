@@ -1,0 +1,25 @@
+[package]
+name = "omega_bt"
+version.workspace = true
+edition.workspace = true
+
+[lib]
+# cdylib: Dynamische Library für Python via PyO3
+# rlib nicht nötig – kein anderer Rust-Code sollte ffi importieren
+crate-type = ["cdylib"]
+
+[features]
+extension-module = ["pyo3/extension-module"]
+
+[dependencies]
+omega_types = { workspace = true }
+omega_backtest = { workspace = true }
+omega_metrics = { workspace = true }
+pyo3 = { version = "0.24", features = ["auto-initialize"] }
+serde_json = { workspace = true }
+
+[package.metadata.maturin]
+module-name = "omega_bt"
+python-source = "../../../python"
+python-packages = ["bt"]
+features = ["extension-module"]

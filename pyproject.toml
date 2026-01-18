@@ -1,8 +1,8 @@
 # pyproject.toml
 
 [build-system]
-requires = ["setuptools>=69", "wheel"]
-build-backend = "setuptools.build_meta"
+requires = ["maturin>=1.4,<2.0"]
+build-backend = "maturin"
 
 [project]
 name = "omega"
@@ -12,6 +12,7 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "concurrent-log-handler>=0.9",
+    "jsonschema>=4.20",
     "fastapi>=0.109",
     "filelock>=3.12",
     "holidays>=0.34",
@@ -76,12 +77,22 @@ all = [
     "omega[dev,analysis,ml,agent]",
 ]
 
+[project.scripts]
+omega-bt = "bt.cli:main"
+
 [tool.setuptools]
 package-dir = {"" = "src"}
 
 [tool.setuptools.packages.find]
 where = ["src"]
 include = ["omega*", "backtest_engine*", "hf_engine*", "shared*", "strategies*", "ui_engine*"]
+
+[tool.maturin]
+manifest-path = "rust_core/crates/ffi/Cargo.toml"
+module-name = "omega_bt"
+python-source = "python"
+python-packages = ["bt", "omega_bt"]
+features = ["extension-module"]
 
 [tool.isort]
 profile = "black"
@@ -253,4 +264,3 @@ ignore_errors = true
 # [x] hf_engine.* und ui_engine.*: permissive (nicht FFI-relevant)
 # [x] Keine globalen ignore_errors für backtest_engine
 # ══════════════════════════════════════════════════════════════════════════════
-

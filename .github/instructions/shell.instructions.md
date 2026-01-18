@@ -20,6 +20,20 @@ Instructions for writing clean, safe, and maintainable shell scripts for bash, s
 - Use modern Bash features (`[[ ]]`, `local`, arrays) when portability requirements allow; fall back to POSIX constructs only when needed
 - Choose reliable parsers for structured data instead of ad-hoc text processing
 
+## Omega Repo: Virtualenv ist Pflicht (MUSS)
+
+Dieses Repository nutzt eine Python-Virtualenv (`.venv`) als **Single Source of Truth** für Python-Dependencies und für die via **maturin** gebaute V2-Rust-Extension (`omega_bt`).
+
+Wenn du in Shell-Skripten oder Terminal-Sessions **Python-/Packaging-Kommandos** ausführst (z.B. `python`, `pip`, `pytest`, `pre-commit`, `maturin`, `python -m bt ...`), gilt:
+
+- **Vorher aktivieren (macOS/Linux im Workspace):** `source /Users/axelkempf/Omega/.venv/bin/activate`
+- **Fail-fast:** Wenn die Virtualenv nicht aktiv ist, sofort abbrechen (kein „best effort“), um verdeckte Import-/Dependency-Fehler zu vermeiden.
+
+Empfohlenes Muster in Scripts (sinngemäß; Pfad ggf. anpassen wenn der Workspace verschoben wird):
+
+- Prüfe `VIRTUAL_ENV` und/oder ob `python` aus `.venv/bin/python` kommt.
+- Wenn nicht, aktiviere `.venv` oder beende mit klarer Fehlermeldung.
+
 ## Error Handling & Safety
 
 - Always enable `set -euo pipefail` to fail fast on errors, catch unset variables, and surface pipeline failures
