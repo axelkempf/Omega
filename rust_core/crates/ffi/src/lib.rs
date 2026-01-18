@@ -11,10 +11,11 @@ mod result;
 
 use omega_metrics as _;
 use pyo3::prelude::*;
+use pyo3::types::PyModule;
 
 /// Python module definition for the Omega backtest engine.
 #[pymodule]
-fn omega_bt(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
+fn omega_bt(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(entry::run_backtest, m)?)?;
     Ok(())
 }

@@ -1,8 +1,8 @@
 # pyproject.toml
 
 [build-system]
-requires = ["setuptools>=69", "wheel"]
-build-backend = "setuptools.build_meta"
+requires = ["maturin>=1.4,<2.0"]
+build-backend = "maturin"
 
 [project]
 name = "omega"
@@ -88,6 +88,7 @@ where = ["src"]
 include = ["omega*", "backtest_engine*", "hf_engine*", "shared*", "strategies*", "ui_engine*"]
 
 [tool.maturin]
+manifest-path = "rust_core/crates/ffi/Cargo.toml"
 module-name = "omega_bt"
 python-source = "python"
 python-packages = ["bt", "omega_bt"]

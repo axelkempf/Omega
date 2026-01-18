@@ -15,7 +15,7 @@ extension-module = ["pyo3/extension-module"]
 omega_types = { workspace = true }
 omega_backtest = { workspace = true }
 omega_metrics = { workspace = true }
-pyo3 = { version = "0.20", features = ["auto-initialize"] }
+pyo3 = { version = "0.24", features = ["auto-initialize"] }
 serde_json = { workspace = true }
 
 [package.metadata.maturin]
