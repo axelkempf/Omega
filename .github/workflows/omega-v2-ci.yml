@@ -82,9 +82,10 @@ jobs:
           python -m pip install -U pip
           python -m pip install -e ".[dev]"
           python -m pip install maturin
-      - name: Build omega_bt
+      - name: Build and install omega_bt
         run: |
-          maturin develop --manifest-path rust_core/crates/ffi/Cargo.toml
+          maturin build --release --out dist -m rust_core/crates/ffi/Cargo.toml
+          pip install dist/*.whl --force-reinstall
       - name: Run V2 Python tests
         env:
           OMEGA_DATA_PARQUET_ROOT: python/tests/fixtures/data/parquet
@@ -108,9 +109,10 @@ jobs:
           python -m pip install -U pip
           python -m pip install -e ".[dev]"
           python -m pip install maturin
-      - name: Build omega_bt
+      - name: Build and install omega_bt
         run: |
-          maturin develop --manifest-path rust_core/crates/ffi/Cargo.toml
+          maturin build --release --out dist -m rust_core/crates/ffi/Cargo.toml
+          pip install dist/*.whl --force-reinstall
       - name: Run golden-smoke
         env:
           OMEGA_DATA_PARQUET_ROOT: python/tests/fixtures/data/parquet
