@@ -271,10 +271,13 @@ impl BacktestEngine {
             execution_variant: config.execution_variant,
         });
 
+        let lot_value_multiplier = compute_unit_value_per_price(&symbol_spec);
+
         let portfolio = Portfolio::new(
             config.account.initial_balance,
             config.account.max_positions,
             config.symbol.clone(),
+            lot_value_multiplier,
         );
 
         let trade_manager = create_trade_manager(&config, bar_duration_ns);
@@ -290,7 +293,6 @@ impl BacktestEngine {
         let multi_tf_cache = RefCell::new(build_multi_tf_cache(&data));
         let pip_size = symbol_costs.pip_size;
         let pip_buffer_factor = config.costs.pip_buffer_factor;
-        let unit_value_per_price = unit_value_per_price(&symbol_spec);
 
         let repo_root = repo_root();
         let mut manifest_inputs = manifest_inputs;
@@ -345,7 +347,7 @@ impl BacktestEngine {
             pending_tp_updates: Vec::new(),
             pip_size,
             pip_buffer_factor,
-            unit_value_per_price,
+            unit_value_per_price: lot_value_multiplier,
             bar_duration_ns,
             start_instant: Instant::now(),
             meta_extra,
@@ -1548,7 +1550,7 @@ fn random_seed() -> u64 {
         .unwrap_or(42)
 }
 
-fn unit_value_per_price(spec: &omega_execution::SymbolSpec) -> f64 {
+fn compute_unit_value_per_price(spec: &omega_execution::SymbolSpec) -> f64 {
     if let (Some(tick_value), Some(tick_size)) = (spec.tick_value, spec.tick_size)
         && tick_size > 0.0
     {

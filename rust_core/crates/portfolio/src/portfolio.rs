@@ -30,6 +30,8 @@ pub struct Portfolio {
     equity_tracker: EquityTracker,
     /// Symbol being traded
     symbol: String,
+    /// Multiplier to convert price diff to account currency (`tick_value/tick_size`)
+    unit_value_per_price: f64,
 }
 
 impl Portfolio {
@@ -39,13 +41,21 @@ impl Portfolio {
     /// * `initial_balance` - Starting cash balance
     /// * `max_positions` - Maximum concurrent positions allowed
     /// * `symbol` - Trading symbol
-    pub fn new(initial_balance: f64, max_positions: usize, symbol: impl Into<String>) -> Self {
+    /// * `unit_value_per_price` - Multiplier to convert price diff to account currency
+    ///   (typically `tick_value / tick_size`, e.g., `100_000` for EURUSD with USD account)
+    pub fn new(
+        initial_balance: f64,
+        max_positions: usize,
+        symbol: impl Into<String>,
+        unit_value_per_price: f64,
+    ) -> Self {
         Self {
             cash: initial_balance,
             position_manager: PositionManager::new(max_positions),
             closed_trades: Vec::new(),
             equity_tracker: EquityTracker::new(initial_balance),
             symbol: symbol.into(),
+            unit_value_per_price,
         }
     }
 
@@ -114,14 +124,16 @@ impl Portfolio {
     ) -> Option<Trade> {
         let position = self.position_manager.close_position(position_id)?;
 
-        // Calculate PnL
-        let pnl = match position.direction {
+        // Calculate PnL in price units, then convert to account currency
+        let pnl_raw = match position.direction {
             Direction::Long => (exit_price - position.entry_price) * position.size,
             Direction::Short => (position.entry_price - exit_price) * position.size,
         };
+        let pnl = pnl_raw * self.unit_value_per_price;
 
-        // Calculate risk and R-multiple
-        let risk = (position.entry_price - position.stop_loss).abs() * position.size;
+        // Calculate risk and R-multiple (in account currency for consistency)
+        let risk_raw = (position.entry_price - position.stop_loss).abs() * position.size;
+        let risk = risk_raw * self.unit_value_per_price;
         let r_multiple = if risk > 0.0 { pnl / risk } else { 0.0 };
 
         let mut meta_map = match position.meta {
@@ -190,7 +202,8 @@ impl Portfolio {
     /// * `timestamp_ns` - Current timestamp
     /// * `current_price` - Current market price for unrealized `PnL` calculation
     pub fn update_equity(&mut self, timestamp_ns: i64, current_price: f64) {
-        let unrealized_pnl = self.position_manager.total_unrealized_pnl(current_price);
+        let unrealized_pnl_raw = self.position_manager.total_unrealized_pnl(current_price);
+        let unrealized_pnl = unrealized_pnl_raw * self.unit_value_per_price;
         let equity = self.cash + unrealized_pnl;
         self.equity_tracker.update(timestamp_ns, equity, self.cash);
     }
@@ -347,7 +360,8 @@ impl Portfolio {
 
         let cash = self.cash;
         let equity = self.equity_tracker.equity();
-        let unrealized = self.position_manager.total_unrealized_pnl(current_price);
+        let unrealized_raw = self.position_manager.total_unrealized_pnl(current_price);
+        let unrealized = unrealized_raw * self.unit_value_per_price;
         let expected = cash + unrealized;
 
         ensure_finite("cash", cash)?;
@@ -490,7 +504,7 @@ mod tests {
 
     #[test]
     fn test_portfolio_creation() {
-        let portfolio = Portfolio::new(10_000.0, 5, "EURUSD");
+        let portfolio = Portfolio::new(10_000.0, 5, "EURUSD", 1.0);
 
         assert_relative_eq!(portfolio.cash(), 10_000.0, epsilon = 1e-10);
         assert_relative_eq!(portfolio.initial_balance(), 10_000.0, epsilon = 1e-10);
@@ -500,7 +514,7 @@ mod tests {
 
     #[test]
     fn test_open_and_close_position() {
-        let mut portfolio = Portfolio::new(10_000.0, 5, "EURUSD");
+        let mut portfolio = Portfolio::new(10_000.0, 5, "EURUSD", 1.0);
 
         let signal = make_signal(Direction::Long, 1.2000, 1.1950, 1.2100);
 
@@ -526,7 +540,7 @@ mod tests {
 
     #[test]
     fn test_r_multiple_calculation() {
-        let mut portfolio = Portfolio::new(10_000.0, 5, "EURUSD");
+        let mut portfolio = Portfolio::new(10_000.0, 5, "EURUSD", 1.0);
 
         // Entry at 1.2000, SL at 1.1950 (50 pips risk), TP at 1.2100 (100 pips reward)
         let signal = make_signal(Direction::Long, 1.2000, 1.1950, 1.2100);
@@ -547,7 +561,7 @@ mod tests {
 
     #[test]
     fn test_losing_trade() {
-        let mut portfolio = Portfolio::new(10_000.0, 5, "EURUSD");
+        let mut portfolio = Portfolio::new(10_000.0, 5, "EURUSD", 1.0);
 
         let signal = make_signal(Direction::Long, 1.2000, 1.1950, 1.2100);
         let id = portfolio
@@ -568,7 +582,7 @@ mod tests {
 
     #[test]
     fn test_equity_update() {
-        let mut portfolio = Portfolio::new(10_000.0, 5, "EURUSD");
+        let mut portfolio = Portfolio::new(10_000.0, 5, "EURUSD", 1.0);
 
         let signal = make_signal(Direction::Long, 1.2000, 1.1950, 1.2100);
         portfolio
@@ -584,7 +598,7 @@ mod tests {
 
     #[test]
     fn test_trade_stats() {
-        let mut portfolio = Portfolio::new(10_000.0, 5, "EURUSD");
+        let mut portfolio = Portfolio::new(10_000.0, 5, "EURUSD", 1.0);
 
         // Win 1: 100 pips
         let signal = make_signal(Direction::Long, 1.2000, 1.1950, 1.2100);
@@ -620,7 +634,7 @@ mod tests {
 
     #[test]
     fn test_balance_consistency() {
-        let mut portfolio = Portfolio::new(10_000.0, 5, "EURUSD");
+        let mut portfolio = Portfolio::new(10_000.0, 5, "EURUSD", 1.0);
 
         // Open and close multiple positions
         let signal = make_signal(Direction::Long, 1.2000, 1.1950, 1.2100);
@@ -652,7 +666,7 @@ mod tests {
 
     #[test]
     fn test_trade_meta_defaults() {
-        let mut portfolio = Portfolio::new(10_000.0, 5, "EURUSD");
+        let mut portfolio = Portfolio::new(10_000.0, 5, "EURUSD", 1.0);
 
         let signal = make_signal(Direction::Long, 1.2000, 1.1950, 1.2100);
         let id = portfolio
@@ -678,7 +692,7 @@ mod tests {
 
     #[test]
     fn test_trade_meta_break_even_kind() {
-        let mut portfolio = Portfolio::new(10_000.0, 5, "EURUSD");
+        let mut portfolio = Portfolio::new(10_000.0, 5, "EURUSD", 1.0);
 
         let signal = make_signal(Direction::Long, 1.2000, 1.1950, 1.2100);
         let id = portfolio
@@ -698,7 +712,7 @@ mod tests {
 
     #[test]
     fn test_consistency_validation_passes() {
-        let mut portfolio = Portfolio::new(10_000.0, 5, "EURUSD");
+        let mut portfolio = Portfolio::new(10_000.0, 5, "EURUSD", 1.0);
 
         let signal = make_signal(Direction::Long, 1.2000, 1.1950, 1.2100);
         portfolio
@@ -713,7 +727,7 @@ mod tests {
 
     #[test]
     fn test_consistency_validation_fails_on_mismatch() {
-        let mut portfolio = Portfolio::new(10_000.0, 5, "EURUSD");
+        let mut portfolio = Portfolio::new(10_000.0, 5, "EURUSD", 1.0);
 
         let signal = make_signal(Direction::Long, 1.2000, 1.1950, 1.2100);
         portfolio

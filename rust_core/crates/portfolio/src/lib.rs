@@ -29,8 +29,8 @@
 //! use omega_types::{Direction, OrderType, Signal, ExitReason, Candle};
 //! use serde_json::json;
 //!
-//! // Create portfolio
-//! let mut portfolio = Portfolio::new(10_000.0, 5, "EURUSD");
+//! // Create portfolio (unit_value_per_price = 1.0 for simplicity)
+//! let mut portfolio = Portfolio::new(10_000.0, 5, "EURUSD", 1.0);
 //!
 //! // Open a position
 //! let signal = Signal {
