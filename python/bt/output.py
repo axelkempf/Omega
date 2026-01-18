@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import csv
 import json
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable, Mapping
@@ -29,6 +30,9 @@ def write_artifacts(result: Mapping[str, Any], output_dir: str | Path) -> None:
     output_path = Path(output_dir)
     output_path.mkdir(parents=True, exist_ok=True)
 
+    profiling = _extract_profiling(result)
+    write_start = time.perf_counter()
+
     now_dt = datetime.now(timezone.utc)
     now_ns = int(now_dt.timestamp() * NS_PER_SECOND)
 
@@ -46,6 +50,14 @@ def write_artifacts(result: Mapping[str, Any], output_dir: str | Path) -> None:
 
     equity = result.get("equity_curve") or []
     write_equity_csv(output_path / "equity.csv", equity)
+
+    write_seconds = time.perf_counter() - write_start
+    if profiling is not None:
+        profiling["time_write_artifacts_sec"] = _round_seconds(write_seconds)
+        _attach_profiling(result, profiling)
+        profiling_dir = output_path / "profiling"
+        profiling_dir.mkdir(parents=True, exist_ok=True)
+        write_json(profiling_dir / "profiling.json", {"metrics": profiling})
 
 
 def write_json(path: Path, data: Any) -> None:
@@ -161,6 +173,29 @@ def _build_meta(
         meta_out["git"] = dict(git)
 
     return meta_out
+
+
+def _extract_profiling(result: Mapping[str, Any]) -> dict[str, Any] | None:
+    profiling = result.get("profiling")
+    if isinstance(profiling, Mapping):
+        return dict(profiling)
+    meta = result.get("meta")
+    if isinstance(meta, Mapping):
+        extra = meta.get("extra")
+        if isinstance(extra, Mapping):
+            candidate = extra.get("profiling")
+            if isinstance(candidate, Mapping):
+                return dict(candidate)
+    return None
+
+
+def _attach_profiling(result: Mapping[str, Any], profiling: dict[str, Any]) -> None:
+    if isinstance(result, dict):
+        result["profiling"] = profiling
+
+
+def _round_seconds(value: float) -> float:
+    return round(value, 6)
 
 
 def _as_dict(value: Any) -> dict[str, Any]:

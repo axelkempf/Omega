@@ -1,5 +1,7 @@
 use std::collections::BTreeMap;
 
+use serde_json::Value;
+
 use crate::trade::Trade;
 
 /// Backtest result container.
@@ -23,6 +25,9 @@ pub struct BacktestResult {
     /// Equity curve data
     #[serde(skip_serializing_if = "Option::is_none")]
     pub equity_curve: Option<Vec<EquityPoint>>,
+    /// Profiling information
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub profiling: Option<Value>,
     /// Result metadata
     #[serde(skip_serializing_if = "Option::is_none")]
     pub meta: Option<ResultMeta>,
@@ -219,6 +224,7 @@ mod tests {
             }),
             metric_definitions: None,
             equity_curve: None,
+            profiling: None,
             meta: None,
         };
 
@@ -243,6 +249,7 @@ mod tests {
             metrics: None,
             metric_definitions: None,
             equity_curve: None,
+            profiling: None,
             meta: None,
         };
 

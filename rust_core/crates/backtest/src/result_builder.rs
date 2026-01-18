@@ -11,6 +11,7 @@ pub(crate) fn build_result(
     fees_total: f64,
     risk_per_trade: f64,
     meta: ResultMeta,
+    profiling: Option<serde_json::Value>,
 ) -> BacktestResult {
     let metrics_output = compute_metrics(&trades, &equity_curve, fees_total, risk_per_trade);
 
@@ -21,6 +22,7 @@ pub(crate) fn build_result(
         metrics: Some(metrics_output.metrics),
         metric_definitions: Some(metrics_output.definitions),
         equity_curve: Some(equity_curve),
+        profiling,
         meta: Some(meta),
     }
 }

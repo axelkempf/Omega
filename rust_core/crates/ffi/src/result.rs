@@ -23,6 +23,7 @@ pub fn serialize_error(err: BacktestError) -> String {
         metrics: None,
         metric_definitions: None,
         equity_curve: None,
+        profiling: None,
         meta: None,
     };
 

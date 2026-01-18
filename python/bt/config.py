@@ -114,4 +114,10 @@ def _normalize_config(config: Mapping[str, Any]) -> dict[str, Any]:
         timeframes.setdefault("additional", [])
         timeframes.setdefault("additional_source", DEFAULT_ADDITIONAL_SOURCE)
 
+    profiling = normalized.get("profiling")
+    if isinstance(profiling, bool):
+        normalized["profiling"] = {"enabled": profiling}
+    elif profiling is None:
+        normalized.setdefault("profiling", {"enabled": False})
+
     return normalized

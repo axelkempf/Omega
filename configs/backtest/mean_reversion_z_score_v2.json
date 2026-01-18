@@ -51,6 +51,10 @@
     "logging_mode": "trades_only"
   },
 
+  "profiling": {
+    "enabled": true
+  },
+
   "trade_management": {
     "enabled": false,
     "stop_update_policy": "apply_next_bar",

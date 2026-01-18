@@ -58,6 +58,8 @@ pub struct BacktestEngine {
     bar_duration_ns: i64,
     start_instant: Instant,
     meta_extra: JsonValue,
+    profiling_enabled: bool,
+    profiling: ProfilingTimings,
 }
 
 #[derive(Debug, Clone)]
@@ -176,6 +178,38 @@ struct DataLoadResult {
     governance: DatasetGovernance,
 }
 
+#[derive(Debug, Clone, Copy, Default)]
+struct ProfilingTimings {
+    init: f64,
+    data_load: f64,
+    indicator: f64,
+    event_loop: f64,
+    metrics: f64,
+}
+
+impl ProfilingTimings {
+    fn total_seconds(self) -> f64 {
+        self.init + self.event_loop + self.metrics
+    }
+
+    fn to_json(self, bars_total: usize, warmup_bars: usize) -> JsonValue {
+        let bars_processed = bars_total.saturating_sub(warmup_bars);
+        let init_other = (self.init - self.data_load - self.indicator).max(0.0);
+
+        json!({
+            "wall_time_total_sec": round_seconds(self.total_seconds()),
+            "time_init_sec": round_seconds(self.init),
+            "time_init_other_sec": round_seconds(init_other),
+            "time_data_load_sec": round_seconds(self.data_load),
+            "time_indicators_sec": round_seconds(self.indicator),
+            "time_event_loop_sec": round_seconds(self.event_loop),
+            "time_metrics_sec": round_seconds(self.metrics),
+            "bars_total": bars_total,
+            "bars_processed": bars_processed,
+        })
+    }
+}
+
 impl BacktestEngine {
     /// Creates a new backtest engine from config.
     ///
@@ -184,6 +218,13 @@ impl BacktestEngine {
     /// or indicator preparation cannot be completed.
     #[allow(clippy::too_many_lines)]
     pub fn new(config: BacktestConfig) -> Result<Self, BacktestError> {
+        let profiling_enabled = config.profiling.enabled;
+        let init_start = if profiling_enabled {
+            Some(Instant::now())
+        } else {
+            None
+        };
+
         if config.data_mode != DataMode::Candle {
             return Err(BacktestError::ConfigValidation(
                 "only candle data_mode is supported".to_string(),
@@ -194,19 +235,33 @@ impl BacktestEngine {
         let strategy = registry.create(&config.strategy_name, &config.strategy_parameters)?;
         let required_htf_timeframes = strategy.required_htf_timeframes();
 
+        let data_start = if profiling_enabled {
+            Some(Instant::now())
+        } else {
+            None
+        };
         let DataLoadResult {
             store: data,
             manifest_inputs,
             governance,
         } = load_data(&config, &required_htf_timeframes)?;
+        let data_load_seconds =
+            data_start.map_or(0.0, |start| start.elapsed().as_secs_f64());
         validate_warmup(&data.primary, config.warmup_bars)?;
         validate_htf_warmup(data.htf.as_ref(), config.warmup_bars)?;
 
         let primary_tf = data.primary.timeframe;
         let bar_duration_ns = timeframe_to_ns(primary_tf)?;
 
+        let indicator_start = if profiling_enabled {
+            Some(Instant::now())
+        } else {
+            None
+        };
         let (indicators, htf_indicators) =
             compute_indicators(&data, &strategy.required_indicators(), data.htf.as_ref())?;
+        let indicator_seconds =
+            indicator_start.map_or(0.0, |start| start.elapsed().as_secs_f64());
 
         // Each timeframe now has its own independent warmup period.
         // HTF indicators are stored in htf_cache at native length (no stretching).
@@ -330,6 +385,15 @@ impl BacktestEngine {
         let meta_extra =
             build_meta_extra(&config, &governance, &config_hash, &manifest_hash, &run_id);
 
+        let init_seconds = init_start.map_or(0.0, |start| start.elapsed().as_secs_f64());
+        let profiling = ProfilingTimings {
+            init: init_seconds,
+            data_load: data_load_seconds,
+            indicator: indicator_seconds,
+            event_loop: 0.0,
+            metrics: 0.0,
+        };
+
         Ok(Self {
             config,
             data,
@@ -351,6 +415,8 @@ impl BacktestEngine {
             bar_duration_ns,
             start_instant: Instant::now(),
             meta_extra,
+            profiling_enabled,
+            profiling,
         })
     }
 
@@ -360,7 +426,19 @@ impl BacktestEngine {
     /// Returns an error if post-run consistency validation fails.
     pub fn run(mut self) -> Result<BacktestResult, BacktestError> {
         self.start_instant = Instant::now();
+        let profiling_enabled = self.profiling_enabled;
+        let mut profiling = self.profiling;
+        let bars_total = self.data.primary.len();
+        let warmup_bars = self.config.warmup_bars;
+        let loop_start = if profiling_enabled {
+            Some(Instant::now())
+        } else {
+            None
+        };
         event_loop::run_event_loop(&mut self);
+        if let Some(start) = loop_start {
+            profiling.event_loop = start.elapsed().as_secs_f64();
+        }
         self.validate_portfolio_consistency()?;
         let runtime_seconds = self.runtime_seconds();
         let meta = result_builder::build_meta(
@@ -373,14 +451,27 @@ impl BacktestEngine {
         let risk_per_trade = self.config.account.risk_per_trade;
         let trades = self.portfolio.closed_trades().to_vec();
         let equity_curve = self.portfolio.into_equity_tracker().into_equity_curve();
-
-        Ok(result_builder::build_result(
+        let metrics_start = if profiling_enabled {
+            Some(Instant::now())
+        } else {
+            None
+        };
+        let mut result = result_builder::build_result(
             trades,
             equity_curve,
             fees_total,
             risk_per_trade,
             meta,
-        ))
+            None,
+        );
+        if let Some(start) = metrics_start {
+            profiling.metrics = start.elapsed().as_secs_f64();
+        }
+        if profiling_enabled {
+            result.profiling = Some(profiling.to_json(bars_total, warmup_bars));
+        }
+
+        Ok(result)
     }
 
     pub(crate) fn warmup_bars(&self) -> usize {
@@ -1548,6 +1639,10 @@ fn random_seed() -> u64 {
         .ok()
         .and_then(|dur| u64::try_from(dur.as_nanos()).ok())
         .unwrap_or(42)
+}
+
+fn round_seconds(value: f64) -> f64 {
+    (value * 1_000_000.0).round() / 1_000_000.0
 }
 
 fn compute_unit_value_per_price(spec: &omega_execution::SymbolSpec) -> f64 {

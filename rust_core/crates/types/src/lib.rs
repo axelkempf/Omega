@@ -31,8 +31,8 @@ pub mod trade;
 pub use candle::Candle;
 pub use config::{
     AccountConfig, BacktestConfig, CostsConfig, DataMode, ExecutionVariant, LoggingConfig,
-    MaxHoldingTimeConfig, NewsFilterConfig, NewsImpact, RunMode, SessionConfig, StopUpdatePolicy,
-    TimeframeConfig, TradeManagementConfig, TradeManagementRulesConfig,
+    MaxHoldingTimeConfig, NewsFilterConfig, NewsImpact, ProfilingConfig, RunMode, SessionConfig,
+    StopUpdatePolicy, TimeframeConfig, TradeManagementConfig, TradeManagementRulesConfig,
 };
 pub use error::CoreError;
 pub use position::Position;

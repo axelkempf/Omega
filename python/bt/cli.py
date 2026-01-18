@@ -151,6 +151,31 @@ def print_summary(result: Mapping[str, Any], config_path: Path) -> None:
     if output_dir:
         print()
         print(f"  Output:      {output_dir}")
+
+    profiling = result.get("profiling")
+    if not isinstance(profiling, Mapping) and isinstance(extra, Mapping):
+        profiling = extra.get("profiling")
+
+    if isinstance(profiling, Mapping):
+        timing_items = {
+            key: value
+            for key, value in profiling.items()
+            if key.startswith("time_") and key.endswith("_sec")
+        }
+        total = profiling.get("wall_time_total_sec")
+        if timing_items or total is not None:
+            print()
+            print("Timing (seconds):")
+            if total is not None:
+                print(f"    total: {float(total):.4f}s")
+            for key, value in sorted(
+                timing_items.items(), key=lambda item: float(item[1]), reverse=True
+            ):
+                print(f"    {key}: {float(value):.4f}s")
+            if timing_items:
+                slowest_key = max(timing_items, key=lambda k: float(timing_items[k]))
+                slowest_val = float(timing_items[slowest_key])
+                print(f"    slowest: {slowest_key} ({slowest_val:.4f}s)")
     print()
 
 

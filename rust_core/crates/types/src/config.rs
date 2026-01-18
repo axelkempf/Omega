@@ -40,6 +40,9 @@ pub struct BacktestConfig {
     /// Logging configuration
     #[serde(default)]
     pub logging: LoggingConfig,
+    /// Profiling configuration
+    #[serde(default)]
+    pub profiling: ProfilingConfig,
     /// Metrics configuration
     #[serde(default)]
     pub metrics: Option<serde_json::Value>,
@@ -79,6 +82,8 @@ struct BacktestConfigRaw {
     #[serde(default)]
     pub logging: LoggingConfig,
     #[serde(default)]
+    pub profiling: ProfilingConfig,
+    #[serde(default)]
     pub metrics: Option<serde_json::Value>,
     #[serde(default)]
     pub trade_management: Option<TradeManagementConfig>,
@@ -110,6 +115,7 @@ impl From<BacktestConfigRaw> for BacktestConfig {
             costs: raw.costs,
             news_filter: raw.news_filter,
             logging: raw.logging,
+            profiling: raw.profiling,
             metrics: raw.metrics,
             trade_management: raw.trade_management,
             strategy_parameters: raw.strategy_parameters,
@@ -381,6 +387,14 @@ impl Default for LoggingConfig {
     }
 }
 
+/// Profiling-Konfiguration
+#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+pub struct ProfilingConfig {
+    /// Enable profiling output
+    #[serde(default)]
+    pub enabled: bool,
+}
+
 /// Stop update policy
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -528,6 +542,7 @@ mod tests {
             costs: CostsConfig::default(),
             news_filter: None,
             logging: LoggingConfig::default(),
+            profiling: ProfilingConfig::default(),
             metrics: None,
             trade_management: None,
             strategy_parameters: serde_json::json!({"param1": 10}),
