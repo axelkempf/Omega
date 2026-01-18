@@ -48,6 +48,12 @@ jobs:
       PYTHONPATH: ${{ github.workspace }}/src:${{ github.workspace }}
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+      - name: Install Python dependencies for parity tests
+        run: pip install numpy pandas
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
@@ -195,7 +201,7 @@ jobs:
       - uses: github/codeql-action/init@v3
         with:
           languages: python,rust
-          build-mode: manual
+          build-mode: none
       - uses: dtolnay/rust-toolchain@stable
       - name: Build Rust workspace
         shell: bash
