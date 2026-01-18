@@ -46,7 +46,7 @@ Dieses Dokument definiert die **universale Wahrheit** für die Omega V2 CI/CD-Pi
 - Trigger: `pull_request` und `push` auf `main`.
 - Docs-only Änderungen werden für diesen Workflow **geskippt**.
 - Concurrency ist aktiv und bricht alte Runs pro Branch ab.
-- Python-Tests laufen auf **3.12 und 3.13**.
+- Python-Tests laufen auf **3.12**.
 - Wheels werden als **Full-Matrix** bereits auf PRs gebaut.
 - Golden ist zweistufig: **Golden-Smoke als PR-Gate**, Full-Golden nur nightly + release.
 - Release publiziert Wheels als **GitHub Release Assets** (kein PyPI).
@@ -59,7 +59,7 @@ Dieses Dokument definiert die **universale Wahrheit** für die Omega V2 CI/CD-Pi
 
 - GitHub Actions Workflow(s) für Omega V2 unter `.github/workflows/`.
 - Gates:
-  - Python: `pre-commit` + `pytest` (3.12/3.13)
+  - Python: `pre-commit` + `pytest` (3.12)
   - Rust: `cargo fmt --check`, `cargo clippy`, `cargo test`
   - Packaging: `maturin` Wheel-Builds (OS/Arch-Matrix)
 - Security Checks:
@@ -120,10 +120,8 @@ Docs-only Änderungen werden vom V2-Workflow ignoriert.
 
 ### 5.1 Python Test Matrix
 
-- Python: `3.12`, `3.13`
+- Python: `3.12`
 - OS: `ubuntu-latest`
-
-**Begründung:** PR-Feedback schnell halten, aber Forward-Compatibility durch 3.13 absichern.
 
 ### 5.2 Wheel Build Matrix (Full auf PR)
 
@@ -144,8 +142,7 @@ Wheels werden auf PRs bereits in voller Zielmatrix gebaut.
 
 **Python ABI:**
 
-- CI: Wheels werden für **CPython 3.12 und 3.13** gebaut.
-- MVP bleibt CPython 3.12 (Tech-Stack-Plan); 3.13 Wheels dienen CI-Futuresicherheit und können als „preview“ betrachtet werden.
+- CI: Wheels werden für **CPython 3.12** gebaut.
 
 ---
 
@@ -162,7 +159,7 @@ Wheels werden auf PRs bereits in voller Zielmatrix gebaut.
 
 ### 6.2 Job: `python_tests`
 
-**MUSS:** `pytest` auf Ubuntu im Matrix-Modus (3.12, 3.13).
+**MUSS:** `pytest` auf Ubuntu im Matrix-Modus (3.12).
 
 - Deterministisch: keine Netz-Calls, keine MT5-Abhängigkeit.
 - SOLL: `pytest -q` + ggf. JUnit-Report als Artifact.
@@ -202,7 +199,7 @@ Wheels werden auf PRs bereits in voller Zielmatrix gebaut.
 
 - Build via `maturin` (PyO3/maturin, siehe Tech-Stack-Plan)
 - Full-Matrix (OS/Arch) bereits auf PRs
-- Python: 3.12 und 3.13
+- Python: 3.12
 
 **SOLL:** Upload der Wheels als Workflow-Artifacts.
 
@@ -306,7 +303,7 @@ Beispiel:
 Ein PR, der V2-Core-Code ändert, ist nur mergebar, wenn:
 
 - `python_precommit` grün ist
-- `python_tests` (3.12 + 3.13) grün ist
+- `python_tests` (3.12) grün ist
 - `rust_checks` grün ist (sofern V2 Rust-Core vorhanden)
 - `security_dependency_review` grün ist
 - `security_audit` grün ist
