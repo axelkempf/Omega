@@ -26,7 +26,7 @@
     "initial_balance": 100000.0,
     "account_currency": "USD",
     "risk_per_trade": 100.0,
-    "max_positions": 100
+    "max_positions": 1
   },
 
   "costs": {
@@ -40,7 +40,7 @@
 
   "news_filter": {
     "enabled": true,
-    "minutes_before": 30,
+    "minutes_before": 60,
     "minutes_after": 30,
     "min_impact": "medium",
     "currencies": ["EUR", "USD"]
