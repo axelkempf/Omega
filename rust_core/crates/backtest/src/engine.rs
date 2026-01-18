@@ -245,8 +245,7 @@ impl BacktestEngine {
             manifest_inputs,
             governance,
         } = load_data(&config, &required_htf_timeframes)?;
-        let data_load_seconds =
-            data_start.map_or(0.0, |start| start.elapsed().as_secs_f64());
+        let data_load_seconds = data_start.map_or(0.0, |start| start.elapsed().as_secs_f64());
         validate_warmup(&data.primary, config.warmup_bars)?;
         validate_htf_warmup(data.htf.as_ref(), config.warmup_bars)?;
 
@@ -260,8 +259,7 @@ impl BacktestEngine {
         };
         let (indicators, htf_indicators) =
             compute_indicators(&data, &strategy.required_indicators(), data.htf.as_ref())?;
-        let indicator_seconds =
-            indicator_start.map_or(0.0, |start| start.elapsed().as_secs_f64());
+        let indicator_seconds = indicator_start.map_or(0.0, |start| start.elapsed().as_secs_f64());
 
         // Each timeframe now has its own independent warmup period.
         // HTF indicators are stored in htf_cache at native length (no stretching).

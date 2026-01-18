@@ -21,7 +21,7 @@ rand_chacha = "0.3"
 sha2 = { workspace = true }
 
 [dev-dependencies]
-arrow = "51"
-parquet = "51"
+arrow = "57"
+parquet = "57"
 temp-env = "0.3"
 tempfile = "3"

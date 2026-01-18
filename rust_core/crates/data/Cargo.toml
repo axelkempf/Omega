@@ -5,8 +5,8 @@ edition.workspace = true
 
 [dependencies]
 omega_types = { workspace = true }
-arrow = "51"
-parquet = "51"
+arrow = "57"
+parquet = "57"
 thiserror = { workspace = true }
 tracing = "0.1"
 
