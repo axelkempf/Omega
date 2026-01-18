@@ -44,6 +44,7 @@ jobs:
     name: rust-checks
     runs-on: ubuntu-latest
     env:
+      PYTHON: python3
       PYO3_PYTHON: python3
       PYTHONPATH: ${{ github.workspace }}/src:${{ github.workspace }}
     steps:
